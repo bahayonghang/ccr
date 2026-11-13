@@ -45,6 +45,13 @@ export function InsightsLeaderboards({ data }: { data: HomeInsightsResponse }) {
     () => buildLeaderboard(data, { dimension, metric }, resolveLabel),
     [data, dimension, metric, resolveLabel]
   )
+  // 项目榜归属不完整时写原因：全部未归属不能冒充空榜，部分归属说明只列已归属项目
+  const projectNotice =
+    dimension === 'projects' && !data.totals.project_attribution_complete
+      ? data.totals.projects > 0
+        ? 'dashboard.insights.projectsPartialNotice'
+        : 'dashboard.insights.projectsUnattributedNotice'
+      : null
   const disabledKey = sessionsDisabledTitle(dimension, data.sessions_indexed)
   const dimensionOptions = useMemo(
     () =>
@@ -84,11 +91,9 @@ export function InsightsLeaderboards({ data }: { data: HomeInsightsResponse }) {
           />
         </div>
       </header>
-      {dimension === 'projects' && !data.totals.project_attribution_complete ? (
-        <p className="insights-caption">{t('dashboard.insights.projectsPartialNotice')}</p>
-      ) : null}
+      {projectNotice ? <p className="insights-caption">{t(projectNotice)}</p> : null}
       {rows.length === 0 ? (
-        <p className="insights-caption">{t('dashboard.insights.leaderboard.empty')}</p>
+        projectNotice ? null : <p className="insights-caption">{t('dashboard.insights.leaderboard.empty')}</p>
       ) : (
         <ol className="insights-leaderboard__list" aria-label={t(DIMENSION_KEYS[dimension])}>
           {rows.map((row) => (

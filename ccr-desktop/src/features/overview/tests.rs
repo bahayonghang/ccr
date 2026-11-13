@@ -907,6 +907,36 @@ fn distribution_and_leader_tabs_switch_in_place(cx: &mut TestAppContext) {
             window.find("overview-leaders-empty").label(),
             Some("No attributed projects")
         );
+        // 部分归属：保留已归属榜单，并说明只列出已归属项目。
+        let partial_caption =
+            "Some usage has no project attribution; only attributed projects are listed.";
+        let caption_present = |window: &Window| {
+            gpui_kit::base::test_support::snapshots(window)
+                .iter()
+                .any(|node| node.label() == Some(partial_caption))
+        };
+        assert!(caption_present(window));
+        let mut partial = activity_fixture();
+        partial.totals.project_attribution_complete = false;
+        show(&view, report_fixture(Some(partial)), window, cx);
+        window.click("overview-leaders-projects", cx);
+        assert_eq!(
+            window.find("overview-leader-0").label(),
+            Some(r"D:\Documents\thesis · 12 requests")
+        );
+        assert!(window.try_find("overview-leaders-empty").is_none());
+        assert!(caption_present(window));
+        // 真实空：归属完整且无项目时写“暂无记录”，不带未归属说明。
+        let mut no_projects = activity_fixture();
+        no_projects.projects.clear();
+        no_projects.totals.projects = 0;
+        show(&view, report_fixture(Some(no_projects)), window, cx);
+        window.click("overview-leaders-projects", cx);
+        assert_eq!(
+            window.find("overview-leaders-empty").label(),
+            Some("No records")
+        );
+        assert!(!caption_present(window));
         window.remove_window();
     })
     .unwrap_or_else(|e| panic!("tabs: {e}"));

@@ -31,6 +31,13 @@ const renderInsights = (data: HomeInsightsResponse | null, isNativeRuntime = tru
   )
 }
 
+const selectProjectsBoard = () => {
+  const dimension = screen.getByRole('radiogroup', {
+    name: 'dashboard.insights.leaderboard.dimensionLabel',
+  })
+  fireEvent.click(within(dimension).getByRole('radio', { name: 'dashboard.insights.leaderboard.projects' }))
+}
+
 const panel = (title: RegExp | string) =>
   screen.getByRole('heading', { name: title }).closest('section') as HTMLElement
 
@@ -48,6 +55,32 @@ describe('dashboard insights: empty states', () => {
     renderInsights(data)
     expect(screen.getByText('dashboard.insights.projectsUnattributedNotice')).toBeTruthy()
     expect(document.querySelectorAll('.insights-totals__value')[4]?.textContent).toBe('—')
+    selectProjectsBoard()
+    expect(screen.getAllByText('dashboard.insights.projectsUnattributedNotice')).toHaveLength(2)
+    expect(screen.queryByText('dashboard.insights.projectsPartialNotice')).toBeNull()
+    expect(screen.queryByText('dashboard.insights.leaderboard.empty')).toBeNull()
+  })
+  it('keeps attributed projects and says partial coverage undercounts', () => {
+    const data = makeInsights()
+    data.totals.project_attribution_complete = false
+    renderInsights(data)
+    expect(document.querySelectorAll('.insights-totals__value')[4]?.textContent).toBe('1')
+    expect(screen.getByText('dashboard.insights.projectsPartialNotice')).toBeTruthy()
+    selectProjectsBoard()
+    expect(screen.getAllByText('dashboard.insights.projectsPartialNotice')).toHaveLength(2)
+    expect(screen.getByRole('list', { name: 'dashboard.insights.leaderboard.projects' })).toBeTruthy()
+    expect(screen.queryByText('dashboard.insights.projectsUnattributedNotice')).toBeNull()
+  })
+  it('keeps a real zero when attribution is complete and no project exists', () => {
+    const data = makeInsights()
+    data.totals.projects = 0
+    data.projects = []
+    renderInsights(data)
+    expect(document.querySelectorAll('.insights-totals__value')[4]?.textContent).toBe('0')
+    selectProjectsBoard()
+    expect(screen.getByText('dashboard.insights.leaderboard.empty')).toBeTruthy()
+    expect(screen.queryByText('dashboard.insights.projectsPartialNotice')).toBeNull()
+    expect(screen.queryByText('dashboard.insights.projectsUnattributedNotice')).toBeNull()
   })
   it('web preview makes no call and shows the preview notice', () => {
     renderInsights(null, false)
