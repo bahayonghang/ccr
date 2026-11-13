@@ -108,7 +108,7 @@ Codex Auth plaintext import must return the service error after printing its fai
 - `project_init_command(auto_yes: bool) -> ccr_core::Result<()>`
 - Minimum Trellis postcondition: `<cwd>/.trellis/workflow.md` and `<cwd>/.trellis/scripts/task.py` are files.
 - Fixed platform menu, in order, default checked: Claude Code (`--claude`), Codex (`--codex`), Cursor (`--cursor`), Oh My Pi (`--omp`), Grok (`--grok`).
-- Fixed ignore rules: `.agents/`, `.claude/`, `.codex/`, `ref/`.
+- Fixed ignore rules, in this order: `.agents/`, `.claude/`, `.codex/`, `.cursor/`, `.omp/`, `.grok/`, `ref/`. They do not follow the platforms selected in this run. `.agents/` is the shared Codex directory. `.trellis/` stays tracked. Kimi stays off the menu and is not an ignore rule. A file that only has the older four rules (`.agents/`, `.claude/`, `.codex/`, `ref/`) gains `.cursor/`, `.omp/`, and `.grok/` on the next run. Source: Grok session `01a1c998-2fde-7572-910a-b5d6808135e4` (2026-11-11, user accepted the init fix and asked to commit); implemented by `PROJECT_IGNORE_RULES` in `crates/ccr-cli/src/commands/project/init.rs` and stated in `docs/reference/commands/project-init.md`.
 
 ### 3. Contracts
 
@@ -118,7 +118,7 @@ Codex Auth plaintext import must return the service error after printing its fai
 - Interactive mode, after Git succeeds, shows `dialoguer::MultiSelect` for the five platforms, all default checked. An empty selection re-prompts and does not start Trellis. Kimi and every other Trellis platform stay off the menu. Interact failure is `UiError`. Then `prompt_required` collects a non-empty developer name. Interactive mode does not read `git config user.name` and does not pass `--yes`.
 - `ccr -y project init` does not prompt. It runs `git config user.name` with the Git binary already resolved for the Git stage, in the current directory. Spawn failure is `ExternalCommandError`. A non-zero exit or blank stdout is `ValidationError` and must not start Trellis. The Trellis arguments are `init -u <name> --claude --codex --cursor --omp --grok --yes`.
 - Trellis inherits stdin, stdout, and stderr. A successful exit status is necessary but insufficient: validate the minimum postcondition before creating `ref/` or touching `.gitignore`.
-- `ref/` keeps an existing directory. A file at `ref` is `FileIoError` and does not modify `.gitignore`. A missing directory is created. Then merge ignore rules. When all four rules already exist, do not rewrite `.gitignore`, but still create a missing `ref/` directory.
+- `ref/` keeps an existing directory. A file at `ref` is `FileIoError` and does not modify `.gitignore`. A missing directory is created. Then merge ignore rules. When all seven rules already exist, do not rewrite `.gitignore`, but still create a missing `ref/` directory.
 - Merge only missing fixed ignore rules. Preserve existing text and LF/CRLF style, skip the write when unchanged, and use `AtomicWriter` when changed.
 - Partial Git/Trellis results are not rolled back. Idempotent retry is the recovery model.
 
@@ -149,12 +149,12 @@ Codex Auth plaintext import must return the service error after printing its fai
 
 - `cargo test -p ccr-cli commands::project::init -- --test-threads=1`
   - Assert argv order for all five platforms, dropping a middle flag, empty platforms, and trailing `--yes`.
-  - Assert ignore merging covers empty/partial/complete content, missing final newline, CRLF, `ref/`, and no-write idempotence.
+  - Assert ignore merging covers empty/partial/complete content, the seven-rule list, legacy four-rule append of `.cursor/`, `.omp/`, and `.grok/`, missing final newline, CRLF, `ref/`, and no-write idempotence.
 - `cargo test -p ccr --test commands project_init -- --test-threads=1`
   - Assert stage order, cwd, parent-worktree behavior, `-y` Git username plus the five platform flags, all failure boundaries, `ref/` preservation and file conflicts, postcondition checks, and retry-safe file results.
   - Fake Git under an isolated child `PATH` must answer `config user.name` from `FAKE_GIT_USER` and follow `test-fixtures.md`. Unix scripts cannot depend on helpers hidden by that PATH.
 - `cargo test -p ccr --test commands help -- --test-threads=1`
-  - Assert nested help parity, legacy `ccr init` compatibility, `ref/`, and the five platform names.
+  - Assert nested help parity, legacy `ccr init` compatibility, `ref/`, the five platform names, and `.cursor/`, `.omp/`, `.grok/`.
 - Run `just docs-check`, `just lint-strict`, and the final task-appropriate aggregate gate.
 
 ### 7. Wrong vs Correct
@@ -170,7 +170,7 @@ Command::new("trellis").args(["init", "--kimi"]).status()?;
 fs::write(root.join(".gitignore"), ".agents/\n.claude/\n.codex/\n")?;
 ```
 
-Checking only `.git` can create a nested repository. Bare `trellis init` skips CCR's five-platform menu and developer prompt, and `--kimi` selects a platform outside that menu. Replacing `.gitignore` discards existing rules and omits `ref/`.
+Checking only `.git` can create a nested repository. Bare `trellis init` skips CCR's five-platform menu and developer prompt, and `--kimi` selects a platform outside that menu. Replacing `.gitignore` discards existing rules and omits `ref/` plus `.cursor/`, `.omp/`, and `.grok/`.
 
 #### Correct
 
