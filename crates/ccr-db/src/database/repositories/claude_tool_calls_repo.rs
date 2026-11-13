@@ -476,6 +476,39 @@ mod tests {
         assert_eq!((local[0].dow, local[0].hour, local[0].count), (1, 8, 1));
         let utc = heatmap_at(&conn, 1, as_of).unwrap();
         assert_eq!((utc[0].dow, utc[0].hour), (0, 23));
+        // UTC 周日 23:30 在 UTC+8 下落到周一 07 点桶
+        let east8 = chrono::FixedOffset::east_opt(8 * 3600).unwrap();
+        let shifted = heatmap_in_timezone_at(&conn, 1, as_of, &east8).unwrap();
+        assert_eq!(
+            (shifted[0].dow, shifted[0].hour, shifted[0].count),
+            (1, 7, 1)
+        );
+    }
+
+    #[test]
+    fn heatmap_applies_each_events_own_dst_offset() {
+        let mut conn = fresh_conn();
+        // 同为 UTC 12:00：冬令时 EST(-5) 为 07 点，夏令时 EDT(-4) 为 08 点；固定偏移会把两者并到同一桶
+        let rows = ["2026-01-14T12:00:00Z", "2026-07-15T12:00:00Z"]
+            .into_iter()
+            .enumerate()
+            .map(|(index, ts)| {
+                let mut row = sample_row(&format!("s{index}"), 1, "Read", true, 0.0);
+                row.ts = ts.into();
+                row
+            })
+            .collect::<Vec<_>>();
+        upsert_batch(&mut conn, &rows).unwrap();
+        let as_of = chrono::DateTime::parse_from_rfc3339("2026-12-31T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        let cells = heatmap_in_timezone_at(&conn, 0, as_of, &chrono_tz::America::New_York).unwrap();
+        let bins = cells
+            .iter()
+            .map(|cell| (cell.dow, cell.hour, cell.count))
+            .collect::<Vec<_>>();
+        // 2026-01-14 与 2026-07-15 都是周三
+        assert_eq!(bins, vec![(3, 7, 1), (3, 8, 1)]);
     }
 
     #[test]

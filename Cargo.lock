@@ -557,6 +557,7 @@ dependencies = [
  "ccr-core",
  "ccr-types",
  "chrono",
+ "chrono-tz",
  "dirs",
  "indexmap",
  "once_cell",
