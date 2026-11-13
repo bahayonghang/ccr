@@ -241,3 +241,37 @@ fn selected_source_is_retained_without_ingesting_another_sources_tools() {
     assert_eq!(requests.import_snapshot().options, options);
     owner.shutdown();
 }
+// PRD 8.3「作用域」：平台作用域内的导入来源不能伪造——绕过界面直接传入别的平台或不指定来源，
+// 都在准入前拒绝，不启动任何任务。
+#[test]
+fn scoped_import_rejects_forged_or_missing_source_before_admission() {
+    let root = tempfile::tempdir().unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let claude = fixture(&owner, root.path()).scoped(Some(Platform::Claude));
+    for source in [Some(SourceKind::Codex), None] {
+        assert_eq!(
+            claude.start_import_with_options(
+                key(EnvironmentId::Local("fixture".into())),
+                Options {
+                    source,
+                    ..Options::default()
+                },
+            ),
+            Err(Failure::SourceRoot)
+        );
+    }
+    // 远程环境同样先按来源拒绝，不会回落到本地导入。
+    assert_eq!(
+        claude.start_import_with_options(
+            key(EnvironmentId::Ssh("remote".into())),
+            Options {
+                source: Some(SourceKind::Codex),
+                ..Options::default()
+            },
+        ),
+        Err(Failure::SourceRoot)
+    );
+    assert_eq!(owner.handle().active_tasks(), 0);
+    assert_eq!(claude.import_snapshot().status, Status::Idle);
+    owner.shutdown();
+}

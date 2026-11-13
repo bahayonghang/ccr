@@ -30,21 +30,6 @@ mod claude_trend;
 mod grok;
 mod rolling;
 
-#[derive(Clone, Copy)]
-pub enum Link {
-    Profiles,
-    Auth,
-    Settings,
-    Mcp,
-    Files,
-    Agents,
-    Plugins,
-    Commands,
-    Usage,
-    Observer,
-    Sessions,
-}
-
 pub fn name(platform: Platform) -> &'static str {
     match platform {
         Platform::Claude => "Claude Code",
@@ -104,7 +89,6 @@ pub struct WorkbenchView {
     /// 键盘激活的日期条：在同面板给出可见读数，日期信息不再只能靠 hover 获取。
     trend_highlight: Option<(chrono::NaiveDate, f64)>,
     exact_costs: bool,
-    pending: Option<Link>,
     focus: FocusHandle,
 }
 
@@ -134,7 +118,6 @@ impl WorkbenchView {
             subscription_stale: false,
             trend_highlight: None,
             exact_costs: false,
-            pending: None,
             focus: cx.focus_handle().tab_stop(false),
         }
     }
@@ -156,14 +139,7 @@ impl WorkbenchView {
         self.rolling = None;
         self.grok = None;
         self.generation += 1;
-        self.pending = None;
         cx.notify();
-    }
-    pub fn take_pending(&mut self) -> Option<Link> {
-        self.pending.take()
-    }
-    pub fn has_pending(&self) -> bool {
-        self.pending.is_some()
     }
     pub fn open(&mut self, platform: Platform, cx: &mut Context<Self>) {
         self.suspend(cx);

@@ -53,9 +53,7 @@ enum Action {
     Backups,
     Restore,
     RestoreExecute,
-    Clean,
     History,
-    ClearHistory,
     Advanced,
     Environment,
     ShellEnvironment,
@@ -401,8 +399,6 @@ impl ProfileTools {
             | Action::Source
             | Action::Inspect
             | Action::ExportSecrets
-            | Action::Clean
-            | Action::ClearHistory
             | Action::Import
             | Action::ImportCommit
             | Action::Restore
@@ -543,8 +539,6 @@ impl ProfileTools {
                 self.output_kind = OutputKind::Export;
                 self.submit(ProfileCommand::Export { secrets: true }, cx)
             }
-            Action::Clean => self.submit(ProfileCommand::CleanBackups, cx),
-            Action::ClearHistory => self.submit(ProfileCommand::ClearHistory, cx),
             Action::Import => {
                 self.mode = Mode::Import;
                 window.focus(&self.content.read(cx).focus_handle(cx), cx);
@@ -1940,6 +1934,255 @@ mod tests {
             assert!(view.read(cx).credential.read(cx).text().len_chars() == 0);
         })
         .unwrap_or_else(|_| panic!("scoped source leave"));
+        cx.update_window(handle, |_, window, _| window.remove_window())
+            .unwrap_or_else(|_| panic!("close"));
+        owner.shutdown();
+    }
+
+    // PRD 8.3「编辑」：只改模型时只提交脏字段；凭据留空不清除旧值；未知字段保留；保存不应用。
+    #[gpui_kit::test]
+    async fn edit_sends_only_changed_fields_and_an_empty_credential_keeps_the_secret(
+        cx: &mut TestAppContext,
+    ) {
+        cx.executor().allow_parking();
+        let (_root, source) = fixture();
+        let context =
+            context(&source, ccr_config::Platform::Claude).unwrap_or_else(|_| panic!("context"));
+        // 说明缺省（None）：保存后仍为 None。注意 owner 会把空说明归一为 None，
+        // 所以这里只证明存储结果，不单独证明界面省略了未改动的说明键（见 shared 层补丁测试）。
+        context
+            .run(|| {
+                context.manager().mutate(|config| {
+                    config.get_section_mut("beta")?.description = None;
+                    Ok(())
+                })
+            })
+            .unwrap_or_else(|_| panic!("seed"));
+        let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+        let services = Services::new(owner.handle(), source.clone());
+        let row = selected(&source);
+        let (handle, view) = cx.update(|cx| {
+            gpui_kit::init(cx);
+            gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+                cx.new(|cx| {
+                    let mut view = ProfileTools::new(services, window, cx);
+                    view.target = Some(row);
+                    view
+                })
+            })
+            .unwrap_or_else(|_| panic!("window"))
+        });
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.click("profile-edit", cx);
+            assert_eq!(
+                window
+                    .find("profile-credential")
+                    .value()
+                    .unwrap_or_default(),
+                ""
+            );
+            window.click("profile-model", cx);
+            window.press("ctrl-a", cx);
+            window.input("edited-model", cx);
+            window.click("profile-save", cx);
+        })
+        .unwrap_or_else(|_| panic!("edit"));
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| !view.read(cx).busy)
+            .await;
+        assert!(!cx.read(|cx| view.read(cx).failed));
+        let saved = context.manager().load().unwrap_or_else(|_| panic!("read"));
+        let beta = &saved.sections["beta"];
+        assert_eq!(beta.model.as_deref(), Some("edited-model"));
+        assert_eq!(beta.description, None, "untouched description stays absent");
+        assert_eq!(
+            beta.auth_token.as_ref().map(ccr_core::Secret::expose),
+            Some("sk-native-profile-secret-sentinel"),
+            "an empty credential field keeps the stored secret"
+        );
+        assert_eq!(beta.base_url.as_deref(), Some("https://fixture.invalid"));
+        assert!(beta.other.contains_key("unknown_native"));
+        assert!(beta.other.contains_key("when_native"));
+        assert_eq!(saved.current_config, "alpha", "saving does not apply");
+        cx.update_window(handle, |_, window, _| window.remove_window())
+            .unwrap_or_else(|_| panic!("close"));
+        owner.shutdown();
+    }
+
+    // PRD 8.3「编辑」：导入先预览，同名默认保留、明确选择才覆盖；预览后输入或存储版本变化都不能提交。
+    #[gpui_kit::test]
+    async fn import_preview_keeps_matching_names_and_a_stale_revision_blocks_commit(
+        cx: &mut TestAppContext,
+    ) {
+        cx.executor().allow_parking();
+        let (_root, source) = fixture();
+        let context =
+            context(&source, ccr_config::Platform::Claude).unwrap_or_else(|_| panic!("context"));
+        let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+        let services = Services::new(owner.handle(), source.clone());
+        let (handle, view) = cx.update(|cx| {
+            gpui_kit::init(cx);
+            gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+                cx.new(|cx| ProfileTools::new(services, window, cx))
+            })
+            .unwrap_or_else(|_| panic!("window"))
+        });
+        let incoming = "[gamma]\nmodel = 'gamma-model'\n[beta]\nmodel = 'incoming-model'\n";
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.click("profile-import", cx);
+            window.click("profile-confirm", cx);
+            assert!(view.read(cx).mode == Mode::Import);
+            assert!(
+                window.try_find("profile-import-commit").is_none(),
+                "no commit before a preview"
+            );
+            view.update(cx, |view, cx| {
+                view.content
+                    .update(cx, |state, cx| state.set_value(incoming, window, cx))
+            });
+            window.click("profile-save", cx);
+        })
+        .unwrap_or_else(|_| panic!("preview"));
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| !view.read(cx).busy)
+            .await;
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            let preview = view
+                .read(cx)
+                .import_preview
+                .clone()
+                .unwrap_or_else(|| panic!("preview result"));
+            assert_eq!(preview.added, vec!["gamma"]);
+            assert_eq!(preview.conflicts, vec!["beta"]);
+            let overwrite = window.find("profile-import-overwrite-0");
+            assert_eq!(overwrite.label(), Some("Overwrite beta"));
+            assert_ne!(
+                overwrite.checked(),
+                Some(true),
+                "matching names are kept by default"
+            );
+            assert_eq!(window.find("profile-import-commit").focused(), Some(false));
+            window.click("profile-import-commit", cx);
+            window.click("profile-confirm", cx);
+        })
+        .unwrap_or_else(|_| panic!("commit"));
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| !view.read(cx).busy)
+            .await;
+        let saved = context.manager().load().unwrap_or_else(|_| panic!("read"));
+        assert_eq!(
+            saved.sections["gamma"].model.as_deref(),
+            Some("gamma-model")
+        );
+        assert_eq!(
+            saved.sections["beta"].model.as_deref(),
+            Some("fixture-model"),
+            "the same-name profile is kept unless overwrite is chosen"
+        );
+        assert_eq!(saved.current_config, "alpha", "import does not apply");
+        let stale = "[delta]\nmodel = 'delta-model'\n";
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            if view.read(cx).mode != Mode::Import {
+                window.click("profile-import", cx);
+                window.click("profile-confirm", cx);
+            }
+            view.update(cx, |view, cx| {
+                view.content
+                    .update(cx, |state, cx| state.set_value(stale, window, cx))
+            });
+            window.click("profile-save", cx);
+        })
+        .unwrap_or_else(|_| panic!("second preview"));
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| !view.read(cx).busy)
+            .await;
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            // 预览之后改了输入：旧预览不能代表新内容，提交禁用。
+            view.update(cx, |view, cx| {
+                view.content
+                    .update(cx, |state, cx| state.set_value("[epsilon]\n", window, cx))
+            });
+            window.render_frame(cx);
+            // 与 semantics.rs 同口径：禁用按钮没有焦点绑定。
+            assert_eq!(window.find("profile-import-commit").focused(), None);
+            view.update(cx, |view, cx| {
+                view.content
+                    .update(cx, |state, cx| state.set_value(stale, window, cx))
+            });
+            window.render_frame(cx);
+            assert_eq!(window.find("profile-import-commit").focused(), Some(false));
+        })
+        .unwrap_or_else(|_| panic!("input gate"));
+        // 预览后另一个客户端改了目录：提交必须按原 revision 被拒绝，不写入。
+        context
+            .run(|| {
+                context.manager().mutate(|config| {
+                    config.get_section_mut("alpha")?.description = Some("external".into());
+                    Ok(())
+                })
+            })
+            .unwrap_or_else(|_| panic!("external client"));
+        cx.update_window(handle, |_, window, cx| {
+            window.click("profile-import-commit", cx);
+            window.click("profile-confirm", cx);
+        })
+        .unwrap_or_else(|_| panic!("stale commit"));
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| !view.read(cx).busy)
+            .await;
+        let saved = context.manager().load().unwrap_or_else(|_| panic!("read"));
+        assert!(
+            !saved.sections.contains_key("delta"),
+            "stale preview must not write"
+        );
+        assert!(cx.read(|cx| view.read(cx).failed));
+        cx.update_window(handle, |_, window, _| window.remove_window())
+            .unwrap_or_else(|_| panic!("close"));
+        owner.shutdown();
+    }
+
+    // PRD 8.3「焦点」：离页或切平台后，之前发出的读取晚到也不能把明文或模式写回新上下文。
+    #[gpui_kit::test]
+    async fn late_source_response_after_leave_or_platform_change_is_dropped(
+        cx: &mut TestAppContext,
+    ) {
+        cx.executor().allow_parking();
+        let (_root, source) = fixture();
+        let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+        let services = Services::new(owner.handle(), source);
+        let (handle, view) = cx.update(|cx| {
+            gpui_kit::init(cx);
+            gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+                cx.new(|cx| ProfileTools::new(services, window, cx))
+            })
+            .unwrap_or_else(|_| panic!("window"))
+        });
+        for platform_change in [false, true] {
+            cx.update_window(handle, |_, window, cx| {
+                view.update(cx, |view, cx| {
+                    view.submit(ProfileCommand::Source, cx);
+                    assert!(view.busy);
+                    if platform_change {
+                        // 忙碌时不允许切换；按外壳顺序先离页再换平台。
+                        view.leave(window, cx);
+                        assert!(view.set_platform(Platform::Codex, window, cx));
+                    } else {
+                        view.leave(window, cx);
+                    }
+                });
+            })
+            .unwrap_or_else(|_| panic!("leave"));
+            cx.run_until_parked();
+            cx.update_window(handle, |_, window, cx| {
+                window.render_frame(cx);
+                let view = view.read(cx);
+                assert!(view.mode == Mode::Closed, "late response reopened output");
+                assert!(view.content.read(cx).value().is_empty());
+                assert!(view.message.is_none());
+                assert!(!view.busy);
+            })
+            .unwrap_or_else(|_| panic!("late response"));
+        }
         cx.update_window(handle, |_, window, _| window.remove_window())
             .unwrap_or_else(|_| panic!("close"));
         owner.shutdown();

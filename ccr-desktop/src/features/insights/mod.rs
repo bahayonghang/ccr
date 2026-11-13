@@ -187,9 +187,6 @@ impl InsightsView {
     pub fn focus_main(&self, window: &mut Window, cx: &mut Context<Self>) {
         window.focus(&self.focus, cx);
     }
-    pub fn select_daily_report(&mut self) {
-        self.section = Section::Trends;
-    }
     pub fn suspend(&mut self, cx: &mut Context<Self>) {
         self.capabilities.update(cx, |this, cx| this.suspend(cx));
         self.policies.update(cx, |this, cx| this.suspend(cx));

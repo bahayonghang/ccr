@@ -410,4 +410,130 @@ mod tests {
             Err(McpError::UnsupportedCopy)
         ));
     }
+
+    // PRD 8.3「作用域」：绕过界面直接用平台作用域的服务打开/保存异平台 MCP 目标或复制到异平台，
+    // 必须拒绝且不写入；伪造 RequestKey.platform 不能换来权限；全局同类动作仍可用。
+    #[tokio::test]
+    async fn platform_scope_rejects_foreign_editor_and_copy_targets_without_writes() {
+        let root = tempfile::tempdir().unwrap();
+        let source = ConfigSource::Fixture {
+            profiles: root.path().join("profiles.toml"),
+            registry: root.path().join("registry.toml"),
+            delay: Duration::ZERO,
+        };
+        let owner = RuntimeOwner::new().unwrap();
+        let environment = EnvironmentId::Local("fixture".into());
+        let services = Services::new(owner.handle(), source.clone());
+        let scoped = services.clone().scoped(Some(Platform::Claude));
+        let key = RequestKey {
+            environment: environment.clone(),
+            platform: Platform::Claude,
+            generation: 0,
+            request_id: 0,
+        };
+        editor::begin(&source, &environment, McpTarget::ClaudeUser)
+            .unwrap()
+            .save(
+                &environment,
+                "source",
+                EntryMutation::Add(json!({"command":"tool"})),
+            )
+            .unwrap();
+        let row = McpEntry {
+            source: McpSource::ClaudeState,
+            name: "source".into(),
+            scope: McpScope::User,
+            command: Some("tool".into()),
+            has_url: false,
+            has_args: false,
+            disabled: None,
+            enabled: None,
+        };
+        let unsupported = |result: &Completion<_, McpError>| {
+            matches!(result, Completion::Failed(McpError::UnsupportedSource))
+        };
+        // 编辑器：Claude 作用域打不开 Codex 目标；别处取得的 Codex 会话也不能经它保存。
+        let opened = terminal(
+            scoped
+                .mcp_edit_request(key.clone(), McpTarget::Codex)
+                .unwrap(),
+        )
+        .await;
+        assert!(matches!(
+            opened.as_ref(),
+            Completion::Failed(McpError::UnsupportedSource)
+        ));
+        let codex = Arc::new(editor::begin(&source, &environment, McpTarget::Codex).unwrap());
+        let mut forged = key.clone();
+        forged.platform = Platform::Codex;
+        let saved = terminal(
+            scoped
+                .mcp_mutate_request(
+                    forged.clone(),
+                    codex.clone(),
+                    "forged".into(),
+                    EntryMutation::Add(json!({"command":"forged"})),
+                )
+                .unwrap(),
+        )
+        .await;
+        assert!(unsupported(saved.as_ref()));
+        // 复制：准备阶段拒绝；全局准备好的会话也不能经作用域服务保存。
+        let prepared = terminal(
+            scoped
+                .mcp_copy_prepare_request(key.clone(), row.clone(), McpTarget::Codex)
+                .unwrap(),
+        )
+        .await;
+        assert!(matches!(
+            prepared.as_ref(),
+            Completion::Failed(McpError::UnsupportedSource)
+        ));
+        let global = terminal(
+            services
+                .mcp_copy_prepare_request(key.clone(), row.clone(), McpTarget::Codex)
+                .unwrap(),
+        )
+        .await;
+        let Completion::Success(copy) = global.as_ref() else {
+            panic!("global copy preparation failed");
+        };
+        let refused = terminal(
+            scoped
+                .mcp_copy_save_request(forged, copy.clone(), "copied".into())
+                .unwrap(),
+        )
+        .await;
+        assert!(unsupported(refused.as_ref()));
+        let codex_after = editor::begin(&source, &environment, McpTarget::Codex).unwrap();
+        for name in ["forged", "copied"] {
+            assert!(
+                codex_after.entry_for_copy(name).is_err(),
+                "refused request wrote {name}"
+            );
+        }
+        // 全局入口保留原能力。
+        let copied = terminal(
+            services
+                .mcp_copy_save_request(key.clone(), copy.clone(), "copied".into())
+                .unwrap(),
+        )
+        .await;
+        assert!(matches!(copied.as_ref(), Completion::Success(())));
+        let edited = terminal(
+            services
+                .mcp_mutate_request(
+                    key.clone(),
+                    Arc::new(editor::begin(&source, &environment, McpTarget::Codex).unwrap()),
+                    "global".into(),
+                    EntryMutation::Add(json!({"command":"global"})),
+                )
+                .unwrap(),
+        )
+        .await;
+        assert!(matches!(edited.as_ref(), Completion::Success(())));
+        tokio::task::spawn_blocking(move || owner.shutdown())
+            .await
+            .unwrap();
+    }
 }

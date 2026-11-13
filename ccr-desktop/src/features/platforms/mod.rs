@@ -2,16 +2,17 @@
 mod diagnostics;
 mod forms;
 mod layers;
+mod scope;
 use crate::{
     locales::{is_chinese, text},
     runtime::{
         Services,
         platforms::{
-            AccountAction, Command, CredentialState, DESCRIPTORS, FileState, OAuthControl,
-            OAuthResult, PlatformSession, ProviderReport, ResultValue, Surface,
+            AccountAction, AccountRow, Command, CredentialState, DESCRIPTORS, FileState,
+            OAuthControl, OAuthResult, PlatformSession, ProviderReport, ResultValue, Surface,
         },
     },
-    shell::semantics,
+    shell::{badge, semantics},
     theme,
 };
 use ccr_app::{
@@ -61,6 +62,8 @@ pub struct PlatformsView {
     advanced: bool,
     layers: Entity<layers::LayersView>,
     layers_open: bool,
+    /// 键盘激活配置来源开关时记下的开关焦点；收起展开区后焦点回到这里。
+    layers_toggle_focus: Option<FocusHandle>,
     services: Services,
     platform: Platform,
     surface: Surface,
@@ -90,6 +93,8 @@ pub struct PlatformsView {
     oauth_url: Entity<InputState>,
     quotas: Vec<crate::runtime::platforms::QuotaRow>,
     diagnostics: diagnostics::ViewState,
+    /// 已保存账户列表中的选中项；切换、重命名、删除只作用于它。
+    selected_account: Option<String>,
 }
 impl PlatformsView {
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
@@ -100,6 +105,7 @@ impl PlatformsView {
             advanced: false,
             layers,
             layers_open: false,
+            layers_toggle_focus: None,
             services,
             platform: Platform::Claude,
             surface: Surface::Settings,
@@ -129,6 +135,7 @@ impl PlatformsView {
             oauth_url: cx.new(|cx| InputState::new(window, cx)),
             quotas: Vec::new(),
             diagnostics: Default::default(),
+            selected_account: None,
         }
     }
     pub fn focus_main(&self, window: &mut Window, cx: &mut Context<Self>) {
@@ -149,6 +156,7 @@ impl PlatformsView {
         self.advanced = false;
         self.layers.update(cx, |view, cx| view.suspend(cx));
         self.layers_open = false;
+        self.layers_toggle_focus = None;
         if self.oauth_task.is_some() {
             self.services.platform_oauth_cancel();
         }
@@ -173,6 +181,7 @@ impl PlatformsView {
         self.busy = false;
         self.message = None;
         self.quotas.clear();
+        self.selected_account = None;
         self.name
             .update(cx, |state, cx| state.set_value("", window, cx));
         self.content
@@ -247,6 +256,10 @@ impl PlatformsView {
                                 }
                                 Completion::Success(ResultValue::Loaded(session)) => {
                                     this.pending_form = true;
+                                    // 重读后只保留仍存在的选中账户，不自动选第一行。
+                                    this.selected_account = this.selected_account.take().filter(|name| {
+                                        session.accounts.iter().any(|account| &account.name == name)
+                                    });
                                     this.session = Some(session.clone());
                                     if this.source_mode { this.pending_content = Some(session.snapshot.content.clone()); }
                                     this.message = None;
@@ -255,6 +268,8 @@ impl PlatformsView {
                                 Completion::Success(ResultValue::Saved(SaveOutcome::Saved { .. }) | ResultValue::AccountChanged { .. }) => {
                                     // 已提交后必须重新读取，不能携旧版本重复提交。
                                     this.session = None;
+                                    // 账户集合可能已变化（重命名、删除），旧选中项不再可信。
+                                    this.selected_account = None;
                                     this.pending_form = true;
                                     this.source_mode = false;
                                     this.pending_content = Some(String::new());
@@ -501,24 +516,75 @@ impl PlatformsView {
         }
         cx.notify();
     }
-    fn account(&mut self, action: AccountAction, cx: &mut Context<Self>) {
+    fn account(&mut self, name: String, action: AccountAction, cx: &mut Context<Self>) {
         if let Some(session) = self.session.clone() {
             self.request(
                 Command::Account {
                     session,
-                    name: self.name.read(cx).value().to_string(),
+                    name,
                     action,
                 },
                 cx,
             );
         }
     }
+    /// 与渲染时的禁用条件一致：忙碌、确认中、OAuth 或诊断复核期间不接受新操作。
+    fn blocked(&self) -> bool {
+        self.busy
+            || self.decision.is_some()
+            || self.services.platform_oauth_active()
+            || self.diagnostic_blocked()
+    }
+    /// 只返回仍在当前会话账户列表中的选中项，避免对过期对象操作。
+    fn selected_account(&self) -> Option<String> {
+        let name = self.selected_account.as_ref()?;
+        self.session
+            .as_ref()?
+            .accounts
+            .iter()
+            .any(|account| &account.name == name)
+            .then(|| name.clone())
+    }
+    /// 配置来源展开区开关：只读清单在页内展开，收起时回收请求并把焦点还给开关。
+    fn toggle_layers(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.layers_open = !self.layers_open;
+        let platform = self.platform;
+        let open = self.layers_open;
+        self.layers.update(cx, |view, cx| {
+            if open {
+                view.open(platform, cx);
+            } else {
+                view.suspend(cx);
+            }
+        });
+        if !open && let Some(focus) = self.layers_toggle_focus.clone() {
+            window.focus(&focus, cx);
+        }
+        cx.notify();
+    }
+    fn select_account(&mut self, name: String, cx: &mut Context<Self>) {
+        if self.blocked() {
+            return;
+        }
+        self.selected_account = Some(name);
+        cx.notify();
+    }
     fn decide(&mut self, decision: Decision, window: &mut Window, cx: &mut Context<Self>) {
         if self.busy || self.decision.is_some() {
             return;
         }
+        // 针对已保存账户的确认捕获列表选中项；新建类动作才读取新账户名输入。
+        let name = match decision {
+            Decision::DeleteAccount | Decision::RenameAccount => {
+                let Some(name) = self.selected_account() else {
+                    return;
+                };
+                name
+            }
+            _ => self.name.read(cx).value().to_string(),
+        };
         self.decision = Some(decision);
-        self.decision_name = self.name.read(cx).value().to_string();
+        self.decision_name = name;
         self.decision_content = self.content.read(cx).value().to_string();
         self.decision_generation += 1;
         self.decision_entry_pending = true;
@@ -680,13 +746,21 @@ fn file_status(cx: &gpui_kit::App, session: &PlatformSession) -> String {
     }
 }
 
+/// 每个 tab 只显示自己那部分：账户 tab 只陈述凭据观测与账户来源；设置类 tab 只陈述设置文件，
+/// 不显示凭据观测或已保存账户。设置文档仍在后台作为账户 CAS 令牌来源，只是不在账户 tab 上渲染。
+/// `providers`：供应商状态是否随本段输出；运行设置页把它放进单独的供应商目录分组。
 fn local_projection(
     session: &PlatformSession,
     show_fields: bool,
+    providers: bool,
     cx: &gpui_kit::App,
 ) -> impl IntoElement {
-    let file = file_status(cx, session);
-    let auth = auth_status(cx, session);
+    let accounts = session.surface == Surface::Auth;
+    let (id, status) = if accounts {
+        ("platform-auth-status", auth_status(cx, session))
+    } else {
+        ("platform-file-status", file_status(cx, session))
+    };
     let mut block = div()
         .flex()
         .flex_col()
@@ -694,21 +768,19 @@ fn local_projection(
         .text_size(px(theme::BODY_SIZE))
         .child(
             div()
-                .id("platform-file-status")
+                .id(id)
                 .test_support()
                 .role(gpui_kit::Role::Status)
-                .aria_label(file.clone())
-                .child(file),
-        )
-        .child(
-            div()
-                .id("platform-auth-status")
-                .test_support()
-                .role(gpui_kit::Role::Status)
-                .aria_label(auth.clone())
-                .child(auth),
+                .aria_label(status.clone())
+                .child(status),
         );
-    for (index, field) in session.fields.iter().enumerate().filter(|_| show_fields) {
+    // 账户 tab 只保留账户来源（Grok oauth_source），运行设置字段属于设置 tab。
+    let fields = session
+        .fields
+        .iter()
+        .enumerate()
+        .filter(|(_, field)| show_fields && (!accounts || field.key == "oauth_source"));
+    for (index, field) in fields {
         let label = format!("{}: {}", field.key, field.value);
         block = block.child(
             div()
@@ -728,52 +800,44 @@ fn local_projection(
                 .child(label),
         );
     }
-    if show_saved_accounts(session) {
-        if session.accounts.is_empty() {
-            let label = text(cx, "No saved accounts.", "没有已保存账户。").to_string();
-            block = block.child(
-                div()
-                    .id("platform-account-status")
-                    .test_support()
-                    .aria_label(label.clone())
-                    .child(label),
-            );
-        } else {
-            for account in &session.accounts {
-                let label = if account.current {
-                    format!("{} · {}", account.name, text(cx, "current", "当前"))
-                } else {
-                    account.name.clone()
-                };
-                block = block.child(
-                    div()
-                        .id(SharedString::from(format!(
-                            "platform-account-{}",
-                            account.name
-                        )))
-                        .test_support()
-                        .h(px(theme::ROW_HEIGHT))
-                        .flex()
-                        .items_center()
-                        .overflow_hidden()
-                        .aria_label(label.clone())
-                        .child(label),
-                );
-            }
-        }
-    }
-    if !matches!(session.provider_report, ProviderReport::Unsupported) {
-        let label = provider_status(cx, session);
-        block = block.child(
-            div()
-                .id("platform-provider-status")
-                .test_support()
-                .role(gpui_kit::Role::Status)
-                .aria_label(label.clone())
-                .child(label),
-        );
+    if providers && let Some(line) = provider_line(session, cx) {
+        block = block.child(line);
     }
     block
+}
+
+fn no_saved_accounts(cx: &gpui_kit::App) -> gpui_kit::AnyElement {
+    let label = text(cx, "No saved accounts.", "没有已保存账户。").to_string();
+    div()
+        .id("platform-account-status")
+        .test_support()
+        .aria_label(label.clone())
+        .child(label)
+        .into_any_element()
+}
+
+fn account_label(account: &AccountRow, cx: &gpui_kit::App) -> String {
+    if account.current {
+        format!("{} · {}", account.name, text(cx, "current", "当前"))
+    } else {
+        account.name.clone()
+    }
+}
+
+fn provider_line(session: &PlatformSession, cx: &gpui_kit::App) -> Option<gpui_kit::AnyElement> {
+    if matches!(session.provider_report, ProviderReport::Unsupported) {
+        return None;
+    }
+    let label = provider_status(cx, session);
+    Some(
+        div()
+            .id("platform-provider-status")
+            .test_support()
+            .role(gpui_kit::Role::Status)
+            .aria_label(label.clone())
+            .child(label)
+            .into_any_element(),
+    )
 }
 
 fn auth_status(cx: &gpui_kit::App, session: &PlatformSession) -> String {
@@ -895,10 +959,13 @@ impl PlatformsView {
             }
             let message = match decision {
                 Decision::Source => text(cx,"Open plaintext source in this scoped editor? It may contain credentials.","打开可能含明文凭据的临时源编辑区？").to_string(),
-                Decision::DeleteAccount => text(cx,"Delete the selected saved account? This does not log out the runtime.","删除所选已保存账户？这不会退出运行账户。").to_string(),
+                // 确认列明对象：名称来自已过滤的安全账户名，不含凭据。
+                Decision::DeleteAccount if is_chinese(cx) => format!("删除已保存账户「{}」？这不会退出运行账户。", self.decision_name),
+                Decision::DeleteAccount => format!("Delete saved account “{}”? This does not log out the runtime.", self.decision_name),
                 Decision::DeleteProvider => text(cx,"Delete the selected provider? Other providers remain unchanged.","删除所选供应商？保留其他供应商。").to_string(),
                 Decision::AuthOff => text(cx,"Clear runtime authentication? Saved accounts and the selected profile stay unchanged. Active profiles or environment credentials may still provide authentication.","清除运行认证？保留已保存账户和当前配置。活动配置或环境凭据仍可能提供认证。").to_string(),
-                Decision::RenameAccount => text(cx,"Rename this saved account to the name entered in the draft? Existing names are never overwritten.","将此保存账户重命名为草稿中的名称？不覆盖已有账户。").to_string(),
+                Decision::RenameAccount if is_chinese(cx) => format!("将已保存账户「{}」重命名为草稿中的名称？不覆盖已有账户。", self.decision_name),
+                Decision::RenameAccount => format!("Rename saved account “{}” to the name entered in the draft? Existing names are never overwritten.", self.decision_name),
                 Decision::AddApiKey => text(cx,"Save the entered API key as a new account? It will not switch the runtime account.","将输入的 API 密钥保存为新账户？不会切换运行账户。").to_string(),
                 Decision::ImportAccounts => text(cx,"Merge the entered authentication JSON? Existing names are preserved and the runtime account stays unchanged.","合并输入的认证 JSON？保留已有名称，不切换运行账户。").to_string(),
             };
@@ -1004,68 +1071,53 @@ impl PlatformsView {
         blocked: bool,
         cx: &mut Context<Self>,
     ) -> gpui_kit::Stateful<gpui_kit::Div> {
-        {
-            root = root
-                .child(
-                    Input::new(&self.name)
-                        .id("platform-account-name")
-                        .aria_label(text(cx, "Account name", "账户名")),
-                )
-                .child(
-                    div()
-                        .flex()
-                        .gap(px(theme::CONTROL_GAP))
-                        .child(semantics::button(
-                            Button::new("platform-account-save")
-                                .label(text(cx, "Save runtime as account", "保存运行账户"))
-                                .on_click(cx.listener(|this, _, window, cx| {
-                                    if this.platform == Platform::Codex {
-                                        this.review_codex_save(window, cx);
-                                        return;
-                                    }
-                                    let action = if this.platform == Platform::Grok {
-                                        AccountAction::SaveFrom(
-                                            this.content.read(cx).value().trim().into(),
-                                        )
-                                    } else {
-                                        AccountAction::Save
-                                    };
-                                    this.account(action, cx)
-                                })),
-                            blocked,
-                            false,
-                            cx,
-                        ))
-                        .child(semantics::button(
-                            Button::new("platform-account-switch")
-                                .label(text(cx, "Switch account", "切换账户"))
-                                .ghost()
-                                .on_click(cx.listener(|this, _, _, cx| {
-                                    this.account(AccountAction::Switch, cx)
-                                })),
-                            blocked,
-                            false,
-                            cx,
-                        ))
-                        .child(semantics::button(
-                            Button::new("platform-account-delete")
-                                .label(text(cx, "Delete saved account", "删除保存账户"))
-                                .ghost()
-                                .on_click(cx.listener(|this, _, window, cx| {
-                                    this.decide(Decision::DeleteAccount, window, cx)
-                                })),
-                            blocked,
-                            false,
-                            cx,
-                        )),
-                );
+        // 按对象分组：当前登录（保存、清除运行认证）与已保存账户（列表选中项的动作）分开，
+        // 新账户名输入只用于命名新对象，不决定对哪个已保存账户操作。
+        root = root.child(self.render_current_login(blocked, cx));
+        root = root.child(self.render_saved_accounts(blocked, cx));
+        if self.platform == Platform::Codex {
+            root = self.render_codex_accounts(root, blocked, cx);
         }
+        root
+    }
 
+    #[inline(never)]
+    fn render_current_login(
+        &mut self,
+        blocked: bool,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::AnyElement {
+        let title = text(cx, "Current login", "当前登录");
+        let mut actions =
+            div()
+                .flex()
+                .flex_wrap()
+                .gap(px(theme::CONTROL_GAP))
+                .child(semantics::button(
+                    Button::new("platform-account-save")
+                        .label(text(cx, "Save current login", "保存当前登录"))
+                        .on_click(cx.listener(|this, _, window, cx| {
+                            if this.platform == Platform::Codex {
+                                this.review_codex_save(window, cx);
+                                return;
+                            }
+                            let action = if this.platform == Platform::Grok {
+                                AccountAction::SaveFrom(this.content.read(cx).value().trim().into())
+                            } else {
+                                AccountAction::Save
+                            };
+                            let name = this.name.read(cx).value().to_string();
+                            this.account(name, action, cx)
+                        })),
+                    blocked,
+                    false,
+                    cx,
+                ));
         if matches!(
             self.platform,
             Platform::Claude | Platform::Codex | Platform::Grok
         ) {
-            root = root.child(semantics::button(
+            actions = actions.child(semantics::button(
                 Button::new("platform-auth-off")
                     .label(text(cx, "Clear runtime authentication", "清除运行认证"))
                     .ghost()
@@ -1077,14 +1129,229 @@ impl PlatformsView {
                 cx,
             ));
         }
+        let mut group = div()
+            .id("platform-accounts-current")
+            .test_support()
+            .role(gpui_kit::Role::Group)
+            .aria_label(title)
+            .flex()
+            .flex_col()
+            .gap(px(theme::CONTROL_GAP))
+            .child(badge::section_heading(title, None, cx))
+            .child(text(
+                cx,
+                "Acts on the runtime login, not on the selected saved account.",
+                "作用于运行中的登录，不针对所选的已保存账户。",
+            ))
+            .child(
+                Input::new(&self.name)
+                    .id("platform-account-name")
+                    .aria_label(text(cx, "New account name", "新账户名")),
+            )
+            .child(actions);
         if self.platform == Platform::Grok {
-            root = root.child(text(cx,"To save a Grok account, enter its official OAuth source scope below (issuer::client). Saved accounts use the existing rotation-preservation policy.","保存 Grok 账户时，在下方输入官方 OAuth 来源范围（issuer::client）。保存账户沿用现有轮换凭据保留策略。"))
+            group = group.child(text(cx,"To save a Grok account, enter its official OAuth source scope below (issuer::client). Saved accounts use the existing rotation-preservation policy.","保存 Grok 账户时，在下方输入官方 OAuth 来源范围（issuer::client）。保存账户沿用现有轮换凭据保留策略。"))
                 .child(Textarea::new(&self.content).aria_label(text(cx,"Grok OAuth source scope","Grok OAuth 来源范围")).h(px(80.)).readonly(blocked));
         }
-        if self.platform == Platform::Codex {
-            root = self.render_codex_accounts(root, blocked, cx);
+        group.into_any_element()
+    }
+
+    #[inline(never)]
+    fn render_saved_accounts(
+        &mut self,
+        blocked: bool,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::AnyElement {
+        let title = text(cx, "Saved accounts", "已保存账户");
+        let selected = self.selected_account();
+        let mut group = div()
+            .id("platform-accounts-saved")
+            .test_support()
+            .role(gpui_kit::Role::Group)
+            .aria_label(title)
+            .flex()
+            .flex_col()
+            .gap(px(theme::CONTROL_GAP))
+            .child(badge::section_heading(title, None, cx));
+        if let Some(session) = self.session.clone()
+            && show_saved_accounts(&session)
+        {
+            group = group.child(if session.accounts.is_empty() {
+                no_saved_accounts(cx).into_any_element()
+            } else {
+                self.render_account_list(&session.accounts, selected.as_deref(), blocked, cx)
+            });
         }
-        root
+        let status = match &selected {
+            Some(name) => format!("{}{name}", text(cx, "Selected: ", "已选：")),
+            None => text(
+                cx,
+                "No saved account selected. Select one to act on it.",
+                "未选择已保存账户。选择后才能对它操作。",
+            )
+            .to_string(),
+        };
+        group = group.child(
+            div()
+                .id("platform-accounts-selection")
+                .test_support()
+                .role(gpui_kit::Role::Status)
+                .aria_label(status.clone())
+                .text_size(px(theme::META_SIZE))
+                .text_color(cx.theme().muted_foreground)
+                .child(status),
+        );
+        group
+            .child(self.render_selected_actions(blocked || selected.is_none(), cx))
+            .into_any_element()
+    }
+
+    #[inline(never)]
+    fn render_account_list(
+        &mut self,
+        accounts: &[AccountRow],
+        selected: Option<&str>,
+        blocked: bool,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::AnyElement {
+        let mut list = div()
+            .id("platform-accounts-list")
+            .test_support()
+            .role(gpui_kit::Role::ListBox)
+            .aria_label(text(cx, "Saved accounts", "已保存账户"))
+            .flex()
+            .flex_col();
+        let count = accounts.len();
+        for (index, account) in accounts.iter().enumerate() {
+            let is_selected = selected == Some(account.name.as_str());
+            list = list.child(self.render_account_row(
+                index,
+                count,
+                account,
+                is_selected,
+                blocked,
+                cx,
+            ));
+        }
+        list.into_any_element()
+    }
+
+    #[inline(never)]
+    fn render_account_row(
+        &mut self,
+        index: usize,
+        count: usize,
+        account: &AccountRow,
+        selected: bool,
+        blocked: bool,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::AnyElement {
+        let label = account_label(account, cx);
+        let (click, keyboard, a11y) = (
+            account.name.clone(),
+            account.name.clone(),
+            account.name.clone(),
+        );
+        let weak = cx.weak_entity();
+        let (secondary, muted, ring) = {
+            let colors = cx.theme();
+            (colors.secondary, colors.muted, colors.ring)
+        };
+        // 当前账户用文字标记，选中用背景；两者相互独立。
+        div()
+            .id(SharedString::from(format!(
+                "platform-account-{}",
+                account.name
+            )))
+            .test_support()
+            .role(gpui_kit::Role::ListBoxOption)
+            .aria_label(label.clone())
+            .aria_selected(selected)
+            .aria_position_in_set(index + 1)
+            .aria_size_of_set(count)
+            .tab_stop(!blocked)
+            .on_a11y_action(gpui_kit::AccessibleAction::Click, move |_, _, cx| {
+                let _ = weak.update(cx, |this, cx| this.select_account(a11y.clone(), cx));
+            })
+            .on_key_down(
+                cx.listener(move |this, event: &gpui_kit::KeyDownEvent, _, cx| {
+                    if matches!(event.keystroke.key.as_str(), "enter" | "space") {
+                        this.select_account(keyboard.clone(), cx);
+                        cx.stop_propagation();
+                    }
+                }),
+            )
+            .on_click(cx.listener(move |this, _, _, cx| this.select_account(click.clone(), cx)))
+            .h(px(theme::ROW_HEIGHT))
+            .flex()
+            .items_center()
+            .overflow_hidden()
+            .px(px(theme::CONTROL_GAP))
+            .rounded(px(theme::SELECTION_RADIUS))
+            .border_2()
+            .border_color(gpui_kit::transparent_black())
+            .bg(if selected {
+                secondary
+            } else {
+                gpui_kit::transparent_black()
+            })
+            .hover(move |style| style.bg(if selected { secondary } else { muted }))
+            .focus_visible(move |style| style.border_color(ring))
+            .child(label)
+            .into_any_element()
+    }
+
+    #[inline(never)]
+    fn render_selected_actions(
+        &mut self,
+        disabled: bool,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::AnyElement {
+        let mut actions =
+            div()
+                .flex()
+                .flex_wrap()
+                .gap(px(theme::CONTROL_GAP))
+                .child(semantics::button(
+                    Button::new("platform-account-switch")
+                        .label(text(cx, "Switch to selected account", "切换到所选账户"))
+                        .ghost()
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            if let Some(name) = this.selected_account() {
+                                this.account(name, AccountAction::Switch, cx)
+                            }
+                        })),
+                    disabled,
+                    false,
+                    cx,
+                ));
+        if self.platform == Platform::Codex {
+            actions = actions.child(semantics::button(
+                Button::new("platform-account-rename")
+                    .label(text(cx, "Rename selected account", "重命名所选账户"))
+                    .ghost()
+                    .on_click(cx.listener(|this, _, window, cx| {
+                        this.decide(Decision::RenameAccount, window, cx)
+                    })),
+                disabled,
+                false,
+                cx,
+            ));
+        }
+        actions
+            .child(semantics::button(
+                Button::new("platform-account-delete")
+                    .label(text(cx, "Delete selected account", "删除所选账户"))
+                    .ghost()
+                    .text_color(cx.theme().danger)
+                    .on_click(cx.listener(|this, _, window, cx| {
+                        this.decide(Decision::DeleteAccount, window, cx)
+                    })),
+                disabled,
+                false,
+                cx,
+            ))
+            .into_any_element()
     }
 
     #[inline(never)]
@@ -1096,14 +1363,9 @@ impl PlatformsView {
     ) -> gpui_kit::Stateful<gpui_kit::Div> {
         root = root.child(text(cx,"For rename, enter the new name below. For an API account, enter JSON with api_key and optional base_url. Import accepts auth.json or an account export. Credentials are never prefilled.","重命名时在下方输入新名称。API 账户输入含 api_key 和可选 base_url 的 JSON。导入接受 auth.json 或账户导出。不会预填凭据。"))
             .child(Textarea::new(&self.content).accessibility_id("platform-account-content").aria_label(text(cx,"Account operation draft","账户操作草稿")).h(px(120.)).readonly(blocked));
+        // 重命名作用于所选账户，已移到已保存账户分组；这里只保留新建类动作。
         let mut actions = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
         for (id, en, zh, decision) in [
-            (
-                "platform-account-rename",
-                "Rename account",
-                "重命名账户",
-                Decision::RenameAccount,
-            ),
             (
                 "platform-account-api-key",
                 "Add API account",
@@ -1138,6 +1400,7 @@ impl PlatformsView {
         cx: &mut Context<Self>,
     ) -> gpui_kit::Stateful<gpui_kit::Div> {
         root = root.child(text(cx,"Quota fetch contacts the provider and may refresh saved credentials and quota history. Demo mode disables this action.","配额查询会连接供应方，并可能刷新已保存凭据和配额历史。演示模式禁用此操作。"));
+        let selected = self.selected_account();
         let mut actions = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
         for (id, en, zh, mode) in [
             (
@@ -1166,14 +1429,18 @@ impl PlatformsView {
                     .on_click(cx.listener(move |this, _, _, cx| {
                         if let Some(session) = this.session.clone() {
                             let account = match mode {
-                                0 => Some(this.name.read(cx).value().trim().to_string()),
+                                // 所选配额只针对列表选中项，不读取新账户名输入。
+                                0 => match this.selected_account() {
+                                    Some(name) => Some(name),
+                                    None => return,
+                                },
                                 1 => Some("default".into()),
                                 _ => None,
                             };
                             this.request(Command::Quota { session, account }, cx);
                         }
                     })),
-                blocked || self.services.is_fixture(),
+                blocked || self.services.is_fixture() || (mode == 0 && selected.is_none()),
                 false,
                 cx,
             ));
@@ -1433,8 +1700,7 @@ impl Render for PlatformsView {
                 state.set_value(authorization_url, window, cx)
             });
         }
-        let blocked =
-            self.busy || self.decision.is_some() || oauth_active || self.diagnostic_blocked();
+        let blocked = self.blocked();
         let mut tabs = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
         if !self.pinned {
             for descriptor in DESCRIPTORS {
@@ -1586,35 +1852,30 @@ impl Render for PlatformsView {
             }
             root = root.child(tui);
         }
+        // 配置来源是设置 tab 的页内开关，账户 tab 不显示。
         if matches!(
             self.platform,
             Platform::Claude | Platform::Codex | Platform::Grok
-        ) {
+        ) && self.surface == Surface::Settings
+        {
             root = root.child(semantics::button(
                 Button::new("platform-show-layers")
                     .label(text(cx, "Configuration sources", "配置来源"))
                     .ghost()
                     .selected(self.layers_open)
-                    .on_click(cx.listener(|this, _, _, cx| {
-                        this.layers_open = !this.layers_open;
-                        let platform = this.platform;
-                        let open = this.layers_open;
-                        this.layers.update(cx, |view, cx| {
-                            if open {
-                                view.open(platform, cx);
-                            } else {
-                                view.suspend(cx);
+                    .on_click(
+                        cx.listener(|this, event: &gpui_kit::ClickEvent, window, cx| {
+                            // 键盘激活时焦点就在开关上；鼠标按下不移动焦点，所以只在键盘激活时记录。
+                            if event.is_keyboard() {
+                                this.layers_toggle_focus = window.focused(cx);
                             }
-                        });
-                        cx.notify();
-                    })),
+                            this.toggle_layers(window, cx);
+                        }),
+                    ),
                 blocked,
                 false,
                 cx,
             ));
-        }
-        if self.layers_open {
-            return root.child(self.layers.clone());
         }
         root = self.render_decision(root, cx, window);
         root = root.child(
@@ -1644,12 +1905,18 @@ impl Render for PlatformsView {
                     cx,
                 )),
         );
-        if let Some(session) = &self.session {
+        if let Some(session) = self.session.clone() {
+            // 运行设置、供应商目录、CCR 元数据各自成组，分别陈述对象、来源与实际作用域。
+            let category = scope::category(self.platform, self.surface);
+            if let Some(category) = category {
+                root = root.child(scope::group(category, &session, None, cx));
+            }
             root = root.child(local_projection(
-                session,
+                &session,
                 matches!(self.surface, Surface::Models | Surface::Auth)
                     || self.source_mode
                     || self.advanced,
+                category != Some(scope::Category::Runtime),
                 cx,
             ));
             if self.surface == Surface::Auth {
@@ -1663,6 +1930,17 @@ impl Render for PlatformsView {
             } else if self.platform != Platform::Gemini {
                 root = self.render_editor(root, blocked, cx);
             }
+            // 运行设置文件里的供应商条目（OpenCode）单独归入供应商目录，不与运行设置合并。
+            if category == Some(scope::Category::Runtime)
+                && let Some(line) = provider_line(&session, cx)
+            {
+                root = root.child(scope::group(
+                    scope::Category::ProviderCatalog,
+                    &session,
+                    Some(line),
+                    cx,
+                ));
+            }
         } else if self.busy {
             root = root.child(text(
                 cx,
@@ -1671,6 +1949,11 @@ impl Render for PlatformsView {
             ));
         } else {
             root = root.child(text(cx, "Load the selected local surface to begin. Fixture roots are isolated and visibly labeled by the shell.", "读取所选本地功能后开始。演示路径已隔离并由外壳标记。"));
+        }
+        // 配置来源是设置表单之后的页内只读展开区；表单与保存仍在原位可用。
+        // 复用同一个 LayersView 实体，展开与收起不重建焦点所有者。
+        if self.layers_open && self.surface == Surface::Settings {
+            root = root.child(self.layers.clone());
         }
         if let Some(message) = &self.message {
             root = root.child(

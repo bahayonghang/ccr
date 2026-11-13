@@ -93,7 +93,7 @@ impl Render for ProfileTools {
                 });
             }
             let subject = confirm.subject.as_str();
-            let message=match confirm.action {Action::DiscardDraft=>"Discard the unsaved draft? The saved profile and its revision are unchanged. / 放弃未保存的草稿？已保存的方案与版本不变。".into(),Action::GrokForceDelete=>format!("Deactivate Grok and delete {subject}? This changes runtime overrides and removes the saved profile. / 停用 Grok 并删除 {subject}？将修改运行覆盖并删除配置。"),Action::Delete=>format!("Delete {subject}? This removes the saved profile; local backup policy remains in force. / 删除 {subject}？将移除保存的配置。"),Action::Off=>off_message(self.platform).into(),Action::Source|Action::Inspect|Action::ExportSecrets|Action::Advanced|Action::Environment|Action::ShellEnvironment=>"This opens plaintext credentials in a scoped editor/output. Keep screenshots and logs private. Canonical profile TOML does not preserve comments. / 将显示含明文凭据的临时编辑区；规范 TOML 不保留注释。".into(),Action::Restore=>"Restore a managed backup? Current catalog is backed up before replacement. Enter only a managed backup filename. / 恢复受管备份？替换前将备份当前目录，只接受受管文件名。".into(),Action::RestoreExecute=>format!("Restore {subject} over this catalog? Current catalog is backed up before replacement. / 使用 {subject} 替换当前目录？替换前将备份当前目录。"),Action::Clean=>"Delete managed local backup files? This cannot be undone. Profiles and accounts are retained. / 删除受管本地备份？此操作不可撤销，配置与账户保留。".into(),Action::ClearHistory=>"Clear configuration operation history? This cannot be undone. / 清空配置操作历史？此操作不可撤销。".into(),_=>"Commit the reviewed import? Only explicitly selected conflicts are overwritten; replacement requires its preimage backup. Runtime configuration is not applied. / 提交已审阅的导入？仅覆盖明确选择的同名项，替换须有预备份；运行配置不会自动应用。".into()};
+            let message=match confirm.action {Action::DiscardDraft=>"Discard the unsaved draft? The saved profile and its revision are unchanged. / 放弃未保存的草稿？已保存的方案与版本不变。".into(),Action::GrokForceDelete=>format!("Deactivate Grok and delete {subject}? This changes runtime overrides and removes the saved profile. / 停用 Grok 并删除 {subject}？将修改运行覆盖并删除配置。"),Action::Delete=>format!("Delete {subject}? This removes the saved profile; local backup policy remains in force. / 删除 {subject}？将移除保存的配置。"),Action::Off=>off_message(self.platform).into(),Action::Source|Action::Inspect|Action::ExportSecrets|Action::Advanced|Action::Environment|Action::ShellEnvironment=>"This opens plaintext credentials in a scoped editor/output. Keep screenshots and logs private. Canonical profile TOML does not preserve comments. / 将显示含明文凭据的临时编辑区；规范 TOML 不保留注释。".into(),Action::Restore=>"Restore a managed backup? Current catalog is backed up before replacement. Enter only a managed backup filename. / 恢复受管备份？替换前将备份当前目录，只接受受管文件名。".into(),Action::RestoreExecute=>format!("Restore {subject} over this catalog? Current catalog is backed up before replacement. / 使用 {subject} 替换当前目录？替换前将备份当前目录。"),_=>"Commit the reviewed import? Only explicitly selected conflicts are overwritten; replacement requires its preimage backup. Runtime configuration is not applied. / 提交已审阅的导入？仅覆盖明确选择的同名项，替换须有预备份；运行配置不会自动应用。".into()};
             let message = crate::locales::localized_line(cx, &message);
             let confirm_name = format!(
                 "{}: {message}",
@@ -209,24 +209,10 @@ impl Render for ProfileTools {
                 ("profile-backups", Action::Backups, "Backups", "备份", false),
                 ("profile-restore", Action::Restore, "Restore", "恢复", false),
                 (
-                    "profile-clean-backups",
-                    Action::Clean,
-                    "Clean backups",
-                    "清理备份",
-                    false,
-                ),
-                (
                     "profile-history",
                     Action::History,
                     "Operation records (all platforms)",
                     "操作记录（跨平台）",
-                    false,
-                ),
-                (
-                    "profile-clear-history",
-                    Action::ClearHistory,
-                    "Clear history",
-                    "清空历史",
                     false,
                 ),
                 (
@@ -247,11 +233,7 @@ impl Render for ProfileTools {
                 let supported = match self.platform {
                     Platform::Claude => !matches!(
                         action,
-                        Action::Clean
-                            | Action::ClearHistory
-                            | Action::GrokForceDelete
-                            | Action::Environment
-                            | Action::ShellEnvironment
+                        Action::GrokForceDelete | Action::Environment | Action::ShellEnvironment
                     ),
                     Platform::Codex => matches!(
                         action,

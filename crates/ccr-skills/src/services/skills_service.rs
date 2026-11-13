@@ -910,7 +910,8 @@ impl SkillsService {
         })
     }
 
-    fn extract_frontmatter_name(raw: &str) -> Option<String> {
+    /// Returns the non-empty `name` value of a leading YAML frontmatter block.
+    pub fn extract_frontmatter_name(raw: &str) -> Option<String> {
         let trimmed = raw.trim();
         let after_prefix = trimmed.strip_prefix("---")?;
         let end_idx = after_prefix.find("---")?;

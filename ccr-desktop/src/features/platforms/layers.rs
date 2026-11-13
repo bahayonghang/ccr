@@ -170,7 +170,8 @@ impl LayersView {
 impl Render for LayersView {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let mut root = div().id("platform-layers").test_support().flex().flex_col().gap(px(theme::CONTROL_GAP))
-            .child(div().text_size(px(theme::TITLE_SIZE)).child(text(cx,"Configuration sources","配置来源")))
+            // 页内分区标题用 16/600；唯一 h1 由外壳页头承载。
+            .child(badge::section_heading(text(cx,"Configuration sources","配置来源"), None, cx))
             .child(text(cx,"Source inventory only; it does not infer merged values. Managed policy and requirements stay read-only. A missing project scope is unknown, not an absent file.","此清单不推断合并后的配置值。托管策略与 requirements 保持只读。未选择项目时，项目来源未知，不表示文件不存在。"));
         if self.platform != Platform::Codex {
             root = root.child(text(

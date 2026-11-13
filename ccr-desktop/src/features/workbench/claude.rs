@@ -255,11 +255,19 @@ impl WorkbenchView {
                 .latest
                 .as_deref()
                 .unwrap_or(text(cx, "Unknown", "未知"));
-            section = section.child(div().text_size(px(12.)).child(format!(
+            let freshness = format!(
                 "{}: {sync} · {}: {latest}",
                 text(cx, "Global last successful sync", "全局上次成功同步"),
                 text(cx, "Latest imported record date", "最新导入记录日")
-            )));
+            );
+            section = section.child(
+                div()
+                    .id("claude-usage-freshness")
+                    .test_support()
+                    .aria_label(freshness.clone())
+                    .text_size(px(12.))
+                    .child(freshness),
+            );
         }
         if let Some(report) = report
             && let Err(error) = report.usage
@@ -524,7 +532,7 @@ impl WorkbenchView {
                 .iter()
                 .map(|row| row.cache_creation_tokens)
                 .sum::<i64>();
-            for (label, value) in [
+            for (index, (label, value)) in [
                 (text(cx, "Input", "输入"), grouped(total.input_tokens)),
                 (
                     text(cx, "Cache read", "缓存读取"),
@@ -543,9 +551,15 @@ impl WorkbenchView {
                     text(cx, "Cache token hit ratio", "缓存 Token 命中率"),
                     ratio,
                 ),
-            ] {
+            ]
+            .into_iter()
+            .enumerate()
+            {
                 pane = pane.child(
                     div()
+                        .id(format!("claude-cache-{index}"))
+                        .test_support()
+                        .aria_label(format!("{label}: {value}"))
                         .flex()
                         .justify_between()
                         .gap(px(8.))
@@ -1004,6 +1018,177 @@ mod tests {
         })
         .unwrap_or_else(|e| panic!("subscription: {e}"));
         owner.shutdown();
+    }
+
+    /// 用固定 UTC 时钟渲染一个 Claude 工作台，读回给定 ID 的无障碍标签（不存在为 None）。
+    async fn claude_home_labels(
+        cx: &mut gpui_kit::TestAppContext,
+        usage_root: std::path::PathBuf,
+        ids: &[&'static str],
+    ) -> Vec<Option<String>> {
+        use crate::runtime::{ConfigSource, insights::InsightsPaths};
+        use ccr_app::runtime::RuntimeOwner;
+        use gpui_kit::test::{TestAppContextExt, TestWindowExt};
+        use gpui_kit::{AppContext, WindowOptions};
+        use std::time::Duration;
+        let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
+        let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
+        let services = Services::new(
+            owner.handle(),
+            ConfigSource::Fixture {
+                profiles: root.path().join("profiles.toml"),
+                registry: root.path().join("registry.toml"),
+                delay: Duration::ZERO,
+            },
+        )
+        .with_insights_paths(InsightsPaths {
+            archive_db: usage_root.join("absent.db"),
+            provider_home: usage_root.join("home"),
+            usage_root,
+        });
+        let clock = ReportClock::fixed_utc(
+            chrono::DateTime::parse_from_rfc3339("2026-11-10T12:00:00Z")
+                .unwrap_or_else(|e| panic!("clock: {e}"))
+                .with_timezone(&chrono::Utc),
+        );
+        let (handle, view) = cx.update(|cx| {
+            gpui_kit::init(cx);
+            gpui_kit::open_window(
+                WindowOptions {
+                    window_bounds: Some(gpui_kit::WindowBounds::Windowed(gpui_kit::Bounds::new(
+                        gpui_kit::point(px(0.), px(0.)),
+                        gpui_kit::size(px(1600.), px(2400.)),
+                    ))),
+                    ..Default::default()
+                },
+                cx,
+                |_, cx| {
+                    cx.new(|cx| {
+                        let mut view = WorkbenchView::new(services, cx);
+                        view.load_claude(clock, cx);
+                        view
+                    })
+                },
+            )
+            .unwrap_or_else(|e| panic!("window: {e}"))
+        });
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+            view.read(cx).claude_report.is_some()
+        })
+        .await;
+        let labels = cx
+            .update_window(handle, |_, window, cx| {
+                window.render_frame(cx);
+                let labels = ids
+                    .iter()
+                    .map(|id| {
+                        window
+                            .try_find(*id)
+                            .and_then(|node| node.label().map(str::to_owned))
+                    })
+                    .collect();
+                window.remove_window();
+                labels
+            })
+            .unwrap_or_else(|e| panic!("labels: {e}"));
+        owner.shutdown();
+        labels
+    }
+
+    #[gpui_kit::test]
+    async fn claude_home_states_unavailable_unknown_and_window_scoped_cache(
+        cx: &mut gpui_kit::TestAppContext,
+    ) {
+        use ccr_usage::fixtures::{SeedBucket, create_projection_db, seed_bucket, seed_run_log};
+        cx.executor().allow_parking();
+        const IDS: [&str; 6] = [
+            "claude-cost-today",
+            "claude-cost-total",
+            "claude-usage-freshness",
+            "claude-cache-3",
+            "claude-cache-4",
+            "claude-cache-5",
+        ];
+        let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
+        // 无库与不可读库：KPI 写“不可用”，缓存面板不出现任何数字，绝不显示 $0.00。
+        let missing = root.path().join("missing");
+        let unreadable = root.path().join("unreadable");
+        std::fs::create_dir_all(&unreadable).unwrap_or_else(|e| panic!("dir: {e}"));
+        std::fs::write(unreadable.join("llmusage.db"), b"not a sqlite database")
+            .unwrap_or_else(|e| panic!("write: {e}"));
+        for usage_root in [missing, unreadable] {
+            let labels = claude_home_labels(cx, usage_root, &IDS).await;
+            assert_eq!(
+                labels[0].as_deref(),
+                Some("Today recorded cost: Unavailable; 2026-11-10")
+            );
+            assert_eq!(
+                labels[1].as_deref(),
+                Some("All imported history: Unavailable; ")
+            );
+            assert_eq!(labels[2], None, "no freshness claim without a report");
+            assert!(labels[3..].iter().all(Option::is_none), "{labels:?}");
+        }
+        // 空库：今日尚无记录、起点与同步未知、分母为零不可计算。
+        let empty = root.path().join("empty");
+        create_projection_db(&empty);
+        let labels = claude_home_labels(cx, empty, &IDS).await;
+        assert_eq!(
+            labels,
+            vec![
+                Some("Today recorded cost: No imported records today; 2026-11-10".into()),
+                Some("All imported history: No imported records; Since: Unknown".into()),
+                Some(
+                    "Global last successful sync: Unknown · Latest imported record date: Unknown"
+                        .into()
+                ),
+                Some("Output (includes reasoning): 0".into()),
+                Some("Total (owner projection): 0".into()),
+                Some("Cache token hit ratio: Not calculable (zero denominator)".into()),
+            ]
+        );
+        // 窗口外有缓存、窗口内只有含推理的输出：命中率仍不可计算，输出 45 不重复加推理。
+        let scoped = root.path().join("scoped");
+        let db = create_projection_db(&scoped);
+        let conn = rusqlite::Connection::open(db.db_path).unwrap_or_else(|e| panic!("db: {e}"));
+        for (hour, input, cache, output, reasoning, total, cost) in [
+            ("2026-09-26T12:00:00Z", 100, 500, 10, 0, 610, 8.),
+            ("2026-11-05T12:00:00Z", 0, 0, 30, 15, 45, 0.5),
+        ] {
+            seed_bucket(
+                &conn,
+                &SeedBucket {
+                    source: "claude".into(),
+                    hour_start: hour.into(),
+                    input_tokens: input,
+                    cache_read_tokens: cache,
+                    cache_creation_tokens: 0,
+                    output_tokens: output,
+                    reasoning_output_tokens: reasoning,
+                    total_tokens: total,
+                    cost_with_cache_usd: cost,
+                    ..Default::default()
+                },
+            );
+        }
+        // 只有 Codex 的同步记录：页面仍按“全局”陈述这个旧时间。
+        seed_run_log(&conn, "codex", "recent", "2026-10-01T00:00:00Z");
+        drop(conn);
+        let labels = claude_home_labels(cx, scoped, &IDS).await;
+        assert_eq!(
+            labels,
+            vec![
+                Some("Today recorded cost: No imported records today; 2026-11-10".into()),
+                Some("All imported history: $8.50; Since: 2026-09-26".into()),
+                Some(
+                    "Global last successful sync: 2026-10-01T00:00:00Z · Latest imported record date: 2026-11-05"
+                        .into()
+                ),
+                Some("Output (includes reasoning): 45".into()),
+                Some("Total (owner projection): 45".into()),
+                Some("Cache token hit ratio: Not calculable (zero denominator)".into()),
+            ]
+        );
     }
 
     #[test]

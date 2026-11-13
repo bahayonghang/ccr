@@ -1538,7 +1538,9 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
     // read result instead; successful values are asserted separately below.
     async fn loaded(cx: &mut TestAppContext, handle: gpui_kit::AnyWindowHandle) {
         cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+            // 设置类 tab 陈述设置文件，账户 tab 陈述凭据观测；任一出现即已读完。
             window.try_find("platform-file-status").is_some()
+                || window.try_find("platform-auth-status").is_some()
                 || window.try_find("platform-operation-status").is_some()
         })
         .await;
@@ -1709,6 +1711,19 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
         );
         assert!(window.try_find("platform-common-form").is_some());
         assert!(window.try_find("platform-field-model").is_none());
+        // 设置 tab 陈述运行设置分组；账户分组只属于账户 tab。
+        assert_eq!(
+            window.find("platform-group-runtime").label(),
+            Some("Runtime settings")
+        );
+        assert!(window.try_find("platform-group-provider-catalog").is_none());
+        assert!(window.try_find("platform-accounts-saved").is_none());
+        assert!(window.try_find("platform-show-layers").is_some());
+        // 设置 tab 只显示设置那部分：没有凭据观测和已保存账户。
+        assert!(window.try_find("platform-auth-status").is_none());
+        let text = page_labels(window);
+        assert!(!text.contains("No runtime credential was detected."));
+        assert!(!text.contains("No saved accounts."));
         private_projection(window, secret, &["gpt-5", "grok-3", "opencode-model"]);
         window.click("tool-auth", cx);
     })
@@ -1716,16 +1731,20 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
     loaded(cx, handle).await;
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
+        // 账户 tab 只显示账户那部分：不渲染设置文件状态和运行设置字段。
         assert_eq!(
             window
-                .try_find("platform-field-model")
+                .try_find("platform-auth-status")
                 .and_then(|node| node.label().map(str::to_owned)),
-            Some("model: sonnet".into()),
+            Some("No runtime credential was detected.".into()),
             "{}",
             safe_state(window)
         );
+        assert!(window.try_find("platform-field-model").is_none());
+        assert!(window.try_find("platform-file-status").is_none());
         let text = page_labels(window);
-        assert!(text.contains("settings.json was found"));
+        assert!(!text.contains("model: sonnet"));
+        assert!(!text.contains("settings.json was found"));
         assert!(text.contains("No runtime credential was detected."));
         assert!(text.contains("No saved accounts."));
         assert!(!text.contains(secret));
@@ -1733,6 +1752,13 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
         assert!(!text.contains(" / "));
         assert!(!text.contains("Home insights"));
         assert!(!text.contains("Apply / refresh"));
+        // 账户 tab：当前登录与已保存账户分组，不显示设置的配置来源开关或设置分组。
+        assert!(window.try_find("platform-accounts-current").is_some());
+        assert!(window.try_find("platform-accounts-saved").is_some());
+        assert!(window.try_find("platform-show-layers").is_none());
+        assert!(window.try_find("platform-group-runtime").is_none());
+        assert_eq!(window.find("platform-account-switch").focused(), None);
+        assert_eq!(window.find("platform-account-save").focused(), Some(false));
         private_projection(window, secret, &["gpt-5", "grok-3", "opencode-model"]);
         window.click("nav-codex", cx);
         window.click("tool-profiles", cx);
@@ -1751,6 +1777,7 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
             safe_state(window)
         );
         assert!(window.try_find("platform-common-form").is_some());
+        assert!(window.try_find("platform-auth-status").is_none());
         private_projection(window, secret, &["sonnet", "grok-3", "opencode-model"]);
         window.click("tool-auth", cx);
     })
@@ -1758,15 +1785,15 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
     loaded(cx, handle).await;
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
-        assert_eq!(
-            window
-                .try_find("platform-field-model")
-                .and_then(|node| node.label().map(str::to_owned)),
-            Some("model: gpt-5".into()),
+        assert!(
+            window.try_find("platform-auth-status").is_some(),
             "{}",
             safe_state(window)
         );
+        assert!(window.try_find("platform-field-model").is_none());
+        assert!(window.try_find("platform-file-status").is_none());
         let text = page_labels(window);
+        assert!(!text.contains("model: gpt-5"));
         assert!(window.find("page-codex").visible());
         assert!(text.contains("No runtime credential was detected."));
         assert!(text.contains("No saved accounts."));
@@ -1789,6 +1816,12 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
             safe_state(window)
         );
         assert!(window.try_find("platform-common-form").is_some());
+        assert!(window.try_find("platform-auth-status").is_none());
+        assert!(
+            window
+                .try_find("platform-account-grok-fixture-only")
+                .is_none()
+        );
         private_projection(window, secret, &["sonnet", "gpt-5", "opencode-model"]);
         window.click("tool-auth", cx);
     })
@@ -1796,15 +1829,15 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
     loaded(cx, handle).await;
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
-        assert_eq!(
-            window
-                .try_find("platform-field-default_model")
-                .and_then(|node| node.label().map(str::to_owned)),
-            Some("default_model: grok-3".into()),
+        assert!(
+            window.try_find("platform-auth-status").is_some(),
             "{}",
             safe_state(window)
         );
+        assert!(window.try_find("platform-field-default_model").is_none());
+        assert!(window.try_find("platform-file-status").is_none());
         let text = page_labels(window);
+        assert!(!text.contains("default_model: grok-3"));
         assert!(window.find("page-grok").visible());
         assert!(text.contains("No runtime credential was detected."));
         assert_eq!(
@@ -1814,6 +1847,28 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
         assert!(!text.contains("No saved accounts."));
         assert!(!text.contains("logged in"));
         assert!(!text.contains(secret));
+        // Grok 已保存账户可选；选中后切换与删除才可用，不执行切换以保持夹具字节不变。
+        assert_eq!(
+            window.find("platform-account-grok-fixture-only").selected(),
+            Some(false)
+        );
+        assert_eq!(window.find("platform-account-switch").focused(), None);
+        assert_eq!(window.find("platform-account-delete").focused(), None);
+        assert!(window.try_find("platform-account-rename").is_none());
+        window.click("platform-account-grok-fixture-only", cx);
+        window.render_frame(cx);
+        assert_eq!(
+            window.find("platform-account-grok-fixture-only").selected(),
+            Some(true)
+        );
+        assert_eq!(
+            window.find("platform-account-switch").focused(),
+            Some(false)
+        );
+        assert_eq!(
+            window.find("platform-account-delete").focused(),
+            Some(false)
+        );
         private_projection(window, secret, &["sonnet", "gpt-5", "opencode-model"]);
         window.click("nav-opencode", cx);
         window.click("tool-settings", cx);
@@ -1840,7 +1895,16 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
         );
         assert!(window.try_find("platform-common-form").is_some());
         assert!(window.try_find("tool-auth").is_none());
-        assert!(text.contains("Accounts are not supported. Login state is not reported."));
+        // opencode.json 里的供应商条目单列为供应商目录，与运行设置分组并存。
+        assert!(window.try_find("platform-group-runtime").is_some());
+        assert_eq!(
+            window.find("platform-group-provider-catalog").label(),
+            Some("Provider catalog")
+        );
+        assert!(window.try_find("platform-show-layers").is_none());
+        // 没有账户 tab 的平台，设置 tab 不为不支持的账户占位。
+        assert!(window.try_find("platform-auth-status").is_none());
+        assert!(!text.contains("Accounts are not supported. Login state is not reported."));
         assert!(!text.contains(secret));
         assert!(!text.contains("apiKey"));
         private_projection(window, secret, &["sonnet", "gpt-5", "grok-3"]);
@@ -1861,7 +1925,16 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
             "{}",
             safe_state(window)
         );
-        assert!(text.contains("Accounts are not supported. Login state is not reported."));
+        assert!(window.try_find("platform-auth-status").is_none());
+        assert!(!text.contains("Accounts are not supported. Login state is not reported."));
+        // Gemini 兼容文件只陈述路径，不冒称 Antigravity 客户端已读取。
+        assert!(
+            window
+                .find("platform-group-runtime-scope")
+                .label()
+                .is_some_and(|label| label.contains("unverified"))
+        );
+        assert!(window.try_find("platform-group-provider-catalog").is_none());
         assert!(window.try_find("platform-save").is_none());
         assert!(window.try_find("platform-common-form").is_none());
         assert!(window.try_find("platform-setting-model").is_none());
@@ -2060,5 +2133,93 @@ async fn selected_profile_is_independent_from_running_profile_and_dirty_navigati
         window.remove_window();
     })
     .unwrap_or_else(|_| panic!("draft navigation"));
+    owner.shutdown();
+}
+
+/// PRD 8.3「导航」：宽窗（>1600）tab 嵌入标题行、常规窗放到标题下一行；跨断点改布局时
+/// 键盘焦点仍在同一个 tab 上，焦点所有者不因换行位置而重建。
+#[gpui_kit::test]
+fn platform_tab_focus_survives_crossing_the_wide_layout_breakpoint(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
+    let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
+    let source = ConfigSource::Fixture {
+        profiles: root.path().join("missing.toml"),
+        registry: root.path().join("registry.toml"),
+        delay: Duration::ZERO,
+    };
+    let size = |width: f32, height: f32| gpui_kit::size(gpui_kit::px(width), gpui_kit::px(height));
+    let (handle, _) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(
+            WindowOptions {
+                window_bounds: Some(gpui_kit::WindowBounds::Windowed(gpui_kit::Bounds::new(
+                    gpui_kit::point(gpui_kit::px(0.), gpui_kit::px(0.)),
+                    size(2000., 1080.),
+                ))),
+                ..Default::default()
+            },
+            cx,
+            |window, cx| cx.new(|cx| Shell::new(Services::new(owner.handle(), source), window, cx)),
+        )
+        .unwrap_or_else(|e| panic!("window: {e}"))
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("nav-claude-code", cx);
+        for _ in 0..128 {
+            if window.find("tool-home").focused() == Some(true) {
+                break;
+            }
+            window.press("tab", cx);
+        }
+        // 键盘切到“设置”，焦点随激活留在 tab 上。
+        for _ in 0..3 {
+            window.press("right", cx);
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
+        }
+        assert_eq!(window.find("tool-settings").focused(), Some(true));
+        assert_eq!(
+            window.find("platform-tab-heading").label(),
+            Some("Settings")
+        );
+        same_row(window, "platform-tab-heading", "tool-settings");
+    })
+    .unwrap_or_else(|e| panic!("wide: {e}"));
+    for (width, height, wide) in [
+        (1280., 800., false),
+        (2000., 1080., true),
+        (960., 640., false),
+    ] {
+        cx.simulate_window_resize(handle, size(width, height));
+        cx.update_window(handle, |_, window, cx| {
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
+            let heading = window.find("platform-tab-heading").bounds();
+            let tab = window.find("tool-settings").bounds();
+            if wide {
+                same_row(window, "platform-tab-heading", "tool-settings");
+            } else {
+                assert!(
+                    tab.top() >= heading.bottom(),
+                    "{width}: tabs move below the heading: {heading:?} {tab:?}"
+                );
+            }
+            assert_eq!(
+                window.find("tool-settings").focused(),
+                Some(true),
+                "{width}: focus stays on the same tab across the layout change"
+            );
+            assert_eq!(window.find("tool-settings").checked(), Some(true));
+            assert_eq!(
+                window.find("platform-tab-heading").label(),
+                Some("Settings")
+            );
+        })
+        .unwrap_or_else(|e| panic!("resize {width}: {e}"));
+    }
+    cx.update_window(handle, |_, window, _| window.remove_window())
+        .unwrap_or_else(|e| panic!("close: {e}"));
     owner.shutdown();
 }

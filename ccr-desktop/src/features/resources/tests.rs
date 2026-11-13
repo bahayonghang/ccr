@@ -448,3 +448,320 @@ fn builtin_template_presets_feed_the_original_instruction_session(cx: &mut TestA
     .unwrap();
     owner.shutdown();
 }
+
+/// Seeds a captured Claude root with same-name entries and legacy arrays holding credentials.
+fn extension_fixture(root: &std::path::Path) -> (std::path::PathBuf, Vec<u8>) {
+    let roots = ccr_cli::application::platform_roots::PlatformRoots::fixture(
+        &root.join("desktop-resource-fixture"),
+    )
+    .unwrap();
+    let config = roots.claude.config_dir.clone();
+    for (relative, content) in [
+        ("agents/reviewer.md", "---\nname: reviewer\n---\nagent-body"),
+        (
+            "agents/team/copy.md",
+            "---\nname: reviewer\n---\nagent-body",
+        ),
+        (
+            "skills/deploy/SKILL.md",
+            "---\nname: deploy\n---\nskill-body",
+        ),
+        ("commands/deploy.md", "command-body"),
+        (
+            "plugins/installed_plugins.json",
+            r#"{"version":2,"plugins":{"demo@alpha":[],"demo@beta":[]}}"#,
+        ),
+    ] {
+        let path = config.join(relative);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, content).unwrap();
+    }
+    let settings = roots.claude.settings_file.clone();
+    let original = br#"{"agents":[{"name":"old","model":"m","token":"agentAAAASENTINELBBBB"}],"plugins":[{"id":"p","name":"p","version":"1","config":{"apiKey":"keyAAAASENTINELBBBB"}}]}"#.to_vec();
+    std::fs::create_dir_all(settings.parent().unwrap()).unwrap();
+    std::fs::write(&settings, &original).unwrap();
+    (settings, original)
+}
+
+#[gpui_kit::test]
+async fn claude_extensions_show_same_name_sources_and_gate_full_legacy_export(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    let (settings, original) = extension_fixture(root.path());
+    let owner = RuntimeOwner::new().unwrap();
+    let services = Services::new(
+        owner.handle(),
+        ConfigSource::Fixture {
+            profiles: root.path().join("profiles.toml"),
+            registry: root.path().join("registry.toml"),
+            delay: Duration::ZERO,
+        },
+    );
+    let (handle, host) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(
+            WindowOptions {
+                window_bounds: Some(gpui_kit::WindowBounds::Windowed(
+                    gpui_kit::Bounds::centered(None, gpui_kit::size(px(1360.), px(1400.)), cx),
+                )),
+                ..Default::default()
+            },
+            cx,
+            |window, cx| {
+                cx.new(|cx| {
+                    let view = cx.new(|cx| ResourcesView::new(services, window, cx));
+                    let subscription = cx.observe(&view, |_, _, cx| cx.notify());
+                    Host {
+                        view,
+                        outside: cx.focus_handle(),
+                        _subscription: subscription,
+                    }
+                })
+            },
+        )
+        .unwrap()
+    });
+    let view = cx.update(|cx| host.read(cx).view.clone());
+    cx.update_window(handle, |_, window, cx| {
+        view.update(cx, |this, cx| {
+            this.open_extensions(Platform::Claude, window, cx)
+        })
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(5), |_, cx| {
+        !view.read(cx).busy && !view.read(cx).extension_sources.is_empty()
+    })
+    .await;
+    let plaintext = |cx: &gpui_kit::App| {
+        view.read(cx)
+            .legacy_output
+            .read(cx)
+            .value()
+            .contains("SENTINEL")
+    };
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        // 同名条目仍各自列出，并标出另一来源。
+        for id in [
+            "claude-extension-same-name-0-0",
+            "claude-extension-same-name-0-1",
+            "claude-extension-same-name-1-0",
+            "claude-extension-same-name-2-0",
+            "claude-extension-same-name-3-0",
+            "claude-extension-same-name-3-1",
+        ] {
+            assert!(window.try_find(id).is_some(), "{id}");
+        }
+        let label = |window: &mut Window, id: &str| {
+            window
+                .find(id.to_owned())
+                .label()
+                .unwrap_or_default()
+                .to_owned()
+        };
+        let skill = label(window, "claude-extension-same-name-1-0");
+        assert!(skill.contains("Same name “deploy”"), "{skill}");
+        assert!(skill.contains("Legacy slash commands · user · deploy.md"));
+        assert!(skill.contains("client loading unverified"));
+        let plugin = label(window, "claude-extension-same-name-3-0");
+        assert!(plugin.contains("demo@beta"), "{plugin}");
+        assert!(plugin.contains("No documented precedence; client effect unverified"));
+        assert!(
+            label(window, "claude-extension-same-name-0-0")
+                .contains("only one same-name subagent is loaded; which one is unverified")
+        );
+        assert!(
+            label(window, "claude-extension-source-0")
+                .ends_with("Discovered; client loading unverified")
+        );
+        assert!(label(window, "claude-extension-source-6").ends_with("Not connected"));
+        assert!(
+            label(window, "claude-extension-source-4")
+                .starts_with("Legacy CCR entries — Claude does not read these arrays")
+        );
+        let sources = view.read(cx).extension_sources.clone();
+        let skill = sources[1].entries[0].same_name.clone().unwrap();
+        assert_eq!(skill.peers[0].location, "deploy.md");
+        assert_eq!(
+            skill.rule,
+            ccr_app::resources::claude_extensions::SameNameRule::SkillOverCommand
+        );
+        assert_eq!(
+            sources[3].entries[1].same_name.clone().unwrap().rule,
+            ccr_app::resources::claude_extensions::SameNameRule::Unverified
+        );
+        assert!(window.try_find("claude-extension-legacy-output").is_none());
+        // 脱敏导出是默认动作，不经确认。
+        window.click("claude-extension-legacy-export", cx);
+        assert!(view.read(cx).decision.is_none());
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(5), |_, cx| {
+        !view.read(cx).busy && view.read(cx).legacy_full == Some(false)
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        let value = view.read(cx).legacy_output.read(cx).value().to_string();
+        assert!(value.contains("\"plugins\""));
+        assert!(!plaintext(cx));
+        assert!(
+            view.read(cx)
+                .message
+                .is_some_and(|message| message.contains("not saved"))
+        );
+        // 完整导出必须确认：从外部焦点打开，初始焦点在取消，Tab 留在决定子树，Esc 返回触发者。
+        let outside = host.read(cx).outside.clone();
+        window.focus(&outside, cx);
+        window.click("claude-extension-legacy-export-full", cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert_eq!(
+            window.find("claude-extension-legacy-cancel").focused(),
+            Some(true)
+        );
+        // 确认期间底层动作不可操作：禁用按钮没有焦点绑定，点击也不发起读取。
+        for id in [
+            "claude-extension-legacy-export",
+            "claude-extension-legacy-save-file",
+            "claude-extension-legacy-close",
+        ] {
+            assert_eq!(window.find(id).focused(), None, "{id} disabled");
+        }
+        window.click("claude-extension-legacy-export", cx);
+        assert!(!view.read(cx).busy);
+        window.press("tab", cx);
+        assert_eq!(
+            window.find("claude-extension-legacy-confirm").focused(),
+            Some(true)
+        );
+        window.press("tab", cx);
+        assert_eq!(
+            window.find("claude-extension-legacy-cancel").focused(),
+            Some(true)
+        );
+        window.press("shift-tab", cx);
+        assert_eq!(
+            window.find("claude-extension-legacy-confirm").focused(),
+            Some(true)
+        );
+        window.press("escape", cx);
+        window.render_frame(cx);
+        assert!(view.read(cx).decision.is_none());
+        assert!(
+            window
+                .try_find("claude-extension-legacy-confirmation")
+                .is_none()
+        );
+        assert_eq!(window.find("resource-outside").focused(), Some(true));
+        // 取消后没有发起读取，界面里也没有明文。
+        assert!(!view.read(cx).busy);
+        assert_eq!(view.read(cx).legacy_full, Some(false));
+        assert!(!plaintext(cx));
+        window.click("claude-extension-legacy-export-full", cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        window.click("claude-extension-legacy-cancel", cx);
+        window.render_frame(cx);
+        assert!(view.read(cx).decision.is_none());
+        assert!(!view.read(cx).busy);
+        assert!(!plaintext(cx));
+        window.click("claude-extension-legacy-export-full", cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        window.click("claude-extension-legacy-confirm", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(5), |_, cx| {
+        !view.read(cx).busy && view.read(cx).legacy_full == Some(true)
+    })
+    .await;
+    let destination = root.path().join("legacy.json");
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(plaintext(cx));
+        assert!(!destination.exists(), "showing a copy never writes a file");
+        window.click("claude-extension-legacy-save-file", cx);
+    })
+    .unwrap();
+    assert!(cx.did_prompt_for_new_path());
+    cx.simulate_new_path_selection(|_| None);
+    cx.run_until_parked();
+    assert!(!destination.exists());
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("claude-extension-legacy-save-file", cx);
+    })
+    .unwrap();
+    let chosen = destination.clone();
+    cx.simulate_new_path_selection(move |_| Some(chosen));
+    cx.wait_for(handle, Duration::from_secs(5), |_, cx| {
+        !view.read(cx).busy
+            && view
+                .read(cx)
+                .message
+                .is_some_and(|message| message.contains("Export file saved"))
+    })
+    .await;
+    assert!(
+        std::fs::read_to_string(&destination)
+            .unwrap()
+            .contains("keyAAAASENTINELBBBB")
+    );
+    // 已有文件不覆盖。
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("claude-extension-legacy-save-file", cx);
+    })
+    .unwrap();
+    let chosen = destination.clone();
+    cx.simulate_new_path_selection(move |_| Some(chosen));
+    cx.wait_for(handle, Duration::from_secs(5), |_, cx| {
+        !view.read(cx).busy
+            && view
+                .read(cx)
+                .message
+                .is_some_and(|message| message.contains("already exists"))
+    })
+    .await;
+    // 离页清除明文；离页前发出的读取回包不再生效。
+    cx.update_window(handle, |_, window, cx| {
+        view.update(cx, |this, cx| {
+            this.leave(window, cx);
+            this.open_extensions(Platform::Claude, window, cx);
+        });
+        assert!(view.read(cx).legacy_full.is_none());
+        assert!(view.read(cx).legacy_pending.is_none());
+        assert!(!plaintext(cx));
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(5), |_, cx| !view.read(cx).busy)
+        .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("claude-extension-legacy-export-full", cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        window.click("claude-extension-legacy-confirm", cx);
+        assert!(view.read(cx).busy);
+        view.update(cx, |this, cx| this.leave(window, cx));
+    })
+    .unwrap();
+    for _ in 0..30 {
+        cx.run_until_parked();
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(view.read(cx).legacy_full.is_none());
+        assert!(view.read(cx).legacy_pending.is_none());
+        assert!(!plaintext(cx));
+        assert!(window.try_find("claude-extension-legacy-output").is_none());
+        window.remove_window();
+    })
+    .unwrap();
+    assert_eq!(std::fs::read(&settings).unwrap(), original);
+    owner.shutdown();
+}

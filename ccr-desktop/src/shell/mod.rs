@@ -80,11 +80,7 @@ enum Lens {
     Auth,
     Mcp,
     Usage,
-    Observer,
     Sessions,
-    Agents,
-    Plugins,
-    SlashCommands,
     Extensions,
     Providers,
     Models,
@@ -450,27 +446,17 @@ impl Shell {
                         .update(cx, |view, cx| view.open_platform(platform, cx));
                 }
             }
-            Lens::Usage | Lens::Sessions | Lens::Observer => {
+            Lens::Usage | Lens::Sessions => {
                 if let Some(platform) = self.platform() {
-                    let page = match self.lens {
-                        Lens::Sessions => InsightsPage::Sessions,
-                        Lens::Observer => InsightsPage::Observer,
-                        _ => InsightsPage::Usage,
+                    let page = if self.lens == Lens::Sessions {
+                        InsightsPage::Sessions
+                    } else {
+                        InsightsPage::Usage
                     };
                     self.insights.update(cx, |view, cx| {
                         view.open_platform(page, platform, window, cx)
                     });
                 }
-            }
-            Lens::Agents | Lens::Plugins | Lens::SlashCommands => {
-                use crate::runtime::resources::claude_files::Kind;
-                let kind = match self.lens {
-                    Lens::Agents => Kind::Agents,
-                    Lens::Plugins => Kind::Plugins,
-                    _ => Kind::SlashCommands,
-                };
-                self.resources
-                    .update(cx, |view, cx| view.open_claude(kind, window, cx));
             }
             Lens::Converter => {}
             Lens::Favorites => self.commands.update(cx, |view, cx| view.open(false, cx)),
@@ -494,33 +480,24 @@ impl Shell {
     }
 
     fn activate_primary(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if let Some(platform) = self.platform() {
-            self.workbench
-                .update(cx, |view, cx| view.open(platform, cx));
-            return;
-        }
         match self.destination {
+            // 平台目的地的首个 tab 一律是工作台。
+            Destination::ClaudeCode
+            | Destination::Codex
+            | Destination::Grok
+            | Destination::OpenCode
+            | Destination::Antigravity => {
+                if let Some(platform) = self.platform() {
+                    self.workbench
+                        .update(cx, |view, cx| view.open(platform, cx));
+                }
+            }
             Destination::Dashboard => self.overview.update(cx, |view, cx| view.refresh(cx)),
             Destination::AgentSessions => self.insights.update(cx, |view, cx| {
                 view.open_global(InsightsPage::Sessions, window, cx)
             }),
             Destination::Usage => self.insights.update(cx, |view, cx| {
                 view.open_global(InsightsPage::Usage, window, cx)
-            }),
-            Destination::ClaudeCode => self.configurations.update(cx, |view, cx| {
-                view.open_platform(Platform::Claude, window, cx)
-            }),
-            Destination::Codex => self.configurations.update(cx, |view, cx| {
-                view.open_platform(Platform::Codex, window, cx)
-            }),
-            Destination::Grok => self.configurations.update(cx, |view, cx| {
-                view.open_platform(Platform::Grok, window, cx)
-            }),
-            Destination::OpenCode => self.platforms.update(cx, |view, cx| {
-                view.open(Platform::OpenCode, Surface::Settings, window, cx)
-            }),
-            Destination::Antigravity => self.platforms.update(cx, |view, cx| {
-                view.open(Platform::Gemini, Surface::LegacySettings, window, cx)
             }),
             Destination::Commands => self.jobs.update(cx, |view, cx| view.refresh(cx)),
             Destination::McpManager => self.mcp.update(cx, |view, cx| view.open_global(cx)),
@@ -573,11 +550,8 @@ impl Shell {
                 .platforms
                 .update(cx, |view, cx| view.focus_main(window, cx)),
             Lens::Mcp => self.mcp.update(cx, |view, cx| view.focus_main(window, cx)),
-            Lens::Usage | Lens::Sessions | Lens::Observer => self
+            Lens::Usage | Lens::Sessions => self
                 .insights
-                .update(cx, |view, cx| view.focus_main(window, cx)),
-            Lens::Agents | Lens::Plugins | Lens::SlashCommands => self
-                .resources
                 .update(cx, |view, cx| view.focus_main(window, cx)),
             Lens::Favorites | Lens::Recent => {
                 self.commands
@@ -842,42 +816,18 @@ impl Shell {
         Some(page_header::row("lens-navigation", None, capsule, cx))
     }
 
-    /// Non-platform lens options for the current destination.
+    /// Lens options for the current destination: grouped platform tabs, or the
+    /// capsule options of a non-platform destination.
     fn lens_items(&self, cx: &gpui_kit::App) -> Option<Vec<LensItem>> {
-        if self.platform().is_some() {
-            return Some(self.platform_items());
-        }
-        if self.remote.read(cx).is_remote() {
-            return None;
-        }
+        let remote = self.remote.read(cx).is_remote();
         Some(match self.destination {
-            Destination::ClaudeCode | Destination::Codex => vec![
-                ("tool-profiles", Lens::Primary, "Profiles", "配置列表"),
-                (
-                    "tool-accounts",
-                    Lens::Accounts,
-                    "Settings and accounts",
-                    "设置与账户",
-                ),
-                ("tool-files", Lens::Files, "Instruction files", "指令文件"),
-            ],
-            Destination::Grok => vec![
-                ("tool-profiles", Lens::Primary, "Profiles", "配置列表"),
-                (
-                    "tool-accounts",
-                    Lens::Accounts,
-                    "Settings and accounts",
-                    "设置与账户",
-                ),
-            ],
-            Destination::OpenCode => vec![
-                ("tool-platform", Lens::Primary, "OpenCode", "OpenCode"),
-                ("tool-files", Lens::Files, "Instruction files", "指令文件"),
-            ],
-            Destination::Antigravity => vec![
-                ("tool-platform", Lens::Primary, "Antigravity", "Antigravity"),
-                ("tool-files", Lens::Files, "Instruction files", "指令文件"),
-            ],
+            // 平台目的地在远程环境下也保留分组 tab；其余目的地远程时不渲染胶囊。
+            Destination::ClaudeCode
+            | Destination::Codex
+            | Destination::Grok
+            | Destination::OpenCode
+            | Destination::Antigravity => self.platform_items(),
+            _ if remote => return None,
             Destination::Commands => vec![
                 ("tool-catalog", Lens::Primary, "Command catalog", "命令目录"),
                 (
@@ -936,12 +886,7 @@ impl Shell {
             Lens::Profiles => self.configurations.clone().into_any_element(),
             Lens::Auth => self.platforms.clone().into_any_element(),
             Lens::Mcp => self.mcp.clone().into_any_element(),
-            Lens::Usage | Lens::Observer | Lens::Sessions => {
-                self.insights.clone().into_any_element()
-            }
-            Lens::Agents | Lens::Plugins | Lens::SlashCommands => {
-                self.resources.clone().into_any_element()
-            }
+            Lens::Usage | Lens::Sessions => self.insights.clone().into_any_element(),
             Lens::Converter => self.converter.clone().into_any_element(),
             Lens::Favorites | Lens::Recent => self.commands.clone().into_any_element(),
             Lens::Install => self.install.clone().into_any_element(),
@@ -970,27 +915,6 @@ impl Shell {
 
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        if self.workbench.read(cx).has_pending() {
-            let shell = cx.weak_entity();
-            window.on_next_frame(move |window, cx| {
-                let _ = shell.update(cx, |this, cx| {
-                    if let Some(link) = this.workbench.update(cx, |view, _| view.take_pending()) {
-                        let lens = platform_navigation::link_lens(link);
-                        let open_daily =
-                            lens == Lens::Usage && this.destination == Destination::ClaudeCode;
-                        if open_daily {
-                            this.insights
-                                .update(cx, |view, _| view.select_daily_report());
-                        }
-                        this.go(this.destination, lens, window, cx);
-                        if open_daily {
-                            this.insights
-                                .update(cx, |view, cx| view.focus_main(window, cx));
-                        }
-                    }
-                });
-            });
-        }
         if self.overview.read(cx).has_pending() {
             let shell = cx.weak_entity();
             window.on_next_frame(move |window, cx| {

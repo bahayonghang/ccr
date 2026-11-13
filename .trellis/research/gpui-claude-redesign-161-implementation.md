@@ -268,3 +268,168 @@ P0–P5 生产实现与相关回归已落地。P6 的生产 DESIGN、真实合�
 - 账户与设置的局部重排未实施：PRD 第 6 节的「账户按选中对象操作、保存当前登录单列」与「设置区分运行设置 / CCR 元数据 / 供应商目录」在 `features/platforms` 中仍只有隐藏标题与 tab 的改动，未见分组实现。该条属于本轮未完成的 PRD 范围，不能按已实施记录。
 - 指令页已写明用户级与「未接入」；扩展页仍缺「同名多来源」的表达，也没有完整导出与其确认动作（不可读/不安全标签与旧数组缺失的「—」已在本轮补齐）。
 - 原生验收未运行（用户已豁免 Codex Computer Use 通道）；DESIGN 合同票与重设计 PRD 因此仍不具备关闭条件。
+
+### 账户与设置局部重排（补做上条「未实施」）
+
+本节补做「本轮已知偏差」里账户与设置那一条，只动 `ccr-desktop/src/features/platforms/`（`mod.rs`、新增 `scope.rs`、`layers.rs`、`tests.rs`）、`tests/native_shell.rs` 与 `DESIGN.md` 的局部段落。没有改 `ccr-app` 写入语义，也没有改 Tauri。依据是 #149 的「账户 | 局部重排」「设置 | 局部重排」两行，以及 #139 的「只显示账户那部分 / 配置来源仍是页内开关」。
+
+已实施：
+- 账户 tab 分两组。「当前登录」（`platform-accounts-current`）放新账户名、「保存当前登录」和清除运行认证，不读列表选中项。「已保存账户」（`platform-accounts-saved`）是一个可选列表（`platform-accounts-list`，ListBox）加选中状态行（`platform-accounts-selection`）。切换、Codex 重命名、删除和「查询所选账户配额」只作用于选中行；没有选中时禁用。打开时不自动选中；重读后只保留仍存在的选中项；账户操作提交后清除选中。删除和重命名的确认句写出账户名。
+- 设置类页面加三类分组标题：`platform-group-runtime`、`platform-group-provider-catalog`、`platform-group-ccr-metadata`。标题旁写来源文件名，`*-scope` 写实际作用域。Antigravity 的 Gemini 路径写明客户端是否读取未验证。OpenCode 的供应商状态归入供应商目录组。配置来源开关只在设置 tab 出现，标题改用 16/600 分区标题。
+- Codex 的模型和供应商、OpenCode 的供应商是同一个共享组件渲染的，所以也带上了分组标题。这超出了账户和设置两个 tab，只是继承了共享组件的改动。
+- 第二轮（协调方据 #139 规则 1、规则 3 与 #149「配置来源为解释性展开区」确认为已批准决定）：
+  - 账户 tab 只显示账户那部分：只渲染凭据观测 `platform-auth-status` 与 Grok 的账户来源 `platform-oauth-source-*`，不再渲染设置文件状态 `platform-file-status` 和运行设置字段 `platform-field-*`。设置文档仍在后台读取并作为账户 CAS 令牌，CAS、确认、后台登录语义不变。
+  - 设置类 tab 只显示设置那部分：不再渲染凭据观测和静态已保存账户列表；OpenCode、Antigravity 的「Accounts are not supported」占位一并去掉。核对过设置 tab 上没有任何动作以凭据状态为前提（`features/platforms`、`shell` 中凭据状态只用于渲染 `platform-auth-status` 与账户列表），所以没有需要保留的例外。
+  - 配置来源改为页内展开区：开关 `platform-show-layers` 仍在设置 tab 页内，打开后在设置表单之后展开只读来源清单 `platform-layers`，表单与 `platform-save` 仍在原位可用，不再整页替换。复用同一个 `LayersView` 实体，不重建焦点所有者；键盘激活开关时记下开关焦点，收起时把焦点还给开关；此前用键盘激活过开关时，焦点进入展开区后再用鼠标收起，焦点同样回到开关。
+
+未实施，待维护者决定：
+- 高级补丁仍没有独立确认（确认放在打开编辑器时还是提交时，未定）。
+- Codex 的「添加 API 账户」「导入」放哪一组，未定。
+- 普通字段没有再细分分组。
+- 切换仍是 ghost 按钮，执行前不确认（#149 只要求保留凭据确认）。
+- 只用鼠标、从未用键盘激活过开关时，拿不到 Kit Button 的焦点句柄（它按元素 id 存在 keyed state 里，鼠标按下不取焦点），这时收起不会把焦点移到开关上。
+
+门禁结果（均为真实退出码）：
+- `just desktop-fmt-check` 0。格式修复单独用 `just desktop-fmt` 执行，执行前后对另一会话的 7 个文件做了哈希比对，结果不变。
+- `just desktop-lint` 0。
+- `just desktop-test` 0：accesskit 3 项通过；lib 309 通过、4 忽略；native_shell 14 通过、1 忽略；native_ui 2 通过；runtime_shutdown 2 通过、1 忽略。中途出现过 E0308（Observed 与 Stateful 类型不一致）和 E0616（测试读了私有字段），都改代码后修好，没有删测试。
+- `just desktop-test-ui` 0：native_shell 14 通过、1 忽略；native_ui 2 通过。
+
+第二轮门禁（a、b、c 完成后的最终源码，均为真实退出码）：
+- 中途：`just desktop-fmt-check` exit 1，只报本轮改的 `mod.rs`、`tests.rs`、`native_shell.rs`；单独跑 `just desktop-fmt` 修复（exit 0），另一会话的 6 个桌面 Rust 文件哈希前后一致。窄跑 `cargo test --lib features::platforms` 时 `configuration_sources_are_discoverable_and_managed_layers_stay_read_only` 失败过一次：裸视图没有外壳的 Tab 绑定，`press("tab")` 走不到开关；改用 `focus_next` 后通过，没有删断言。
+- `just desktop-fmt-check` 0；`just desktop-lint` 0。
+- `just desktop-test` 0：accesskit 3 项通过；lib 309 通过、4 忽略；native_shell 14 通过、1 忽略；native_ui 2 通过；runtime_shutdown 2 通过、1 忽略。
+- `just desktop-test-ui` 0：native_shell 14 通过、1 忽略；native_ui 2 通过。
+
+新测试：`features::platforms::tests::account_actions_follow_the_selected_row_and_saving_ignores_selection`、`features::platforms::tests::settings_scope_groups_follow_each_platform_surface`。另在 `platform_routes_show_supported_local_status_without_secrets` 里补了断言。
+
+原生验收：not_run。
+
+## 扩展页：同名多来源与旧版 settings 数组导出（#161 子任务）
+
+依据：#160「技能与旧 commands 来源可同屏但各保留类型/真实路径，不按名称粗暴合并」「默认脱敏查看/导出，含凭据完整副本必须显式确认且仅临时显示或显式保存」；#149「默认只给脱敏查看/导出；完整导出需确认」；PRD 8.3 临时查看与保存文件是不同动作。
+
+已做：
+- 共享层 `crates/ccr-app/src/resources/claude_extensions.rs`：`Source.names` 改为 `entries: Vec<Entry>`，`Entry` 带可选 `SameName { name, peers, rule }`。同名只在同一命名空间内比对：子代理按 frontmatter `name`（读不到则不参与比对，条目照常列出）；技能目录名与旧命令文件名互比；插件按 `@` 前名称。`rule` 只取研究票写明的两条（技能优先于同名旧命令；同名子代理只加载其一、哪一个未写明），其余 `Unverified`。新增「插件自带的子代理/技能/命令」来源，状态未接入（不跟随 installPath）。新增 `legacy_export(settings, full)`：只含存在的 agents/slashCommands/plugins；默认掩码敏感键子树、对其他字符串做日志脱敏、`plugins[].config` 叶子全部掩码；full 原样输出；都不写 settings。`SkillsService::extract_frontmatter_name` 改为 pub。
+- 桌面运行时：`ResourceCommand::ExportClaudeLegacy { full }`（只读执行器）与 `SaveClaudeLegacyExport { content, destination }`（作业），非 Claude 返回 Unsupported，非本地环境沿用既有拒绝；保存复用 `config::source::save_export`（只写新文件，已有文件报冲突），夹具环境要求目标在夹具根内。
+- GPUI：新文件 `ccr-desktop/src/features/resources/claude_extensions.rs`。同名行在条目下方用辅助色写「同名“x”也见于：来源 · 位置。规则」。旧版条目卡片提供「脱敏导出」和「导出完整副本（含凭据）」；后者走既有 Decision 确认（从外部打开时焦点落在取消、Tab 在确认子树内循环、Esc 回到触发处、确认期间底层动作禁用）。临时输出只读显示，标注「临时显示，尚未保存」；落盘只经「将当前输出保存到新文件…」；关闭或离页清空明文并递增 generation，作废在途读取与保存对话框。
+- 原生 1 MiB 栈：首版扩展渲染让 `shell_claude_resources_write_confirm_conflict_and_keep_private_fields` 在 1 MiB 下溢栈（1.1 MB 可过）；改为每个按钮/卡片/面板一个 `#[inline(never)]` 小帧函数并返回 `AnyElement`，1 MiB 下通过。
+
+新 test id：`claude-extension-same-name-{source}-{row}`、`claude-extension-legacy-export`、`claude-extension-legacy-export-full`、`claude-extension-legacy-confirmation`、`claude-extension-legacy-cancel`、`claude-extension-legacy-confirm`、`claude-extension-legacy-trap`、`claude-extension-legacy-output`、`claude-extension-legacy-save-file`、`claude-extension-legacy-close`、`claude-extension-legacy-content`、`claude-extension-status`；`claude-extension-source-{i}` 含义不变，新增 aria 标签，并多出索引 6（插件自带内容）。
+
+新测试：`same_name_entries_stay_listed_per_source_with_documented_rules_only`、`linked_sources_are_refused_without_hiding_other_sources`、`legacy_export_masks_credentials_by_default_and_full_copy_is_verbatim`（ccr-app）；`cached_catalog_without_cache_refuses_without_scanning_or_writing`（ccr-app codex_agents）；`legacy_export_is_read_only_and_saves_only_new_files_inside_the_fixture`、`claude_extension_reads_reject_other_platforms_and_remote_without_fallback`（桌面运行时）；`claude_extensions_show_same_name_sources_and_gate_full_legacy_export`（GPUI）。
+
+未做 / 待维护者决定：
+- 用户级与项目级同名：项目范围仍未接入，无法展示。
+- 插件自带条目与用户级同名：需跟随 installPath，#160 禁止，未做。
+- 托管（managed）范围没有列为未接入来源。
+- 旧数组条目是否与真实文件交叉标注同名，未定，未做。
+- 脱敏粒度（`mask_sensitive` 保留首尾各 4 字符；plugins config 全部掩码）为本次实现选择，待确认。
+- 同名用条目内注记还是分组视图，未定；技能嵌套目录、命令子目录的命名规则为推断。
+
+门禁（真实退出码）：
+- `just fmt-check`：先 1（只报本轮文件），按文件 stdin rustfmt 修复并恢复 CRLF 后 0；`just lint-strict` 0；`just test` 0（50 个套件，2605 通过、31 忽略，已知不稳定的 journal 测试未出现）；`just tauri-test` 0（339 通过、5 忽略）；`just tauri-bindings-check` 0。
+- `just desktop-fmt-check`：先 1，修复后 0；栈修复后又报 1（import 换行），手工改后 0。`just desktop-lint` 0。
+- `just desktop-test`：第一次 101（上述 1 MiB 溢栈：lib 311 通过、1 失败、4 忽略）；栈修复后第二次 101，失败的是未改动的 `features::mcp::tests::mcp_native_actions_write_confirm_and_keep_conflicting_drafts`（tests.rs:97 找不到 “MCP JSON patch” 节点），单独连跑 3 次均通过，判断为负载下偶发；第三次 0：accesskit 3 通过；lib 312 通过、4 忽略；native_shell 14 通过、1 忽略；native_ui 2 通过；runtime_shutdown 2 通过、1 忽略。
+- `just desktop-test-ui` 0：native_shell 14 通过、1 忽略；native_ui 2 通过。
+
+原生验收：not_run。
+
+## 稳定 ID 遗留清理（PRD 第 9 节收尾）
+
+依据：PRD #161 第 9 节、第 5.1 节「全局清理备份和清空记录不在本页」；#139 结论评论的 test id 变更清单。本节是纯清理，可达界面、动作、焦点顺序与文案不变。
+
+已删除（均先证明不可达）：
+- `shell/mod.rs`：`Lens::Observer`、`Lens::Agents`、`Lens::Plugins`、`Lens::SlashCommands` 及其在 `activate`、`focus_main`、`body` 中的分支。唯一产出它们的是 `platform_navigation::link_lens`，而它的输入 `workbench::Link` 只来自 `WorkbenchView.pending`；9ca72718 删掉工作台导航按钮后 `pending` 只会被置 `None`，没有任何 `Some` 写入。
+- 上述死链整条：`features/workbench.rs` 的 `Link` 枚举、`pending` 字段、`take_pending`/`has_pending`；外壳 render 里消费它的 next-frame 块（含 Claude「打开日报」特例）；`InsightsView::select_daily_report`（只被该块调用）。
+- `shell/mod.rs::lens_items` 里平台目的地的旧胶囊分支（`tool-accounts`、`Lens::Primary` 指向方案列表的 `tool-profiles`、`tool-platform`、旧 `tool-files`）。原代码在 match 前已对平台目的地提前返回 `platform_items`，这些分支永远走不到；改为在 match 内直接返回 `platform_items`，其余目的地远程时仍返回 `None`，求值顺序等价。
+- `shell/mod.rs::activate_primary` 里平台目的地打开方案列表 / 平台设置的分支：同样被前面的提前返回遮蔽，改为在 match 内打开工作台。
+- `features/profiles/`：`profile-clean-backups`、`profile-clear-history` 两个动作表项、`Action::Clean`/`Action::ClearHistory` 变体、确认文案与 `confirm` 分支。按平台过滤：Claude 显式排除，Codex/Grok 白名单不含，其他平台 `_ => false`，任何平台都渲染不出来；`act(Action::Clean|ClearHistory)` 没有别的调用方。
+
+没有可迁移的持久化旧值：桌面偏好（`desktop-gpui/preferences.json`）只存主题、语言、退出确认与窗口位置；`ui_state` 只存 CLI 命令收藏/历史；启动参数没有页面/tab 深链。不存在保存过 `tool-accounts`、`Agents`、`Observer` 的地方，因此未加迁移代码。
+
+保留及原因：
+- 共享与运行时层不动：`runtime::profiles::ProfileCommand::CleanBackups`/`ClearHistory`（桌面运行时适配，仍有运行时测试）、`ccr_app::config::backups::clean`（Tauri `commands/config.rs` 使用）、`ccr_store` 历史清空（Tauri `clear_history` 与 CLI 使用）、CLI `ccr clean`。删除页面项后 GPUI 内已无清理备份 / 清空配置操作记录的入口（命令目录里 `clean` 为 preview_only、不可执行），本轮按 PRD 不另开入口。
+- `InsightsPage::Observer` 与 `insights-observer-tab`：全局用量仍可达。
+- 「平台嵌入时不渲染」类 ID 全部保留：平台目的地内确认不渲染，全局用量保留 `insights-*` 三项。例外：OpenCode 供应商 tab 仍渲染 `platform-settings`（与 `platform-tui` 一起作为 tui.json 子入口，`features/platforms/mod.rs` 嵌入分支有注释说明），属实际可达，未删，测试如实固定。
+- 资源与平台视图的未钉住分支（`resource-platform-*`、`resource-instructions`、`resource-claude`、`platform-settings`/`platform-auth` 页内切换）：GPUI 外壳当前只以钉住方式打开这两个视图，这些分支只在直接构造视图的单测里出现；PRD 写的是全局视图保留，未删。
+- Claude 旧 settings 数组编辑器（`features/resources/claude_files.rs` 的 Agents/斜杠命令/插件类别）：外壳只用 Rules/OutputStyles 打开，非文件类别按钮在文件类别下不渲染，GPUI 内已不可达；它不在第 9 节 ID 表内，旧数组处置归 #160，本轮未动。
+
+测试：`platform_navigation` 改为逐平台断言完整有序 tab id（Claude 9、Codex 11、Grok 5、Antigravity 6、OpenCode 6）；新增 `removed_platform_tab_ids_do_not_appear_on_any_platform` 与外壳级 `platform_tabs_render_no_removed_or_global_only_ids`（逐平台逐 tab 点击，删除类与嵌入隐藏类 ID 均不出现，全局用量仍有三个 `insights-*` 页签）。`profiles/mod.rs` 原有的不存在断言保留。
+
+门禁（真实退出码）：`just desktop-fmt-check` 中途 1（只报本轮新测试的两处换行，手工改后）→ 0；`just desktop-lint` 0；`just desktop-test` 0（Python 16 OK；accesskit 3 通过；lib 314 通过、4 忽略；native_shell 14 通过、1 忽略；native_ui 2 通过；runtime_shutdown 2 通过、1 忽略）；`just desktop-test-ui` 0（native_shell 14 通过、1 忽略；native_ui 2 通过）。新渲染测试首跑失败一次，即上述 OpenCode `platform-settings` 例外，改为如实断言，没有删断言。
+
+原生验收：not_run。
+
+## PRD 8.3 必须验证行为：测试对照与补测（2026-11-12）
+
+依据：#161 第 8.3 节七条，逐项拆成断言后读测试体核对（不按测试名判断）。本节只补测试；生产代码仅为可测性给三处既有元素加了测试观测 ID（`claude-cache-{0..5}`、`claude-usage-freshness`，以及 `configuration-empty-detail` 的 `.test_support()`），不改行为、文案或布局。未修任何生产缺陷。原生矩阵（8.4）不在本节，仍 not_run；以下 headless 控件测试不算原生验收。
+
+结论记号：✅ 已覆盖；◐ 部分覆盖；✗ 未覆盖。「新」= 本节新增测试。
+
+| 条 | 断言 | 证据（测试） | 结论 |
+| --- | --- | --- | --- |
+| 导航 | Claude 九 tab、Codex 十一、Grok/Antigravity/OpenCode 准确集合与顺序 | `approved_navigation_has_exact_platform_capabilities_and_ids`、`platform_tabs_render_no_removed_or_global_only_ids` | ✅ |
+| 导航 | 唯一 h1 = 当前 tab 名（每平台每 tab） | 新 `every_platform_heading_names_the_selected_tab`；原 Codex 窄窗测试只覆盖 Codex | ✅（“唯一”只核对 h1 节点与名称，未枚举全树 heading 数） |
+| 导航 | 宽窄布局切换不重建焦点 | 新 `platform_tab_focus_survives_crossing_the_wide_layout_breakpoint`（2000→1280→2000→960，焦点留在同一 tab、标题行/下一行切换）；`delayed_tab_restore_preserves_a_new_content_focus` | ✅（headless） |
+| 导航 | 窄窗横滚、选中项 reveal | `narrow_codex_navigation_reveals_each_keyboard_selection` | ✅（headless） |
+| 导航 | 旧 ID 改名/删除清单 | `removed_platform_tab_ids_do_not_appear_on_any_platform`、`platform_tabs_render_no_removed_or_global_only_ids` | ✅ |
+| 作用域 | 异平台 MCP batch 拒绝且无写入、全局 batch 可用 | `platform_authority_rejects_forged_batch_and_global_plan_without_writes` | ✅ |
+| 作用域 | 异平台 MCP 编辑/复制（prepare 与 save、伪造 RequestKey.platform）拒绝且无写入，全局复制/编辑可用 | 新 `platform_scope_rejects_foreign_editor_and_copy_targets_without_writes` | ✅（补前 ✗：只有 batch 有测试） |
+| 作用域 | 非 Codex 作用域废纸篓拒绝无副作用 | `captured_non_codex_scope_rejects_trash_and_prepared_commands_without_side_effects` | ✅ |
+| 作用域 | 全局/Codex 废纸篓仍可用 | `opaque_codex_actions_reject_conflicts_and_keep_trash_recoverable`（未作用域的全局请求可移入废纸篓） | ◐（Codex 作用域下可用没有单独断言） |
+| 作用域 | 导入 source 不能伪造 | 新 `scoped_import_rejects_forged_or_missing_source_before_admission`（运行时准入）；`platform_import_locks_source_to_its_platform_context`（界面） | ✅（补前 ◐：只有界面路径） |
+| 作用域 | 远程不支持不回落 Local | `remote_request_does_not_fall_back_to_local_data`、`remote_and_unconfigured_reads_fail_closed_without_creating_paths`、`claude_extension_reads_reject_other_platforms_and_remote_without_fallback`、新导入测试的 SSH 分支 | ✅ |
+| 用量 | 无库 | 新 `missing_and_unreadable_databases_fail_instead_of_reading_as_zero`（数据）、新 `claude_home_states_unavailable_unknown_and_window_scoped_cache`（KPI 写“不可用”、无缓存数字） | ✅（补前 ✗） |
+| 用量 | 不可读库 | 同上两项 | ✅（补前 ✗） |
+| 用量 | 无今日行 | `captured_calendar_distinguishes_missing_today_zero_and_same_window_tokens`；新界面测试断言“今日尚无已导入记录” | ✅ |
+| 用量 | 真实零 | 同上数据测试；`platform_workbench_claude_partial_costs_recover_and_link_to_daily_report`（界面 $0.00，用本机时钟） | ✅ |
+| 用量 | 低于显示精度的非零 | `recorded_amounts_keep_zero_and_subcent_cost_distinct` | ✅（格式函数层） |
+| 用量 | 起点未知 | 新 `empty_database_keeps_start_latest_and_sync_unknown_and_sync_time_is_global`；新界面测试“起点：未知” | ✅（补前 ✗） |
+| 用量 | 同步未知 / 全局口径 | 新数据测试（只有 Codex 同步时 Claude 报告拿到同一全局时间）；新界面测试 | ✅ |
+| 用量 | 同步过期 | 新界面测试只证明旧时间按“全局”原样陈述；Claude 首页没有过期标记 | ◐ 交回维护者（见下） |
+| 用量 | 未保存订阅 / 显式保存默认值 / 读取失败 / CAS | `saved_presence_distinguishes_defaults_and_preserves_cas`（共享）；`claude_snapshot_subscription_drafts_and_leave_remain_scoped`（界面） | ✅ |
+| 用量 | 缓存分母零（夹具级） | 新数据测试 `tokens_and_cache_come_only_from_the_30_day_window`；新界面测试“不可计算（分母为零）” | ✅（补前只有纯函数） |
+| 用量 | 输出含推理、不重复加算；总量用 owner total | 原数据测试 30+15=45；新数据与界面测试（输出 45，总量 45） | ✅ |
+| 用量 | 不得用全历史缓存冒充 30 天 | 新数据测试（窗口外 500 缓存读取不进入 30 天）；新界面测试（变异：缓存面板改读 history 即红） | ✅（补前 ✗） |
+| 配置 | 当前 A、选中 B 动作目标正确 | `selected_profile_is_independent_from_running_profile_and_dirty_navigation` | ✅ |
+| 配置 | 禁用项明确“启用并应用” | 新 `wide_catalog_splits_three_to_two_and_sizes_lists_by_content`（行内按钮文案） | ✅（补前 ✗；动作栏 `profile-apply` 同名文案未单测） |
+| 配置 | 筛选后不操作过期选中项、无匹配可恢复 | `catalog_filters_recover_and_narrow_back_preserves_selection` | ✅ |
+| 配置 | 3:2 比例、短列表/空 pane 收紧、长列表限高、不自动选中 | 新同上测试 | ✅（补前 ✗；见下“观察”） |
+| 编辑 | 保存不应用 | `saving_current_profile_preserves_runtime_credentials_and_unknown_catalog_fields`、`save_feedback_matches_what_the_lifecycle_actually_did`；新编辑测试断言 current 不变 | ✅ |
+| 编辑 | dirty keys | 共享 `dedicated_patch_retains_omitted_fields_and_preserves_platform_semantics`；新 `edit_sends_only_changed_fields_and_an_empty_credential_keeps_the_secret` 只能证明存储结果 | ◐（界面省略未改键不可经存储观察：owner 把空说明归一为 None，变异存活） |
+| 编辑 | 未知字段保留 | 原生 owner 测试；新编辑测试 | ✅ |
+| 编辑 | 空凭据不清除 | 新编辑测试（界面路径）；`grok_credentials_preserve_replace_and_clear_without_display_round_trip`（共享） | ✅（补前界面 ✗） |
+| 编辑 | 导入冲突默认保留、提交前 revision 改变则阻止 | 共享 `reviewed_import_keeps_matching_names_rejects_stale_revision_and_protects_current`；新 `import_preview_keeps_matching_names_and_a_stale_revision_blocks_commit`（界面：预览、覆盖按钮默认未选、输入改变禁用提交、外部改目录后提交被拒不写入、导入不应用） | ✅（补前界面 ✗） |
+| 编辑 | 当前方案保护、备份、CAS | `catalog_edit_and_restore_preserve_activation_and_current_item`、`replacement_preview_lists_removals_and_leaves_no_backup_behind`、`two_source_clients_from_one_revision_have_exactly_one_winner`、`rendered_edit_save_conflict_cancel_and_delete_confirmation` | ✅ |
+| 编辑 | Grok 部分结果不回归 | `platform_change_clears_only_previous_platform_recovery`（界面恢复动作随平台清理） | ◐（未逐个复核 shared/CLI 层 Grok 多阶段测试体） |
+| 焦点 | 外部焦点真实打开、初始取消、双向 Tab、Esc 回触发者 | `catalog_decisions_enter_from_outside_without_mutating`、`confirmation_recovers_outside_focus_before_first_frame`、`confirmation_enters_after_native_callback_before_draw_order`、`nested_confirmation_preserves_editor_return_focus` | ✅（headless） |
+| 焦点 | 快速重复打开 | 同 `confirmation_focus_boundary`（取消后立即再开、再开后离页） | ◐（未覆盖“同一帧内连点两次”） |
+| 焦点 | 离页 / 换平台 / 晚回包不抢焦点不覆盖新上下文 | `confirmation_focus_boundary` 离页分支、`delayed_tab_restore_preserves_a_new_content_focus`、`leave_discards_scoped_pending_text_and_old_response_identity`；新 `late_source_response_after_leave_or_platform_change_is_dropped` | ✅ |
+| 焦点 | 换环境 | `switch_keeps_each_environment_cache_draft_and_job`（共享，仅名称核对） | ◐（未见方案页换环境的界面测试） |
+| 扩展 | 坏 manifest / 缺失 / 超限 / 不安全路径 / 部分失败 / 无项目 / 未接入 | `discovery_is_read_only_partial_and_keeps_legacy_arrays`、`skills_use_existing_metadata_and_registry_limits_do_not_hide_other_sources`、`linked_sources_are_refused_without_hiding_other_sources` | ✅（数据层） |
+| 扩展 | 各状态在界面分别表达（含“客户端加载未验证”只用于已发现） | 新 `every_extension_source_state_reads_differently_in_both_languages`；`claude_extensions_show_same_name_sources_and_gate_full_legacy_export` | ✅（补前界面只断言了已发现/未接入/旧条目） |
+| 扩展 | 缺缓存（Codex） | `cached_catalog_without_cache_refuses_without_scanning_or_writing` | ✅ |
+| 扩展 | 同名多来源 | `same_name_entries_stay_listed_per_source_with_documented_rules_only`、`claude_extensions_show_same_name_sources_and_gate_full_legacy_export` | ✅ |
+| 扩展 | unsupported | `claude_extension_reads_reject_other_platforms_and_remote_without_fallback`、`fixed_resource_missing_read_does_not_create_and_unsupported_never_falls_back` | ✅ |
+| 扩展 | 只读：无写入 / 无执行 / 旧数组不变 | 上述发现测试（无 backups/locks、settings 字节不变、`.ps1` 不执行）；`legacy_export_is_read_only_and_saves_only_new_files_inside_the_fixture` | ✅（“无网络”为源码推断：发现路径无网络调用，没有运行时断言） |
+
+变异验证（改坏生产代码 → 测试变红 → 手工逐字节改回，`git diff` 哈希核对一致）：缓存面板改读全历史；KPI 去掉“有记录才显示金额”判断；扩展“不安全路径”改成“不可读”文案；编辑页空凭据也提交；MCP 复制保存只校验来源平台。五处均变红。另试“未改说明也提交”，测试仍绿，已如上记为 ◐。
+
+交回维护者（未修，需要设计决定）：
+- Claude 首页没有同步过期标记，只陈述全局时间。#161 第 4.1 节未要求标记，第 8.3 节把“同步过期”列为夹具项；是否在 Claude 首页加过期判断待定。
+- 观察：配置列表外层焦点容器 `list-focus` 在短列表时仍拉伸到可用高度（2 行时约 731px），实色行本身按内容收紧；聚焦描边会画在整个拉伸区域。是否算违反“实色列表随内容收紧”待定。
+
+仍未覆盖：四个原生场景（需要真实窗口）；界面层 dirty-key 省略的可观察证明（需要能截获提交补丁的测试缝，属设计变更）；同帧双击重复打开确认；方案页换环境的界面测试；扩展只读“无网络”的运行时断言；Codex 作用域下废纸篓可用的正向断言；动作栏 `profile-apply` 的“启用并应用”文案。以上除原生外都可以补，本节因范围与上下文预算未做。
+
+门禁（最终代码，真实退出码）：`just desktop-fmt-check` 中途 1（只报本节新增测试所在的 4 个文件，逐文件 rustfmt 修复后）→ 0；`just desktop-lint` 0；`just desktop-test` 0（Python 16 OK；accesskit 3 通过；lib 326 通过、4 忽略；native_shell 15 通过、1 忽略；native_ui 2 通过；runtime_shutdown 2 通过、1 忽略）；`just desktop-test-ui` 0（native_shell 15 通过、1 忽略；native_ui 2 通过）；`ccr-desktop` 下 `python scripts/desktop.py cargo check --locked --all-targets` 0；根目录 `cargo check --workspace --all-targets --locked` 0。未改共享 crate，未跑根 `just test`。已知不稳定测试本轮未出现。
+
+原生验收：not_run。
+
+## 原生四场验收豁免（2026-11-12）
+
+用户在 2026-11-12 的 Claude 会话 `a9201481-5b17-4a1c-90a8-851a4fa074b7` 中，对「原生四场验收是补做还是豁免」回复「豁免」。#161 第 8.4 节的四个原生场景不再补做。
+
+豁免不等于通过：四场仍是 not_run，没有截图、外窗、客户区或 DPI 观测，headless 控件测试不算原生验收。
+
+豁免时的自动门禁：`dev`、HEAD `ccd7db98` 加当时工作区，`just desktop-ci` 退出 0，`just ci` 退出 0（16 个阶段）。

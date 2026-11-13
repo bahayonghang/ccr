@@ -1764,6 +1764,53 @@ mod tests {
     use super::*;
 
     #[test]
+    fn cached_catalog_without_cache_refuses_without_scanning_or_writing() {
+        let root = tempfile::tempdir().unwrap();
+        let agents = AgentStore::from_home(root.path());
+        // 缺缓存时只能报告，不能扫描或下载：回环端点上不应出现任何连接。
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        listener.set_nonblocking(true).unwrap();
+        let mut store = SourceStore::loopback(
+            agents.clone(),
+            &format!("http://{}/", listener.local_addr().unwrap()),
+        )
+        .unwrap();
+        let sources_root = agents.sources_root.clone();
+        fs::create_dir_all(&sources_root).unwrap();
+        let file = CodexAgentSourceFile {
+            sources: vec![CodexAgentSourceEntry {
+                id: "src_fixture".into(),
+                repo_url: "https://github.com/example/repo".into(),
+                owner: "example".into(),
+                repo: "repo".into(),
+                default_branch: "main".into(),
+                status: "ok".into(),
+                last_scanned_at: None,
+                last_error: None,
+                agent_count: 0,
+                diagnostics_count: 0,
+                scan_complete: false,
+            }],
+        };
+        let bytes = serde_json::to_vec_pretty(&file).unwrap();
+        fs::write(sources_root.join(SOURCES_FILENAME), &bytes).unwrap();
+        assert_eq!(
+            store.cached_catalog("src_fixture").unwrap_err(),
+            "Source has no cached catalog; refresh it first"
+        );
+        assert!(matches!(
+            listener.accept(),
+            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock
+        ));
+        assert!(!sources_root.join(CATALOGS_DIR).exists());
+        assert!(!sources_root.join(INSTALLS_FILENAME).exists());
+        assert_eq!(
+            fs::read(sources_root.join(SOURCES_FILENAME)).unwrap(),
+            bytes
+        );
+    }
+
+    #[test]
     fn github_repo_parser_accepts_basic_repo_url() {
         let parsed =
             parse_github_repo("https://github.com/VoltAgent/awesome-codex-subagents").unwrap();

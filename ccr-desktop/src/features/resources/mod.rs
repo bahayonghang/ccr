@@ -1,4 +1,5 @@
 //! Existing fixed instruction files, with a scoped plaintext edit session.
+pub mod claude_extensions;
 pub mod claude_files;
 pub mod codex_agents;
 pub mod platform_files;
@@ -15,7 +16,7 @@ use crate::{
 use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent};
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
-    ActiveTheme, FocusTrapElement,
+    FocusTrapElement,
     button::{Button, ButtonVariants},
     input::{Textarea, TextareaState},
 };
@@ -29,6 +30,8 @@ use std::sync::Arc;
 enum Decision {
     Open(&'static str),
     Reload,
+    /// 含凭据的旧版 Claude 数组完整副本。
+    LegacyFullExport,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -46,6 +49,11 @@ pub struct ResourcesView {
     platform: Platform,
     rows: Vec<PromptRow>,
     extension_sources: Vec<ccr_app::resources::claude_extensions::Source>,
+    /// 旧版条目的临时导出：只在本视图内显示，离页即清空。
+    legacy_output: Entity<TextareaState>,
+    legacy_pending: Option<String>,
+    /// `Some(true)` 表示当前临时输出含凭据。
+    legacy_full: Option<bool>,
     pinned: bool,
     session: Option<Arc<PromptSession>>,
     editor: Entity<TextareaState>,
@@ -117,6 +125,9 @@ impl ResourcesView {
             platform: Platform::Claude,
             rows: Vec::new(),
             extension_sources: Vec::new(),
+            legacy_output: cx.new(|cx| TextareaState::new(window, cx)),
+            legacy_pending: None,
+            legacy_full: None,
             pinned: false,
             session: None,
             editor: cx.new(|cx| TextareaState::new(window, cx)),
@@ -273,6 +284,7 @@ impl ResourcesView {
         self.message = None;
         self.editor
             .update(cx, |state, cx| state.set_value("", window, cx));
+        self.clear_legacy_output(window, cx);
         cx.notify();
     }
     fn blocks_switch(&self, cx: &Context<Self>) -> bool {
@@ -339,6 +351,10 @@ impl ResourcesView {
                             this.busy = false;
                             match result.as_ref() {
                                 Completion::Success(ResourceResult::Extensions(sources)) => this.extension_sources=sources.clone(),
+                                Completion::Success(ResourceResult::LegacyExport { content, full }) => this.accept_legacy_export(content, *full),
+                                Completion::Success(ResourceResult::ExportSaved { conflict }) => this.message = Some(if *conflict {
+                                    "A file already exists there; nothing was written. Choose a new file. / 该位置已有文件，未写入，请选择新文件。"
+                                } else { "Export file saved; Claude settings unchanged. / 导出文件已保存，Claude 设置未改动。" }),
                                 Completion::Success(ResourceResult::Prompts(rows)) => this.rows = rows.clone(),
                                 Completion::Success(ResourceResult::Opened(session)) => {
                                     this.pending_content = Some(session.snapshot.content.clone());
@@ -397,6 +413,11 @@ impl ResourcesView {
             return;
         };
         let id = match decision {
+            Decision::LegacyFullExport => {
+                self.dismiss(window, cx);
+                self.request(ResourceCommand::ExportClaudeLegacy { full: true }, cx);
+                return;
+            }
             Decision::Open(id) => id,
             Decision::Reload => {
                 let Some(session) = self.session.as_ref() else {
@@ -421,6 +442,10 @@ impl Render for ResourcesView {
         }
         if let Some(content) = self.pending_content.take() {
             self.editor
+                .update(cx, |state, cx| state.set_value(content, window, cx));
+        }
+        if let Some(content) = self.legacy_pending.take() {
+            self.legacy_output
                 .update(cx, |state, cx| state.set_value(content, window, cx));
         }
         if std::mem::take(&mut self.editor_entry_pending) {
@@ -574,76 +599,8 @@ impl Render for ResourcesView {
         }
         match self.surface {
             ResourceSurface::ClaudeExtensions => {
-                root=root.child(div().text_size(px(12.)).child(text(cx,"Read-only user metadata. Discovery does not verify client loading; no installation, network or execution. Legacy CCR arrays are preserved and are not read by Claude.","用户级元数据只读清单。发现不证明客户端已加载；不安装、不联网、不执行。旧 CCR 数组保留，Claude 不读取。")));
-                for (index, source) in self.extension_sources.iter().enumerate() {
-                    let state = match source.state {
-                        ccr_app::resources::claude_extensions::State::Discovered => text(
-                            cx,
-                            "Discovered; client loading unverified",
-                            "已发现；客户端加载未验证",
-                        ),
-                        ccr_app::resources::claude_extensions::State::Empty => {
-                            text(cx, "No entries discovered", "未发现条目")
-                        }
-                        ccr_app::resources::claude_extensions::State::Missing => {
-                            text(cx, "Source not found", "来源未找到")
-                        }
-                        ccr_app::resources::claude_extensions::State::NotConnected => {
-                            text(cx, "Not connected", "未接入")
-                        }
-                        ccr_app::resources::claude_extensions::State::Invalid => {
-                            text(cx, "Invalid manifest", "清单格式无效")
-                        }
-                        ccr_app::resources::claude_extensions::State::Limit => {
-                            text(cx, "Source exceeds scan limit", "来源超出扫描限额")
-                        }
-                        ccr_app::resources::claude_extensions::State::Unreadable => {
-                            text(cx, "Source unreadable", "来源不可读")
-                        }
-                        ccr_app::resources::claude_extensions::State::Unsafe => {
-                            text(cx, "Unsafe source path refused", "来源路径不安全，已拒绝")
-                        }
-                    };
-                    let mut list = div()
-                        .id(format!("claude-extension-source-{index}"))
-                        .test_support()
-                        .flex_shrink_0()
-                        .flex()
-                        .flex_col()
-                        .gap(px(8.))
-                        .p(px(16.))
-                        .bg(cx.theme().background)
-                        .rounded(px(12.))
-                        .child(format!(
-                            "{}: {state}",
-                            match source.label {
-                                "Subagents" => text(cx, "Subagents · user", "子代理 · 用户级"),
-                                "Skills" => text(cx, "Skills · user", "技能 · 用户级"),
-                                "Legacy slash commands" =>
-                                    text(cx, "Legacy slash commands · user", "旧斜杠命令 · 用户级"),
-                                "Plugins (installation registry)" => text(
-                                    cx,
-                                    "Plugins · installation registry",
-                                    "插件 · 安装登记清单"
-                                ),
-                                "Project scope (no project selected)" => text(
-                                    cx,
-                                    "Project scope (no project selected)",
-                                    "项目范围（未选择项目）"
-                                ),
-                                _ => text(
-                                    cx,
-                                    "Legacy CCR entries — Claude does not read these arrays",
-                                    "旧版 CCR 条目 — Claude 不读取这些数组"
-                                ),
-                            }
-                        ));
-                    for name in &source.names {
-                        list = list.child(div().text_size(px(12.)).child(name.clone()));
-                    }
-                    root = root.child(list);
-                }
-                return root.overflow_y_scroll();
+                let content = self.render_extensions(window, cx);
+                return root.child(content).overflow_y_scroll();
             }
             ResourceSurface::OpenCode => {
                 return root.child(div().flex_1().min_h_0().child(self.opencode.clone()));
@@ -663,21 +620,11 @@ impl Render for ResourcesView {
             return root.child(div().flex_1().min_h_0().child(self.templates.clone()));
         }
         if let Some(decision) = self.decision {
-            if std::mem::take(&mut self.decision_entry_pending) {
-                let generation = self.decision_generation;
-                let view = cx.weak_entity();
-                window.on_next_frame(move |window, cx| {
-                    let _ = view.update(cx, |this, cx| {
-                        if this.decision.is_some() && this.decision_generation == generation {
-                            window.focus(&this.confirmation_focus, cx);
-                            window.focus_next(cx);
-                        }
-                    });
-                });
-            }
+            self.schedule_decision_focus(window, cx);
             root = root.child(div().id("resource-confirmation").test_support().role(gpui_kit::Role::AlertDialog)
                 .aria_label(text(cx, "Confirm scoped resource editor", "确认临时资源编辑"))
                 .child(match decision {
+                    Decision::LegacyFullExport => Self::legacy_confirm_text(cx),
                     Decision::Open(_) => text(cx, "Open plaintext instruction content? It remains in this scoped editor. Do not include private text in screenshots or logs.", "打开明文指令内容？仅保留在临时编辑会话，请勿将私密文本记录或截图。"),
                     Decision::Reload => text(cx, "Discard this draft and reload the current file?", "丢弃当前草稿并重新读取文件？"),
                 }))

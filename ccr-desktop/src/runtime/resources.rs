@@ -53,6 +53,15 @@ pub struct PromptSession {
 }
 pub enum ResourceCommand {
     ListClaudeExtensions,
+    /// Legacy Claude settings arrays as a temporary copy; `full` includes credentials.
+    ExportClaudeLegacy {
+        full: bool,
+    },
+    /// Writes an already reviewed export to a new file chosen by the user.
+    SaveClaudeLegacyExport {
+        content: String,
+        destination: PathBuf,
+    },
     ListPrompts,
     OpenPrompt(&'static str),
     SavePrompt {
@@ -65,9 +74,20 @@ pub enum ResourceCommand {
 }
 pub enum ResourceResult {
     Extensions(Vec<ccr_app::resources::claude_extensions::Source>),
+    /// Temporary export text; it can hold credentials and is never logged or persisted here.
+    LegacyExport {
+        content: String,
+        full: bool,
+    },
+    ExportSaved {
+        conflict: bool,
+    },
     Prompts(Vec<PromptRow>),
     Opened(Arc<PromptSession>),
-    Saved { conflict: bool, size_warning: bool },
+    Saved {
+        conflict: bool,
+        size_warning: bool,
+    },
 }
 
 pub(super) fn roots(source: &ConfigSource) -> Result<PlatformRoots, ResourceError> {
@@ -114,6 +134,28 @@ fn execute(
                     &roots.locks,
                 ),
             ))
+        }
+        ResourceCommand::ExportClaudeLegacy { full } => {
+            if key.platform != Platform::Claude {
+                return Err(ResourceError::Unsupported);
+            }
+            let roots = roots(source)?;
+            ccr_app::resources::claude_extensions::legacy_export(&roots.claude.settings_file, full)
+                .map(|content| ResourceResult::LegacyExport { content, full })
+                .map_err(|_| ResourceError::Storage)
+        }
+        ResourceCommand::SaveClaudeLegacyExport {
+            content,
+            destination,
+        } => {
+            if key.platform != Platform::Claude {
+                return Err(ResourceError::Unsupported);
+            }
+            check_export_destination(source, &destination)?;
+            // 沿用配置方案导出的受保护写入：拒绝链接路径、只写新文件、锁与原子写入。
+            ccr_app::config::source::save_export(&destination, &content)
+                .map(|written| ResourceResult::ExportSaved { conflict: !written })
+                .map_err(|_| ResourceError::Storage)
         }
         ResourceCommand::ListPrompts => {
             let roots = roots(source)?;
@@ -167,6 +209,28 @@ fn execute(
             save(key, &session, "", "")
         }
     }
+}
+
+/// 夹具与基准环境只允许写回各自的临时根，Local 由用户在保存对话框中选择位置。
+fn check_export_destination(
+    source: &ConfigSource,
+    destination: &std::path::Path,
+) -> Result<(), ResourceError> {
+    let root = match source {
+        ConfigSource::Local => return Ok(()),
+        ConfigSource::Benchmark(layout) => layout.root.clone(),
+        ConfigSource::Fixture { profiles, .. } => profiles
+            .parent()
+            .ok_or(ResourceError::Invalid)?
+            .to_path_buf(),
+    };
+    let root = root.canonicalize().map_err(|_| ResourceError::Invalid)?;
+    destination
+        .parent()
+        .and_then(|parent| parent.canonicalize().ok())
+        .filter(|parent| parent.starts_with(&root))
+        .map(|_| ())
+        .ok_or(ResourceError::Invalid)
 }
 
 fn check_session(source: &ConfigSource, session: &PromptSession) -> Result<(), ResourceError> {
@@ -233,6 +297,7 @@ impl Services {
             ResourceCommand::ListPrompts
                 | ResourceCommand::OpenPrompt(_)
                 | ResourceCommand::ListClaudeExtensions
+                | ResourceCommand::ExportClaudeLegacy { .. }
         ) {
             self.executor
                 .read(key, move |_, _| execute(&source, &run_key, command))
@@ -364,5 +429,93 @@ mod tests {
             std::fs::read_to_string(&a.snapshot.source).unwrap(),
             "winner"
         );
+    }
+    #[test]
+    fn claude_extension_reads_reject_other_platforms_and_remote_without_fallback() {
+        let root = tempfile::tempdir().unwrap();
+        let source = fixture(root.path());
+        for command in [
+            ResourceCommand::ListClaudeExtensions,
+            ResourceCommand::ExportClaudeLegacy { full: false },
+        ] {
+            assert!(matches!(
+                execute(&source, &key(Platform::Codex), command),
+                Err(ResourceError::Unsupported)
+            ));
+        }
+        let mut remote = key(Platform::Claude);
+        remote.environment = EnvironmentId::Ssh("fixture".into());
+        for command in [
+            ResourceCommand::ListClaudeExtensions,
+            ResourceCommand::ExportClaudeLegacy { full: true },
+            ResourceCommand::SaveClaudeLegacyExport {
+                content: "x".into(),
+                destination: root.path().join("remote.json"),
+            },
+        ] {
+            assert!(matches!(
+                execute(&ConfigSource::Local, &remote, command),
+                Err(ResourceError::Unsupported)
+            ));
+        }
+        assert!(!root.path().join("remote.json").exists());
+        assert!(!root.path().join("desktop-resource-fixture").exists());
+    }
+    #[test]
+    fn legacy_export_is_read_only_and_saves_only_new_files_inside_the_fixture() {
+        let root = tempfile::tempdir().unwrap();
+        let source = fixture(root.path());
+        let settings = roots(&source).unwrap().claude.settings_file;
+        std::fs::create_dir_all(settings.parent().unwrap()).unwrap();
+        let original = br#"{"plugins":[{"id":"p","config":{"apiKey":"keyAAAASENTINELBBBB"}}]}"#;
+        std::fs::write(&settings, original).unwrap();
+        let export = |full| match execute(
+            &source,
+            &key(Platform::Claude),
+            ResourceCommand::ExportClaudeLegacy { full },
+        ) {
+            Ok(ResourceResult::LegacyExport { content, full: got }) if got == full => content,
+            _ => panic!("export"),
+        };
+        assert!(!export(false).contains("SENTINEL"));
+        let full = export(true);
+        assert!(full.contains("keyAAAASENTINELBBBB"));
+        assert!(matches!(
+            execute(
+                &source,
+                &key(Platform::Codex),
+                ResourceCommand::ExportClaudeLegacy { full: true }
+            ),
+            Err(ResourceError::Unsupported)
+        ));
+        let save = |destination: std::path::PathBuf| {
+            execute(
+                &source,
+                &key(Platform::Claude),
+                ResourceCommand::SaveClaudeLegacyExport {
+                    content: full.clone(),
+                    destination,
+                },
+            )
+        };
+        let destination = root.path().join("legacy.json");
+        assert!(matches!(
+            save(destination.clone()),
+            Ok(ResourceResult::ExportSaved { conflict: false })
+        ));
+        assert_eq!(std::fs::read_to_string(&destination).unwrap(), full);
+        std::fs::write(&destination, "existing").unwrap();
+        assert!(matches!(
+            save(destination.clone()),
+            Ok(ResourceResult::ExportSaved { conflict: true })
+        ));
+        assert_eq!(std::fs::read_to_string(&destination).unwrap(), "existing");
+        let outside = tempfile::tempdir().unwrap();
+        assert!(matches!(
+            save(outside.path().join("legacy.json")),
+            Err(ResourceError::Invalid)
+        ));
+        assert!(!outside.path().join("legacy.json").exists());
+        assert_eq!(std::fs::read(&settings).unwrap(), original);
     }
 }

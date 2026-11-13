@@ -882,18 +882,22 @@ impl Render for ConfigurationApp {
                     .flex_basis(px(0.))
                     .min_w(px(320.))
                     .self_start()
-                    .child(badge::empty_panel(
-                        "configuration-empty-detail",
-                        gpui_kit::component::IconName::Eye,
-                        text(cx, "Select a profile", "选择一个方案"),
-                        text(
+                    .child(
+                        badge::empty_panel(
+                            "configuration-empty-detail",
+                            gpui_kit::component::IconName::Eye,
+                            text(cx, "Select a profile", "选择一个方案"),
+                            text(
+                                cx,
+                                "Selection shows details; it does not apply the profile.",
+                                "选择仅显示详情，不会应用方案。",
+                            ),
+                            None,
                             cx,
-                            "Selection shows details; it does not apply the profile.",
-                            "选择仅显示详情，不会应用方案。",
-                        ),
-                        None,
-                        cx,
-                    )),
+                        )
+                        // 只登记测试观测，不新增布局节点；用于核对 3:2 与空 pane 收紧。
+                        .test_support(),
+                    ),
             );
         }
         let show_toolbar = split || !show_detail;
@@ -1243,6 +1247,103 @@ mod tests {
             window.remove_window();
         })
         .unwrap_or_else(|e| panic!("interaction: {e}"));
+        owner.shutdown();
+    }
+
+    // PRD 8.3「配置」：宽窗列表/详情 3:2；短列表与未选空 pane 随内容收紧、长列表在可用高度内；
+    // 不自动选第一行；禁用项的行内主操作明确写“启用并应用”。
+    #[gpui_kit::test]
+    fn wide_catalog_splits_three_to_two_and_sizes_lists_by_content(cx: &mut TestAppContext) {
+        cx.executor().allow_parking();
+        let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
+        let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
+        let (handle, view) = cx.update(|cx| {
+            gpui_kit::init(cx);
+            gpui_kit::open_window(
+                WindowOptions {
+                    window_bounds: Some(gpui_kit::WindowBounds::Windowed(gpui_kit::Bounds::new(
+                        gpui_kit::point(px(0.), px(0.)),
+                        gpui_kit::size(px(1600.), px(1000.)),
+                    ))),
+                    ..Default::default()
+                },
+                cx,
+                |window, cx| {
+                    cx.new(|cx| {
+                        let mut view = ConfigurationApp::new(
+                            Services::new(
+                                owner.handle(),
+                                ConfigSource::Fixture {
+                                    profiles: root.path().join("missing.toml"),
+                                    registry: root.path().join("registry.toml"),
+                                    delay: Duration::ZERO,
+                                },
+                            ),
+                            window,
+                            cx,
+                        );
+                        view.suspend(cx);
+                        view.pinned = true;
+                        let mut disabled = row(1);
+                        disabled.enabled = false;
+                        view.accept_rows(Arc::new(vec![row(0), disabled]));
+                        view
+                    })
+                },
+            )
+            .unwrap_or_else(|e| panic!("window: {e}"))
+        });
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            assert!(view.read(cx).selected.is_none(), "no automatic selection");
+            let list = window.find("list-focus").bounds();
+            let empty = window.find("configuration-empty-detail").bounds();
+            // 3:2 按宽度比核对，允许 2px 取整误差。
+            let ratio = list.size.width / empty.size.width;
+            assert!((ratio - 1.5).abs() < 0.02, "3:2 split: {list:?} {empty:?}");
+            assert!(list.size.width >= px(360.) && empty.size.width >= px(320.));
+            // 实色列表由 60px 行本身组成：两行就是 120px，不补空行；未选空态不拉伸到窗口高度。
+            let first = window.find("configuration:profile-00000").bounds();
+            let second = window.find("configuration:profile-00001").bounds();
+            assert_eq!(first.size.height, px(60.));
+            assert_eq!(second.bottom() - first.top(), px(120.));
+            assert!(
+                empty.size.height < px(400.),
+                "empty pane stays tight: {empty:?}"
+            );
+            window.click("configuration:profile-00001", cx);
+            assert_eq!(view.read(cx).selected.as_deref(), Some("profile-00001"));
+            assert_eq!(
+                window.find("configuration-apply:profile-00001").label(),
+                Some("Enable and apply")
+            );
+            assert!(
+                window
+                    .try_find("configuration-apply:profile-00000")
+                    .is_none()
+            );
+            window.click("configuration:profile-00000", cx);
+            assert_eq!(
+                window.find("configuration-apply:profile-00000").label(),
+                Some("Apply")
+            );
+            view.update(cx, |this, cx| {
+                this.accept_rows(Arc::new((0..500).map(row).collect()));
+                cx.notify();
+            });
+            window.render_frame(cx);
+            let list = window.find("list-focus").bounds();
+            assert!(
+                list.size.height > px(400.),
+                "long list uses the available height: {list:?}"
+            );
+            assert!(
+                list.bottom() <= px(1000.),
+                "long list scrolls inside the window: {list:?}"
+            );
+            window.remove_window();
+        })
+        .unwrap_or_else(|e| panic!("layout: {e}"));
         owner.shutdown();
     }
 }
