@@ -20,7 +20,8 @@ use crate::{
     timezone::{ResolvedZone, parse_stored_timestamp, register_functions},
 };
 
-// 与 llmusage store/run_log::USAGE_IMPORT_COMMANDS 对齐；升级 CLI 时一并核对。
+// 用量导入命令族，计入“上次成功同步”。上游来源：bahayonghang/llmuasage
+// `src/store/run_log.rs` 的 `USAGE_IMPORT_COMMANDS`（main@adf657d）；升级 llmusage CLI 时一并核对。
 const USAGE_IMPORT_COMMANDS: [&str; 3] = ["sync", "sync --rebuild", "hook-run"];
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]

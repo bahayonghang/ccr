@@ -256,7 +256,7 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 ### 1. Scope / Trigger
 
 - Trigger: changing `ccr-desktop` `runtime::insights::{WorkbenchReport, SyncFreshness}`, `features/overview/{header,chart,rail,activity,insights}.rs`, or the Overview chapter of `ccr-desktop/DESIGN.md`.
-- Root cause it prevents: the first redesign said "not imported after 10-21" because the last *successful* llmusage sync was 10-21, while the chart showed real rows for 11-02 to 11-05. llmusage `last_sync_at` is `MAX(finished_at)` over `run_log` rows with `status='success'` and command `sync`/`hook-run`. A run that fails can still import rows, so the last successful sync is not the last day of data.
+- Root cause it prevents: the first redesign said "not imported after 10-21" because the last *successful* llmusage sync was 10-21, while the chart showed real rows for 11-02 to 11-05. llmusage `last_sync_at` is `MAX(finished_at)` over `run_log` rows with `status='success'` and command `sync`/`sync --rebuild`/`hook-run` (the upstream `USAGE_IMPORT_COMMANDS` family). It has no source attribution, so it covers any source. A run that fails can still import rows, so the last successful sync is not the last day of data.
 
 ### 2. Signatures
 
@@ -268,10 +268,11 @@ const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
 ### 3. Contracts
 
 - Freshness copy states only what was recorded:
-  - `Last successful sync MM-DD HH:mm (zone)`;
-  - `No successful sync recorded`;
-  - `Sync time unreadable` when the stored value is not RFC3339.
-- When stale with a known time, the header warning dot carries the same explanation in its tooltip and accessible label, and the data-source panel adds `Newer usage may be missing until a sync succeeds`. With no successful sync recorded, show only the dot and `No successful sync recorded`, without the missing-usage note. Never write "not imported after X", and never infer whether empty trailing days are idle or not imported.
+  - `Last successful sync (any source) MM-DD HH:mm (zone)`;
+  - `No successful sync recorded (any source)`;
+  - `Sync time unreadable (any source)` when the stored value is not RFC3339.
+  - Chinese copy uses `（任意来源）`; the Claude Workbench labels the same field `Global last successful sync` / `全局上次成功同步`.
+- When stale with a known time, the header warning dot carries the same explanation in its tooltip and accessible label, and the data-source panel adds `Newer usage may be missing until a sync succeeds`. With no successful sync recorded, show only the dot and `No successful sync recorded (any source)`, without the missing-usage note. Never write "not imported after X", and never infer whether empty trailing days are idle or not imported.
 - The daily chart title appends `· latest record MM-DD` only when the window ends with empty days. A window with data through its last day gets no suffix.
 - Every module whose range differs from the page range names its range in a `badge::section_heading` scope or caption:
   - Activity: `Last 53 weeks · since YYYY-MM-DD`, with the full date, because "since 11-03" would read as this month.
