@@ -535,9 +535,9 @@ impl Render for ProfileTools {
                                 .id("profile-auth-mode")
                                 .disabled(self.busy || self.confirmation.is_some())
                                 .aria_label(if self.platform == Platform::Grok {
-                                    "Profile kind"
+                                    text(cx, "Profile kind", "profile_kind")
                                 } else {
-                                    "Auth mode"
+                                    text(cx, "Auth mode", "认证模式")
                                 }),
                         );
                 }

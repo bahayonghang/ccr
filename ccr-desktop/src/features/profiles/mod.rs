@@ -1136,6 +1136,69 @@ mod tests {
         owner.shutdown();
     }
     #[gpui_kit::test]
+    fn action_bar_disables_targeted_ghost_actions_without_selection(cx: &mut TestAppContext) {
+        cx.executor().allow_parking();
+        let (_root, source) = fixture();
+        let row = selected(&source);
+        let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+        let services = Services::new(owner.handle(), source);
+        let (handle, host) = cx.update(|cx| {
+            gpui_kit::init(cx);
+            gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+                cx.new(|cx| {
+                    let tools = cx.new(|cx| {
+                        let mut tools = ProfileTools::new(services, window, cx);
+                        tools.accept(&ProfileResult::Status { can_off: true }, cx);
+                        tools
+                    });
+                    let subscription = cx.observe(&tools, |_, _, cx| cx.notify());
+                    ConfirmationHost {
+                        tools,
+                        outside: cx.focus_handle(),
+                        _tools_subscription: subscription,
+                    }
+                })
+            })
+            .unwrap_or_else(|_| panic!("window"))
+        });
+        let targeted = [
+            "profile-edit",
+            "profile-duplicate",
+            "profile-apply",
+            "profile-delete",
+            "profile-inspect",
+        ];
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            // 未选中方案：针对所选项的动作禁用且不进 Tab 序列，集合与当前方案动作仍可用。
+            // 与 semantics.rs 同口径：禁用按钮没有焦点绑定、点击无效。
+            for id in targeted {
+                assert_eq!(window.find(id).focused(), None, "{id} has no tab stop");
+            }
+            for id in ["profile-create", "profile-off", "profile-validate"] {
+                assert_ne!(window.find(id).disabled(), Some(true), "{id} enabled");
+                assert_eq!(window.find(id).focused(), Some(false), "{id} focusable");
+            }
+            window.click("profile-delete", cx);
+            window.click("profile-edit", cx);
+            let tools = host.read(cx).tools.read(cx);
+            assert!(tools.confirmation.is_none());
+            assert!(tools.mode == Mode::Closed);
+            host.read(cx).tools.clone().update(cx, |tools, cx| {
+                tools.target = Some(row);
+                cx.notify();
+            });
+            window.render_frame(cx);
+            for id in targeted {
+                assert_ne!(window.find(id).disabled(), Some(true), "{id} enabled");
+                assert_eq!(window.find(id).focused(), Some(false), "{id} focusable");
+            }
+            window.remove_window();
+        })
+        .unwrap_or_else(|_| panic!("action bar"));
+        owner.shutdown();
+    }
+    #[gpui_kit::test]
     fn nested_confirmation_preserves_editor_return_focus(cx: &mut TestAppContext) {
         cx.executor().allow_parking();
         let (_root, source) = fixture();

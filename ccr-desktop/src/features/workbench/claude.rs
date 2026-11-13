@@ -170,7 +170,26 @@ impl WorkbenchView {
         }
         facts.child(self.credential_status(cx))
             .child(div().text_size(px(12.)).text_color(cx.theme().muted_foreground).child(text(cx,"Local configuration and credential observations do not verify network access. API access does not require a saved official account.","本地配置与凭据观测不证明网络可用；API 接入不要求保存官方账户。")))
-            .child(semantics::ghost_button(Button::new("workbench-refresh").icon(IconName::RefreshCw).label(text(cx,"Refresh status","刷新状态")).ghost().on_click(cx.listener(|this,_,_,cx|this.open(Platform::Claude,cx))),self.claude_report.is_none(),self.claude_report.is_none(),cx)).into_any_element()
+            .child(self.claude_refresh(cx)).into_any_element()
+    }
+
+    // 读取在途时保持禁用与忙碌语义，并用文字陈述正在刷新。
+    fn claude_refresh(&self, cx: &mut Context<Self>) -> Button {
+        let reading = self.claude_report.is_none();
+        semantics::ghost_button(
+            Button::new("workbench-refresh")
+                .icon(IconName::RefreshCw)
+                .label(if reading {
+                    text(cx, "Refreshing…", "正在刷新…")
+                } else {
+                    text(cx, "Refresh status", "刷新状态")
+                })
+                .ghost()
+                .on_click(cx.listener(|this, _, _, cx| this.open(Platform::Claude, cx))),
+            reading,
+            reading,
+            cx,
+        )
     }
 
     pub(super) fn claude_insights(
