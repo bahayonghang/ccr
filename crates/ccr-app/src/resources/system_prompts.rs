@@ -86,6 +86,8 @@ pub fn prompt_spec(platform: &str, id: &str) -> Result<&'static PromptFileSpec, 
         .ok_or_else(|| format!("平台 {platform} 不支持系统提示词文件: {id}"))
 }
 
+/// Default home layout only. Claude callers use [`resolve_with_claude_root`] so
+/// `CLAUDE_CONFIG_DIR` is honoured.
 pub fn resolve_from_home(spec: &PromptFileSpec, home: &Path) -> PathBuf {
     match spec.location {
         PromptLocation::Claude => home.join(".claude").join(spec.filename),
@@ -128,6 +130,7 @@ pub fn file_description(spec: &PromptFileSpec, path: &Path) -> Value {
     })
 }
 
+/// Default home layout only; adapters list the captured root with [`list_claude_rules_in`].
 pub fn list_claude_rules(home: &Path) -> Vec<Value> {
     list_claude_rules_in(&home.join(".claude"))
 }

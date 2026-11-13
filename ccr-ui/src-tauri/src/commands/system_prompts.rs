@@ -201,8 +201,14 @@ mod tests {
                 .args(["--exact", TEST, "--nocapture"])
                 .env("CCR_TEST_SYSTEM_PROMPTS_ROOT", &root)
                 .env("CLAUDE_CONFIG_DIR", root.join("custom-claude"))
+                // 锁与备份根也指向临时目录，子进程不触碰真实主目录。
+                .env("CCR_ROOT", root.join("ccr"))
+                .env("CCR_LOCK_DIR", root.join("locks"))
                 .env("HOME", root.join("home"))
                 .env("USERPROFILE", root.join("home"))
+                .env_remove("CCR_SETTINGS_PATH")
+                .env_remove("CLAUDE_JSON_PATH")
+                .env_remove("CCR_BACKUP_DIR")
                 .output()
                 .unwrap();
             assert!(
@@ -234,7 +240,9 @@ mod tests {
         assert_eq!(rules.len(), 1);
         assert_eq!(rules[0]["name"], "custom.md");
 
-        let backups = root.join("backups");
+        // 与命令相同的备份目录解析：CCR 根下的 Claude 备份目录，不随 CLAUDE_CONFIG_DIR 移动。
+        let backups = backup_dir(spec).unwrap();
+        assert_eq!(backups, root.join("ccr/backups/claude"));
         let created = save_prompt_file(spec, &path, &backups, "# Memory\n", "").unwrap();
         assert_eq!(created["status"], "saved");
         assert_eq!(
@@ -242,6 +250,18 @@ mod tests {
             "# Memory\n"
         );
         assert_eq!(list_local("claude").unwrap()["files"][0]["exists"], true);
+        let read = read_raw_file(&path).unwrap();
+        assert_eq!(read["content"], "# Memory\n");
+        let token = read["token"].as_str().unwrap().to_owned();
+        let saved = save_prompt_file(spec, &path, &backups, "# Memory v2\n", &token).unwrap();
+        assert_eq!(saved["status"], "saved");
+        assert_eq!(
+            fs::read_to_string(custom.join("CLAUDE.md")).unwrap(),
+            "# Memory v2\n"
+        );
+        assert_eq!(fs::read_dir(&backups).unwrap().count(), 1);
+        assert!(fs::read_dir(root.join("locks")).unwrap().next().is_some());
+        assert!(!custom.join("backups").exists());
         assert_eq!(
             fs::read(default_claude.join("CLAUDE.md")).unwrap(),
             original

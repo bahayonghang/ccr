@@ -29,7 +29,19 @@ impl PromptsManager {
     pub fn new(platform: Platform) -> Result<Self> {
         let home = dirs::home_dir()
             .ok_or_else(|| CcrError::ConfigError("Cannot find home directory".into()))?;
-        Ok(Self::for_home(platform, &home))
+        let manager = Self::for_home(platform, &home);
+        if platform == Platform::Claude {
+            // Claude Code 设置 CLAUDE_CONFIG_DIR 后只读该目录下的 CLAUDE.md，应用与读取跟随同一配置根。
+            let config_dir = ccr_config::ClaudeRuntimePaths::from_env()?.config_dir;
+            return Ok(manager.with_platform_dir(config_dir));
+        }
+        Ok(manager)
+    }
+
+    /// Replace the target-file directory with an explicitly captured platform root; no I/O.
+    pub fn with_platform_dir(mut self, platform_dir: PathBuf) -> Self {
+        self.platform_dir = platform_dir;
+        self
     }
 
     /// Explicit roots for embedding clients and isolated fixtures; no I/O.
@@ -169,5 +181,39 @@ mod tests {
             .replace('\\', "/");
 
         assert_eq!(dir, "/home/test/.gemini/antigravity-cli");
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn captured_claude_root_receives_applied_memory_and_default_home_is_untouched() {
+        let root = tempfile::tempdir().unwrap();
+        let home = root.path().join("home");
+        let custom = root.path().join("custom-claude");
+        let default_memory = home.join(".claude/CLAUDE.md");
+        fs::create_dir_all(default_memory.parent().unwrap()).unwrap();
+        fs::write(&default_memory, "default home").unwrap();
+        fs::create_dir_all(&custom).unwrap();
+        let manager =
+            PromptsManager::for_home(Platform::Claude, &home).with_platform_dir(custom.clone());
+        manager
+            .add_preset(PromptPreset {
+                name: "memory".into(),
+                description: None,
+                target_file: PromptTarget::Claude,
+                content: "# Applied\n".into(),
+                tags: vec![],
+            })
+            .unwrap();
+        manager.apply_preset("memory").unwrap();
+        assert_eq!(
+            fs::read_to_string(custom.join("CLAUDE.md")).unwrap(),
+            "# Applied\n"
+        );
+        assert_eq!(
+            manager.get_current_content(PromptTarget::Claude).unwrap(),
+            "# Applied\n"
+        );
+        assert_eq!(fs::read_to_string(&default_memory).unwrap(), "default home");
+        assert!(!home.join(".claude/CLAUDE.md.backup").exists());
     }
 }

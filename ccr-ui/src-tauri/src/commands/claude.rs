@@ -213,20 +213,28 @@ mod fixture_tests;
 
 // ── Output Styles directory ──
 
+// 样式文件跟随 Claude 配置根（含 CLAUDE_CONFIG_DIR）；备份仍落在 CCR 的 Claude 备份目录，位置不变。
 fn output_styles_store() -> Result<ccr_app::resources::claude_files::Store, String> {
-    let (paths, locks) = match crate::fixture::current() {
-        Some(layout) => (layout.roots.claude.clone(), layout.roots.locks.clone()),
+    let (config_dir, backups, locks) = match crate::fixture::current() {
+        Some(layout) => (
+            layout.roots.claude.config_dir.clone(),
+            layout.roots.ccr.join("backups").join("claude"),
+            layout.roots.locks.clone(),
+        ),
         None => {
             let paths =
                 ccr_config::ClaudeRuntimePaths::from_env().map_err(|error| error.to_string())?;
+            let backups = PlatformPaths::new(Platform::Claude)
+                .map_err(|error| error.to_string())?
+                .backups_dir;
             let locks = ccr_core::core::LockManager::with_default_path()
                 .map_err(|error| error.to_string())?;
-            (paths, locks.lock_dir().to_path_buf())
+            (paths.config_dir, backups, locks.lock_dir().to_path_buf())
         }
     };
     Ok(ccr_app::resources::claude_files::Store::new(
-        paths.config_dir,
-        paths.backups_dir.join("output-styles"),
+        config_dir,
+        backups.join("output-styles"),
         locks,
     ))
 }
@@ -266,7 +274,7 @@ pub use slash::*;
 mod environment_tests;
 
 // ═══════════════════════════════════════════════════════════
-// ── Output Styles（~/.claude/output-styles/*.md）──
+// ── Output Styles（<Claude 配置根>/output-styles/*.md，跟随 CLAUDE_CONFIG_DIR）──
 // ═══════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════

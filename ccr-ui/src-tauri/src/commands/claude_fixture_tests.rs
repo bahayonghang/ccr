@@ -12,10 +12,14 @@ async fn output_styles_follow_config_dir_without_touching_default_home() {
             .args(["--exact", TEST, "--nocapture"])
             .env("CCR_TEST_OUTPUT_STYLES_ROOT", &root)
             .env("CLAUDE_CONFIG_DIR", root.join("custom-claude"))
-            .env("CCR_BACKUP_DIR", root.join("backups"))
+            // settings 备份覆盖只作陷阱：样式备份必须仍落在 CCR 根下的 Claude 备份目录。
+            .env("CCR_BACKUP_DIR", root.join("settings-backups"))
+            .env("CCR_ROOT", root.join("ccr"))
             .env("CCR_LOCK_DIR", root.join("locks"))
             .env("HOME", root.join("home"))
             .env("USERPROFILE", root.join("home"))
+            .env_remove("CCR_SETTINGS_PATH")
+            .env_remove("CLAUDE_JSON_PATH")
             .output()
             .unwrap();
         assert!(
@@ -52,9 +56,12 @@ async fn output_styles_follow_config_dir_without_touching_default_home() {
             .any(|style| style["name"] == "ambient")
     );
     claude_update_output_styles(
-        json!([{"name":"custom","content":"changed style"}])
-            .try_into()
-            .unwrap(),
+        json!([
+            {"name":"custom","content":"changed style"},
+            {"name":"fresh","content":"created style"}
+        ])
+        .try_into()
+        .unwrap(),
     )
     .await
     .unwrap();
@@ -62,6 +69,30 @@ async fn output_styles_follow_config_dir_without_touching_default_home() {
         std::fs::read(styles.join("custom.md")).unwrap(),
         b"changed style"
     );
+    assert_eq!(
+        std::fs::read(styles.join("fresh.md")).unwrap(),
+        b"created style"
+    );
+    let reread: Value = claude_get_output_styles().await.unwrap().into();
+    assert!(
+        reread["styles"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|style| style["name"] == "fresh" && style["content"] == "created style")
+    );
+    // 覆盖已有样式会备份；备份目录与 CLAUDE_CONFIG_DIR 无关，保持原有 CCR 位置。
+    let backups = root.join("ccr/backups/claude/output-styles");
+    assert!(std::fs::read_dir(&backups).unwrap().next().is_some());
+    assert!(!root.join("custom-claude/backups").exists());
+    assert!(!root.join("settings-backups").exists());
+    assert!(
+        std::fs::read_dir(root.join("locks"))
+            .unwrap()
+            .next()
+            .is_some()
+    );
+    assert!(!default_styles.join("fresh.md").exists());
     assert_eq!(
         std::fs::read(styles.join("kept.md")).unwrap(),
         b"omitted style retained"
