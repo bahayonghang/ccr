@@ -1712,3 +1712,90 @@ Wrote the confirmed five-platform tab order and stable tab ids into ccr-desktop/
 ### Status
 
 [OK] **Completed**
+
+
+## Session 173: GPUI 留白、设置侧栏与字体字号优化规划
+<!-- trellis-session: v=2 fp=3baff61b2b80d9fd -->
+
+**Date**: 2026-11-12
+**Task**: GPUI 留白、设置侧栏与字体字号优化规划
+**Branch**: `dev`
+
+### Summary
+
+结合用户两张原生截图和 design-atlas 完成 GPUI 优化草案。用户确认接入状态采用紧凑摘要加详情；设置左侧栏定位连续长页；界面与等宽字体及字号分别设置。创建 GitHub 规划地图和四张决策票，原型和最终合同待定，未实施产品代码。
+Topics: [.trellis/research/gpui-density-typography-plan.md](../../research/gpui-density-typography-plan.md)
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 源码事实一致性复核；GitHub 原生子议题与三条阻塞关系已校验；文档空白及代码围栏检查通过；slop 扫描 files=0 不代表 GPUI 通过；未运行产品或原生验收。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 从地图前沿的接入状态原型开始，与用户反馈后定稿；保留字体行为和字号传播的未决项，不代答 HITL。
+
+
+## Session 174: GPUI 接入摘要、锚点设置与独立字体偏好落地
+<!-- trellis-session: v=2 fp=fc5ebb8d6656a040 -->
+
+**Date**: 2026-11-12
+**Task**: GPUI 接入摘要、锚点设置与独立字体偏好落地
+**Branch**: `dev`
+
+### Summary
+
+用户批准两个原型后在本地 dev 实现紧凑接入摘要、固定左侧锚点长页及真实本机字体搜索选择；界面/等宽字体和字号四项独立持久化。相关 33 项测试及 GPUI fmt/check/lint 通过，Windows 隔离原生第一轮完成实际选择与保存；最终标签短复核遇用户前景输入，已明确限制并回收本轮进程。GitHub 评论外发被自动审批拒绝，相关状态已恢复，缩减同步草稿留待授权。未提交或推送源码。
+Topics: [.trellis/research/gpui-density-typography-plan.md](../../research/gpui-density-typography-plan.md)
+
+### Main Changes
+
+- 现有 DESIGN 增量记录字体与设置合同；现有研究计划第 8 节记录实施、真实验证覆盖和限制。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] just version-check、gpui-fmt-check、gpui-check、gpui-lint 通过；gpui-test-ui 18 + preferences 5 + theme 10 通过。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 仅在获得具体发布授权后同步现有 Wayfinder 地图与决策票；不将原型或研究分支合入 dev。
+
+
+## Session 175: 完成 GPUI 优化 Wayfinder 决策同步
+<!-- trellis-session: v=2 fp=fdf1c5bcab84d1a2 -->
+
+**Date**: 2026-11-12
+**Task**: 完成 GPUI 优化 Wayfinder 决策同步
+**Branch**: `dev`
+
+### Summary
+
+用户针对待授权 GitHub 同步明确要求继续后，按已展示的缩减草稿发布接入摘要、设置长页及字体合同三个 resolution，并依赖发布成功逐票关闭。地图补齐决策索引与后续实施授权说明，核验四项前置均关闭后关闭地图。远程评论和地图正文已回读一致；未提交或推送产品源码，既有 33 项测试结果及原生复核限制不变。
+Topics: [.trellis/research/gpui-density-typography-plan.md](../../research/gpui-density-typography-plan.md)
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 回读三个 resolution 和已关闭地图，核对文本与状态；git diff --check。
+
+### Status
+
+[OK] **Completed**

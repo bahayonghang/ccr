@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-3.md`
-- **Total Sessions**: 172
-- **Last Active**: 2026-11-11
+- **Total Sessions**: 175
+- **Last Active**: 2026-11-12
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-3.md` | ~1714 | Active |
+| `journal-3.md` | ~1801 | Active |
 | `journal-2.md` | ~1982 | Archived |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
@@ -31,6 +31,9 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 175 | 2026-11-12 | 完成 GPUI 优化 Wayfinder 决策同步 | - | `dev` |
+| 174 | 2026-11-12 | GPUI 接入摘要、锚点设置与独立字体偏好落地 | - | `dev` |
+| 173 | 2026-11-12 | GPUI 留白、设置侧栏与字体字号优化规划 | - | `dev` |
 | 172 | 2026-11-11 | Record GPUI platform tab order from Claude sessions | - | `dev` |
 | 171 | 2026-11-11 | Organize project-init ignore rules from sessions | - | `dev` |
 | 170 | 2026-11-11 | 原生通道定位与全仓未关闭票复核修复 | - | `dev` |
