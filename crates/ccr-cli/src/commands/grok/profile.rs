@@ -3,19 +3,21 @@
 use crate::application::profile_off_for_platform;
 use crate::cli::subcommands::grok::{GrokProfileCreateActionArgs, GrokProfileEditActionArgs};
 use crate::cli::subcommands::profile_args::{
-    ProfileDisableActionArgs, ProfileNameJsonActionArgs, ProfileSetFieldActionArgs,
+    ProfileDeleteActionArgs, ProfileDisableActionArgs, ProfileNameJsonActionArgs,
+    ProfileSetFieldActionArgs,
 };
 use crate::commands::common::new_utf8_table;
 use crate::commands::platform::{
-    PlatformProfileCreateArgs, ProfileEditCommand, platform_profile_create_command,
-    platform_profile_delete_command, platform_profile_disable_command,
-    platform_profile_edit_command, platform_profile_enable_command,
-    platform_profile_set_field_command,
+    ProfileEditCommand, catalog_revision, create_from_grok_args, platform_profile_delete_command,
+    platform_profile_disable_command, platform_profile_edit_command,
+    platform_profile_enable_command, platform_profile_set_field_command,
 };
-use crate::commands::profile::switch_command_for_platform;
+use crate::commands::profile::{
+    switch_command_for_platform, switch_command_for_platform_with_options,
+};
 use crate::models::{Platform, PlatformConfig, ProfileConfig};
 use crate::platforms::GrokPlatform;
-use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
 use colored::Colorize;
 use comfy_table::{Attribute, Cell, Color as TableColor, ContentArrangement};
@@ -49,6 +51,7 @@ struct GrokProfileSummary {
 #[derive(Debug, Serialize)]
 struct GrokProfileListJson {
     current_profile: Option<String>,
+    revision: Option<String>,
     profiles: Vec<GrokProfileSummary>,
 }
 
@@ -185,6 +188,7 @@ pub async fn list_command(json: bool) -> Result<()> {
             "{}",
             serde_json::to_string_pretty(&GrokProfileListJson {
                 current_profile,
+                revision: catalog_revision(Platform::Grok)?,
                 profiles: entries,
             })?
         );
@@ -248,30 +252,12 @@ pub async fn switch_command(name: &str) -> Result<()> {
     switch_command_for_platform(name, "grok").await
 }
 
+pub async fn switch_command_with_options(name: &str, json: bool) -> Result<()> {
+    switch_command_for_platform_with_options(name, "grok", json).await
+}
+
 pub async fn create_command(args: GrokProfileCreateActionArgs) -> Result<()> {
-    platform_profile_create_command(PlatformProfileCreateArgs {
-        platform_name: "grok".to_string(),
-        name: args.name,
-        description: args.description,
-        base_url: args.base_url,
-        auth_token: None,
-        api_key: args.api_key,
-        model: args.model,
-        small_fast_model: None,
-        provider: args.provider,
-        provider_type: args.provider_type,
-        account: args.account,
-        tags: args.tags,
-        auth_mode: None,
-        api_backend: args.api_backend,
-        env_key: args.env_key,
-        context_window: args.context_window,
-        supports_backend_search: args.supports_backend_search,
-        reasoning_effort: args.reasoning_effort,
-        disabled: args.disabled,
-        json: args.json,
-    })
-    .await
+    create_from_grok_args(args).await
 }
 
 pub async fn set_field_command(args: ProfileSetFieldActionArgs) -> Result<()> {
@@ -306,37 +292,8 @@ pub async fn disable_command(args: ProfileDisableActionArgs) -> Result<()> {
     platform_profile_disable_command("grok", &args.name, args.force, args.json).await
 }
 
-pub async fn delete_command(args: ProfileDisableActionArgs) -> Result<()> {
-    if !args.force {
-        return platform_profile_delete_command("grok", &args.name, false, args.json).await;
-    }
-
-    let platform = GrokPlatform::new()?;
-    match platform.delete_profile(&args.name) {
-        Ok(()) => {}
-        Err(CcrError::ValidationError(message)) if message.contains("当前处于激活状态") => {
-            platform.clear_active_profile_runtime()?;
-            platform.delete_profile(&args.name)?;
-        }
-        Err(error) => return Err(error),
-    }
-
-    let message = format!("已删除 grok 平台 Profile '{}'", args.name);
-    if args.json {
-        println!(
-            "{}",
-            serde_json::to_string(&serde_json::json!({
-                "ok": true,
-                "platform": "grok",
-                "name": args.name,
-                "message": message,
-                "current_profile": platform.get_current_profile()?,
-            }))?
-        );
-    } else {
-        ColorOutput::success(&message);
-    }
-    Ok(())
+pub async fn delete_command(args: ProfileDeleteActionArgs) -> Result<()> {
+    platform_profile_delete_command("grok", &args.name, args.force, args.json).await
 }
 
 pub async fn off_command(json: bool) -> Result<()> {

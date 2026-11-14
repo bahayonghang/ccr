@@ -90,7 +90,7 @@ pub fn read_secret_text(text: &str) -> Result<Secret> {
             value.pop();
         }
     }
-    if value.is_empty() {
+    if value.trim().is_empty() {
         return Err(CcrError::ValidationError("密钥不能为空".into()));
     }
     Ok(Secret::new(value))
@@ -125,7 +125,7 @@ fn resolve_secret(command: &ProfileEditCommand) -> Result<SecretEdit> {
     Ok(SecretEdit::Keep)
 }
 
-fn read_stdin_secret() -> Result<Secret> {
+pub(crate) fn read_stdin_secret() -> Result<Secret> {
     if std::io::IsTerminal::is_terminal(&std::io::stdin()) {
         let value = rpassword::prompt_password("请输入密钥: ")
             .map_err(|error| CcrError::ValidationError(format!("无法读取密钥: {error}")))?;
@@ -237,7 +237,7 @@ fn build_edit_request(
     })
 }
 
-fn parse_set_argument(raw: &str) -> Result<(String, String)> {
+pub(crate) fn parse_set_argument(raw: &str) -> Result<(String, String)> {
     let (field, value) = raw
         .split_once('=')
         .ok_or_else(|| CcrError::ValidationError("--set 需要 field=value 形式".into()))?;
@@ -248,7 +248,7 @@ fn parse_set_argument(raw: &str) -> Result<(String, String)> {
     Ok((field.to_string(), value.to_string()))
 }
 
-fn reject_inline_secret(field: &str) -> Result<()> {
+pub(crate) fn reject_inline_secret(field: &str) -> Result<()> {
     if matches!(field, "auth_token" | "api_key") {
         Err(CcrError::ValidationError(
             "密钥请使用标准输入参数，不要把密钥写进命令参数".into(),

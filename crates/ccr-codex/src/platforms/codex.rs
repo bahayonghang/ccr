@@ -426,9 +426,9 @@ impl CodexPlatform {
             tracing::warn!("wire_api=\"chat\" 已被 Codex CLI 废弃，自动迁移为 \"responses\"");
             Ok("responses".into())
         } else {
-            Err(CcrError::ValidationError(format!(
-                "wire_api 必须为 responses，当前值: {protocol}"
-            )))
+            Err(CcrError::ValidationError(
+                "wire_api 必须为 responses".into(),
+            ))
         }
     }
 
@@ -440,9 +440,9 @@ impl CodexPlatform {
         let normalized = effort.to_ascii_lowercase();
         match normalized.as_str() {
             "minimal" | "low" | "medium" | "high" | "xhigh" => Ok(Some(normalized)),
-            _ => Err(CcrError::ValidationError(format!(
-                "model_reasoning_effort 必须为 minimal/low/medium/high/xhigh，当前值: {effort}"
-            ))),
+            _ => Err(CcrError::ValidationError(
+                "model_reasoning_effort 必须为 minimal/low/medium/high/xhigh".into(),
+            )),
         }
     }
 
@@ -458,9 +458,9 @@ impl CodexPlatform {
         let normalized = method.to_ascii_lowercase();
         match normalized.as_str() {
             "apikey" | "chatgpt" => Ok(Some(normalized)),
-            _ => Err(CcrError::ValidationError(format!(
-                "preferred_auth_method 必须为 apikey/chatgpt，当前值: {method}"
-            ))),
+            _ => Err(CcrError::ValidationError(
+                "preferred_auth_method 必须为 apikey/chatgpt".into(),
+            )),
         }
     }
 
@@ -607,9 +607,9 @@ impl CodexPlatform {
             JsonValue::String(text) => match text.trim().to_ascii_lowercase().as_str() {
                 "true" | "1" => Ok(Some(true)),
                 "false" | "0" => Ok(Some(false)),
-                invalid => Err(CcrError::ValidationError(format!(
-                    "network_access 必须为 true/false，当前值: {invalid}"
-                ))),
+                _ => Err(CcrError::ValidationError(
+                    "network_access 必须为 true/false".into(),
+                )),
             },
             _ => Err(CcrError::ValidationError(
                 "network_access 必须为布尔值".into(),
@@ -628,9 +628,9 @@ impl CodexPlatform {
             "file" => Ok(Some(CredentialStoreKind::File)),
             "keyring" => Ok(Some(CredentialStoreKind::Keyring)),
             "auto" => Ok(Some(CredentialStoreKind::Auto)),
-            _ => Err(CcrError::ValidationError(format!(
-                "cli_auth_credentials_store 必须为 file/keyring/auto，当前值: {store}"
-            ))),
+            _ => Err(CcrError::ValidationError(
+                "cli_auth_credentials_store 必须为 file/keyring/auto".into(),
+            )),
         }
     }
 

@@ -23,7 +23,7 @@ async fn main() -> ExitCode {
     // 迁移失败时按该错误的退出码返回，不进入报告。
     if matches!(
         &cli.command,
-        Some(Commands::Validate) | Some(Commands::Doctor(_))
+        Some(Commands::Validate { .. }) | Some(Commands::Doctor(_))
     ) && let Err(error) = ccr_cli::application::migrate_profile_catalogs()
     {
         eprintln!("{error}");
@@ -31,9 +31,14 @@ async fn main() -> ExitCode {
     }
 
     match &cli.command {
-        Some(Commands::Validate) => {
-            let report = ccr_cli::commands::validate_report_command();
-            return ExitCode::from(report.exit_code() as u8);
+        Some(Commands::Validate { json }) => {
+            return match ccr_cli::commands::validate_report_command_with_options(*json) {
+                Ok(report) => ExitCode::from(report.exit_code() as u8),
+                Err(error) => {
+                    eprintln!("{error}");
+                    ExitCode::from(error.exit_code() as u8)
+                }
+            };
         }
         Some(Commands::Doctor(args)) => {
             return match ccr_cli::commands::doctor_cmd::doctor_report_command(args.clone()).await {

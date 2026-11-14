@@ -5,8 +5,9 @@
 use clap::Subcommand;
 
 use super::profile_args::{
-    ProfileCreateActionArgs, ProfileDisableActionArgs, ProfileEditActionArgs,
-    ProfileNameJsonActionArgs, ProfileOffActionArgs, ProfileSetFieldActionArgs,
+    ProfileCreateActionArgs, ProfileDeleteActionArgs, ProfileDisableActionArgs,
+    ProfileEditActionArgs, ProfileNameJsonActionArgs, ProfileOffActionArgs,
+    ProfileSetFieldActionArgs,
 };
 
 /// Claude 子命令
@@ -123,10 +124,13 @@ pub enum ClaudeProfileAction {
     Switch {
         /// 要切换到的 profile 名称
         name: String,
+        /// 以 JSON 格式输出
+        #[arg(long)]
+        json: bool,
     },
 
     /// Create a new Claude profile
-    Create(ProfileCreateActionArgs),
+    Create(Box<ProfileCreateActionArgs>),
 
     /// Update one Claude profile field
     SetField(ProfileSetFieldActionArgs),
@@ -141,7 +145,7 @@ pub enum ClaudeProfileAction {
     Disable(ProfileDisableActionArgs),
 
     /// Delete a Claude profile
-    Delete(ProfileDisableActionArgs),
+    Delete(ProfileDeleteActionArgs),
 
     /// 退出当前 profile，并清理会压制官方登录的 CCR 运行时残留
     Off(ProfileOffActionArgs),

@@ -127,7 +127,9 @@ impl CommandDispatcher {
                 crate::commands::current_command(args.verbose, args.json).await
             }
             Some(Commands::Add) => crate::commands::add_command().await,
-            Some(Commands::Validate) => crate::commands::validate_command().await,
+            Some(Commands::Validate { json }) => {
+                crate::commands::validate_command_with_options(*json).await
+            }
             Some(Commands::Optimize) => crate::commands::optimize_command().await,
             Some(Commands::Version) => {
                 Self::show_version();
@@ -533,11 +535,11 @@ impl CommandDispatcher {
                 CodexProfileAction::List { json } => {
                     crate::commands::codex::profile::list_command(*json).await
                 }
-                CodexProfileAction::Switch { name } => {
-                    crate::commands::codex::profile::switch_command(name).await
+                CodexProfileAction::Switch { name, json } => {
+                    crate::commands::codex::profile::switch_command_with_options(name, *json).await
                 }
                 CodexProfileAction::Create(args) => {
-                    crate::commands::codex::profile::create_command(args.clone()).await
+                    crate::commands::codex::profile::create_command(args.as_ref().clone()).await
                 }
                 CodexProfileAction::SetField(args) => {
                     crate::commands::codex::profile::set_field_command(args.clone()).await
@@ -772,8 +774,8 @@ impl CommandDispatcher {
                 GrokProfileAction::List { json } => {
                     crate::commands::grok::profile::list_command(*json).await
                 }
-                GrokProfileAction::Switch { name } => {
-                    crate::commands::grok::profile::switch_command(name).await
+                GrokProfileAction::Switch { name, json } => {
+                    crate::commands::grok::profile::switch_command_with_options(name, *json).await
                 }
                 GrokProfileAction::Create(args) => {
                     crate::commands::grok::profile::create_command(args.as_ref().clone()).await
@@ -834,11 +836,11 @@ impl CommandDispatcher {
                 ClaudeProfileAction::List { json } => {
                     crate::commands::claude::profile::list_command(*json).await
                 }
-                ClaudeProfileAction::Switch { name } => {
-                    crate::commands::claude::profile::switch_command(name).await
+                ClaudeProfileAction::Switch { name, json } => {
+                    crate::commands::claude::profile::switch_command_with_options(name, *json).await
                 }
                 ClaudeProfileAction::Create(args) => {
-                    crate::commands::claude::profile::create_command(args.clone()).await
+                    crate::commands::claude::profile::create_command(args.as_ref().clone()).await
                 }
                 ClaudeProfileAction::SetField(args) => {
                     crate::commands::claude::profile::set_field_command(args.clone()).await

@@ -21,6 +21,7 @@ ColorOutput::format_status(status: OutputStatus, msg: &str, is_terminal: bool) -
 ColorOutput::success(msg: &str);
 ColorOutput::info(msg: &str);
 ColorOutput::warning(msg: &str);
+ColorOutput::deprecation_warning(msg: &str);
 ColorOutput::error(msg: &str);
 ColorOutput::step(msg: &str);
 ColorOutput::key_value(key: &str, value: &str, indent: usize);
@@ -41,6 +42,7 @@ capability of the stream that will receive the text.
 | --- | --- | --- | --- |
 | Completed operation | `✓ <message>` | `成功: <message>` | stdout |
 | Warning | `! 警告: <message>` | `警告: <message>` | stdout |
+| Deprecation warning | `! 警告: <message>` | `警告: <message>` | stderr |
 | Error | `× 错误: <message>` | `错误: <message>` | stderr |
 | Progress | `→ <message>` | `进度: <message>` | stdout |
 | Skipped check | `- 跳过: <message>` | `跳过: <message>` | selected by caller |

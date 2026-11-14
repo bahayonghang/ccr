@@ -164,7 +164,11 @@ pub enum Commands {
     /// 验证配置文件和设置的完整性
     ///
     /// 检查配置文件格式是否正确,以及 Claude Code 设置文件是否有效
-    Validate,
+    Validate {
+        /// 以 JSON 格式输出验证报告
+        #[arg(long)]
+        json: bool,
+    },
 
     /// 查看配置操作的历史记录
     ///

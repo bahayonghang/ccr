@@ -737,3 +737,65 @@ fn codex_auth_off_deletes_auth_json_and_keeps_profile_pointer() {
         Some("team")
     );
 }
+
+#[test]
+fn codex_profile_delete_protects_active_profile_and_force_clears_runtime() {
+    let fixture = CodexProfileFixture::new();
+    fixture.write_unified_codex_profile(Some("official"));
+    fixture.save_codex_profiles("official");
+    fixture.write_codex_runtime_official();
+
+    let switch = fixture.run_output(&["codex", "profile", "switch", "team"]);
+    assert!(switch.status.success(), "{:?}", switch.status);
+
+    let profiles_toml = fixture
+        .root
+        .join("platforms")
+        .join("codex")
+        .join("profiles.toml");
+    let registry_path = fixture.root.join("config.toml");
+    let runtime_config_path = fixture.codex_dir.join("config.toml");
+    let runtime_auth_path = fixture.codex_dir.join("auth.json");
+
+    let catalog_before = catalog_canonical(&profiles_toml);
+    let registry_before = fs::read(&registry_path).unwrap();
+    let config_before = fs::read(&runtime_config_path).unwrap();
+    let auth_before = fs::read(&runtime_auth_path).unwrap();
+
+    // Rejects active delete without --force with zero disk mutations.
+    let rejected = fixture.run_output(&["codex", "profile", "delete", "team"]);
+    assert!(!rejected.status.success());
+    let stderr = String::from_utf8_lossy(&rejected.stderr);
+    assert!(stderr.contains("--force"), "stderr={stderr}");
+    assert_eq!(catalog_canonical(&profiles_toml), catalog_before);
+    assert_eq!(fs::read(&registry_path).unwrap(), registry_before);
+    assert_eq!(fs::read(&runtime_config_path).unwrap(), config_before);
+    assert_eq!(fs::read(&runtime_auth_path).unwrap(), auth_before);
+
+    // Force delete turns off active runtime and removes profile.
+    let (delete_out, delete_json) =
+        fixture.run_json(&["codex", "profile", "delete", "team", "--force", "--json"]);
+    assert!(
+        delete_out.status.success(),
+        "stderr={}",
+        String::from_utf8_lossy(&delete_out.stderr)
+    );
+    assert_eq!(delete_json["ok"], true);
+    assert_eq!(delete_json["name"], "team");
+    assert!(delete_json.get("current_profile").is_none());
+    assert!(!runtime_auth_path.exists());
+
+    let _env = crate::setup_ccr_test_env();
+    let loaded = ConfigManager::new(&profiles_toml).load().unwrap();
+    assert!(!loaded.sections.contains_key("team"));
+    assert!(loaded.current_config.is_empty());
+    let registry = PlatformConfigManager::new(&registry_path).load().unwrap();
+    assert_eq!(
+        registry
+            .get_platform("codex")
+            .unwrap()
+            .current_profile
+            .as_deref(),
+        None
+    );
+}

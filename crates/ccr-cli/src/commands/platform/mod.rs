@@ -34,6 +34,7 @@ pub use profile::{
     platform_profile_disable_command, platform_profile_enable_command,
     platform_profile_set_field_command,
 };
+pub(crate) use profile::{catalog_revision, create_from_common_args, create_from_grok_args};
 pub use profile_card::print_status_card;
 pub use profile_edit_cmd::{ProfileEditCommand, platform_profile_edit_command, read_secret_text};
 pub use profile_init::platform_profile_init_command;

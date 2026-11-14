@@ -5,7 +5,9 @@ pub mod platform_switch;
 pub mod profile_activity;
 #[cfg(any(test, feature = "test-support"))]
 pub mod profile_contract;
+pub mod profile_create;
 pub mod profile_edit;
+pub(crate) mod profile_fields;
 pub mod profile_lifecycle;
 pub mod profile_off;
 pub mod profile_switch;
@@ -15,6 +17,10 @@ pub use auth_off::{
     AuthOffPath, AuthOffResult, auth_off_for_platform, codex_local_auth_off, needs_auth_off,
 };
 pub use platform_switch::switch_platform;
+pub use profile_create::{
+    CreateProfileOutcome, CreateProfileRequest, CreateSecret, ProfileFieldValue, create_profile,
+    create_profile_with_context,
+};
 pub use profile_lifecycle::migrate_profile_catalogs;
 pub use profile_off::{ProfileOffResult, needs_login_prep, profile_off_for_platform};
 pub use types::SwitchPlatformRequest;

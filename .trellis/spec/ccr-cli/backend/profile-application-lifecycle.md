@@ -158,7 +158,8 @@ Applies when native/embedding consumers need explicit catalog, registry, runtime
 
 - `ProfileLifecycleContext::{new, for_claude, for_codex, for_grok}` select the production resolver or explicit platform paths and runtime/lock/history paths.
 - `context.update(name, target, expected_version: Option<&str>, patch)` accepts the original catalog revision; `None` retains legacy current-at-operation behavior.
-- `context.create(name, profile, expected_version)` delegates normalization/secret storage to the platform owner and guards the original revision when supplied.
+- `context.create(name, profile, expected_version)` delegates normalization/secret storage to the platform owner, guards the original revision when supplied, and keeps `current_config = ""` (inactive) on first creation in an absent catalog.
+- `context.delete(name, force)` guards active/drifted checks, optional `off` cleanup, and catalog deletion under one continuous `operation_lock`.
 - `update_profile_versioned(platform, name, target, expected_version, patch)` is the production-path convenience entry.
 - `context.{apply, enable, off, needs_login_prep, export_profile_env}` retain the existing domain owners.
 

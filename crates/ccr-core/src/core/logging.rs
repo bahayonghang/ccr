@@ -131,6 +131,15 @@ impl ColorOutput {
         );
     }
 
+    /// Emit a CLI flag/surface deprecation notice to `stderr` without touching
+    /// file logging or polluting `--json` payloads on `stdout`.
+    pub fn deprecation_warning(msg: &str) {
+        eprintln!(
+            "{}",
+            Self::format_status(OutputStatus::Warning, msg, io::stderr().is_terminal())
+        );
+    }
+
     pub fn error(msg: &str) {
         eprintln!(
             "{}",
@@ -563,9 +572,21 @@ mod tests {
         ColorOutput::success("Success message");
         ColorOutput::info("Info message");
         ColorOutput::warning("Warning message");
+        ColorOutput::deprecation_warning("Deprecation message");
         ColorOutput::error("Error message");
         ColorOutput::step("Step message");
         ColorOutput::separator();
+    }
+
+    #[test]
+    fn deprecation_warning_does_not_initialize_or_create_log_dir() {
+        let mut env = TestLogEnv::new();
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("deprecation-no-logs");
+        env.set_env("CCR_ROOT", root.as_os_str());
+
+        ColorOutput::deprecation_warning("soft deprecated option");
+        assert!(!root.exists());
     }
 
     #[test]

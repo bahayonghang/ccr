@@ -451,11 +451,12 @@ fn injected_create_preserves_platform_normalization_and_rejects_collisions_and_s
             .create("created", profile.clone(), Some(""))
             .unwrap();
         let revision = context.manager().snapshot().unwrap().version;
-        assert!(
+        assert!(matches!(
             context
                 .create("created", profile.clone(), Some(&revision))
-                .is_err()
-        );
+                .unwrap_err(),
+            CcrError::ResourceAlreadyExists(_)
+        ));
         assert!(context.create("second", profile.clone(), Some("")).is_err());
         context.create("second", profile, Some(&revision)).unwrap();
         assert_eq!(context.instance().load_profiles().unwrap().len(), 2);
@@ -915,7 +916,7 @@ fn injected_first_create_external_change_does_not_publish_orphan_catalog() {
 }
 
 #[test]
-fn injected_first_create_markers_match_platform_and_existing_inactive_stays_inactive() {
+fn injected_first_create_keeps_current_inactive_and_existing_inactive_stays_inactive() {
     for platform in [Platform::Claude, Platform::Codex, Platform::Grok] {
         let fixture = tempfile::tempdir().unwrap();
         let direct = context(&fixture.path().join("direct"), platform);
@@ -931,10 +932,14 @@ fn injected_first_create_markers_match_platform_and_existing_inactive_stays_inac
         created.create("first", profile.clone(), Some("")).unwrap();
         let direct_catalog = direct.manager().load().unwrap();
         let created_catalog = created.manager().load().unwrap();
+        assert!(created_catalog.current_config.is_empty());
         assert_eq!(
-            created_catalog.current_config,
-            direct_catalog.current_config
+            created
+                .run(|| created.instance().get_current_profile())
+                .unwrap(),
+            None
         );
+        assert!(!created.instance().get_settings_path().exists());
         assert_eq!(
             created_catalog.default_config,
             direct_catalog.default_config
@@ -1251,4 +1256,164 @@ fn injected_first_create_commit_failure_leaves_no_secret_or_catalog() {
         assert!(!context.manager().profiles_db().exists());
         assert_eq!(snapshot(&context), before);
     }
+}
+
+#[test]
+fn context_delete_guards_active_codex_drifted_and_nonexistent_ghost_under_lock() {
+    // 1. Active profile across Claude, Codex, and Grok rejects without force and cleans runtime with force.
+    for platform in [Platform::Claude, Platform::Codex, Platform::Grok] {
+        let fixture = tempfile::tempdir().unwrap();
+        let ctx = context(fixture.path(), platform).with_process_environment(false);
+        seed(&ctx);
+        assert!(
+            ctx.apply(ApplyProfileRequest::new(platform, "old"))
+                .unwrap()
+                .activation_committed
+        );
+
+        let before = snapshot(&ctx);
+        let err = ctx.delete("old", false).unwrap_err();
+        assert!(matches!(err, CcrError::ValidationError(_)));
+        assert_eq!(snapshot(&ctx), before);
+
+        // Verify context.delete waits on operation_lock continuously.
+        let lock_holder = context(fixture.path(), platform);
+        let held_guard = lock_holder.operation_lock().unwrap();
+        let barrier = Arc::new(Barrier::new(2));
+        let worker_barrier = Arc::clone(&barrier);
+        let worker_root = fixture.path().to_path_buf();
+        let handle = std::thread::spawn(move || {
+            let worker_ctx = context(&worker_root, platform).with_process_environment(false);
+            worker_barrier.wait();
+            worker_ctx.delete("old", true)
+        });
+        barrier.wait();
+        std::thread::sleep(Duration::from_millis(25));
+        assert!(!handle.is_finished());
+        drop(held_guard);
+
+        let remaining_current = handle.join().unwrap().unwrap();
+        assert_eq!(remaining_current, None);
+        assert!(
+            !ctx.run(|| ctx.instance().load_profiles())
+                .unwrap()
+                .contains_key("old")
+        );
+        assert_eq!(
+            ctx.run(|| ctx.instance().get_current_profile()).unwrap(),
+            None
+        );
+        assert!(ctx.manager().load().unwrap().current_config.is_empty());
+    }
+
+    // 2. Codex drifted pointer (get_current_profile() == None while pointer still names "old"):
+    //    rejects without --force, cleans runtime & pointers cleanly with --force without repointing to "new",
+    //    and fails with ProfileNotFound + zero runtime side effects when pointer names nonexistent "ghost".
+    let codex_fixture = tempfile::tempdir().unwrap();
+    let codex_ctx = context(codex_fixture.path(), Platform::Codex).with_process_environment(false);
+    seed(&codex_ctx);
+    assert!(
+        codex_ctx
+            .apply(ApplyProfileRequest::new(Platform::Codex, "old"))
+            .unwrap()
+            .activation_committed
+    );
+    let codex_runtime = codex_ctx.instance().get_settings_path();
+    let drifted_toml = std::fs::read_to_string(&codex_runtime).unwrap().replace(
+        "https://fixture.invalid",
+        "https://externally-drifted.invalid",
+    );
+    std::fs::write(&codex_runtime, &drifted_toml).unwrap();
+    assert_eq!(
+        codex_ctx
+            .run(|| codex_ctx.instance().get_current_profile())
+            .unwrap(),
+        None
+    );
+
+    let before_drifted = snapshot(&codex_ctx);
+    let drifted_err = codex_ctx.delete("old", false).unwrap_err();
+    assert!(matches!(drifted_err, CcrError::ValidationError(_)));
+    assert!(drifted_err.to_string().contains("漂移"));
+    assert_eq!(snapshot(&codex_ctx), before_drifted);
+
+    assert_eq!(codex_ctx.delete("old", true).unwrap(), None);
+    assert!(
+        codex_ctx
+            .manager()
+            .load()
+            .unwrap()
+            .current_config
+            .is_empty()
+    );
+    assert!(
+        !codex_ctx
+            .run(|| codex_ctx.instance().load_profiles())
+            .unwrap()
+            .contains_key("old")
+    );
+
+    // Re-apply "new", then point registry & catalog to nonexistent "ghost" while runtime stays live.
+    assert!(
+        codex_ctx
+            .apply(ApplyProfileRequest::new(Platform::Codex, "new"))
+            .unwrap()
+            .activation_committed
+    );
+    codex_ctx
+        .run(|| {
+            codex_ctx.manager().mutate(|catalog| {
+                catalog.current_config = "ghost".into();
+                Ok(())
+            })?;
+            ccr_config::platforms::base::update_registry_current_profile_with_paths(
+                &codex_ctx.paths().registry_file,
+                codex_ctx.lock_dir(),
+                "codex",
+                "ghost",
+            )
+        })
+        .unwrap();
+    let before_codex_ghost = snapshot(&codex_ctx);
+    let codex_ghost_err = codex_ctx.delete("ghost", true).unwrap_err();
+    assert!(matches!(codex_ghost_err, CcrError::ProfileNotFound(_)));
+    assert_eq!(snapshot(&codex_ctx), before_codex_ghost);
+
+    // 3. Grok delete_profile_guarded("ghost", true) when stale pointer yields Drifted { name: "ghost" }
+    //    fails with ProfileNotFound and zero runtime / entry-state side effects.
+    let grok_fixture = tempfile::tempdir().unwrap();
+    let grok_ctx = context(grok_fixture.path(), Platform::Grok);
+    seed(&grok_ctx);
+    assert!(
+        grok_ctx
+            .apply(ApplyProfileRequest::new(Platform::Grok, "old"))
+            .unwrap()
+            .activation_committed
+    );
+    let grok_platform = grok_ctx.grok_platform().unwrap();
+    grok_ctx
+        .run(|| {
+            grok_ctx.manager().mutate(|catalog| {
+                catalog.current_config = "ghost".into();
+                Ok(())
+            })?;
+            ccr_config::platforms::base::update_registry_current_profile_with_paths(
+                &grok_ctx.paths().registry_file,
+                grok_ctx.lock_dir(),
+                "grok",
+                "ghost",
+            )
+        })
+        .unwrap();
+    let before_grok_ghost = snapshot(&grok_ctx);
+    let before_grok_catalog = grok_ctx.manager().canonical_toml().unwrap();
+    let grok_ghost_err = grok_ctx
+        .run(|| grok_platform.delete_profile_guarded("ghost", true))
+        .unwrap_err();
+    assert!(matches!(grok_ghost_err, CcrError::ProfileNotFound(_)));
+    assert_eq!(snapshot(&grok_ctx), before_grok_ghost);
+    assert_eq!(
+        grok_ctx.manager().canonical_toml().unwrap(),
+        before_grok_catalog
+    );
 }

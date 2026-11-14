@@ -66,7 +66,10 @@ pub use lifecycle::optimize_command;
 pub use lifecycle::{
     clean_backups_command, clean_menu_command, clean_planfiles_command, clean_storage_command,
 };
-pub use lifecycle::{validate_command, validate_report_command};
+pub use lifecycle::{
+    validate_command, validate_command_with_options, validate_report_command,
+    validate_report_command_with_options,
+};
 
 // 🧭 Project 命令
 pub use project::{WorkflowEngine, project_init_command};

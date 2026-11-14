@@ -267,9 +267,14 @@ fn empty_profile_list_keeps_neutral_output_and_json_null_current() {
     let human = f.run(&["claude", "profile", "list"]);
     assert!(machine.status.success(), "{}", text(&machine.stderr));
     assert!(human.status.success());
-    assert_eq!(
-        serde_json::from_slice::<Value>(&machine.stdout).unwrap(),
-        json!({"current_profile": null, "profiles": []})
+    let machine_json: Value = serde_json::from_slice(&machine.stdout).unwrap();
+    assert_eq!(machine_json["current_profile"], Value::Null);
+    assert_eq!(machine_json["profiles"], json!([]));
+    assert!(
+        machine_json["revision"]
+            .as_str()
+            .is_some_and(|rev| !rev.is_empty()),
+        "expected non-empty revision: {machine_json}"
     );
     assert!(human.stderr.is_empty());
     let stdout = text(&human.stdout);

@@ -14,4 +14,7 @@ pub use clean_storage::clean_storage_command;
 pub use clear::clear_command;
 pub use init::init_command;
 pub use optimize::optimize_command;
-pub use validate::{validate_command, validate_report_command};
+pub use validate::{
+    validate_command, validate_command_with_options, validate_report_command,
+    validate_report_command_with_options,
+};

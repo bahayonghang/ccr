@@ -40,10 +40,18 @@ impl ValidateFixture {
     fn command(&self) -> Command {
         let mut command = Command::new(env!("CARGO_BIN_EXE_ccr"));
         command.env("CCR_ROOT", &self.root);
+        command.env("CCR_DATA_DIR", &self.root);
+        command.env("CCR_LOCK_DIR", self.home.join(".locks"));
         command.env("CCR_SETTINGS_PATH", &self.claude_settings_path);
         command.env("CCR_BACKUP_DIR", self.home.join(".claude").join("backups"));
         command.env("CCR_CODEX_DIR", &self.codex_dir);
+        command.env("CODEX_HOME", &self.codex_dir);
+        command.env("GROK_HOME", self.home.join(".grok"));
         command.env("CLAUDE_CONFIG_DIR", self.home.join(".claude"));
+        command.env(
+            "CLAUDE_JSON_PATH",
+            self.home.join(".claude").join("state.json"),
+        );
         command.env("HOME", &self.home);
         command.env("USERPROFILE", &self.home);
         command.env("NO_COLOR", "1");
@@ -160,4 +168,70 @@ fn validate_skips_missing_claude_and_codex_profiles_without_legacy_platform_gate
     assert!(stdout.contains("Claude"));
     assert!(stdout.contains("Codex"));
     assert!(!stdout.contains("ccr switch <config>"));
+}
+
+#[test]
+fn validate_json_emits_pure_report_without_creating_logs_and_preserves_error_exit_code() {
+    let fixture = ValidateFixture::new();
+    fixture.write_registry_without_legacy_routing_fields();
+    fixture.write_claude_profile();
+    fixture.write_claude_settings();
+
+    let mut valid_cmd = fixture.command();
+    valid_cmd.env_remove("NO_COLOR");
+    valid_cmd.env("CLICOLOR", "1");
+    valid_cmd.env("CLICOLOR_FORCE", "1");
+    valid_cmd.env("CCR_DATA_DIR", &fixture.root);
+    let valid_out = valid_cmd.args(["validate", "--json"]).output().unwrap();
+    assert_eq!(
+        valid_out.status.code(),
+        Some(0),
+        "stderr={}",
+        String::from_utf8_lossy(&valid_out.stderr)
+    );
+    assert!(valid_out.stderr.is_empty());
+    let valid_stdout = String::from_utf8_lossy(&valid_out.stdout);
+    assert!(!valid_stdout.contains('\u{1b}'), "{valid_stdout}");
+    let valid_json: serde_json::Value = serde_json::from_str(&valid_stdout).unwrap();
+    assert!(valid_json["checks"].is_array());
+    assert!(!fixture.root.join("logs").exists());
+
+    // Now test failing validation exit code + zero secret leakage with --json.
+    let bad_fixture = ValidateFixture::new();
+    fs::write(bad_fixture.root.join("config.toml"), "").unwrap();
+    let sentinel = "VALIDATE_JSON_SECRET_SENTINEL_4482";
+    let broken_toml = bad_fixture
+        .root
+        .join("platforms")
+        .join("claude")
+        .join("profiles.toml");
+    fs::create_dir_all(broken_toml.parent().unwrap()).unwrap();
+    fs::write(
+        &broken_toml,
+        format!("[broken]\nbase_url = \"not-a-valid-url\"\nauth_token = \"{sentinel}\"\n"),
+    )
+    .unwrap();
+
+    let mut fail_cmd = bad_fixture.command();
+    fail_cmd.env_remove("NO_COLOR");
+    fail_cmd.env("CLICOLOR", "1");
+    fail_cmd.env("CLICOLOR_FORCE", "1");
+    fail_cmd.env("CCR_DATA_DIR", &bad_fixture.root);
+    let fail_out = fail_cmd.args(["validate", "--json"]).output().unwrap();
+    assert_eq!(fail_out.status.code(), Some(90));
+    let fail_stdout = String::from_utf8_lossy(&fail_out.stdout);
+    let fail_stderr = String::from_utf8_lossy(&fail_out.stderr);
+    assert!(!fail_stdout.contains('\u{1b}'), "{fail_stdout}");
+    assert!(!fail_stdout.contains(sentinel));
+    assert!(!fail_stderr.contains(sentinel));
+    let fail_json: serde_json::Value = serde_json::from_str(&fail_stdout).unwrap();
+    assert!(
+        fail_json["checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|check| check["severity"] == "error"),
+        "expected error check in report: {fail_json}"
+    );
+    assert!(!bad_fixture.root.join("logs").exists());
 }

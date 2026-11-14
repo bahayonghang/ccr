@@ -2,17 +2,18 @@
 
 use crate::application::profile_off_for_platform;
 use crate::cli::subcommands::profile_args::{
-    CodexProfileEditActionArgs, ProfileCreateActionArgs, ProfileDisableActionArgs,
-    ProfileNameJsonActionArgs, ProfileSetFieldActionArgs,
+    CodexProfileEditActionArgs, ProfileCreateActionArgs, ProfileDeleteActionArgs,
+    ProfileDisableActionArgs, ProfileNameJsonActionArgs, ProfileSetFieldActionArgs,
 };
 use crate::commands::common::new_utf8_table;
 use crate::commands::platform::{
-    PlatformProfileCreateArgs, ProfileEditCommand, platform_profile_create_command,
-    platform_profile_delete_command, platform_profile_disable_command,
-    platform_profile_edit_command, platform_profile_enable_command,
-    platform_profile_set_field_command, print_status_card,
+    ProfileEditCommand, catalog_revision, create_from_common_args, platform_profile_delete_command,
+    platform_profile_disable_command, platform_profile_edit_command,
+    platform_profile_enable_command, platform_profile_set_field_command, print_status_card,
 };
-use crate::commands::profile::switch_command_for_platform;
+use crate::commands::profile::{
+    switch_command_for_platform, switch_command_for_platform_with_options,
+};
 use crate::models::Platform;
 use crate::platforms::create_platform;
 use crate::services::RuntimeOverviewService;
@@ -36,6 +37,7 @@ struct CodexProfileSummary {
 #[derive(Debug, Serialize)]
 struct CodexProfileListJson {
     current_profile: Option<String>,
+    revision: Option<String>,
     profiles: Vec<CodexProfileSummary>,
 }
 
@@ -91,6 +93,7 @@ pub async fn list_command(json: bool) -> Result<()> {
     if json {
         let output = CodexProfileListJson {
             current_profile,
+            revision: catalog_revision(Platform::Codex)?,
             profiles: entries,
         };
         println!("{}", serde_json::to_string_pretty(&output)?);
@@ -155,30 +158,12 @@ pub async fn switch_command(name: &str) -> Result<()> {
     switch_command_for_platform(name, "codex").await
 }
 
+pub async fn switch_command_with_options(name: &str, json: bool) -> Result<()> {
+    switch_command_for_platform_with_options(name, "codex", json).await
+}
+
 pub async fn create_command(args: ProfileCreateActionArgs) -> Result<()> {
-    platform_profile_create_command(PlatformProfileCreateArgs {
-        platform_name: "codex".to_string(),
-        name: args.name,
-        description: args.description,
-        base_url: args.base_url,
-        auth_token: args.auth_token,
-        api_key: None,
-        model: args.model,
-        small_fast_model: args.small_fast_model,
-        provider: args.provider,
-        provider_type: args.provider_type,
-        account: args.account,
-        tags: args.tags,
-        auth_mode: args.auth_mode,
-        api_backend: None,
-        env_key: None,
-        context_window: None,
-        supports_backend_search: None,
-        reasoning_effort: None,
-        disabled: args.disabled,
-        json: args.json,
-    })
-    .await
+    create_from_common_args("codex", args).await
 }
 
 pub async fn set_field_command(args: ProfileSetFieldActionArgs) -> Result<()> {
@@ -208,7 +193,7 @@ pub async fn disable_command(args: ProfileDisableActionArgs) -> Result<()> {
     platform_profile_disable_command("codex", &args.name, args.force, args.json).await
 }
 
-pub async fn delete_command(args: ProfileDisableActionArgs) -> Result<()> {
+pub async fn delete_command(args: ProfileDeleteActionArgs) -> Result<()> {
     platform_profile_delete_command("codex", &args.name, args.force, args.json).await
 }
 

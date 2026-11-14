@@ -5,8 +5,9 @@
 use clap::Subcommand;
 
 use super::profile_args::{
-    CodexProfileEditActionArgs, ProfileCreateActionArgs, ProfileDisableActionArgs,
-    ProfileNameJsonActionArgs, ProfileOffActionArgs, ProfileSetFieldActionArgs,
+    CodexProfileEditActionArgs, ProfileCreateActionArgs, ProfileDeleteActionArgs,
+    ProfileDisableActionArgs, ProfileNameJsonActionArgs, ProfileOffActionArgs,
+    ProfileSetFieldActionArgs,
 };
 
 /// Codex 子命令
@@ -193,10 +194,13 @@ pub enum CodexProfileAction {
     Switch {
         /// 要切换到的 profile 名称
         name: String,
+        /// 以 JSON 格式输出
+        #[arg(long)]
+        json: bool,
     },
 
     /// Create a new Codex profile
-    Create(ProfileCreateActionArgs),
+    Create(Box<ProfileCreateActionArgs>),
 
     /// Update one Codex profile field
     SetField(ProfileSetFieldActionArgs),
@@ -211,7 +215,7 @@ pub enum CodexProfileAction {
     Disable(ProfileDisableActionArgs),
 
     /// Delete a Codex profile
-    Delete(ProfileDisableActionArgs),
+    Delete(ProfileDeleteActionArgs),
 
     /// 退出当前 profile，并清理会压制官方登录的 CCR 运行时残留
     Off(ProfileOffActionArgs),

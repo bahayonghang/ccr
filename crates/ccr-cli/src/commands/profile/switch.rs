@@ -8,6 +8,7 @@
 
 #![allow(clippy::unused_async)]
 
+use crate::application::profile_lifecycle::{ProfileOutcome, ProfileStatus, ProfileWarning};
 use crate::application::profile_switch::switch_profile_for_platform as run_switch_profile_for_platform;
 use crate::commands::common::new_utf8_table;
 use crate::managers::settings::SettingsManager;
@@ -16,6 +17,45 @@ use crate::platforms::create_platform;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
 use comfy_table::{Attribute, Cell, Color as TableColor, ContentArrangement};
+use serde::Serialize;
+
+#[derive(Debug, Serialize)]
+struct ProfileSwitchJsonOutput {
+    ok: bool,
+    platform: String,
+    profile: String,
+    previous_profile: Option<String>,
+    status: ProfileStatus,
+    revision: Option<String>,
+    warnings: Vec<ProfileWarning>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    recovery_paths: Vec<String>,
+}
+
+fn format_switch_json_receipt(
+    platform: Platform,
+    outcome: ProfileOutcome,
+    revision: Option<String>,
+) -> Result<(String, Result<()>)> {
+    let ok = outcome.activation_committed;
+    let failure_message = (!ok).then(|| outcome.message());
+    let payload = ProfileSwitchJsonOutput {
+        ok,
+        platform: platform.short_name().to_string(),
+        profile: outcome.profile,
+        previous_profile: outcome.previous_profile,
+        status: outcome.status,
+        revision,
+        warnings: outcome.warnings,
+        recovery_paths: outcome.recovery_paths,
+    };
+    let line = serde_json::to_string(&payload).map_err(CcrError::JsonError)?;
+    let status_result = match failure_message {
+        Some(message) => Err(CcrError::ConfigError(message.into())),
+        None => Ok(()),
+    };
+    Ok((line, status_result))
+}
 
 /// 🔄 切换到指定配置
 ///
@@ -29,6 +69,24 @@ pub async fn switch_command(config_name: &str) -> Result<()> {
 ///
 /// 用于需要固定平台上下文的调用方（如 Web API）。
 pub async fn switch_command_for_platform(config_name: &str, platform_name: &str) -> Result<()> {
+    switch_command_for_platform_with_options(config_name, platform_name, false).await
+}
+
+/// 🔄 在指定平台内切换到配置（支持 `--json` 单行回执）
+pub async fn switch_command_for_platform_with_options(
+    config_name: &str,
+    platform_name: &str,
+    json: bool,
+) -> Result<()> {
+    if json {
+        let result = run_switch_profile_for_platform(config_name, platform_name).await?;
+        let revision = crate::commands::platform::catalog_revision(result.platform)?;
+        let (line, status_result) =
+            format_switch_json_receipt(result.platform, result.outcome, revision)?;
+        println!("{line}");
+        return status_result;
+    }
+
     ColorOutput::title(&format!("切换配置: {}", config_name));
     println!();
 
@@ -339,4 +397,44 @@ pub async fn switch_command_for_platform(config_name: &str, platform_name: &str)
     ColorOutput::info(restart_hint);
 
     Ok(())
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use serde_json::{Value, json};
+
+    #[test]
+    fn switch_json_receipt_emits_recovery_required_payload_before_error() {
+        let outcome = ProfileOutcome {
+            operation_id: "00000000-0000-0000-0000-000000000001".into(),
+            platform: "claude".into(),
+            profile: "beta".into(),
+            previous_profile: Some("alpha".into()),
+            status: ProfileStatus::RecoveryRequired,
+            activation_committed: false,
+            warnings: vec![ProfileWarning::ActivationFailed],
+            recovery_paths: vec!["/tmp/fixture/settings.json".into()],
+        };
+        let (line, status_result) =
+            format_switch_json_receipt(Platform::Claude, outcome, Some("rev-42".into())).unwrap();
+        assert!(!line.contains('\n'));
+        let parsed: Value = serde_json::from_str(&line).unwrap();
+        assert_eq!(parsed["ok"], false);
+        assert_eq!(parsed["platform"], "claude");
+        assert_eq!(parsed["profile"], "beta");
+        assert_eq!(parsed["previous_profile"], "alpha");
+        assert_eq!(parsed["status"], "recovery_required");
+        assert_eq!(parsed["revision"], "rev-42");
+        assert_eq!(parsed["warnings"], json!(["activation_failed"]));
+        assert_eq!(
+            parsed["recovery_paths"],
+            json!(["/tmp/fixture/settings.json"])
+        );
+
+        let err = status_result.unwrap_err();
+        assert!(matches!(err, CcrError::ConfigError(_)));
+        assert!(err.to_string().contains("requires recovery"));
+    }
 }

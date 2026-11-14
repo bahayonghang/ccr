@@ -8,8 +8,11 @@ pub struct ProfileCreateActionArgs {
     pub description: Option<String>,
     #[arg(long = "base-url")]
     pub base_url: Option<String>,
-    #[arg(long = "auth-token")]
+    #[arg(long = "auth-token", hide = true)]
     pub auth_token: Option<String>,
+    /// 从标准输入读取密钥，避免进入 shell 历史
+    #[arg(long = "auth-token-stdin", conflicts_with = "auth_token")]
+    pub auth_token_stdin: bool,
     #[arg(long)]
     pub model: Option<String>,
     #[arg(long = "small-fast-model")]
@@ -24,6 +27,12 @@ pub struct ProfileCreateActionArgs {
     pub tags: Vec<String>,
     #[arg(long = "auth-mode")]
     pub auth_mode: Option<String>,
+    /// 补充字段赋值，形式为 field=value，可重复
+    #[arg(long = "set", value_name = "FIELD=VALUE")]
+    pub set: Vec<String>,
+    /// 仅当 catalog 仍是这个 revision 时写入
+    #[arg(long = "expected-revision")]
+    pub expected_revision: Option<String>,
     #[arg(long)]
     pub disabled: bool,
     #[arg(long)]
@@ -62,6 +71,17 @@ pub struct ProfileDisableActionArgs {
     /// Profile name
     pub name: String,
     /// Allow disabling the current profile
+    #[arg(long)]
+    pub force: bool,
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct ProfileDeleteActionArgs {
+    /// Profile name
+    pub name: String,
+    /// Allow deleting the currently active profile
     #[arg(long)]
     pub force: bool,
     #[arg(long)]

@@ -61,6 +61,7 @@ fn safe_error(error: CcrError) -> ProfileError {
             ProfileError::Unmigrated
         }
         CcrError::ValidationError(_)
+        | CcrError::ResourceAlreadyExists(_)
         | CcrError::ConfigFormatInvalid(_)
         | CcrError::TomlError(_) => ProfileError::Invalid,
         CcrError::ConfigMissing(_)

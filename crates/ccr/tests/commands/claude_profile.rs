@@ -633,3 +633,132 @@ fn claude_auth_off_deletes_credentials_and_keeps_onboarding() {
     assert!(again.status.success(), "{:?}", again.status);
     assert_eq!(again_json["changed"], false);
 }
+
+#[test]
+fn claude_profile_off_json_includes_remaining_suppressors_under_clicolor_force() {
+    let fixture = ClaudeProfileFixture::new();
+    fixture.write_unified_claude_profile(Some("proxy"));
+    fixture.save_claude_profiles("proxy");
+    fixture.write_settings_overrides();
+
+    let env_sentinel = "SENTINEL_CLAUDE_ENV_SUPPRESSOR_9901";
+    let mut cmd = fixture.command();
+    cmd.env_remove("NO_COLOR");
+    cmd.env("CLICOLOR", "1");
+    cmd.env("CLICOLOR_FORCE", "1");
+    cmd.env("ANTHROPIC_API_KEY", env_sentinel);
+    let output = cmd
+        .args(["claude", "profile", "off", "--json"])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{:?}", output.status);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.contains('\u{1b}'), "ANSI in JSON stdout: {stdout}");
+    assert!(!output_contains_secret(&output, env_sentinel));
+    assert!(!output_contains_secret(&output, "sk-claude-proxy"));
+
+    let json: Value = serde_json::from_str(&stdout).unwrap();
+    assert_eq!(json["ok"], true);
+    let suppressors = json["remaining_suppressors"]
+        .as_array()
+        .expect("remaining_suppressors array must be present");
+    assert!(
+        suppressors.iter().any(|item| {
+            item["kind"] == "anthropic_api_key" && item["location"] == "process_env"
+        }),
+        "expected process_env anthropic_api_key suppressor in: {json}"
+    );
+}
+
+#[test]
+fn claude_profile_delete_protects_active_profile_including_registry_fallback_and_force_clears_runtime()
+ {
+    let fixture = ClaudeProfileFixture::new();
+    // Invalid catalog current_config = "ghost", but valid registry fallback = "proxy".
+    fixture.write_unified_claude_profile(Some("proxy"));
+    fixture.save_claude_profiles("ghost");
+    fixture.write_settings_overrides();
+
+    let db_path = fixture
+        .root
+        .join("platforms")
+        .join("claude")
+        .join("profiles.db");
+    let registry_path = fixture.root.join("config.toml");
+    let settings_path = fixture.claude_dir.join("settings.json");
+
+    let catalog_before = catalog_canonical(
+        &fixture
+            .root
+            .join("platforms")
+            .join("claude")
+            .join("profiles.toml"),
+    );
+    let registry_before = fs::read(&registry_path).unwrap();
+    let settings_before = fs::read(&settings_path).unwrap();
+    assert!(db_path.is_file());
+
+    // Without --force: must reject deletion via registry fallback and make zero user-file writes.
+    let rejected = fixture.run_output(&["claude", "profile", "delete", "proxy"]);
+    assert!(
+        !rejected.status.success(),
+        "expected active profile delete without --force to fail"
+    );
+    let stderr = String::from_utf8_lossy(&rejected.stderr);
+    assert!(stderr.contains("--force"), "stderr={stderr}");
+    assert_eq!(
+        catalog_canonical(
+            &fixture
+                .root
+                .join("platforms")
+                .join("claude")
+                .join("profiles.toml")
+        ),
+        catalog_before
+    );
+    assert_eq!(fs::read(&registry_path).unwrap(), registry_before);
+    assert_eq!(fs::read(&settings_path).unwrap(), settings_before);
+
+    // With --force: cleans up runtime + pointers and deletes the profile.
+    let (delete_output, delete_json) =
+        fixture.run_json(&["claude", "profile", "delete", "proxy", "--force", "--json"]);
+    assert!(
+        delete_output.status.success(),
+        "stderr={}",
+        String::from_utf8_lossy(&delete_output.stderr)
+    );
+    assert_eq!(delete_json["ok"], true);
+    assert_eq!(delete_json["name"], "proxy");
+    assert!(delete_json.get("current_profile").is_none());
+
+    let _env = crate::setup_ccr_test_env();
+    let loaded = ConfigManager::new(
+        fixture
+            .root
+            .join("platforms")
+            .join("claude")
+            .join("profiles.toml"),
+    )
+    .load()
+    .unwrap();
+    assert!(!loaded.sections.contains_key("proxy"));
+    assert!(loaded.current_config.is_empty());
+
+    let registry = PlatformConfigManager::new(&registry_path).load().unwrap();
+    assert_eq!(
+        registry
+            .get_platform("claude")
+            .unwrap()
+            .current_profile
+            .as_deref(),
+        None
+    );
+    drop(_env);
+
+    let settings_after: Value = serde_json::from_slice(&fs::read(&settings_path).unwrap()).unwrap();
+    let env_map = settings_after["env"].as_object().unwrap();
+    assert!(!env_map.contains_key("ANTHROPIC_BASE_URL"));
+    assert!(!env_map.contains_key("ANTHROPIC_AUTH_TOKEN"));
+    assert!(!env_map.contains_key("ANTHROPIC_MODEL"));
+}

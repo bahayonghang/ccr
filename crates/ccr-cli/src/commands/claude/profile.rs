@@ -2,22 +2,24 @@
 
 use crate::application::profile_off_for_platform;
 use crate::cli::subcommands::profile_args::{
-    ProfileCreateActionArgs, ProfileDisableActionArgs, ProfileEditActionArgs,
-    ProfileNameJsonActionArgs, ProfileSetFieldActionArgs,
+    ProfileCreateActionArgs, ProfileDeleteActionArgs, ProfileDisableActionArgs,
+    ProfileEditActionArgs, ProfileNameJsonActionArgs, ProfileSetFieldActionArgs,
 };
 use crate::commands::common::new_utf8_table;
 use crate::commands::platform::{
-    PlatformProfileCreateArgs, ProfileEditCommand, platform_profile_create_command,
-    platform_profile_delete_command, platform_profile_disable_command,
-    platform_profile_edit_command, platform_profile_enable_command,
-    platform_profile_set_field_command, print_status_card,
+    ProfileEditCommand, catalog_revision, create_from_common_args, platform_profile_delete_command,
+    platform_profile_disable_command, platform_profile_edit_command,
+    platform_profile_enable_command, platform_profile_set_field_command, print_status_card,
 };
-use crate::commands::profile::switch_command_for_platform;
+use crate::commands::profile::{
+    switch_command_for_platform, switch_command_for_platform_with_options,
+};
 use crate::models::Platform;
 use crate::platforms::{ClaudePlatform, create_platform};
 use crate::services::RuntimeOverviewService;
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
+use ccr_types::ClaudeAuthSourceObservation;
 use comfy_table::{Attribute, Cell, Color as TableColor, ContentArrangement};
 use serde::Serialize;
 
@@ -36,6 +38,7 @@ struct ClaudeProfileSummary {
 #[derive(Debug, Serialize)]
 struct ClaudeProfileListJson {
     current_profile: Option<String>,
+    revision: Option<String>,
     profiles: Vec<ClaudeProfileSummary>,
 }
 
@@ -45,6 +48,7 @@ struct ClaudeProfileOffJson {
     changed: bool,
     previous_profile: Option<String>,
     runtime_mode: &'static str,
+    remaining_suppressors: Vec<ClaudeAuthSourceObservation>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     warnings: Vec<String>,
 }
@@ -91,6 +95,7 @@ pub async fn list_command(json: bool) -> Result<()> {
     if json {
         let output = ClaudeProfileListJson {
             current_profile,
+            revision: catalog_revision(Platform::Claude)?,
             profiles: entries,
         };
         println!("{}", serde_json::to_string_pretty(&output)?);
@@ -155,30 +160,12 @@ pub async fn switch_command(name: &str) -> Result<()> {
     switch_command_for_platform(name, "claude").await
 }
 
+pub async fn switch_command_with_options(name: &str, json: bool) -> Result<()> {
+    switch_command_for_platform_with_options(name, "claude", json).await
+}
+
 pub async fn create_command(args: ProfileCreateActionArgs) -> Result<()> {
-    platform_profile_create_command(PlatformProfileCreateArgs {
-        platform_name: "claude".to_string(),
-        name: args.name,
-        description: args.description,
-        base_url: args.base_url,
-        auth_token: args.auth_token,
-        api_key: None,
-        model: args.model,
-        small_fast_model: args.small_fast_model,
-        provider: args.provider,
-        provider_type: args.provider_type,
-        account: args.account,
-        tags: args.tags,
-        auth_mode: args.auth_mode,
-        api_backend: None,
-        env_key: None,
-        context_window: None,
-        supports_backend_search: None,
-        reasoning_effort: None,
-        disabled: args.disabled,
-        json: args.json,
-    })
-    .await
+    create_from_common_args("claude", args).await
 }
 
 pub async fn set_field_command(args: ProfileSetFieldActionArgs) -> Result<()> {
@@ -206,7 +193,7 @@ pub async fn disable_command(args: ProfileDisableActionArgs) -> Result<()> {
     platform_profile_disable_command("claude", &args.name, args.force, args.json).await
 }
 
-pub async fn delete_command(args: ProfileDisableActionArgs) -> Result<()> {
+pub async fn delete_command(args: ProfileDeleteActionArgs) -> Result<()> {
     platform_profile_delete_command("claude", &args.name, args.force, args.json).await
 }
 
@@ -214,11 +201,17 @@ pub async fn off_command(json: bool) -> Result<()> {
     let result = profile_off_for_platform(Platform::Claude)?;
 
     if json {
+        let remaining_suppressors = result
+            .auth_outcome
+            .as_ref()
+            .map(|outcome| outcome.remaining_suppressors.clone())
+            .unwrap_or_default();
         let output = ClaudeProfileOffJson {
             ok: true,
             changed: result.changed,
             previous_profile: result.previous_profile,
             runtime_mode: result.runtime_mode,
+            remaining_suppressors,
             warnings: result.warnings,
         };
         println!("{}", serde_json::to_string_pretty(&output)?);

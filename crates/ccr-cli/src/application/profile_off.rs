@@ -232,6 +232,10 @@ pub(crate) fn profile_off_with_context(
     context: &ProfileLifecycleContext,
 ) -> Result<ProfileOffResult> {
     let _operation = context.operation_lock()?;
+    profile_off_locked(context)
+}
+
+pub(crate) fn profile_off_locked(context: &ProfileLifecycleContext) -> Result<ProfileOffResult> {
     match context.platform() {
         Platform::Claude => claude_profile_off(context),
         Platform::Codex => codex_profile_off(context),
@@ -240,6 +244,18 @@ pub(crate) fn profile_off_with_context(
             "{platform} 暂不支持 profile off"
         ))),
     }
+}
+
+pub(crate) fn codex_raw_current_profile_hint(
+    context: &ProfileLifecycleContext,
+) -> Result<Option<String>> {
+    if let Some(current) = platform_previous_profile_hint(context)?
+        .map(|name| name.trim().to_string())
+        .filter(|name| !name.is_empty())
+    {
+        return Ok(Some(current));
+    }
+    ccr_config::platforms::base::load_current_profile_marker(&context.paths().profiles_file)
 }
 
 fn claude_settings(context: &ProfileLifecycleContext) -> Result<SettingsManager> {

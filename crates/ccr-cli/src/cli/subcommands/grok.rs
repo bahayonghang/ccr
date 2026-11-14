@@ -3,8 +3,8 @@
 use clap::{Args, Subcommand};
 
 use super::profile_args::{
-    ProfileDisableActionArgs, ProfileEditActionArgs, ProfileNameJsonActionArgs,
-    ProfileOffActionArgs, ProfileSetFieldActionArgs,
+    ProfileDeleteActionArgs, ProfileDisableActionArgs, ProfileEditActionArgs,
+    ProfileNameJsonActionArgs, ProfileOffActionArgs, ProfileSetFieldActionArgs,
 };
 
 #[derive(Subcommand)]
@@ -113,7 +113,11 @@ pub enum GrokProfileAction {
     },
 
     /// Apply one Grok profile
-    Switch { name: String },
+    Switch {
+        name: String,
+        #[arg(long)]
+        json: bool,
+    },
 
     /// Create a Grok profile
     Create(Box<GrokProfileCreateActionArgs>),
@@ -131,7 +135,7 @@ pub enum GrokProfileAction {
     Disable(ProfileDisableActionArgs),
 
     /// Delete a Grok profile; --force restores the entry runtime first
-    Delete(ProfileDisableActionArgs),
+    Delete(ProfileDeleteActionArgs),
 
     /// Exit the current profile and clear CCR login leftovers
     Off(ProfileOffActionArgs),
@@ -147,10 +151,18 @@ pub struct GrokProfileCreateActionArgs {
     pub base_url: Option<String>,
     #[arg(
         long = "api-key",
-        visible_alias = "auth-token",
-        conflicts_with = "env_key"
+        alias = "auth-token",
+        hide = true,
+        conflicts_with_all = ["env_key", "api_key_stdin"]
     )]
     pub api_key: Option<String>,
+    /// 从标准输入读取密钥，避免进入 shell 历史
+    #[arg(
+        long = "api-key-stdin",
+        visible_alias = "auth-token-stdin",
+        conflicts_with_all = ["api_key", "env_key"]
+    )]
+    pub api_key_stdin: bool,
     #[arg(long)]
     pub model: Option<String>,
     #[arg(long)]
@@ -163,7 +175,10 @@ pub struct GrokProfileCreateActionArgs {
     pub tags: Vec<String>,
     #[arg(long = "api-backend")]
     pub api_backend: Option<String>,
-    #[arg(long = "env-key", conflicts_with = "api_key")]
+    #[arg(
+        long = "env-key",
+        conflicts_with_all = ["api_key", "api_key_stdin"]
+    )]
     pub env_key: Option<String>,
     #[arg(long = "context-window")]
     pub context_window: Option<u64>,
@@ -175,6 +190,12 @@ pub struct GrokProfileCreateActionArgs {
     pub supports_backend_search: Option<bool>,
     #[arg(long = "reasoning-effort")]
     pub reasoning_effort: Option<String>,
+    /// 补充字段赋值，形式为 field=value，可重复
+    #[arg(long = "set", value_name = "FIELD=VALUE")]
+    pub set: Vec<String>,
+    /// 仅当 catalog 仍是这个 revision 时写入
+    #[arg(long = "expected-revision")]
+    pub expected_revision: Option<String>,
     #[arg(long)]
     pub disabled: bool,
     #[arg(long)]

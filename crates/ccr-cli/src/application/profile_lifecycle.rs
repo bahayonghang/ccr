@@ -387,14 +387,25 @@ impl ProfileLifecycleContext {
         profile: ProfileConfig,
         expected_version: Option<&str>,
     ) -> Result<()> {
+        self.create_with_outcome(name, profile, expected_version)
+            .map(|_| ())
+    }
+
+    pub(crate) fn create_with_outcome(
+        &self,
+        name: &str,
+        profile: ProfileConfig,
+        expected_version: Option<&str>,
+    ) -> Result<(String, Option<String>)> {
         self.run(|| {
             let _operation = self.operation_lock()?;
             self.with_instance(|instance| {
                 ccr_config::managers::config::repository::validate_profile_name(name)?;
                 let manager = self.manager();
                 let _resource = manager.lock_mutation()?;
-                let current = manager
-                    .canonical_toml()?
+                let existing_catalog = manager.canonical_toml()?;
+                let was_absent = existing_catalog.is_none();
+                let current = existing_catalog
                     .map(|(_, revision)| revision)
                     .unwrap_or_default();
                 if expected_version.is_some_and(|expected| expected != current) {
@@ -403,13 +414,21 @@ impl ProfileLifecycleContext {
                     ));
                 }
                 if instance.load_profiles()?.contains_key(name) {
-                    return Err(CcrError::ValidationError("Profile already exists".into()));
+                    return Err(CcrError::ResourceAlreadyExists(format!(
+                        "Profile '{name}' 已存在"
+                    )));
                 }
                 instance.validate_profile(&profile)?;
                 let files = operation_paths_with(&self.paths, self.platform(), instance)?;
                 let journal = WriteJournal::begin(&files)?;
                 let save = || {
                     instance.save_profile(name, &profile)?;
+                    if was_absent {
+                        manager.mutate(|catalog| {
+                            catalog.current_config.clear();
+                            Ok(())
+                        })?;
+                    }
                     journal.verify()
                 };
                 let result = CatalogTransaction::execute_or_create(
@@ -421,7 +440,9 @@ impl ProfileLifecycleContext {
                 match result {
                     Ok(()) => {
                         journal.commit();
-                        Ok(())
+                        let revision = manager.snapshot()?.version;
+                        let current_profile = instance.get_current_profile()?;
+                        Ok((revision, current_profile))
                     }
                     Err(error) => {
                         let failed = journal.rollback();
@@ -440,6 +461,69 @@ impl ProfileLifecycleContext {
     }
     pub fn off(&self) -> Result<super::profile_off::ProfileOffResult> {
         self.run(|| super::profile_off::profile_off_with_context(self))
+    }
+    /// Delete a profile while holding `operation_lock` continuously across
+    /// active/drifted pointer inspection, forced `off` runtime cleanup, and
+    /// catalog removal. Returns the remaining active profile after deletion.
+    pub fn delete(&self, name: &str, force: bool) -> Result<Option<String>> {
+        self.run(|| {
+            let _operation = self.operation_lock()?;
+            if self.platform() == Platform::Grok {
+                let grok = self.grok_platform()?;
+                return match grok.delete_profile_guarded(name, force)? {
+                    crate::platforms::grok::GrokProfileDeleteOutcome::Deleted { .. } => {
+                        grok.get_current_profile()
+                    }
+                    crate::platforms::grok::GrokProfileDeleteOutcome::Blocked { reason } => {
+                        Err(match reason {
+                            crate::platforms::grok::GrokProfileDeleteBlockedReason::Active => {
+                                CcrError::ValidationError(format!(
+                                    "Grok profile '{name}' 当前处于激活状态，请先执行 off 或切换到其他 profile，或添加 --force"
+                                ))
+                            }
+                            crate::platforms::grok::GrokProfileDeleteBlockedReason::Drifted => {
+                                CcrError::ValidationError(format!(
+                                    "Grok profile '{name}' 当前处于激活状态（运行时已漂移），请先执行 off 或添加 --force"
+                                ))
+                            }
+                            crate::platforms::grok::GrokProfileDeleteBlockedReason::UnsafeMissingEntryState => {
+                                CcrError::ConfigError(
+                                    "Grok 入口配置状态缺失，拒绝删除 profile 以避免遗留凭据；请先备份 config.toml 并手工清理 [model.custom] 与 [models].default"
+                                        .into(),
+                                )
+                            }
+                        })
+                    }
+                };
+            }
+
+            let instance = self.instance();
+            let active = instance.get_current_profile()?.as_deref() == Some(name);
+            let codex_drifted = !active
+                && self.platform() == Platform::Codex
+                && super::profile_off::codex_raw_current_profile_hint(self)?.as_deref()
+                    == Some(name);
+            if active || codex_drifted {
+                if !force {
+                    return Err(if codex_drifted {
+                        CcrError::ValidationError(format!(
+                            "Codex profile '{name}' 当前处于激活状态（运行时已漂移），请先执行 ccr codex profile off 或添加 --force"
+                        ))
+                    } else {
+                        CcrError::ValidationError(format!(
+                            "当前 Profile '{name}' 正在使用，请先执行 ccr {} profile off 或切换到其他 profile，或添加 --force",
+                            self.platform().short_name()
+                        ))
+                    });
+                }
+                if !instance.load_profiles()?.contains_key(name) {
+                    return Err(CcrError::ProfileNotFound(name.to_string()));
+                }
+                super::profile_off::profile_off_locked(self)?;
+            }
+            instance.delete_profile(name)?;
+            instance.get_current_profile()
+        })
     }
     pub fn needs_login_prep(&self) -> Result<bool> {
         self.run(|| super::profile_off::needs_login_prep_with_context(self))

@@ -262,9 +262,10 @@ impl GrokPlatform {
         ) {
             Ok(canonical)
         } else {
-            Err(CcrError::ValidationError(format!(
-                "Grok reasoning_effort 不受支持: {trimmed}; 允许值为 none、minimal、low、medium、high、xhigh、max"
-            )))
+            Err(CcrError::ValidationError(
+                "Grok reasoning_effort 不受支持；允许值为 none、minimal、low、medium、high、xhigh、max"
+                    .into(),
+            ))
         }
     }
 
@@ -302,7 +303,12 @@ impl GrokPlatform {
             GrokProfileDeletePlan::Blocked { reason } => {
                 return Ok(GrokProfileDeleteOutcome::Blocked { reason });
             }
-            GrokProfileDeletePlan::OffThenDelete => self.clear_active_profile_runtime_locked()?,
+            GrokProfileDeletePlan::OffThenDelete => {
+                if !self.load_profiles()?.contains_key(name) {
+                    return Err(CcrError::ProfileNotFound(name.to_string()));
+                }
+                self.clear_active_profile_runtime_locked()?;
+            }
             GrokProfileDeletePlan::Delete => {}
         }
         self.delete_profile_locked(name)?;

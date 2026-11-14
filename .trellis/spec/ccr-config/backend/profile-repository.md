@@ -46,7 +46,7 @@ All profile content is secret. `save`, `save_config`, and `save_profiles_to_toml
 - Full and simplified TOML use the same safe semantic parser. Invalid TOML and invalid typed fields propagate errors without source lines or credential values.
 - `load_current_profile_marker` reads a declared marker only. A simplified profile map has no stored current marker; the compatibility parser's in-memory default does not imply an active profile. Missing files return no marker; corrupt or unreadable files return errors.
 - Repository `load`, `snapshot`, and mutation closures project current intent from the same catalog rows. An existing simplified map without a marker exposes an empty current value. Service list/get-by-name results have `is_current = false`; `get_current` uses the existing no-current error. The low-level compatibility parser keeps its original first-profile default.
-- An unrelated patch, typed update, or autofix preserves the simplified map's absent markers. Explicit activation writes current/default metadata together. Explicit first creation keeps the legacy initialization defaults; adding to an existing empty inactive document does not activate it.
+- An unrelated patch, typed update, or autofix preserves the simplified map's absent markers. Explicit activation writes current/default metadata together. Low-level `platform.save_profile` first creation keeps the legacy initialization defaults (`default_config` and `current_config` set to the first profile), whereas application-level `ProfileLifecycleContext::create` clears `current_config` to `""` on first creation in an absent catalog so newly created profiles start inactive; adding to an existing empty inactive document also stays inactive.
 - Claude retains the valid file-marker → valid registry-marker precedence. `resolve_file_current_profile` returns a current name and an optional repair suggestion. `ClaudePlatform::reconcile_current_profile` performs explicit repair.
 - `base::mutate_profiles_with_current` preserves an already-invalid current marker in an existing nonempty catalog during unrelated CRUD. Example: catalog current=`ghost`, default=`z-last`, registry current=`a-first`; saving only the description of `a-first` must retain `ghost` and resolve current to `a-first`, rather than silently selecting the first catalog row. First creation and removing a previously valid current profile keep their existing fallback rules. Use explicit `reconcile_current_profile` to repair existing drift.
 - Codex and Grok retain their runtime-match checks and registry-first precedence. A stale marker can yield no active profile while the stored marker remains unchanged. Diagnostics keep the evidence needed for an explicit repair or off operation.
@@ -107,9 +107,12 @@ is additive. Existing `execute(db, body)` keeps its existing-catalog contract.
 - Error, commit failure or unwind clears Session and removes only owned staging;
   the application journal restores its declared noncatalog files. No orphan
   profile may remain after its credential write was rolled back.
-- Preserve existing platform normalization, first-create current/default marker
-  semantics and inactive existing-empty behavior. Creating a staging document
-  must not silently change which case the platform observes.
+- Preserve existing platform normalization and `default_config` initialization,
+  while `ProfileLifecycleContext::create` keeps `current_config = ""` (inactive)
+  on first creation in an absent catalog as well as in an existing empty inactive
+  document (low-level `platform.save_profile` retains legacy initialization
+  defaults). Creating a staging document must not silently change which case the
+  platform observes.
 - Constructors/queries never call this write API. Do not copy a live SQLite
   file, add SQL in an adapter, or delete an existing catalog as compensation.
 
@@ -138,8 +141,9 @@ is additive. Existing `execute(db, body)` keeps its existing-catalog contract.
 
 Cover real Codex credential-store creation plus late journal failure; catalog
 body/commit/panic cleanup and subsequent Session reuse; legacy/foreign target
-refusal; concurrent first creators; original tokens; platform first-marker
-parity and existing-empty inactivity. Keep default parallelism and
+refusal; concurrent first creators; original tokens; first-create inactive
+`current_config` (`default_config` parity with platform save) and existing-empty
+inactivity. Keep default parallelism and
 `--skip export_bindings`; task evidence records actual command results.
 
 ### 7. Wrong vs Correct
