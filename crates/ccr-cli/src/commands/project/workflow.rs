@@ -13,10 +13,16 @@ const MANAGED_BLOCK_END: &str = "<!-- TRELLIS:END -->";
 #[derive(ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum WorkflowEngine {
     /// Full task-driven multi-stage Trellis workflow.
-    #[value(name = "trellis")]
+    #[value(
+        name = "trellis",
+        help = "任务驱动的完整多阶段工作流（支持 5 项平台，含 Grok；-y 默认兼容）"
+    )]
     Trellis,
     /// Lightweight spec, research, and cross-session memory layer.
-    #[value(name = "mini-trellis")]
+    #[value(
+        name = "mini-trellis",
+        help = "轻量规格、研究笔记与跨会话记忆层（支持 4 项平台，不含 Grok；交互默认推荐）"
+    )]
     MiniTrellis,
 }
 

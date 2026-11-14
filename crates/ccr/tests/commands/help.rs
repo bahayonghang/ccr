@@ -218,27 +218,75 @@ fn clean_storage_help_explains_dry_run_and_force() {
 #[test]
 fn help_subcommand_supports_project_init_path() {
     let project_help = run_help(&["project", "--help"]);
+    let nested_project_help = run_help(&["help", "project"]);
+    assert_eq!(nested_project_help, project_help);
     assert!(project_help.contains("Git"));
     assert!(project_help.contains("Trellis"));
+    assert!(project_help.contains("mini-trellis"));
+    assert!(project_help.contains("--workflow"));
     assert!(project_help.contains(".gitignore"));
+    assert!(!project_help.contains("默认勾选五项"));
 
     let direct_help = run_help(&["project", "init", "--help"]);
     let help_command = run_help(&["help", "project", "init"]);
     assert_eq!(help_command, direct_help);
-    assert!(help_command.contains("git init"));
-    assert!(help_command.contains("trellis init"));
-    assert!(help_command.contains(".agents/"));
-    assert!(help_command.contains(".cursor/"));
-    assert!(help_command.contains(".omp/"));
-    assert!(help_command.contains(".grok/"));
-    assert!(help_command.contains("--yes"));
-    assert!(help_command.contains("ref/"));
-    assert!(help_command.contains("git config user.name"));
-    assert!(help_command.contains("Claude Code"));
-    assert!(help_command.contains("Codex"));
-    assert!(help_command.contains("Cursor"));
-    assert!(help_command.contains("Oh My Pi"));
-    assert!(help_command.contains("Grok"));
+
+    // 1. --workflow 参数及其可选值 trellis / mini-trellis
+    assert!(help_command.contains("--workflow"), "{help_command}");
+    assert!(help_command.contains("trellis"), "{help_command}");
+    assert!(help_command.contains("mini-trellis"), "{help_command}");
+    assert!(
+        help_command.contains("--workflow mini-trellis"),
+        "{help_command}"
+    );
+
+    // 2. 交互模式默认推荐 mini-trellis，-y 非交互模式默认兼容 trellis
+    assert!(
+        help_command.contains("默认推荐 mini-trellis"),
+        "{help_command}"
+    );
+    assert!(help_command.contains("--yes"), "{help_command}");
+    assert!(
+        help_command.contains("ccr -y project init"),
+        "{help_command}"
+    );
+    assert!(help_command.contains("trellis init"), "{help_command}");
+    assert!(help_command.contains("mini-trellis init"), "{help_command}");
+    assert!(
+        help_command.contains("git config user.name"),
+        "{help_command}"
+    );
+    assert!(help_command.contains("git init"), "{help_command}");
+    assert!(
+        !help_command.contains("交互模式默认勾选五项"),
+        "{help_command}"
+    );
+
+    // 3. 两套引擎各自的宿主平台集合（trellis 5 项含 Grok vs mini-trellis 4 项不含 Grok）
+    for platform in ["Claude Code", "Codex", "Cursor", "Oh My Pi", "Grok"] {
+        assert!(
+            help_command.contains(platform),
+            "missing platform {platform} in:\n{help_command}"
+        );
+    }
+    assert!(
+        help_command.contains("5 项") && help_command.contains("4 项"),
+        "expected explicit 5 vs 4 platform counts in:\n{help_command}"
+    );
+    assert!(
+        help_command.contains("不含 Grok"),
+        "expected mini-trellis Grok exclusion note in:\n{help_command}"
+    );
+
+    // 4. 固定 7 条 .gitignore 规则
+    for rule in [
+        ".agents/", ".claude/", ".codex/", ".cursor/", ".omp/", ".grok/", "ref/",
+    ] {
+        assert!(
+            help_command.contains(rule),
+            "missing ignore rule {rule} in:\n{help_command}"
+        );
+    }
 }
 
 #[test]
@@ -248,6 +296,7 @@ fn legacy_init_help_remains_user_configuration_command() {
     assert!(stdout.contains("初始化配置文件"));
     assert!(stdout.contains("--force"));
     assert!(!stdout.contains("trellis init"));
+    assert!(!stdout.contains("mini-trellis"));
 }
 
 #[test]

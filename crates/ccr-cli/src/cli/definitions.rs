@@ -198,12 +198,14 @@ pub enum Commands {
         branch: String,
     },
 
-    /// 初始化当前项目的 Git、Trellis 工作流、Agent 忽略规则和本地 ref/
+    /// 初始化当前项目的 Git、工作流引擎（Trellis / mini-trellis）、Agent 忽略规则和本地 ref/
     ///
-    /// 交互模式默认勾选 Claude Code、Codex、Cursor、Oh My Pi、Grok，再手动输入用户名。
-    /// `ccr -y project init` 使用这五项和 git config user.name。
+    /// 交互模式默认推荐 mini-trellis（4 项平台，不含 Grok），也可选 trellis（5 项平台，含 Grok）。
+    /// `ccr -y project init` 默认兼容 trellis 五项与 git config user.name；也可传 `--workflow mini-trellis`。
     /// 示例: ccr project init
+    ///       ccr project init --workflow mini-trellis
     ///       ccr -y project init
+    ///       ccr -y project init --workflow mini-trellis
     Project {
         #[command(subcommand)]
         action: super::subcommands::ProjectAction,

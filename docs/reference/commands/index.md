@@ -41,7 +41,7 @@ ccr <command> --help
 
 | 命令 | 用途 |
 |---|---|
-| [`project init`](./project-init) | 在当前目录初始化 Git、Trellis、Agent 忽略规则和本地 ref/ |
+| [`project init`](./project-init) | 通过四段式向导在当前目录初始化 Git、工作流引擎（`mini-trellis` / `trellis`）、Agent 忽略规则和本地 `ref/` |
 
 `ccr init` 管理用户级 CCR 配置；`ccr project init` 管理当前项目工作流，两者不会互相替代。
 
@@ -75,8 +75,9 @@ ccr <command> --help
 ## 推荐起步
 
 ```bash
-ccr init                    # 用户级 CCR 配置
-ccr project init            # 当前项目工作流
+ccr init                                    # 用户级 CCR 配置
+ccr project init                            # 当前项目工作流向导（默认推荐 mini-trellis）
+ccr project init --workflow mini-trellis    # 显式指定项目工作流引擎
 ccr current
 ccr claude profile list
 ccr codex auth current

@@ -32,8 +32,9 @@ const ROOT_AFTER_LONG_HELP: &str = "\
 
   初始化当前项目
     先看: ccr project init --help
-    交互初始化: ccr project init
-    使用 Git 用户名和默认五项: ccr -y project init
+    交互向导（默认推荐 mini-trellis）: ccr project init
+    指定引擎: ccr project init --workflow mini-trellis
+    非交互兼容（默认 trellis 五项 + Git 用户名）: ccr -y project init
 
   查看平台与 Profile
     查看运行状态: ccr current
@@ -73,47 +74,54 @@ const HELP_AFTER_LONG_HELP: &str = "\
   ccr help grok auth";
 
 const PROJECT_LONG_ABOUT: &str = "\
-在当前工作目录中依次准备 Git 仓库、Trellis 工作流、Agent 忽略规则和本地 ref/ 目录。
+在当前工作目录中依次准备 Git 仓库、Trellis 或 mini-trellis 工作流、Agent 忽略规则和本地 ref/ 目录。
 
 如果当前目录位于父级 Git 仓库中，会保留该仓库边界，不创建嵌套仓库。";
 
 const PROJECT_AFTER_LONG_HELP: &str = "\
 常用任务:
-  交互式初始化（默认勾选五项，再输入用户名）
+  交互式向导（默认推荐 mini-trellis，预填 git config user.name）
     ccr project init
 
-  非交互初始化（五项平台 + git config user.name）
+  交互式指定工作流引擎（跳过引擎单选）
+    ccr project init --workflow mini-trellis
+    ccr project init --workflow trellis
+
+  非交互初始化（未传 --workflow 时默认兼容 trellis 五项 + git config user.name）
     ccr -y project init
+    ccr -y project init --workflow mini-trellis
 
 阶段顺序:
-  1. 检测 Git 工作树；必要时运行 git init
-  2. 选择平台并确定开发者用户名
-  3. 在当前目录运行 trellis init
-  4. 创建被忽略的 ref/，并向 .gitignore 合并 .agents/、.claude/、.codex/、.cursor/、.omp/、.grok/、ref/
+  1. [1/4] 检查 Git 仓库（检测现有仓库或父工作树，必要时运行 git init）
+  2. [2/4] 配置工作流与宿主平台（前置检测特征指纹冲突，采集引擎、平台与开发者用户名）
+  3. [3/4] 执行 trellis init 或 mini-trellis init 并校验最低工作流产物
+  4. [4/4] 准备本地 ref/ 目录，并以原子写入向 .gitignore 合并 .agents/、.claude/、.codex/、.cursor/、.omp/、.grok/、ref/
 
 边界:
-  - 必须预先安装 git 和 trellis
-  - 交互模式默认勾选 Claude Code、Codex、Cursor、Oh My Pi、Grok，可以取消
-  - 交互模式随后手动输入开发者用户名
-  - ccr -y project init 使用这五项和 git config user.name，并传给 trellis init --yes
-  - 任一阶段失败后可在同一目录安全重试";
+  - 必须预先安装 git 以及所选引擎对应的 trellis 或 mini-trellis
+  - trellis 支持 5 项平台（Claude Code、Codex、Cursor、Oh My Pi、Grok）；mini-trellis 支持 4 项平台（不含 Grok）
+  - 跨引擎或混杂目录会在调用外部 CLI 前以退出码 90 阻断，并提示 mini-trellis migrate 或 mini-trellis uninstall
+  - 同引擎重跑与失败后重试均保持安全幂等（不附加 -s/--skip-existing）";
 
 const PROJECT_INIT_LONG_ABOUT: &str = "\
-初始化当前工作目录的项目工作流。
+以四段式向导初始化当前工作目录的项目工作流（支持 trellis 与 mini-trellis 双工作流引擎）。
 
-Git 成功后，交互模式默认勾选 Claude Code、Codex、Cursor、Oh My Pi 和 Grok，可以取消任意项，然后手动输入开发者用户名。ccr -y project init 不询问，改用这五项和 git config user.name。随后继承当前终端运行 trellis init，创建被忽略的 ref/，并以原子写入把 .agents/、.claude/、.codex/、.cursor/、.omp/、.grok/ 和 ref/ 合并进当前目录的 .gitignore。已有内容和换行风格会保留。";
+Git 检查通过后，交互模式未传 --workflow 时默认推荐 mini-trellis，再按所选引擎展示默认全选的宿主平台复选菜单（trellis 支持 Claude Code、Codex、Cursor、Oh My Pi、Grok 共 5 项；mini-trellis 支持 Claude Code、Codex、Cursor、Oh My Pi 共 4 项，不含 Grok），并预填 git config user.name 供确认或修改开发者用户名。`ccr -y project init` 未传 --workflow 时默认兼容 trellis，读取 git config user.name 并向 `trellis init` 或 `mini-trellis init` 显式传入该引擎全部平台开关与 `--yes`（不传 `-s`）。随后校验引擎最低工作流产物，创建本地 ref/，并以原子写入把固定 7 条规则（.agents/、.claude/、.codex/、.cursor/、.omp/、.grok/ 和 ref/）合并进当前目录的 .gitignore，保留已有内容与换行风格。";
 
 const PROJECT_INIT_AFTER_LONG_HELP: &str = "\
 用法:
-  交互模式默认勾选五项，再输入用户名: ccr project init
-  读取 git config user.name 并运行 trellis init --yes: ccr -y project init
+  交互向导（默认推荐 mini-trellis）: ccr project init
+  显式指定引擎进入交互平台选择: ccr project init --workflow mini-trellis
+  非交互默认兼容（trellis 5 项 + git config user.name + --yes）: ccr -y project init
+  非交互初始化 mini-trellis（4 项 + git config user.name + --yes）: ccr -y project init --workflow mini-trellis
 
 父仓库:
-  当前目录位于父级 Git 工作树时会显示仓库根并跳过 git init；Trellis、ref/ 和
-  .gitignore 仍作用于调用命令时的当前目录。
+  当前目录位于父级 Git 工作树时会显示仓库根并跳过嵌套 git init；工作流引擎、ref/ 和
+  .gitignore 仍只作用于调用命令时的当前目录。
 
-恢复:
-  Git、平台与用户名、Trellis、ref/ 或 .gitignore 阶段失败后不会回滚已完成阶段；修复原因后重复运行即可。";
+冲突与恢复:
+  - 已有 trellis 目录运行 --workflow mini-trellis，或已有 mini-trellis 目录运行 trellis（含裸 -y 默认），以及双引擎混杂目录，均在启动外部 CLI 前以退出码 90 阻断并提示 mini-trellis migrate 或 mini-trellis uninstall。
+  - 同引擎重复运行安全走重初始化并保留自定义资产；任一阶段失败后不会回滚已完成阶段，修复原因后在同一目录重跑即可。";
 
 const PLATFORM_LONG_ABOUT: &str = "\
 列出 CCR 可识别的 AI CLI 平台。

@@ -41,7 +41,7 @@ ccr <command> --help
 
 | Command | Purpose |
 |---|---|
-| [`project init`](./project-init) | initialize Git, Trellis, Agent ignore rules, and a local ref/ directory |
+| [`project init`](./project-init) | initialize Git, a workflow engine (`mini-trellis` / `trellis`), Agent ignore rules, and a local `ref/` directory via the four-stage wizard |
 
 `ccr init` manages user-level CCR configuration. `ccr project init` manages the current project workflow; neither replaces the other.
 
@@ -75,8 +75,9 @@ ccr <command> --help
 ## Recommended Start
 
 ```bash
-ccr init                    # user-level CCR configuration
-ccr project init            # current project workflow
+ccr init                                    # user-level CCR configuration
+ccr project init                            # current project workflow wizard (recommends mini-trellis)
+ccr project init --workflow mini-trellis    # explicitly select a project workflow engine
 ccr current
 ccr claude profile list
 ccr codex auth current

@@ -1,81 +1,99 @@
 # `project init` - Initialize A Project Workflow
 
-`ccr project init` prepares a Git repository, Trellis platforms and a developer name, a Trellis workflow, and an ignored local `ref/` directory in the current working directory. It does not change user-level CCR configuration; [`ccr init`](./init) continues to own that configuration.
+`ccr project init` runs a four-stage terminal wizard in the current working directory to prepare a Git repository, a project workflow engine (`mini-trellis` or `trellis`), an ignored local `ref/` directory, and the seven fixed Agent `.gitignore` rules, finishing with a structured status summary card and next-step commands. It does not modify user-level CCR configuration; [`ccr init`](./init) continues to own user-level configuration.
 
 ## Usage
 
 ```bash
-# Interactive mode: five platforms checked by default, then a manual username
+# Interactive wizard: recommends mini-trellis by default and prefills git config user.name
 ccr project init
 
-# Non-interactive: the five platforms plus git config user.name, passed to trellis init --yes
+# Explicitly select a workflow engine (skips engine selection and goes to platform & username prompts)
+ccr project init --workflow mini-trellis
+ccr project init --workflow trellis
+
+# Non-interactive backward-compatible default: trellis with all 5 platforms + git config user.name
 ccr -y project init
+
+# Non-interactive mini-trellis initialization: enables all 4 platforms + git config user.name
+ccr -y project init --workflow mini-trellis
 ```
 
-The command always targets the directory from which CCR was started. It does not accept a project path.
+`--workflow <trellis|mini-trellis>` is case-insensitive. The command does not expose a `--json` flag and always targets the directory from which CCR was started; it does not accept a project path argument.
+
+## Options And Workflow Engines
+
+| Aspect | `mini-trellis` | `trellis` |
+|---|---|---|
+| Scope | Lightweight specs, research notes, and cross-session memory layer | Full task-driven multi-stage workflow |
+| Downstream executable | `mini-trellis` | `trellis` |
+| Default mode | Highlighted first as recommended in the interactive wizard | Default when `ccr -y project init` is run without `--workflow` (backward compatible) |
+| Supported host platforms | **4 items**: Claude Code (`--claude`), Codex (`--codex`), Cursor (`--cursor`), Oh My Pi (`--omp`) — **excludes Grok** | **5 items**: Claude Code (`--claude`), Codex (`--codex`), Cursor (`--cursor`), Oh My Pi (`--omp`), Grok (`--grok`) |
+| Minimum postconditions | `.trellis/.mini-trellis-manifest.json`, `.trellis/scripts/add_session.py`, and `AGENTS.md` containing `Managed by mini-trellis.` | `.trellis/workflow.md` and `.trellis/scripts/task.py` |
+| Next-step suggestions | `mini-trellis doctor` and `mini-trellis mem recall "project init"` | `trellis doctor` and `ccr project init --help` |
 
 ## Prerequisites
 
-Install these commands and make them available on `PATH` before running the command:
+Install these tools and make them available on `PATH` before running the command:
 
 - Git (`git`)
-- Trellis CLI (`trellis`)
+- The CLI matching the selected workflow engine: `mini-trellis` or `trellis`
 
-CCR does not install either tool. The platform menu is fixed to the five entries below and does not copy Trellis's full platform registry.
+CCR does not install external CLIs automatically. The platform menu is restricted to the supported sets listed above and never exposes or passes unlisted flags such as `--kimi`.
 
-## Stages
+## Four-Stage Workflow
 
-### 1. Git
+At startup, CCR prints a header block showing the target directory (`目标目录`), run mode (`运行模式`), and—when `--workflow` is explicitly passed—the workflow preset (`工作流预设`), then executes four numbered stages in order:
 
-CCR first runs `git rev-parse --show-toplevel`:
+### 1. `[1/4]` Check Git Repository
+
+CCR first runs `git rev-parse --show-toplevel` in the current directory:
 
 - Outside any Git worktree, it runs `git init`.
-- At an existing repository root, it skips `git init`.
-- Inside a parent repository, it reports that repository root and skips `git init` to avoid creating a nested repository.
+- At an existing repository root, it reuses the repository and skips `git init`.
+- Inside a parent repository, it warns with the detected parent repository root and skips nested `git init` to avoid creating a nested repository.
 
-When a parent repository is reused, platform selection, Trellis, `ref/`, and `.gitignore` still target the directory where the command was invoked. A Git failure does not ask for platforms or a username.
+Even when a parent repository is reused, workflow initialization, `ref/`, and `.gitignore` still operate strictly on the directory where the command was invoked. A Git failure stops before any prompt or workflow CLI call.
 
-### 2. Platforms And Username
+### 2. `[2/4]` Configure Workflow And Host Platforms
 
-After Git succeeds, interactive mode shows a checkbox menu. Every item starts checked, and any item can be cleared:
+At the start of stage 2, CCR inspects workspace fingerprint markers (see "Cross-Engine Conflict Guard And Retry" below):
 
-- Claude Code (`--claude`)
-- Codex (`--codex`)
-- Cursor (`--cursor`)
-- Oh My Pi (`--omp`)
-- Grok (`--grok`)
+- **Interactive mode**:
+  - When `--workflow` is omitted, CCR displays a single-select menu with `mini-trellis` highlighted first as the recommended choice; passing `--workflow` skips this menu.
+  - Immediately after the target engine is chosen, CCR checks for cross-engine conflicts before prompting further. If compatible, it displays the host platform multi-select menu (`5` items for `trellis`, `4` items for `mini-trellis`, all checked by default). Clearing every item prints a warning and re-opens the menu without starting the downstream CLI.
+  - CCR silently probes `git config user.name` in the current directory: a non-empty value prefills the developer name prompt (press Enter to accept), while an unset value requires typing a non-empty name and re-prompts on blank input.
+- **Non-interactive mode (`-y` / `--yes`)**:
+  - Shows no interactive prompts. Omitting `--workflow` defaults to `trellis`, and CCR enables every supported platform for the resolved engine (`5` for `trellis` or `4` for `mini-trellis`).
+  - Reads the developer name strictly from `git config user.name` in the current directory. Spawn failure, non-zero exit status, or blank output fails before invoking the downstream CLI, advising you to set `git config user.name` or rerun without `-y`.
 
-Clearing every item shows the menu again and does not start Trellis. After at least one platform remains, the command asks for a developer name. An empty entry asks again until the name is non-empty.
+Once resolved, CCR prints confirmation lines for the selected workflow engine, host platforms, and developer name.
 
-`ccr -y project init` shows neither the menu nor the username prompt. The name comes from `git config user.name` in the current directory. If that command cannot start, initialization fails. A non-zero exit, empty output, or whitespace-only output fails with guidance to set `git config user.name` or rerun without `-y` and type the name. That failure happens before Trellis starts.
+### 3. `[3/4]` Run Workflow Initialization
 
-### 3. Trellis
-
-Interactive mode inherits the current terminal and appends only the platforms that remain, in menu order:
-
-```bash
-trellis init -u <entered name> --claude --codex --cursor --omp --grok
-```
-
-Clearing one item omits its flag. The remaining flags stay in the order above. Without `--yes`, Trellis may still ask about the Claude Code statusLine and the spec template.
-
-When a Git username is available, `ccr -y project init` runs:
+CCR invokes the selected CLI with inherited standard streams (`Stdio::inherit()`) wrapped between visual start/end boundary lines (`┌─` / `└─` box rules on normal TTYs, degrading to plain `---` separators on non-TTY pipes and `TERM=dumb`):
 
 ```bash
-trellis init -u <git config user.name> --claude --codex --cursor --omp --grok --yes
+# When trellis is selected (--yes appended only in -y mode)
+trellis init -u <developer> --claude --codex --cursor --omp --grok [--yes]
+
+# When mini-trellis is selected (no --grok; --yes appended only in -y mode)
+mini-trellis init -u <developer> --claude --codex --cursor --omp [--yes]
 ```
 
-CCR checks both the Trellis exit status and a minimum workflow postcondition: `.trellis/workflow.md` and `.trellis/scripts/task.py` must exist in the current directory. A zero exit status without those files is treated as a failure.
+Unchecking a platform in interactive mode omits its flag while keeping the remaining flags in menu order; without `--yes`, the downstream CLI may still ask its own interactive questions (such as `statusLine` or template prompts in `trellis`). CCR **never passes `-s` / `--skip-existing`**, ensuring same-engine reruns enter downstream reinitialization cleanly.
 
-### 4. `ref/` And `.gitignore`
+After the downstream CLI exits with code `0`, CCR verifies the engine's minimum postcondition files. Missing any required artifact fails validation with exit code `90` and halts before stage 4.
 
-After the minimum Trellis files are present:
+### 4. `[4/4]` Prepare `ref/` And `.gitignore` Rules
+
+Once minimum workflow artifacts are verified:
 
 - An existing `ref/` directory keeps its contents.
-- A regular file at `ref` fails the command and leaves `.gitignore` unchanged.
+- A regular file (or non-directory entry) at `ref` fails with exit code `51` and leaves `.gitignore` untouched.
 - A missing `ref/` directory is created.
 
-CCR then preserves existing content, comments, ordering, and LF/CRLF line endings. It appends only these missing rules:
+Regardless of which workflow engine or platforms were selected, CCR preserves existing `.gitignore` content, comments, ordering, and LF/CRLF line endings while appending any missing entries from the fixed seven-rule baseline:
 
 ```text
 .agents/
@@ -87,21 +105,39 @@ CCR then preserves existing content, comments, ordering, and LF/CRLF line ending
 ref/
 ```
 
-The rules do not follow the platforms selected in this run. `.cursor/`, `.omp/`, and `.grok/` are the local directories for Cursor, Oh My Pi, and Grok. `.agents/` is the shared Codex directory. `.trellis/` stays tracked because it holds the workflow that should be committed.
+`.cursor/`, `.omp/`, and `.grok/` cover local host directories, and `.agents/` is the shared Codex and cross-agent skills directory; `.trellis/` holds tracked workflow and spec assets and stays out of `.gitignore`. When all seven rules already exist, `.gitignore` is not rewritten (though a missing `ref/` directory is still created). Updates use atomic writes, never duplicate rules, and upgrade older four-rule files with `.cursor/`, `.omp/`, and `.grok/`.
 
-When all seven rules already exist, the file is not rewritten. A missing `ref/` directory is still created when the ignore rules are already complete. Updates use an atomic write, and repeated runs do not duplicate rules. A file that only has the older four rules gains `.cursor/`, `.omp/`, and `.grok/` on the next run.
+### Summary Card And Terminal Adaptation
 
-## Failures And Retry
+When all four stages succeed, CCR prints:
 
-Stages always run in this order: Git, platforms and username, Trellis, `ref/`, `.gitignore`. A failed stage stops the command without reporting overall success and does not roll back completed external operations:
+1. **A 6-row summary table** covering Git repository status, workflow engine (initial setup `首次初始化` vs idempotent update `幂等更新`), enabled host platforms, developer name, `ref/` directory, and `.gitignore`.
+2. **A final ready status line** and **engine-specific next-step commands**.
 
-- If Git is unavailable or `git init` fails, CCR does not ask for platforms or a username, does not run Trellis, does not create `ref/`, and does not update `.gitignore`.
-- If platform selection fails, or `-y` cannot read a Git username, Trellis is not invoked.
-- If Trellis is unavailable, exits unsuccessfully, or misses the minimum workflow files, `ref/` is not created and `.gitignore` is not updated.
-- If `ref` is a regular file, `.gitignore` is not updated.
-- If `.gitignore` cannot be read or written, the completed Git, Trellis, and `ref/` results remain in place.
+When piped, or when `NO_COLOR=1`, `CLICOLOR=0`, or `TERM=dumb` is set, prompts, status prefixes, subprocess boundaries, and summary tables omit ANSI color escapes automatically (and switch to ASCII table borders under `TERM=dumb`) so CI logs and captured output remain clean.
 
-Fix the reported cause and rerun `ccr project init` in the same directory. Git detection, Trellis reinitialization, the `ref/` directory check, and ignore-rule merging are designed for safe retries.
+## Cross-Engine Conflict Guard And Retry
+
+### Preflight Workspace Fingerprint Guard (Exit Code `90`)
+
+To prevent cross-engine runs from corrupting an initialized directory (notably, running `trellis init -y` inside an existing `mini-trellis` workspace exits `0` upstream while leaving a broken hybrid state), CCR checks `Trellis` and `mini-trellis` markers before starting any external workflow CLI:
+
+- **Existing `trellis` assets when targeting `mini-trellis`**: blocked with exit code `90` and guidance to preview with `mini-trellis migrate --dry-run` before running `mini-trellis migrate`.
+- **Existing `mini-trellis` assets when targeting `trellis` (including bare `ccr -y project init`)**: blocked preflight with exit code `90` and guidance to run `mini-trellis uninstall` first if switching engines.
+- **Both `trellis` and `mini-trellis` markers present (mixed workspace)**: blocked immediately with exit code `90` before any prompts or external calls until the mixed assets are cleaned up.
+
+All conflict blocks happen before invoking `trellis` / `mini-trellis`, creating `ref/`, or touching `.gitignore`.
+
+### Failure Boundaries And Idempotent Retry
+
+A failure in any stage stops the command immediately, omits the summary card and next-step block, and leaves previously completed stages in place without rollback:
+
+- Missing `git` or failed `git init` (exit code `75`): skips prompts, workflow CLI, `ref/`, and `.gitignore`.
+- Interactive prompt error (exit code `74`), missing `git config user.name` under `-y`, or workspace conflict (exit code `90`): skips workflow CLI, `ref/`, and `.gitignore`.
+- Missing or non-zero `trellis` / `mini-trellis` execution (exit code `75`), or missing minimum workflow artifacts (exit code `90`): keeps the Git repository result without creating `ref/` or updating `.gitignore`.
+- Regular file conflict at `ref` or `.gitignore` read/write error (exit code `51`): keeps completed Git and workflow results.
+
+Fix the reported cause and rerun `ccr project init` with the same workflow engine in the same directory. Same-engine reruns preserve `ref/` contents, custom specs, research notes, journals, and template hashes, reporting an idempotent update in the summary card.
 
 ## See Also
 

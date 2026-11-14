@@ -98,64 +98,88 @@ Codex Auth plaintext import must return the service error after printing its fai
 
 ### 1. Scope / Trigger
 
-- Trigger: adding or changing `ccr project init`, project-level external-tool orchestration, the fixed five-platform menu, or the fixed project ignore rules.
-- Applies to the Clap command tree, dispatcher, `commands/project`, command integration tests, and bilingual command reference.
+- Trigger: adding or changing `ccr project init`, dual workflow-engine orchestration (`trellis` / `mini-trellis`), host platform menus, workspace fingerprint conflict guards, minimum postcondition checks, four-stage wizard/summary presentation, or the fixed project ignore rules.
+- Applies to the Clap command tree (`cli/definitions.rs`, `cli/subcommands/project.rs`, `cli/help_config.rs`), dispatcher (`cli/dispatch.rs`), `commands/project/{mod,init,workflow,fingerprint,wizard,render,gitignore}.rs`, command integration tests (`crates/ccr/tests/commands/{project_init,help}.rs`), and bilingual command reference (`docs/reference/commands/{project-init,index}.md` and `docs/en/reference/commands/{project-init,index}.md`).
 
 ### 2. Signatures
 
-- `Commands::Project { action: ProjectAction }`
-- `ProjectAction::Init`
-- `project_init_command(auto_yes: bool) -> ccr_core::Result<()>`
-- Minimum Trellis postcondition: `<cwd>/.trellis/workflow.md` and `<cwd>/.trellis/scripts/task.py` are files.
-- Fixed platform menu, in order, default checked: Claude Code (`--claude`), Codex (`--codex`), Cursor (`--cursor`), Oh My Pi (`--omp`), Grok (`--grok`).
-- Fixed ignore rules, in this order: `.agents/`, `.claude/`, `.codex/`, `.cursor/`, `.omp/`, `.grok/`, `ref/`. They do not follow the platforms selected in this run. `.agents/` is the shared Codex directory. `.trellis/` stays tracked. Kimi stays off the menu and is not an ignore rule. A file that only has the older four rules (`.agents/`, `.claude/`, `.codex/`, `ref/`) gains `.cursor/`, `.omp/`, and `.grok/` on the next run. Source: Grok session `01a1c998-2fde-7572-910a-b5d6808135e4` (2026-11-11, user accepted the init fix and asked to commit); implemented by `PROJECT_IGNORE_RULES` in `crates/ccr-cli/src/commands/project/init.rs` and stated in `docs/reference/commands/project-init.md`.
+- CLI signature: `ccr [-y|--yes] project init [--workflow <trellis|mini-trellis>]` (`--workflow` uses `clap::ValueEnum` with `ignore_case = true`; no `--json` flag and no path positional argument).
+- Rust types & entrypoints:
+  - `Commands::Project { action: ProjectAction }`
+  - `ProjectAction::Init { workflow: Option<WorkflowEngine> }`
+  - `WorkflowEngine::{Trellis, MiniTrellis}`
+  - `project_init_command(auto_yes: bool, workflow: Option<WorkflowEngine>) -> ccr_core::Result<()>`
+- Default engine policy:
+  - Interactive (`!auto_yes`, `--workflow` omitted): `Select` menu ordered `[MiniTrellis, Trellis]`, highlighting index `0` (`mini-trellis`) by default; explicit `--workflow` skips this prompt.
+  - Non-interactive (`-y` / `--yes`, `--workflow` omitted): defaults to `WorkflowEngine::Trellis` for backward compatibility; `--workflow mini-trellis` selects `MiniTrellis`.
+- Host platform matrix (menu order, default all checked in interactive mode, all passed in `-y` mode):
+  - `trellis` (5 items): Claude Code (`--claude`), Codex (`--codex`), Cursor (`--cursor`), Oh My Pi (`--omp`), Grok (`--grok`).
+  - `mini-trellis` (4 items): Claude Code (`--claude`), Codex (`--codex`), Cursor (`--cursor`), Oh My Pi (`--omp`) — excludes unsupported `--grok`.
+  - Downstream invocation: `<trellis|mini-trellis> init -u <developer> <selected-flags-in-order...> [--yes]`. Append `--yes` last only when `auto_yes` is true; never pass `-s` / `--skip-existing`.
+- Workspace fingerprint markers (`Uninitialized`, `Trellis`, `MiniTrellis`, `Mixed`):
+  - `TrellisMarkers` (5 items, any match): `.trellis/workflow.md`, `.trellis/scripts/task.py`, `.trellis/.template-hashes.json`, `.trellis/.version`, or `AGENTS.md` containing `Managed by Trellis.` (checked within `<!-- TRELLIS:START -->...<!-- TRELLIS:END -->` blocks when present, otherwise full file).
+  - `MiniTrellisMarkers` (6 items, any match): `.trellis/.mini-trellis-manifest.json`, `.trellis/spec/guides/mini-memory.md`, `.claude/commands/mini-trellis/remember.md`, `.agents/skills/mini-trellis-remember/SKILL.md`, `.omp/extensions/mini-trellis/index.ts`, or `AGENTS.md` containing `Managed by mini-trellis.` (same managed-block rule).
+- Minimum workflow postconditions (checked after downstream CLI exits zero):
+  - `trellis`: `<cwd>/.trellis/workflow.md` and `<cwd>/.trellis/scripts/task.py` are files.
+  - `mini-trellis`: `<cwd>/.trellis/.mini-trellis-manifest.json` and `<cwd>/.trellis/scripts/add_session.py` are files, and `<cwd>/AGENTS.md` is a file containing `Managed by mini-trellis.`.
+- Fixed ignore rules, in this order: `.agents/`, `.claude/`, `.codex/`, `.cursor/`, `.omp/`, `.grok/`, `ref/`. They do not vary with the selected workflow engine or platforms. `.agents/` is the shared Codex directory. `.trellis/` stays tracked. Kimi stays off both menus and is not an ignore rule. A file that only has the older four rules (`.agents/`, `.claude/`, `.codex/`, `ref/`) gains `.cursor/`, `.omp/`, and `.grok/` on the next run. Source: Grok session `01a1c998-2fde-7572-910a-b5d6808135e4` (2026-11-11, user accepted the init fix and asked to commit); implemented by `PROJECT_IGNORE_RULES` in `crates/ccr-cli/src/commands/project/gitignore.rs` and stated in `docs/reference/commands/project-init.md`.
 
 ### 3. Contracts
 
 - The process current directory is the only project root; do not add upward/downward project discovery or a path argument implicitly.
-- Run stages in order: Git -> platforms and developer name -> Trellis -> `ref/` -> `.gitignore`. A failed stage stops later stages and never reports overall success.
-- `git rev-parse --show-toplevel` detects both a repository root and membership in a parent worktree. Either result skips `git init`; parent membership must not create a nested repository.
-- Interactive mode, after Git succeeds, shows `dialoguer::MultiSelect` for the five platforms, all default checked. An empty selection re-prompts and does not start Trellis. Kimi and every other Trellis platform stay off the menu. Interact failure is `UiError`. Then `prompt_required` collects a non-empty developer name. Interactive mode does not read `git config user.name` and does not pass `--yes`.
-- `ccr -y project init` does not prompt. It runs `git config user.name` with the Git binary already resolved for the Git stage, in the current directory. Spawn failure is `ExternalCommandError`. A non-zero exit or blank stdout is `ValidationError` and must not start Trellis. The Trellis arguments are `init -u <name> --claude --codex --cursor --omp --grok --yes`.
-- Trellis inherits stdin, stdout, and stderr. A successful exit status is necessary but insufficient: validate the minimum postcondition before creating `ref/` or touching `.gitignore`.
-- `ref/` keeps an existing directory. A file at `ref` is `FileIoError` and does not modify `.gitignore`. A missing directory is created. Then merge ignore rules. When all seven rules already exist, do not rewrite `.gitignore`, but still create a missing `ref/` directory.
-- Merge only missing fixed ignore rules. Preserve existing text and LF/CRLF style, skip the write when unchanged, and use `AtomicWriter` when changed.
-- Partial Git/Trellis results are not rolled back. Idempotent retry is the recovery model.
+- Print the header block (`项目工作流初始化`, `目标目录`, `运行模式`, plus `工作流预设` when `--workflow` is explicitly supplied), then run four numbered stages in strict order:
+  1. `[1/4] 检查 Git 仓库`: `git rev-parse --show-toplevel` detects either an existing repo root (`ExistingRoot`) or membership in a parent worktree (`ParentWorktree`, warns with `跳过嵌套 git init` and reuses the parent repo without creating a nested `.git`). Outside any worktree, run `git init` (`Initialized`).
+  2. `[2/4] 配置工作流与宿主平台`:
+     - Immediately reject `WorkspaceState::Mixed` (`ensure_not_mixed_workspace`) with `ValidationError` (90) before any prompt or `git config user.name` call.
+     - Interactive mode resolves the engine (`--workflow` or `Select` defaulting to `mini-trellis`), validates `validate_markers_for_target` (stopping before platform/username prompts on cross-engine conflict), shows `MultiSelect` for that engine's platforms (re-prompting with warning on empty selection), silently probes `git config user.name` to prefill the `Input` default (Enter accepts a non-empty prefill; blank input when unset warns and re-prompts), and prints `工作流引擎`, `宿主平台`, and `开发者` confirmation lines.
+     - `-y` mode resolves the engine (`explicit.unwrap_or(Trellis)`), validates `validate_markers_for_target`, strictly reads `git config user.name` with the resolved Git binary (`ExternalCommandError` on spawn failure, `ValidationError` (90) on non-zero exit or blank stdout), selects all supported platforms for that engine (`5` for `trellis`, `4` for `mini-trellis`), and prints confirmation lines.
+     - Same-engine markers classify the run as `WorkflowInitMode::Reinit` (`幂等更新`); `Uninitialized` classifies as `WorkflowInitMode::Fresh` (`首次初始化`).
+  3. `[3/4] 执行 <trellis|mini-trellis> 初始化`: resolve the selected engine binary on `PATH`, wrap inherited `stdin`/`stdout`/`stderr` output between start/end boundary lines (`┌─ 外部工具输出 (<cmd>) ──...` / `└─ 外部工具执行完毕 ──...` on non-dumb TTY; `--- 开始执行 <cmd> ---` / `--- <cmd> 执行结束 ---` when captured or `TERM=dumb`), and require both exit code `0` and the engine's minimum postcondition before continuing.
+  4. `[4/4] 准备 ref/ 目录与 .gitignore 忽略规则`: keep an existing `ref/` directory, fail with `FileIoError` (51) if `ref` is a file/non-directory without touching `.gitignore`, or create a missing `ref/` directory (even when `.gitignore` is already complete). Merge only missing rules from the fixed seven-rule list while preserving existing text and LF/CRLF line endings, skipping the write when unchanged and using `AtomicWriter` when updated.
+- Terminal capability adaptation (`WizardCapabilities` / `WizardThemeKind`):
+  - `dialoguer` uses the custom `ColorfulTheme` only on styled non-dumb TTY stderr, falling back to `SimpleTheme` under non-TTY, `NO_COLOR`, `CLICOLOR=0`, or `TERM=dumb`.
+  - After stage 4 succeeds, render a 6-row summary table (`Git 仓库`, `工作流引擎`, `宿主平台`, `开发者`, `ref/ 目录`, `.gitignore`) via `new_utf8_table()` (or ASCII `new_table()` under `TERM=dumb`), calling `force_no_tty()` and omitting cell ANSI styling whenever `!caps.style`, while keeping `...` truncation.
+  - Print the ready line (`项目工作流初始化完成（Git、<Trellis|mini-trellis>、Agent 忽略规则和 ref/ 均已就绪）`) and engine-specific `print_next_steps`:
+    - `mini-trellis`: `mini-trellis doctor` and `mini-trellis mem recall "project init"`.
+    - `trellis`: `trellis doctor` and `ccr project init --help`.
+  - Any stage failure stops immediately without rolling back completed stages and must never print the summary table, ready line, or `下一步` block. Idempotent rerun in the same directory is the recovery model.
 
 ### 4. Validation & Error Matrix
 
-- Git executable missing or `git init` non-zero -> `ExternalCommandError`; do not prompt, run Trellis, create `ref/`, or write `.gitignore`.
-- `-y` cannot start `git config user.name` -> `ExternalCommandError`; do not run Trellis.
-- `-y` and the Git user name is missing or blank -> `ValidationError` (90); do not run Trellis, create `ref/`, or write `.gitignore`.
-- Platform interact failure -> `UiError` (74); do not run Trellis.
-- Trellis executable missing or non-zero -> `ExternalCommandError`; keep the Git result, do not create `ref/` or write `.gitignore`.
-- Trellis exits zero but either minimum file is missing -> `ValidationError`; do not create `ref/` or write `.gitignore`.
-- `ref` is a file -> `FileIoError` (51); do not write `.gitignore`.
-- `.gitignore` read/write fails -> `FileIoError`; keep completed Git, Trellis, and `ref/` results.
-- All fixed rules already exist -> success without rewriting `.gitignore`. A missing `ref/` directory is still created.
-- Bare `ccr project` -> Clap missing-subcommand failure; never initialize implicitly.
+- Bare `ccr project` or invalid `--workflow <value>` -> Clap parse failure (exit code 2); never initialize implicitly.
+- Git executable missing or `git init` non-zero -> `ExternalCommandError` (75, `Git 阶段`); do not prompt, run workflow CLI, create `ref/`, or write `.gitignore`.
+- Dual-engine mixed workspace (`TrellisMarkers` and `MiniTrellisMarkers` both present) -> `ValidationError` (90, `工作流冲突`混杂提示); block before prompts, `git config user.name`, workflow CLI, `ref/`, or `.gitignore`.
+- Existing `trellis` workspace with target `mini-trellis` -> `ValidationError` (90); block before platform/username prompts or `mini-trellis init`, and instruct running `mini-trellis migrate --dry-run` then `mini-trellis migrate`.
+- Existing `mini-trellis` workspace with target `trellis` (including bare `ccr -y project init`) -> `ValidationError` (90); block before `trellis init` (preventing exit-0 silent hybrid corruption) and instruct running `mini-trellis uninstall` first if switching.
+- Workflow, platform, or username interact failure -> `UiError` (74); do not run workflow CLI.
+- `-y` cannot start `git config user.name` -> `ExternalCommandError` (75); do not run workflow CLI.
+- `-y` and Git user name is missing or blank -> `ValidationError` (90, `用户名阶段`); do not run workflow CLI, create `ref/`, or write `.gitignore`.
+- Selected workflow executable (`trellis` or `mini-trellis`) missing or exits non-zero -> `ExternalCommandError` (75, `Trellis 阶段` / `mini-trellis 阶段`); keep Git result, do not create `ref/` or write `.gitignore`.
+- Selected workflow exits zero but misses any minimum postcondition artifact -> `ValidationError` (90, `缺少最低工作流文件`); do not create `ref/` or write `.gitignore`.
+- `ref` is a file (or non-directory) -> `FileIoError` (51, `ref/ 阶段`); do not write `.gitignore`.
+- `.gitignore` read/write fails -> `FileIoError` (51, `.gitignore 阶段`); keep completed Git, workflow, and `ref/` results.
+- All seven fixed rules already exist -> success without rewriting `.gitignore` (`.gitignore 已包含全部项目忽略规则，跳过写入`), while still creating a missing `ref/` directory.
 
 ### 5. Good/Base/Bad Cases
 
-- Good: a new directory runs `git init`, CCR's five-platform menu and a manual username, then native Trellis with the retained flags, then creates `ref/` and atomically merges ignore rules.
-- Good: `ccr -y project init` uses `git config user.name`, all five flags, and a trailing `--yes`.
-- Good: a monorepo child reports the parent Git root, skips nested `git init`, and initializes Trellis in the child directory.
-- Base: rerunning after success leaves a complete `.gitignore` byte-for-byte unchanged and keeps existing `ref/` contents.
+- Good: interactive `ccr project init` defaults to `mini-trellis` (4 platforms without Grok), prefills `git config user.name`, wraps `mini-trellis init` output, validates manifest + `add_session.py` + managed `AGENTS.md`, creates `ref/`, atomically merges the 7 ignore rules, and prints the 6-row summary card plus `mini-trellis doctor` next steps.
+- Good: `ccr -y project init` preserves backward compatibility with `trellis`, `git config user.name`, all 5 flags, and trailing `--yes`; `ccr -y project init --workflow mini-trellis` runs `mini-trellis` with its 4 flags and `--yes`.
+- Good: running `--workflow trellis` (or bare `-y`) inside an existing `mini-trellis` repo fails preflight with exit code 90 and `mini-trellis uninstall` guidance before `trellis init` can silently corrupt `AGENTS.md` and hooks.
+- Good: a monorepo child reports the parent Git root, skips nested `git init`, and scopes workflow files, `ref/`, and `.gitignore` to the child directory.
+- Base: rerunning the same engine marks the summary row as `幂等更新`, omits `-s`, keeps `ref/` contents, leaves a complete `.gitignore` byte-for-byte unchanged, and renders zero ANSI escapes under pipes, `NO_COLOR=1`, or `TERM=dumb` (ASCII borders).
 - Bad: checking only `<cwd>/.git` and creating a nested repository inside a parent worktree.
-- Bad: treating Trellis exit code zero as complete without checking its minimum files.
-- Bad: running bare `trellis init`, or passing `--kimi`.
+- Bad: passing `--grok` to `mini-trellis`, passing `-s`/`--skip-existing` on reinit, or passing `--kimi`.
+- Bad: treating downstream exit code zero as complete without checking the selected engine's minimum postcondition files.
 
 ### 6. Tests Required
 
-- `cargo test -p ccr-cli commands::project::init -- --test-threads=1`
-  - Assert argv order for all five platforms, dropping a middle flag, empty platforms, and trailing `--yes`.
-  - Assert ignore merging covers empty/partial/complete content, the seven-rule list, legacy four-rule append of `.cursor/`, `.omp/`, and `.grok/`, missing final newline, CRLF, `ref/`, and no-write idempotence.
-- `cargo test -p ccr --test commands project_init -- --test-threads=1`
-  - Assert stage order, cwd, parent-worktree behavior, `-y` Git username plus the five platform flags, all failure boundaries, `ref/` preservation and file conflicts, postcondition checks, and retry-safe file results.
-  - Fake Git under an isolated child `PATH` must answer `config user.name` from `FAKE_GIT_USER` and follow `test-fixtures.md`. Unix scripts cannot depend on helpers hidden by that PATH.
-- `cargo test -p ccr --test commands help -- --test-threads=1`
-  - Assert nested help parity, legacy `ccr init` compatibility, `ref/`, the five platform names, and `.cursor/`, `.omp/`, `.grok/`.
-- Run `just docs-check`, `just lint-strict`, and the final task-appropriate aggregate gate.
+- `cargo test -p ccr-cli commands::project -- --skip export_bindings --test-threads=1`
+  - Assert dual-engine defaults, argv ordering (`5` vs `4` platforms, middle-flag removal, trailing `--yes`, no `--grok` for `mini-trellis`, no `-s`), four-state workspace fingerprint detection and conflict hints, engine-specific minimum postconditions, `.gitignore` seven-rule idempotent merging (LF/CRLF, legacy four-rule upgrade), and capability-aware rendering (`NO_COLOR`, captured pipe, `TERM=dumb` ASCII table, `...` truncation, zero ANSI).
+- `cargo test -p ccr --test commands project_init -- --skip export_bindings --test-threads=1`
+  - Assert end-to-end stage order, cwd isolation, parent-worktree reuse, `-y` default `trellis` (5 flags) and `--workflow mini-trellis` (4 flags), cross-engine & mixed preflight exit-90 blocks, missing binary (75) and missing postcondition (90) boundaries, `ref/` preservation/conflict (51), `.gitignore` mtime preservation when complete, summary card & engine-specific next steps, failure-tail suppression, and pipe/`NO_COLOR`/`TERM=dumb` degradation.
+- `cargo test -p ccr --test commands help -- --skip export_bindings --test-threads=1`
+  - Assert `ccr project init --help` and `ccr help project init` parity, `--workflow` values (`trellis`, `mini-trellis`), interactive vs `-y` defaults, 5 vs 4 platform sets (Grok exclusion for `mini-trellis`), the 7 fixed `.gitignore` rules, and `ccr init` separation.
+- Run `cd docs && bun run audit && bun run build` (or `just docs-check`), `just version-check`, `just fmt-check`, and `just lint-strict`.
 
 ### 7. Wrong vs Correct
 
@@ -165,24 +189,27 @@ Codex Auth plaintext import must return the service error after printing its fai
 if !root.join(".git").exists() {
     Command::new("git").arg("init").status()?;
 }
-Command::new("trellis").arg("init").status()?;
-Command::new("trellis").args(["init", "--kimi"]).status()?;
+Command::new("mini-trellis")
+    .args(["init", "-u", user, "--grok", "-s"])
+    .status()?;
 fs::write(root.join(".gitignore"), ".agents/\n.claude/\n.codex/\n")?;
 ```
 
-Checking only `.git` can create a nested repository. Bare `trellis init` skips CCR's five-platform menu and developer prompt, and `--kimi` selects a platform outside that menu. Replacing `.gitignore` discards existing rules and omits `ref/` plus `.cursor/`, `.omp/`, and `.grok/`.
+Checking only `.git` creates nested repositories in subdirectories. Skipping fingerprint preflight lets cross-engine runs corrupt the workspace; `--grok` is unsupported by `mini-trellis`, and `-s` breaks downstream `handleReinit` template-hash tracking. Overwriting `.gitignore` drops existing entries and omits `.cursor/`, `.omp/`, `.grok/`, and `ref/`.
 
 #### Correct
 
 ```rust
-let git = ensure_git_repository(root)?;                 // detects parent worktrees
-let request = resolve_trellis_request(auto_yes, &git, root)?;
-run_trellis_init(root, &request)?;                      // inherited TTY + postcondition
-ensure_ref_dir(root)?;                                  // keep directory, reject file
-ensure_project_gitignore(root)?;                        // merge + no-op + AtomicWriter
+let (git, git_outcome) = ensure_git_repository(&root, caps)?;          // detects parent worktrees
+let request = resolve_workflow_request(auto_yes, workflow, &git, &root, caps)?; // fingerprint guard + 5/4 platforms
+run_workflow_init(&root, &request, caps)?;                             // bounded TTY output + engine postcondition
+let ref_outcome = ensure_ref_dir(&root, caps)?;                        // keep directory, reject file
+let gitignore_outcome = ensure_project_gitignore(&root, caps)?;        // 7-rule merge + no-op + AtomicWriter
+println!("{}", render_summary_table(&summary, caps));                  // new_utf8_table / new_table in dumb mode
+print_next_steps(next_steps_for_engine(request.workflow));
 ```
 
-This preserves ownership boundaries and makes partial failures safely retryable.
+This enforces cross-engine safety, preserves ownership boundaries, adapts cleanly to non-TTY/`NO_COLOR`/`TERM=dumb`, and keeps retries idempotent.
 
 ## Claude Profile Auth Mode Contract
 
