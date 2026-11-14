@@ -23,7 +23,9 @@ use super::claude_auth::{ClaudeAuthActionRecord, ClaudeAuthApp};
 use super::codex_auth::CodexAuthApp;
 use super::grok_auth::GrokAuthApp;
 use super::pagination::{DEFAULT_PAGE_SIZE, page_for_index, page_slice, total_pages};
-use super::profile_edit::{EditRequest, EditorEvent, EditorOpen, ProfileEditor};
+use super::profile_edit::{
+    CreateEditorOpen, CreateRequest, EditRequest, EditorEvent, EditorOpen, ProfileEditor,
+};
 use super::profile_tasks::{
     MutationOutcome, MutationRequest, ProfileCompletion, ProfileSnapshot, ProfileTasks, ReadIssue,
 };
@@ -237,8 +239,13 @@ pub(crate) enum PendingProfileConfirm {
         /// Target platform
         platform: Platform,
     },
-    /// Save the edit request frozen when the dialog opened.
+    /// Save the create/edit request frozen when the dialog opened.
     Save,
+}
+
+pub(crate) enum PendingEditorRequest {
+    Edit(EditRequest),
+    Create(CreateRequest),
 }
 
 /// Main TUI application state
@@ -297,8 +304,8 @@ pub struct App {
     pub(crate) profile_edit_suspended: Option<ProfileEditor>,
     /// True after `y` until the edit outcome is consumed. The rail shows a saving state.
     pub(crate) profile_edit_saving: bool,
-    /// Edit request captured when the save confirmation opened.
-    pub(crate) pending_edit_request: Option<EditRequest>,
+    /// Create or edit request captured when the save confirmation opened.
+    pub(crate) pending_edit_request: Option<PendingEditorRequest>,
     /// 异步后台任务执行器
     pub(crate) task_executor: AsyncTaskExecutor,
     pub(crate) profile_tasks: ProfileTasks,
@@ -494,9 +501,19 @@ impl App {
             }
         }
         tab.profiles_path = Some(snapshot.profiles_path);
-        if snapshot.revision.is_some() {
-            tab.catalog_revision = snapshot.revision;
-        }
+        tab.catalog_revision = snapshot.revision;
+        let fresh_create_state = if tab.profile_load_error.is_none() {
+            tab.catalog_revision.clone().map(|rev| {
+                let names = tab
+                    .profile_configs
+                    .keys()
+                    .cloned()
+                    .collect::<std::collections::BTreeSet<_>>();
+                (rev, names)
+            })
+        } else {
+            None
+        };
         tab.instance = snapshot.instance;
         tab.claude_runtime_summary = snapshot.claude_runtime.clone();
         tab.codex_runtime_summary = snapshot.codex_runtime.clone();
@@ -504,6 +521,20 @@ impl App {
         tab.runtime_error = snapshot.runtime_error;
         if snapshot.activity.is_some() {
             tab.activity = snapshot.activity;
+        }
+        if let Some((rev, names)) = fresh_create_state {
+            if let Some(editor) = self.profile_editor.as_mut()
+                && editor.is_create()
+                && editor.platform() == platform
+            {
+                editor.update_catalog_state(rev.clone(), names.clone());
+            }
+            if let Some(editor) = self.profile_edit_suspended.as_mut()
+                && editor.is_create()
+                && editor.platform() == platform
+            {
+                editor.update_catalog_state(rev, names);
+            }
         }
         // Embedded auth keeps its selection; only the dependent runtime read model changes.
         if platform == Platform::Codex
@@ -553,6 +584,7 @@ impl App {
             tab.profile_loaded = true;
             tab.profile_load_error = Some(error.clone());
             tab.current_profile_error = Some(error);
+            tab.catalog_revision = None;
             tab.claude_runtime_summary = None;
             tab.codex_runtime_summary = None;
             tab.grok_activation_state = None;
@@ -596,6 +628,11 @@ impl App {
                 self.toasts.push(toast);
             }
             Ok(MutationOutcome::Edited(outcome)) => self.finish_profile_edit(*outcome),
+            Ok(MutationOutcome::Created(outcome)) => self.finish_profile_create(*outcome),
+            Ok(MutationOutcome::CreateFailed {
+                error,
+                synced_catalog,
+            }) => self.fail_profile_create(error, synced_catalog),
             Ok(MutationOutcome::Off(outcome)) => {
                 let toast = if !outcome.warnings.is_empty() {
                     Toast::warning(crate::tui_text!(
@@ -618,6 +655,8 @@ impl App {
             Err(error) => {
                 if matches!(request, MutationRequest::Edit(_)) {
                     self.fail_profile_edit(&error);
+                } else if matches!(request, MutationRequest::Create(_)) {
+                    self.fail_profile_create_raw(&error);
                 } else {
                     if let Some(name) = request.profile() {
                         self.last_applied =
@@ -697,7 +736,16 @@ impl App {
         {
             return;
         }
-        self.remember_selected_profile();
+        let keep_pending_target = self.selected_profile_name.as_ref().is_some_and(|name| {
+            self.profile_tasks.reading(self.current_platform())
+                && !self
+                    .current_profiles()
+                    .iter()
+                    .any(|profile| profile.name == *name)
+        });
+        if !keep_pending_target {
+            self.remember_selected_profile();
+        }
         self.tabs[self.active_tab].saved_selection = Some(TabSelection {
             selected_index: self.selected_index,
             current_page: self.current_page,
@@ -906,6 +954,7 @@ impl App {
             KeyCode::Char('x') => Action::ToggleDetailsExpanded,
             KeyCode::Char('r') => Action::Reload,
             KeyCode::Char('e') | KeyCode::Char('E') => Action::EditSelected,
+            KeyCode::Char('n') | KeyCode::Char('N') => Action::CreateProfile,
             _ => Action::Noop,
         }
     }
@@ -1047,6 +1096,7 @@ impl App {
                 )));
             }
             Action::EditSelected => self.open_profile_editor(),
+            Action::CreateProfile => self.open_profile_creator(),
         }
         Ok(false)
     }
@@ -1184,12 +1234,18 @@ impl App {
                 self.start_profile_mutation(MutationRequest::Off(platform));
             }
             PendingProfileConfirm::Save => {
-                let Some(request) = self.pending_edit_request.take() else {
+                let Some(pending_request) = self.pending_edit_request.take() else {
                     return;
+                };
+                let mutation = match pending_request {
+                    PendingEditorRequest::Edit(request) => MutationRequest::Edit(Box::new(request)),
+                    PendingEditorRequest::Create(request) => {
+                        MutationRequest::Create(Box::new(request))
+                    }
                 };
                 self.profile_edit_suspended = self.profile_editor.take();
                 self.profile_edit_saving = true;
-                if !self.start_profile_mutation(MutationRequest::Edit(Box::new(request))) {
+                if !self.start_profile_mutation(mutation) {
                     self.profile_edit_saving = false;
                     self.profile_editor = self.profile_edit_suspended.take();
                 }
@@ -1211,18 +1267,34 @@ impl App {
         }
     }
 
+    pub(crate) fn is_saving_create(&self) -> bool {
+        self.profile_edit_saving
+            && self
+                .profile_edit_suspended
+                .as_ref()
+                .is_some_and(ProfileEditor::is_create)
+    }
+
+    pub(crate) fn is_saving_on_current_tab(&self) -> bool {
+        self.profile_edit_saving
+            && self.tabs[self.active_tab].variant == TabVariant::Profile
+            && self
+                .profile_edit_suspended
+                .as_ref()
+                .is_none_or(|editor| editor.platform() == self.current_platform())
+    }
+
     pub(crate) fn profile_confirm_overlay(&self) -> Option<crate::tui::overlay::Overlay> {
         let platform = match self.pending_profile_confirm.as_ref()? {
             PendingProfileConfirm::Apply { platform, .. }
             | PendingProfileConfirm::Off { platform } => *platform,
-            PendingProfileConfirm::Save => self.current_platform(),
+            PendingProfileConfirm::Save => self
+                .profile_editor
+                .as_ref()
+                .map(ProfileEditor::platform)
+                .unwrap_or_else(|| self.current_platform()),
         };
-        let label = match platform {
-            Platform::Claude => "Claude",
-            Platform::Codex => "Codex",
-            Platform::Grok => "Grok",
-            other => other.short_name(),
-        };
+        let label = super::profile_edit::platform_label(platform);
         Some(match self.pending_profile_confirm.as_ref()? {
             PendingProfileConfirm::Apply {
                 name, is_current, ..
@@ -1236,11 +1308,26 @@ impl App {
             }
             PendingProfileConfirm::Save => {
                 let editor = self.profile_editor.as_ref()?;
-                crate::tui::overlay::Overlay::confirm_profile_save(
-                    editor.original_name(),
-                    &editor.confirm_lines(),
-                    editor.is_current(),
-                )
+                if editor.is_create() {
+                    let current_active = self
+                        .tabs
+                        .iter()
+                        .find(|tab| tab.platform == platform && tab.variant == TabVariant::Profile)
+                        .and_then(|tab| tab.profiles.iter().find(|item| item.is_current))
+                        .map(|item| item.name.as_str());
+                    crate::tui::overlay::Overlay::confirm_profile_create(
+                        label,
+                        &editor.draft_name(),
+                        &editor.confirm_lines(),
+                        current_active,
+                    )
+                } else {
+                    crate::tui::overlay::Overlay::confirm_profile_save(
+                        editor.original_name(),
+                        &editor.confirm_lines(),
+                        editor.is_current(),
+                    )
+                }
             }
         })
     }
@@ -1362,6 +1449,53 @@ impl App {
         }));
     }
 
+    fn open_profile_creator(&mut self) {
+        if self.tabs[self.active_tab].variant != TabVariant::Profile {
+            return;
+        }
+        if self.pending_profile_confirm.is_some() {
+            self.toasts.push(Toast::warning(crate::tui_text!(
+                "Close the dialog before creating a profile",
+                "请先关闭确认框再新建配置"
+            )));
+            return;
+        }
+        if !self.tabs[self.active_tab].profile_loaded {
+            self.toasts.push(Toast::info(crate::tui_text!(
+                "Profiles are still loading…",
+                "正在加载配置列表，请稍候…"
+            )));
+            return;
+        }
+        if self.profile_tasks.mutation_active() {
+            self.profile_busy_toast();
+            return;
+        }
+        if self.current_profile_load_error().is_some()
+            || self.tabs[self.active_tab].catalog_revision.is_none()
+        {
+            self.toasts.push(Toast::error(crate::tui_text!(
+                "Profile catalog is unreadable; run 'ccr validate' or fix the file, then press 'r' to reload.",
+                "配置目录无法读取或已损坏：请先修复或运行 'ccr validate'，再按 'r' 重新加载。"
+            )));
+            return;
+        }
+        let Some(revision) = self.tabs[self.active_tab].catalog_revision.clone() else {
+            return;
+        };
+        let existing_names = self.tabs[self.active_tab]
+            .profile_configs
+            .keys()
+            .cloned()
+            .collect();
+        let platform = self.current_platform();
+        self.profile_editor = Some(ProfileEditor::open_create(CreateEditorOpen {
+            platform,
+            revision: &revision,
+            existing_names,
+        }));
+    }
+
     fn handle_editor_session_key(&mut self, key: KeyEvent) -> Result<bool> {
         if Self::is_language_switch_key(key) {
             self.toggle_language();
@@ -1392,6 +1526,46 @@ impl App {
     }
 
     fn try_open_save_confirm(&mut self) {
+        let Some(platform) = self.profile_editor.as_ref().map(ProfileEditor::platform) else {
+            return;
+        };
+        let catalog_unreadable = self
+            .tabs
+            .iter()
+            .find(|tab| tab.platform == platform && tab.variant == TabVariant::Profile)
+            .is_none_or(|tab| tab.profile_load_error.is_some() || tab.catalog_revision.is_none());
+        if catalog_unreadable {
+            let message = crate::tui_text!(
+                "Profile catalog is unreadable; run 'ccr validate' or fix the file, then press 'r' to reload.",
+                "配置目录无法读取或已损坏：请先修复或运行 'ccr validate'，再按 'r' 重新加载。"
+            )
+            .to_string();
+            if let Some(editor) = self.profile_editor.as_mut() {
+                editor.set_banner(message.clone());
+            }
+            self.toasts.push(Toast::error(message));
+            return;
+        }
+
+        let is_create = self
+            .profile_editor
+            .as_ref()
+            .is_some_and(ProfileEditor::is_create);
+        if is_create {
+            let Some(editor) = self.profile_editor.as_mut() else {
+                return;
+            };
+            if !editor.validate_create_fields() {
+                return;
+            }
+            let Some(request) = editor.build_create_request() else {
+                return;
+            };
+            self.pending_edit_request = Some(PendingEditorRequest::Create(request));
+            self.pending_profile_confirm = Some(PendingProfileConfirm::Save);
+            return;
+        }
+
         let names = self
             .current_profiles()
             .iter()
@@ -1407,8 +1581,180 @@ impl App {
             editor.set_banner(crate::tui_text!("No changes to save", "没有要保存的改动"));
             return;
         };
-        self.pending_edit_request = Some(request);
+        self.pending_edit_request = Some(PendingEditorRequest::Edit(request));
         self.pending_profile_confirm = Some(PendingProfileConfirm::Save);
+    }
+
+    fn align_target_profile_on_platform(&mut self, platform: Platform, target_name: String) {
+        if self.tabs[self.active_tab].variant == TabVariant::Profile
+            && self.current_platform() == platform
+        {
+            self.selected_profile_name = Some(target_name.clone());
+            if let Some(saved) = self.tabs[self.active_tab].saved_selection.as_mut() {
+                saved.selected_profile_name = Some(target_name.clone());
+            }
+            if self
+                .current_profiles()
+                .iter()
+                .any(|profile| profile.name == target_name)
+            {
+                self.align_selection_by_name();
+            }
+        } else if let Some(tab) = self
+            .tabs
+            .iter_mut()
+            .find(|tab| tab.platform == platform && tab.variant == TabVariant::Profile)
+        {
+            let saved = tab.saved_selection.get_or_insert(TabSelection {
+                selected_index: 0,
+                current_page: 0,
+                selected_profile_name: None,
+            });
+            saved.selected_profile_name = Some(target_name);
+        }
+    }
+
+    fn switch_to_profile_tab_for(&mut self, platform: Platform) {
+        let Some(target_idx) = self
+            .tabs
+            .iter()
+            .position(|tab| tab.platform == platform && tab.variant == TabVariant::Profile)
+        else {
+            return;
+        };
+        if self.active_tab == target_idx {
+            return;
+        }
+        if let Some(grok) = self.grok_auth_app.as_mut() {
+            grok.on_deactivated();
+        }
+        self.save_active_tab_selection();
+        self.active_tab = target_idx;
+        self.restore_active_tab_selection();
+        self.reset_profile_detail_scroll();
+        self.notify_tab_activated();
+    }
+
+    fn finish_profile_create(
+        &mut self,
+        outcome: ccr_cli::application::profile_create::CreateProfileOutcome,
+    ) {
+        self.profile_edit_saving = false;
+        self.profile_edit_suspended = None;
+        let platform_label = super::profile_edit::platform_label(outcome.platform);
+        let name = outcome.name.clone();
+        self.align_target_profile_on_platform(outcome.platform, outcome.name);
+        self.toasts.push(Toast::success(crate::tui_format!(
+            "Created {platform_label} profile '{name}' (not activated; press Enter to apply)",
+            "已创建 {platform_label} 配置 '{name}'（未自动切换；按 Enter 可应用）"
+        )));
+    }
+
+    fn fail_profile_create(
+        &mut self,
+        error: ccr_core::core::error::CcrError,
+        synced_catalog: Option<super::profile_tasks::SyncedCreateCatalog>,
+    ) {
+        self.profile_edit_saving = false;
+        let Some(mut editor) = self.profile_edit_suspended.take() else {
+            let message = safe_create_error_message(&error);
+            self.toasts.push(Toast::error(message));
+            return;
+        };
+        let platform = editor.platform();
+        self.switch_to_profile_tab_for(platform);
+
+        let mut catalog_corrupt = false;
+        if let Some(synced) = synced_catalog {
+            let formatted_error = synced.load_issue.map(format_read_issue);
+            if let Some(tab) = self
+                .tabs
+                .iter_mut()
+                .find(|tab| tab.platform == platform && tab.variant == TabVariant::Profile)
+            {
+                tab.catalog_revision = synced.revision.clone();
+                tab.profile_load_error = formatted_error;
+            }
+            if let Some(revision) = synced.revision {
+                editor.update_catalog_state(revision, synced.existing_names);
+            } else {
+                catalog_corrupt = true;
+            }
+        }
+
+        if catalog_corrupt {
+            let message = crate::tui_text!(
+                "Profile catalog is unreadable; draft preserved. Run 'ccr validate' or fix the file, then press Esc and 'r' to reload.",
+                "配置目录无法读取或已损坏（草稿已保留）：请先修复或运行 'ccr validate'，按 Esc 关闭后按 'r' 重新加载。"
+            )
+            .to_string();
+            editor.set_banner(message.clone());
+            self.profile_editor = Some(editor);
+            self.toasts.push(Toast::error(message));
+            return;
+        }
+
+        let draft_name = editor.draft_name();
+        let external_duplicate = matches!(
+            error,
+            ccr_core::core::error::CcrError::ResourceAlreadyExists(_)
+        ) || (!draft_name.is_empty()
+            && editor.has_existing_name(&draft_name));
+        if external_duplicate {
+            let field_error = crate::tui_format!(
+                "Profile '{draft_name}' already exists; choose another name",
+                "配置 '{draft_name}' 已存在，请更换名称"
+            );
+            let banner = crate::tui_format!(
+                "Profile '{draft_name}' was just created externally. Rename and press Ctrl+S to save.",
+                "配置 '{draft_name}' 刚刚已被创建，请更换名称后按 Ctrl+S 保存。"
+            );
+            editor.attach_name_error(field_error, banner.clone());
+            self.profile_editor = Some(editor);
+            self.toasts.push(Toast::error(banner));
+            return;
+        }
+
+        let conflict = is_version_conflict_error(&error);
+        let message = if conflict {
+            crate::tui_text!(
+                "Catalog changed externally; latest state synced and draft preserved. Review and press Ctrl+S to retry.",
+                "配置目录在外部发生了变更，已同步最新状态并完整保留草稿与密钥；请核对后再次按 Ctrl+S 保存。"
+            )
+            .to_string()
+        } else {
+            let detail = safe_create_error_message(&error);
+            crate::tui_format!(
+                "Create failed: {detail} (draft preserved; press Ctrl+S to retry)",
+                "创建失败：{detail}（草稿与密钥已保留，可按 Ctrl+S 重试）"
+            )
+        };
+        editor.set_banner(message.clone());
+        self.profile_editor = Some(editor);
+        self.toasts.push(if conflict {
+            Toast::warning(message)
+        } else {
+            Toast::error(message)
+        });
+    }
+
+    fn fail_profile_create_raw(&mut self, error: &str) {
+        self.profile_edit_saving = false;
+        let conflict = error.contains("版本冲突");
+        let message = if conflict {
+            crate::tui_text!(
+                "Catalog changed externally; latest state synced and draft preserved. Review and press Ctrl+S to retry.",
+                "配置目录在外部发生了变更，已同步最新状态并完整保留草稿与密钥；请核对后再次按 Ctrl+S 保存。"
+            )
+            .to_string()
+        } else {
+            let detail = safe_raw_mutation_error(error);
+            crate::tui_format!(
+                "Create failed: {detail} (draft preserved; press Ctrl+S to retry)",
+                "创建失败：{detail}（草稿与密钥已保留，可按 Ctrl+S 重试）"
+            )
+        };
+        self.restore_editor(message, conflict);
     }
 
     fn finish_profile_edit(
@@ -1418,7 +1764,7 @@ impl App {
         self.profile_edit_saving = false;
         if outcome.is_success() {
             self.profile_edit_suspended = None;
-            self.selected_profile_name = Some(outcome.new_name.clone());
+            self.align_target_profile_on_platform(outcome.platform, outcome.new_name.clone());
             let message = edit_saved_message(&outcome);
             self.toasts.push(if outcome.warnings.is_empty() {
                 Toast::success(message)
@@ -1429,7 +1775,7 @@ impl App {
         }
         if grok_edit_partial(&outcome) {
             self.profile_edit_suspended = None;
-            self.selected_profile_name = Some(outcome.new_name.clone());
+            self.align_target_profile_on_platform(outcome.platform, outcome.new_name.clone());
             self.toasts
                 .push(Toast::warning(edit_failure_text(&outcome)));
             return;
@@ -1447,13 +1793,15 @@ impl App {
             )
             .to_string()
         } else {
-            crate::tui_format!("Save failed: {}", "保存失败：{}", error)
+            let detail = safe_raw_mutation_error(error);
+            crate::tui_format!("Save failed: {detail}", "保存失败：{detail}")
         };
         self.restore_editor(message, conflict);
     }
 
     fn restore_editor(&mut self, message: String, conflict: bool) {
         if let Some(mut editor) = self.profile_edit_suspended.take() {
+            self.switch_to_profile_tab_for(editor.platform());
             editor.set_banner(message.clone());
             self.profile_editor = Some(editor);
         }
@@ -2018,6 +2366,90 @@ fn edit_failure_text(outcome: &ccr_cli::application::profile_edit::EditProfileOu
             }
         },
         EditLifecycle::Grok(_) => crate::tui_text!("Save failed", "保存失败").to_string(),
+    }
+}
+
+fn is_version_conflict_error(error: &ccr_core::core::error::CcrError) -> bool {
+    matches!(
+        error,
+        ccr_core::core::error::CcrError::ValidationError(msg)
+            | ccr_core::core::error::CcrError::ConfigError(msg)
+            if msg.contains("版本冲突")
+    )
+}
+
+fn corrupt_or_io_catalog_diagnostic() -> String {
+    crate::tui_text!(
+        "Profile catalog cannot be read or written; run 'ccr validate' or fix the file, then press 'r' to reload.",
+        "配置目录读写或格式异常：请先修复或运行 'ccr validate'，再按 'r' 重新加载。"
+    )
+    .to_string()
+}
+
+fn looks_like_parse_or_multiline_snippet(raw: &str) -> bool {
+    raw.contains('\n')
+        || raw.contains('\r')
+        || raw.contains("解析 TOML")
+        || raw.contains("TOML 错误")
+        || raw.to_ascii_lowercase().contains("parse")
+}
+
+fn scrub_urls_in_text(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(pos) = rest
+        .find("https://")
+        .into_iter()
+        .chain(rest.find("http://"))
+        .min()
+    {
+        out.push_str(&rest[..pos]);
+        let after = &rest[pos..];
+        let url_len = after
+            .find(|ch: char| {
+                ch.is_whitespace() || matches!(ch, '\'' | '"' | ')' | ']' | '>' | ',' | ';')
+            })
+            .unwrap_or(after.len());
+        let candidate = &after[..url_len];
+        out.push_str(&ccr_cli::platforms::GrokPlatform::safe_base_url_for_display(candidate));
+        rest = &after[url_len..];
+    }
+    out.push_str(rest);
+    out
+}
+
+fn sanitize_single_line_diagnostic(raw: &str) -> String {
+    let cleaned = raw
+        .chars()
+        .filter(|ch| !ch.is_control())
+        .collect::<String>();
+    scrub_urls_in_text(cleaned.trim())
+}
+
+fn safe_create_error_message(error: &ccr_core::core::error::CcrError) -> String {
+    use ccr_core::core::error::CcrError;
+    match error {
+        CcrError::LockTimeout(_) | CcrError::FileLockError(_) => crate::tui_text!(
+            "Profile catalog is locked by another process; retry shortly.",
+            "配置文件正被其他进程占用，请稍后重试。"
+        )
+        .to_string(),
+        CcrError::TomlError(_)
+        | CcrError::JsonError(_)
+        | CcrError::ConfigFormatInvalid(_)
+        | CcrError::FileIoError(_)
+        | CcrError::IoError(_)
+        | CcrError::SettingsError(_)
+        | CcrError::DatabaseError(_) => corrupt_or_io_catalog_diagnostic(),
+        _ => safe_raw_mutation_error(&error.to_string()),
+    }
+}
+
+fn safe_raw_mutation_error(raw: &str) -> String {
+    if looks_like_parse_or_multiline_snippet(raw) {
+        corrupt_or_io_catalog_diagnostic()
+    } else {
+        sanitize_single_line_diagnostic(raw)
     }
 }
 
@@ -2738,6 +3170,19 @@ mod tests {
                             &request, new_name,
                         ))))
                     }
+                    MutationRequest::Create(create) => {
+                        let request = create.into_inner();
+                        Ok(MutationOutcome::Created(Box::new(
+                            ccr_cli::application::profile_create::CreateProfileOutcome {
+                                platform: request.platform,
+                                name: request.name,
+                                revision: "rev-created".into(),
+                                enabled: true,
+                                current_profile: None,
+                                set_fields: request.fields.into_iter().map(|f| f.field).collect(),
+                            },
+                        )))
+                    }
                 }
             }),
         );
@@ -2791,6 +3236,7 @@ mod tests {
             }
             MutationRequest::Off(_) => panic!("apply confirmation scheduled Off"),
             MutationRequest::Edit(_) => panic!("apply confirmation scheduled Edit"),
+            MutationRequest::Create(_) => panic!("apply confirmation scheduled Create"),
         }
         pump_until(&mut app, |app| !app.profile_tasks.pending());
 
@@ -4484,5 +4930,917 @@ mod tests {
             .to_string();
         assert_eq!(value, "old-descAABB");
         assert!(!value.contains('\n'));
+    }
+
+    fn isolated_lifecycle_context(
+        root: &std::path::Path,
+        platform: Platform,
+    ) -> (
+        ccr_cli::models::PlatformPaths,
+        ccr_cli::application::profile_lifecycle::ProfileLifecycleContext,
+    ) {
+        use ccr_cli::application::profile_lifecycle::ProfileLifecycleContext;
+        use ccr_cli::models::PlatformPaths;
+
+        let ccr = root.join("ccr");
+        let platform_dir = ccr.join("platforms").join(platform.short_name());
+        let paths = PlatformPaths {
+            root: ccr.clone(),
+            registry_file: ccr.join("config.toml"),
+            profiles_file: platform_dir.join("profiles.toml"),
+            settings_file: platform_dir.join("settings.json"),
+            history_file: ccr.join("history").join(format!("{platform}.json")),
+            backups_dir: platform_dir.join("backups"),
+            platform_dir,
+        };
+        let locks = ccr.join(".locks");
+        let history = ccr.join("history.db");
+        let runtime = root.join("runtime").join(platform.short_name());
+        let context = match platform {
+            Platform::Claude => ProfileLifecycleContext::for_claude(
+                paths.clone(),
+                ccr_config::ClaudeRuntimePaths {
+                    settings_file: runtime.join("settings.json"),
+                    credentials_file: runtime.join(".credentials.json"),
+                    state_file: root.join("claude-state.json"),
+                    backups_dir: runtime.join("backups"),
+                    config_dir: runtime,
+                },
+                locks,
+                history,
+            )
+            .unwrap(),
+            Platform::Codex => {
+                ProfileLifecycleContext::for_codex(paths.clone(), runtime, locks, history).unwrap()
+            }
+            Platform::Grok => ProfileLifecycleContext::for_grok(
+                paths.clone(),
+                runtime.join("config.toml"),
+                locks,
+                history,
+            )
+            .unwrap(),
+            other => panic!("unexpected platform {other:?}"),
+        };
+        (paths, context.with_process_environment(false))
+    }
+
+    fn install_isolated_create_backend(
+        app: &mut App,
+        platform: Platform,
+        paths: ccr_cli::models::PlatformPaths,
+        context: Arc<ccr_cli::application::profile_lifecycle::ProfileLifecycleContext>,
+    ) {
+        let loader_ctx = Arc::clone(&context);
+        let loader_paths = paths.clone();
+        let writer_ctx = context;
+        let writer_paths = paths;
+        app.profile_tasks = ProfileTasks::with_backends(
+            app.task_executor.clone(),
+            Arc::new(move |requested| {
+                assert_eq!(requested, platform);
+                Ok(
+                    super::super::profile_tasks::read_instance_profiles_with_paths(
+                        loader_ctx.instance(),
+                        Some(&loader_paths),
+                    ),
+                )
+            }),
+            Arc::new(move |request| match request {
+                MutationRequest::Create(create) => {
+                    match ccr_cli::application::profile_create::create_profile_with_context(
+                        &writer_ctx,
+                        create.into_inner(),
+                    ) {
+                        Ok(outcome) => Ok(MutationOutcome::Created(Box::new(outcome))),
+                        Err(error) => Ok(MutationOutcome::CreateFailed {
+                            error,
+                            synced_catalog: Some(
+                                super::super::profile_tasks::sync_create_catalog_with_paths(
+                                    writer_ctx.instance(),
+                                    Some(&writer_paths),
+                                ),
+                            ),
+                        }),
+                    }
+                }
+                other => Err(format!("unexpected mutation for {:?}", other.platform())),
+            }),
+        );
+    }
+
+    #[test]
+    fn create_entry_guards_and_keybinding_isolation() {
+        i18n::set_language(TuiLanguage::English);
+
+        // 1. Initial load still pending blocks 'n'.
+        let mut loading = editor_ready(Platform::Claude, &["work"], "work");
+        loading.tabs[0].profile_loaded = false;
+        loading.handle_key(plain_key(KeyCode::Char('n'))).unwrap();
+        assert!(loading.profile_editor.is_none());
+        assert!(
+            loading
+                .toasts
+                .active()
+                .unwrap()
+                .message
+                .contains("still loading")
+        );
+
+        // 2. Corrupt/unreadable catalog (revision == None or profile_load_error) blocks 'n' and advises validate.
+        let mut corrupt = editor_ready(Platform::Claude, &["work"], "work");
+        corrupt.tabs[0].catalog_revision = None;
+        corrupt.tabs[0].profile_load_error = Some("TOML parse failure".into());
+        corrupt.handle_key(plain_key(KeyCode::Char('n'))).unwrap();
+        assert!(corrupt.profile_editor.is_none());
+        let err_msg = &corrupt.toasts.active().unwrap().message;
+        assert!(err_msg.contains("ccr validate"), "{err_msg}");
+        assert!(err_msg.contains("'r'"), "{err_msg}");
+
+        // 3. External corrupt snapshot clears previously cached catalog_revision to None.
+        let mut stale_guard = editor_ready(Platform::Claude, &["work"], "work");
+        assert_eq!(
+            stale_guard.tabs[0].catalog_revision.as_deref(),
+            Some("rev-1")
+        );
+        stale_guard.apply_profile_snapshot(
+            Platform::Claude,
+            super::super::profile_tasks::ProfileSnapshot {
+                instance: None,
+                configs: Err(super::super::profile_tasks::ReadIssue {
+                    locations: vec!["profiles.toml".into()],
+                    reason: "corrupt external write".into(),
+                }),
+                current: Ok(None),
+                claude_runtime: None,
+                codex_runtime: None,
+                grok_activation: None,
+                runtime_error: None,
+                activity: None,
+                profiles_path: "profiles.toml".into(),
+                revision: None,
+            },
+        );
+        assert!(stale_guard.tabs[0].catalog_revision.is_none());
+        stale_guard
+            .handle_key(plain_key(KeyCode::Char('n')))
+            .unwrap();
+        assert!(stale_guard.profile_editor.is_none());
+
+        // 4. Non-profile tabs never open ProfileEditor on 'n' / 'N', and CodexAuthApp keeps 'n' account rename.
+        for variant in [TabVariant::ClaudeAuth, TabVariant::GrokAuth] {
+            let mut non_profile = editor_ready(Platform::Claude, &["work"], "work");
+            non_profile.tabs[0].variant = variant;
+            stub_usage(&mut non_profile);
+            non_profile
+                .handle_key(plain_key(KeyCode::Char('n')))
+                .unwrap();
+            assert!(non_profile.profile_editor.is_none(), "variant={variant:?}");
+        }
+        let (_codex_dir, codex_auth) = super::super::codex_auth::ui::tests::presentation_fixture();
+        let mut codex_auth_host = editor_ready(Platform::Codex, &["work"], "work");
+        codex_auth_host.tabs[0].variant = TabVariant::CodexAuth;
+        codex_auth_host.codex_auth_app = Some(codex_auth);
+        stub_usage(&mut codex_auth_host);
+        codex_auth_host
+            .handle_key(plain_key(KeyCode::Char('n')))
+            .unwrap();
+        assert!(codex_auth_host.profile_editor.is_none());
+        assert!(matches!(
+            codex_auth_host.codex_auth_app.as_ref().unwrap().overlay,
+            Some(crate::tui::overlay::Overlay::RenameInput { .. })
+        ));
+
+        // 5. Inside open Create editor, 'n' and 'N' insert characters into focused text field.
+        let mut open = editor_ready(Platform::Claude, &["work"], "work");
+        open.handle_key(plain_key(KeyCode::Char('N'))).unwrap();
+        assert!(open.profile_editor.as_ref().unwrap().is_create());
+        focus_editor_key(&mut open, "name");
+        open.handle_key(plain_key(KeyCode::Char('n'))).unwrap();
+        open.handle_key(plain_key(KeyCode::Char('N'))).unwrap();
+        assert_eq!(open.profile_editor.as_ref().unwrap().draft_name(), "nN");
+    }
+
+    #[test]
+    fn create_confirm_gate_redacts_secret_and_default_cancels_across_viewports() {
+        use crate::tui::overlay::ConfirmKind;
+        const SENTINEL: &str = "CCR_CREATE_CONFIRM_SENTINEL_777";
+
+        for language in [TuiLanguage::English, TuiLanguage::SimplifiedChinese] {
+            i18n::set_language(language);
+            let mut app = editor_ready(Platform::Claude, &[], "");
+            app.tabs[0].profiles.clear();
+            app.tabs[0].profile_configs.clear();
+            app.tabs[0].catalog_revision = Some(String::new());
+            let recorded = install_profile_recorder(&mut app);
+
+            app.handle_key(plain_key(KeyCode::Char('n'))).unwrap();
+            let editor = app.profile_editor.as_mut().unwrap();
+            editor.set_text("name", "relay-one");
+            editor.set_text("base_url", "https://relay.example.com");
+            editor.set_text("auth_token", SENTINEL);
+
+            app.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL))
+                .unwrap();
+            assert!(matches!(
+                app.pending_profile_confirm,
+                Some(PendingProfileConfirm::Save)
+            ));
+            match app.profile_confirm_overlay() {
+                Some(crate::tui::overlay::Overlay::ConfirmGate { kind, message, .. }) => {
+                    assert_eq!(kind, ConfirmKind::Save);
+                    let joined = message.join("\n");
+                    assert!(!joined.contains(SENTINEL), "{joined}");
+                    assert!(
+                        joined.contains("‹set›") || joined.contains("‹已设置›"),
+                        "{joined}"
+                    );
+                    assert!(
+                        joined.contains("not activated") || joined.contains("不自动激活"),
+                        "{joined}"
+                    );
+                }
+                other => panic!("expected Save ConfirmGate, got {other:?}"),
+            }
+
+            for (w, h) in [(80, 24), (100, 30), (140, 30)] {
+                let text = draw_text(&mut app, w, h);
+                assert!(!text.contains(SENTINEL), "{language:?} {w}x{h}:\n{text}");
+            }
+
+            // Default-cancel keys (Enter, 'n', Esc) close ConfirmGate and preserve draft + secret.
+            for cancel_key in [KeyCode::Enter, KeyCode::Char('n'), KeyCode::Esc] {
+                if app.pending_profile_confirm.is_none() {
+                    app.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL))
+                        .unwrap();
+                }
+                app.handle_key(plain_key(cancel_key)).unwrap();
+                assert!(app.pending_profile_confirm.is_none());
+                assert!(recorded.lock().unwrap().is_empty());
+                let restored = app.profile_editor.as_ref().unwrap();
+                assert_eq!(restored.draft_name(), "relay-one");
+                let token = restored
+                    .fields()
+                    .iter()
+                    .find(|f| f.spec.key == "auth_token")
+                    .unwrap()
+                    .text
+                    .value();
+                assert_eq!(token, SENTINEL);
+            }
+        }
+        i18n::set_language(TuiLanguage::English);
+    }
+
+    #[test]
+    fn create_end_to_end_across_three_platforms_missing_and_populated_catalogs() {
+        const SENTINEL: &str = "sk-e2e-create-sentinel-55555";
+        i18n::set_language(TuiLanguage::English);
+
+        for platform in [Platform::Claude, Platform::Codex, Platform::Grok] {
+            let temp = tempfile::tempdir().unwrap();
+            let (paths, context) = isolated_lifecycle_context(temp.path(), platform);
+            let context = Arc::new(context);
+
+            // Start from missing catalog: ConfigMissing -> catalog_revision == Some("") without creating files.
+            let mut app = editor_ready(platform, &[], "");
+            app.tabs[0].profiles.clear();
+            app.tabs[0].profile_configs.clear();
+            app.tabs[0].profile_loaded = false;
+            install_isolated_create_backend(
+                &mut app,
+                platform,
+                paths.clone(),
+                Arc::clone(&context),
+            );
+            assert!(!paths.profiles_file.exists());
+            assert!(app.profile_tasks.request_read(platform, true));
+            pump_until(&mut app, |app| !app.profile_tasks.pending());
+            assert!(app.tabs[0].profile_loaded);
+            assert_eq!(app.tabs[0].catalog_revision.as_deref(), Some(""));
+            assert!(!paths.profiles_file.exists());
+
+            // Create first profile "alpha" -> inactive, runtime untouched, cursor selects "alpha".
+            app.handle_key(plain_key(KeyCode::Char('n'))).unwrap();
+            {
+                let editor = app.profile_editor.as_mut().unwrap();
+                editor.set_text("name", "alpha");
+                editor.set_text("base_url", "https://relay.example.com/v1");
+                editor.set_text("model", "fixture-model");
+                match platform {
+                    Platform::Claude | Platform::Codex => {
+                        editor.set_text("auth_token", SENTINEL);
+                    }
+                    Platform::Grok => {
+                        editor.set_text("api_key", SENTINEL);
+                    }
+                    _ => unreachable!(),
+                }
+            }
+            app.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL))
+                .unwrap();
+            app.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+            pump_until(&mut app, |app| !app.profile_tasks.pending());
+
+            assert!(app.profile_editor.is_none());
+            assert_eq!(app.selected_profile_name.as_deref(), Some("alpha"));
+            assert_eq!(app.selected_profile().unwrap().name, "alpha");
+            assert!(!app.selected_profile().unwrap().is_current);
+            assert!(context.manager().load().unwrap().current_config.is_empty());
+            assert!(!context.instance().get_settings_path().exists());
+            if platform == Platform::Codex {
+                let raw_db = std::fs::read(context.manager().profiles_db()).unwrap();
+                assert!(
+                    !String::from_utf8_lossy(&raw_db).contains(SENTINEL),
+                    "Codex catalog leaked secret"
+                );
+                assert!(paths.platform_dir.join("profile_secrets.json").exists());
+            }
+
+            // Activate "alpha" via isolated lifecycle context so it becomes `is_current == true`, reload, then create "beta" ->
+            // "alpha" stays `is_current == true` while TUI cursor aligns to newly created "beta"!
+            let applied = context
+                .apply(
+                    ccr_cli::application::profile_lifecycle::ApplyProfileRequest::new(
+                        platform,
+                        "alpha".to_string(),
+                    ),
+                )
+                .unwrap();
+            assert!(applied.activation_committed, "{platform:?}");
+            assert!(app.profile_tasks.request_read(platform, true));
+            pump_until(&mut app, |app| !app.profile_tasks.pending());
+            assert_eq!(app.selected_profile().unwrap().name, "alpha");
+            assert!(app.selected_profile().unwrap().is_current);
+
+            app.handle_key(plain_key(KeyCode::Char('n'))).unwrap();
+            {
+                let editor = app.profile_editor.as_mut().unwrap();
+                editor.set_text("name", "beta");
+                editor.set_text("base_url", "https://relay2.example.com/v1");
+                editor.set_text("model", "fixture-model-2");
+                match platform {
+                    Platform::Claude | Platform::Codex => {
+                        editor.set_text("auth_token", SENTINEL);
+                    }
+                    Platform::Grok => {
+                        editor.set_text("api_key", SENTINEL);
+                    }
+                    _ => unreachable!(),
+                }
+            }
+            app.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL))
+                .unwrap();
+            app.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+            pump_until(&mut app, |app| !app.profile_tasks.pending());
+
+            assert_eq!(
+                app.selected_profile_name.as_deref(),
+                Some("beta"),
+                "{platform:?}"
+            );
+            assert_eq!(app.selected_profile().unwrap().name, "beta", "{platform:?}");
+            assert!(!app.selected_profile().unwrap().is_current, "{platform:?}");
+            let active_item = app
+                .current_profiles()
+                .iter()
+                .find(|item| item.name == "alpha")
+                .unwrap();
+            assert!(active_item.is_current, "{platform:?}");
+        }
+    }
+
+    #[test]
+    fn create_cas_conflict_and_duplicate_error_preserve_draft_and_retry_cleanly() {
+        use ccr_cli::application::profile_create::{
+            CreateProfileRequest, CreateSecret, ProfileFieldValue, create_profile_with_context,
+        };
+        use ccr_core::Secret;
+
+        const LONG_SECRET: &str = "sk-cas-draft-recovery-secret-0123456789abcdefghijklm";
+        i18n::set_language(TuiLanguage::English);
+
+        let temp = tempfile::tempdir().unwrap();
+        let (paths, context) = isolated_lifecycle_context(temp.path(), Platform::Claude);
+        let context = Arc::new(context);
+
+        let mut app = editor_ready(Platform::Claude, &[], "");
+        app.tabs[0].profiles.clear();
+        app.tabs[0].profile_configs.clear();
+        app.tabs[0].profile_loaded = false;
+        install_isolated_create_backend(&mut app, Platform::Claude, paths, Arc::clone(&context));
+        assert!(app.profile_tasks.request_read(Platform::Claude, true));
+        pump_until(&mut app, |app| !app.profile_tasks.pending());
+
+        // Open Create editor with expected_revision = "".
+        app.handle_key(plain_key(KeyCode::Char('n'))).unwrap();
+        {
+            let editor = app.profile_editor.as_mut().unwrap();
+            editor.set_text("name", "draft-survivor");
+            editor.set_text("base_url", "https://relay.example.com");
+            editor.set_text("auth_token", LONG_SECRET);
+        }
+
+        // External writer creates "external-1", changing catalog revision on disk!
+        let ext = create_profile_with_context(
+            &context,
+            CreateProfileRequest {
+                platform: Platform::Claude,
+                name: "external-1".into(),
+                expected_revision: Some(String::new()),
+                fields: vec![ProfileFieldValue {
+                    field: "base_url".into(),
+                    value: serde_json::json!("https://ext.example.com"),
+                }],
+                secret: CreateSecret::Secret(Secret::new("sk-ext")),
+            },
+        )
+        .unwrap();
+
+        // Submit stale Create -> CAS conflict restores draft + 52-char secret AND refreshes revision!
+        app.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL))
+            .unwrap();
+        app.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+        pump_until(&mut app, |app| !app.profile_tasks.pending());
+
+        let restored = app
+            .profile_editor
+            .as_ref()
+            .expect("draft must survive CAS conflict");
+        assert_eq!(restored.draft_name(), "draft-survivor");
+        assert_eq!(restored.revision(), ext.revision);
+        let preserved_secret = restored
+            .fields()
+            .iter()
+            .find(|f| f.spec.key == "auth_token")
+            .unwrap()
+            .text
+            .value();
+        assert_eq!(preserved_secret, LONG_SECRET);
+
+        // Immediate Ctrl+S -> 'y' retry succeeds without re-typing anything!
+        app.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL))
+            .unwrap();
+        app.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+        pump_until(&mut app, |app| !app.profile_tasks.pending());
+        assert!(app.profile_editor.is_none());
+        assert_eq!(app.selected_profile_name.as_deref(), Some("draft-survivor"));
+
+        // External creation of the *exact same* profile name while wizard is open:
+        // `create_with_outcome` hits CAS version conflict first, and synchronous `synced_catalog`
+        // detects the same-name collision on `existing_names`, focusing `name` with inline error!
+        app.handle_key(plain_key(KeyCode::Char('n'))).unwrap();
+        {
+            let editor = app.profile_editor.as_mut().unwrap();
+            editor.set_text("name", "race-dup");
+            editor.set_text("base_url", "https://relay.example.com");
+            editor.set_text("auth_token", LONG_SECRET);
+        }
+        let current_rev = app.tabs[0].catalog_revision.clone().unwrap();
+        let ext_same = create_profile_with_context(
+            &context,
+            CreateProfileRequest {
+                platform: Platform::Claude,
+                name: "race-dup".into(),
+                expected_revision: Some(current_rev),
+                fields: vec![ProfileFieldValue {
+                    field: "base_url".into(),
+                    value: serde_json::json!("https://ext-dup.example.com"),
+                }],
+                secret: CreateSecret::Secret(Secret::new("sk-ext-dup")),
+            },
+        )
+        .unwrap();
+
+        app.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL))
+            .unwrap();
+        app.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+        pump_until(&mut app, |app| !app.profile_tasks.pending());
+
+        let dup_editor = app
+            .profile_editor
+            .as_ref()
+            .expect("editor must remain open on external same-name collision");
+        assert_eq!(dup_editor.focused_key(), "name");
+        assert_eq!(dup_editor.revision(), ext_same.revision);
+        assert!(
+            dup_editor
+                .fields()
+                .iter()
+                .find(|f| f.spec.key == "name")
+                .unwrap()
+                .error
+                .is_some()
+        );
+        assert_eq!(
+            dup_editor
+                .fields()
+                .iter()
+                .find(|f| f.spec.key == "auth_token")
+                .unwrap()
+                .text
+                .value(),
+            LONG_SECRET
+        );
+    }
+
+    #[test]
+    fn create_cas_conflict_syncs_revision_immediately_before_followup_read_drains() {
+        use ccr_cli::application::profile_create::{
+            CreateProfileRequest, CreateSecret, ProfileFieldValue, create_profile_with_context,
+        };
+        use ccr_core::Secret;
+
+        i18n::set_language(TuiLanguage::English);
+        let temp = tempfile::tempdir().unwrap();
+        let (paths, context) = isolated_lifecycle_context(temp.path(), Platform::Claude);
+        let context = Arc::new(context);
+
+        let (block_reads_tx, block_reads_rx) = std::sync::mpsc::channel::<()>();
+        let block_reads_rx = Arc::new(std::sync::Mutex::new(block_reads_rx));
+        let should_block_reads = Arc::new(std::sync::atomic::AtomicBool::new(false));
+
+        let mut app = editor_ready(Platform::Claude, &[], "");
+        app.tabs[0].profiles.clear();
+        app.tabs[0].profile_configs.clear();
+        app.tabs[0].catalog_revision = Some(String::new());
+
+        let loader_ctx = Arc::clone(&context);
+        let loader_paths = paths.clone();
+        let loader_block_flag = Arc::clone(&should_block_reads);
+        let loader_rx = Arc::clone(&block_reads_rx);
+        let writer_ctx = Arc::clone(&context);
+        let writer_paths = paths;
+        app.profile_tasks = ProfileTasks::with_backends(
+            app.task_executor.clone(),
+            Arc::new(move |_| {
+                if loader_block_flag.load(std::sync::atomic::Ordering::SeqCst) {
+                    let _ = loader_rx
+                        .lock()
+                        .unwrap()
+                        .recv_timeout(std::time::Duration::from_secs(5));
+                }
+                Ok(
+                    super::super::profile_tasks::read_instance_profiles_with_paths(
+                        loader_ctx.instance(),
+                        Some(&loader_paths),
+                    ),
+                )
+            }),
+            Arc::new(move |request| {
+                let MutationRequest::Create(create) = request else {
+                    return Err("create expected".into());
+                };
+                match create_profile_with_context(&writer_ctx, create.into_inner()) {
+                    Ok(outcome) => Ok(MutationOutcome::Created(Box::new(outcome))),
+                    Err(error) => Ok(MutationOutcome::CreateFailed {
+                        error,
+                        synced_catalog: Some(
+                            super::super::profile_tasks::sync_create_catalog_with_paths(
+                                writer_ctx.instance(),
+                                Some(&writer_paths),
+                            ),
+                        ),
+                    }),
+                }
+            }),
+        );
+
+        app.handle_key(plain_key(KeyCode::Char('n'))).unwrap();
+        {
+            let editor = app.profile_editor.as_mut().unwrap();
+            editor.set_text("name", "instant-retry");
+            editor.set_text("base_url", "https://relay.example.com");
+            editor.set_text("auth_token", "sk-instant-retry");
+        }
+
+        // External write advances catalog revision while background follow-up ReadJob is held blocked!
+        let ext = create_profile_with_context(
+            &context,
+            CreateProfileRequest {
+                platform: Platform::Claude,
+                name: "ext-before-retry".into(),
+                expected_revision: Some(String::new()),
+                fields: vec![ProfileFieldValue {
+                    field: "base_url".into(),
+                    value: serde_json::json!("https://ext.example.com"),
+                }],
+                secret: CreateSecret::Secret(Secret::new("sk-ext")),
+            },
+        )
+        .unwrap();
+        should_block_reads.store(true, std::sync::atomic::Ordering::SeqCst);
+
+        app.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL))
+            .unwrap();
+        app.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+        // Wait only until the mutation finishes — the follow-up ReadJob is still blocked!
+        pump_until(&mut app, |app| !app.profile_tasks.mutation_active());
+        assert!(app.profile_tasks.reading(Platform::Claude));
+        assert_eq!(
+            app.profile_editor.as_ref().unwrap().revision(),
+            ext.revision
+        );
+
+        // Immediately press Ctrl+S -> 'y' on the very next keystroke without waiting for ReadJob!
+        should_block_reads.store(false, std::sync::atomic::Ordering::SeqCst);
+        let _ = block_reads_tx.send(());
+        app.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL))
+            .unwrap();
+        app.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+        pump_until(&mut app, |app| !app.profile_tasks.pending());
+
+        assert!(app.profile_editor.is_none());
+        assert_eq!(app.selected_profile_name.as_deref(), Some("instant-retry"));
+    }
+
+    #[test]
+    fn create_failure_sanitizes_toml_snippets_url_credentials_and_blocks_corrupt_save() {
+        i18n::set_language(TuiLanguage::English);
+        const LEAKED_TOML_SECRET: &str = "sk-toml-snippet-leak-999";
+        const LEAKED_URL_SECRET: &str = "sk-url-userinfo-leak-888";
+
+        // 1. Multiline FileIoError / TOML source snippet never leaks into banner or toast.
+        let mut toml_leak_app = editor_ready(Platform::Claude, &["work"], "work");
+        toml_leak_app.profile_tasks = ProfileTasks::with_backends(
+            toml_leak_app.task_executor.clone(),
+            Arc::new(|_| Ok(async_snapshot("work"))),
+            Arc::new(|_| {
+                Ok(MutationOutcome::CreateFailed {
+                    error: CcrError::FileIoError(format!(
+                        "解析 TOML 配置文件失败: TOML parse error at line 1, column 14\n  |\n1 | auth_token = \"{LEAKED_TOML_SECRET}\"\n  |              ^^^"
+                    )),
+                    synced_catalog: None,
+                })
+            }),
+        );
+        toml_leak_app
+            .handle_key(plain_key(KeyCode::Char('n')))
+            .unwrap();
+        {
+            let editor = toml_leak_app.profile_editor.as_mut().unwrap();
+            editor.set_text("name", "no-leak");
+            editor.set_text("base_url", "https://relay.example.com");
+            editor.set_text("auth_token", "sk-draft");
+        }
+        toml_leak_app
+            .handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL))
+            .unwrap();
+        toml_leak_app
+            .handle_key(plain_key(KeyCode::Char('y')))
+            .unwrap();
+        pump_until(&mut toml_leak_app, |app| !app.profile_tasks.pending());
+
+        let banner = toml_leak_app
+            .profile_editor
+            .as_ref()
+            .and_then(|e| e.banner())
+            .unwrap();
+        let toast_msg = &toml_leak_app.toasts.active().unwrap().message;
+        assert!(!banner.contains(LEAKED_TOML_SECRET), "{banner}");
+        assert!(!toast_msg.contains(LEAKED_TOML_SECRET), "{toast_msg}");
+        assert!(banner.contains("ccr validate"), "{banner}");
+
+        // 2. Single-line ValidationError containing raw URL credentials strips userinfo/query/fragment.
+        let mut url_leak_app = editor_ready(Platform::Claude, &["work"], "work");
+        url_leak_app.profile_tasks = ProfileTasks::with_backends(
+            url_leak_app.task_executor.clone(),
+            Arc::new(|_| Ok(async_snapshot("work"))),
+            Arc::new(|_| {
+                Ok(MutationOutcome::CreateFailed {
+                    error: CcrError::ValidationError(format!(
+                        "invalid upstream endpoint https://admin:{LEAKED_URL_SECRET}@relay.example.com/v1?api_key={LEAKED_URL_SECRET}#frag"
+                    )),
+                    synced_catalog: Some(super::super::profile_tasks::SyncedCreateCatalog {
+                        revision: None,
+                        existing_names: std::collections::BTreeSet::new(),
+                        load_issue: Some(ReadIssue {
+                            locations: vec!["profiles.toml".into()],
+                            reason: "corrupt".into(),
+                        }),
+                    }),
+                })
+            }),
+        );
+        // Also verify direct helper scrubs URL credentials cleanly:
+        let sanitized = safe_create_error_message(&CcrError::ValidationError(format!(
+            "invalid upstream endpoint https://admin:{LEAKED_URL_SECRET}@relay.example.com/v1?api_key={LEAKED_URL_SECRET}#frag"
+        )));
+        assert!(!sanitized.contains(LEAKED_URL_SECRET), "{sanitized}");
+        assert!(!sanitized.contains("admin:"), "{sanitized}");
+
+        // 3. When synced_catalog reports unreadable/corrupt catalog (revision == None),
+        // subsequent Ctrl+S is blocked from opening ConfirmGate.
+        url_leak_app
+            .handle_key(plain_key(KeyCode::Char('n')))
+            .unwrap();
+        {
+            let editor = url_leak_app.profile_editor.as_mut().unwrap();
+            editor.set_text("name", "blocked-on-corrupt");
+            editor.set_text("base_url", "https://relay.example.com");
+            editor.set_text("auth_token", "sk-draft");
+        }
+        url_leak_app
+            .handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL))
+            .unwrap();
+        url_leak_app
+            .handle_key(plain_key(KeyCode::Char('y')))
+            .unwrap();
+        pump_until(&mut url_leak_app, |app| {
+            !app.profile_tasks.mutation_active()
+        });
+        assert!(url_leak_app.tabs[0].catalog_revision.is_none());
+
+        url_leak_app
+            .handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL))
+            .unwrap();
+        assert!(url_leak_app.pending_profile_confirm.is_none());
+        assert!(
+            url_leak_app
+                .profile_editor
+                .as_ref()
+                .and_then(|e| e.banner())
+                .unwrap()
+                .contains("ccr validate")
+        );
+    }
+
+    #[test]
+    fn create_in_flight_tab_switch_scopes_saving_indicator_and_returns_to_origin_tab_on_failure() {
+        i18n::set_language(TuiLanguage::English);
+        let (started_tx, started_rx) = std::sync::mpsc::channel();
+        let (release_tx, release_rx) = std::sync::mpsc::channel::<()>();
+        let release_rx = std::sync::Mutex::new(release_rx);
+
+        let mut app = app_with_profile_tabs(vec![
+            profile_tab(
+                Platform::Claude,
+                "Claude Profile",
+                &["alpha"],
+                Some("alpha"),
+            ),
+            profile_tab(Platform::Codex, "Codex Profile", &["cx-1"], Some("cx-1")),
+            empty_tab(Platform::Claude, TabVariant::ClaudeAuth, "Claude Auth"),
+        ]);
+        app.tabs[0].catalog_revision = Some("rev-1".into());
+        app.tabs[1].catalog_revision = Some("rev-cx".into());
+        stub_usage(&mut app);
+        app.profile_tasks = ProfileTasks::with_backends(
+            app.task_executor.clone(),
+            Arc::new(|platform| match platform {
+                Platform::Claude => Ok(async_snapshot("alpha")),
+                _ => Ok(async_snapshot("cx-1")),
+            }),
+            Arc::new(move |_| {
+                started_tx.send(()).unwrap();
+                let _ = release_rx
+                    .lock()
+                    .unwrap()
+                    .recv_timeout(std::time::Duration::from_secs(5));
+                Ok(MutationOutcome::CreateFailed {
+                    error: CcrError::ValidationError("配置版本冲突，请重新读取后重试".into()),
+                    synced_catalog: Some(super::super::profile_tasks::SyncedCreateCatalog {
+                        revision: Some("rev-2".into()),
+                        existing_names: std::collections::BTreeSet::from(["alpha".to_string()]),
+                        load_issue: None,
+                    }),
+                })
+            }),
+        );
+
+        app.handle_key(plain_key(KeyCode::Char('n'))).unwrap();
+        {
+            let editor = app.profile_editor.as_mut().unwrap();
+            editor.set_text("name", "tab-return");
+            editor.set_text("base_url", "https://relay.example.com");
+            editor.set_text("auth_token", "sk-tab-return");
+        }
+        app.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL))
+            .unwrap();
+        app.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+        started_rx
+            .recv_timeout(std::time::Duration::from_secs(5))
+            .unwrap();
+
+        // Originating Claude Profile tab renders "Creating…".
+        let claude_frame = draw_text(&mut app, 140, 30);
+        assert!(claude_frame.contains("Creating…"), "{claude_frame}");
+
+        // Switch via Tab to Codex Profile while Create is in flight -> Codex Profile must NOT show "Creating…".
+        app.handle_key(plain_key(KeyCode::Tab)).unwrap();
+        assert_eq!(app.active_tab, 1);
+        let codex_frame = draw_text(&mut app, 140, 30);
+        assert!(!codex_frame.contains("Creating…"), "{codex_frame}");
+
+        // Also test when active_tab is on ClaudeAuth (index 2) when CAS failure arrives:
+        // failure recovery switches active_tab back to Claude Profile (index 0), restores editor visibly, and accepts typing!
+        app.active_tab = 2;
+        release_tx.send(()).unwrap();
+        pump_until(&mut app, |app| !app.profile_tasks.pending());
+
+        assert_eq!(app.active_tab, 0);
+        assert!(app.profile_editor.is_some());
+        let restored_frame = draw_text(&mut app, 140, 30);
+        assert!(
+            restored_frame.contains("New Claude profile"),
+            "{restored_frame}"
+        );
+        focus_editor_key(&mut app, "name");
+        app.handle_key(plain_key(KeyCode::Char('2'))).unwrap();
+        assert_eq!(
+            app.profile_editor.as_ref().unwrap().draft_name(),
+            "tab-return2"
+        );
+    }
+
+    #[test]
+    fn create_tab_switch_in_flight_updates_origin_tab_saved_selection() {
+        i18n::set_language(TuiLanguage::English);
+        let (started_tx, started_rx) = std::sync::mpsc::channel();
+        let (release_tx, release_rx) = std::sync::mpsc::channel::<()>();
+        let release_rx = std::sync::Mutex::new(release_rx);
+
+        let mut app = app_with_profile_tabs(vec![
+            profile_tab(
+                Platform::Claude,
+                "Claude Profile",
+                &["alpha"],
+                Some("alpha"),
+            ),
+            profile_tab(Platform::Codex, "Codex Profile", &["cx-1"], Some("cx-1")),
+        ]);
+        app.tabs[0].catalog_revision = Some("rev-1".into());
+        app.tabs[1].catalog_revision = Some("rev-cx".into());
+        app.profile_tasks = ProfileTasks::with_backends(
+            app.task_executor.clone(),
+            Arc::new(|platform| match platform {
+                Platform::Claude => {
+                    let mut snap = async_snapshot("alpha");
+                    if let Ok(configs) = &mut snap.configs {
+                        configs.insert("bg-created".into(), ProfileConfig::new());
+                    }
+                    Ok(snap)
+                }
+                _ => Ok(async_snapshot("cx-1")),
+            }),
+            Arc::new(move |request| {
+                started_tx.send(()).unwrap();
+                let _ = release_rx
+                    .lock()
+                    .unwrap()
+                    .recv_timeout(std::time::Duration::from_secs(5));
+                let MutationRequest::Create(create) = request else {
+                    return Err("create expected".into());
+                };
+                let inner = create.into_inner();
+                Ok(MutationOutcome::Created(Box::new(
+                    ccr_cli::application::profile_create::CreateProfileOutcome {
+                        platform: inner.platform,
+                        name: inner.name,
+                        revision: "rev-2".into(),
+                        enabled: true,
+                        current_profile: Some("alpha".into()),
+                        set_fields: vec![],
+                    },
+                )))
+            }),
+        );
+
+        app.handle_key(plain_key(KeyCode::Char('n'))).unwrap();
+        {
+            let editor = app.profile_editor.as_mut().unwrap();
+            editor.set_text("name", "bg-created");
+            editor.set_text("base_url", "https://relay.example.com");
+            editor.set_text("auth_token", "sk-bg");
+        }
+        app.handle_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL))
+            .unwrap();
+        app.handle_key(plain_key(KeyCode::Char('y'))).unwrap();
+        started_rx
+            .recv_timeout(std::time::Duration::from_secs(5))
+            .unwrap();
+
+        // While Create is in flight (editor suspended), switch to Codex tab!
+        app.handle_key(plain_key(KeyCode::Tab)).unwrap();
+        assert_eq!(app.active_tab, 1);
+
+        release_tx.send(()).unwrap();
+        pump_until(&mut app, |app| !app.profile_tasks.pending());
+
+        // Active Codex tab selection stays "cx-1", while Claude tab's saved_selection aligns to "bg-created"!
+        assert_eq!(app.active_tab, 1);
+        assert_eq!(app.selected_profile_name.as_deref(), Some("cx-1"));
+        assert_eq!(
+            app.tabs[0]
+                .saved_selection
+                .as_ref()
+                .and_then(|s| s.selected_profile_name.as_deref()),
+            Some("bg-created")
+        );
+
+        // Switching back to Claude tab focuses "bg-created".
+        app.handle_key(plain_key(KeyCode::Tab)).unwrap();
+        assert_eq!(app.active_tab, 0);
+        assert_eq!(app.selected_profile().unwrap().name, "bg-created");
     }
 }

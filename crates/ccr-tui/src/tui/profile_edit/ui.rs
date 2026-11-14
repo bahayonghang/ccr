@@ -13,16 +13,22 @@ use unicode_width::UnicodeWidthStr;
 use super::ProfileEditor;
 use super::catalog;
 use super::field::EditorField;
-use super::request::{PreviewValue, preview_rows};
-use super::schema::{self, FieldKind};
+use super::request::{PreviewValue, create_preview_rows, preview_rows};
+use super::schema::{self, EditorMode, FieldKind};
 use crate::tui::theme;
 use crate::tui::ui::detail_layout::{plan_detail, ruler_line, wrap_lines};
 use crate::tui::ui::{pad_text, truncate_text};
 
 pub(crate) fn render_stacked(frame: &mut Frame, editor: &mut ProfileEditor, area: Rect) {
-    let changes = preview_rows(&editor.draft()).len();
-    let preview_height = u16::try_from((changes + 2).clamp(3, 8))
-        .unwrap_or(8)
+    let changes = if editor.is_create() {
+        create_preview_rows(&editor.create_draft())
+            .len()
+            .saturating_add(1)
+    } else {
+        preview_rows(&editor.draft()).len()
+    };
+    let preview_height = u16::try_from((changes + 2).clamp(3, 9))
+        .unwrap_or(9)
         .min(area.height.saturating_sub(1));
     let chunks =
         Layout::vertical([Constraint::Min(1), Constraint::Length(preview_height)]).split(area);
@@ -42,7 +48,7 @@ pub(crate) fn render_rail(frame: &mut Frame, editor: &mut ProfileEditor, area: R
     if inner_height > preview_min {
         let budget = inner_height - preview_min;
         let (start, window) = window_lines(editor, &form.lines, focus, budget);
-        let title = preview_title(width);
+        let title = preview_title(editor.is_create(), width);
         let plan = plan_detail(inner, window, Some(title), preview, 0);
         if form.lines.len() > budget {
             let end = (start + budget).min(form.lines.len());
@@ -65,7 +71,7 @@ pub(crate) fn render_rail(frame: &mut Frame, editor: &mut ProfileEditor, area: R
         return;
     }
     let mut lines = form.lines;
-    lines.push(preview_title(width));
+    lines.push(preview_title(editor.is_create(), width));
     lines.extend(preview);
     let (start, window) = window_lines(editor, &lines, focus, inner_height);
     let _ = start;
@@ -75,17 +81,26 @@ pub(crate) fn render_rail(frame: &mut Frame, editor: &mut ProfileEditor, area: R
     }
 }
 
-pub(crate) fn render_saving(frame: &mut Frame, area: Rect) {
+pub(crate) fn render_saving(frame: &mut Frame, area: Rect, creating: bool) {
+    let (title, body) = if creating {
+        (
+            crate::tui_text!(" Creating ", " 正在创建 "),
+            crate::tui_text!("Creating…", "正在创建…"),
+        )
+    } else {
+        (
+            crate::tui_text!(" Saving ", " 正在保存 "),
+            crate::tui_text!("Saving…", "正在保存…"),
+        )
+    };
     let block = Block::default()
         .borders(Borders::ALL)
         .border_set(symbols::border::ROUNDED)
         .border_style(Style::default().fg(theme::border()))
-        .title(crate::tui_text!(" Saving ", " 正在保存 "))
+        .title(title)
         .title_style(theme::secondary_text_emphasis_style());
     frame.render_widget(
-        Paragraph::new(crate::tui_text!("Saving…", "正在保存…"))
-            .style(theme::info_style())
-            .block(block),
+        Paragraph::new(body).style(theme::info_style()).block(block),
         area,
     );
 }
@@ -122,11 +137,19 @@ fn render_form(frame: &mut Frame, editor: &mut ProfileEditor, area: Rect) {
 
 fn render_preview(frame: &mut Frame, editor: &ProfileEditor, area: Rect) {
     let width = area.width.saturating_sub(2) as usize;
+    let title = if editor.is_create() {
+        crate::tui_text!(
+            " New profile (not activated) ",
+            " 新建摘要（创建后不自动激活） "
+        )
+    } else {
+        crate::tui_text!(" Changes ", " 改动 ")
+    };
     let block = Block::default()
         .borders(Borders::ALL)
         .border_set(symbols::border::ROUNDED)
         .border_style(Style::default().fg(theme::border()))
-        .title(crate::tui_text!(" Changes ", " 改动 "))
+        .title(title)
         .title_style(theme::secondary_text_emphasis_style());
     let lines = preview_lines(editor, width);
     let body = if lines.is_empty() {
@@ -141,14 +164,20 @@ fn render_preview(frame: &mut Frame, editor: &ProfileEditor, area: Rect) {
 }
 
 fn editor_block(editor: &ProfileEditor) -> Block<'static> {
+    let title = if editor.is_create() {
+        crate::tui_format!(
+            "New {} profile (* required)",
+            "新建 {} 配置 (* 为必填)",
+            schema::platform_label(editor.platform())
+        )
+    } else {
+        crate::tui_format!("Edit · {}", "编辑 · {}", editor.original_name())
+    };
     Block::default()
         .borders(Borders::ALL)
         .border_set(symbols::border::ROUNDED)
         .border_style(Style::default().fg(theme::border()))
-        .title(format!(
-            " {} ",
-            crate::tui_format!("Edit · {}", "编辑 · {}", editor.original_name())
-        ))
+        .title(format!(" {title} "))
         .title_style(theme::platform_style_for(editor.platform()).add_modifier(Modifier::BOLD))
 }
 
@@ -160,6 +189,9 @@ struct FormView {
 fn form_lines(editor: &ProfileEditor, width: usize) -> FormView {
     let mut lines = Vec::new();
     let mut focus_at = Vec::new();
+    let mode = editor.mode();
+    let platform = editor.platform();
+    let auth_mode = editor.create_auth_mode_enum();
     if let Some(banner) = editor.banner() {
         let wrapped = wrap_lines(
             vec![Line::styled(banner.to_string(), theme::warning_style())],
@@ -186,6 +218,9 @@ fn form_lines(editor: &ProfileEditor, width: usize) -> FormView {
             field,
             index == editor.focus_index(),
             editor.advanced_open(),
+            mode,
+            platform,
+            auth_mode,
             label_width,
             width,
         ));
@@ -223,10 +258,14 @@ fn window_lines(
     (start, lines[start..end].to_vec())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn field_line(
     field: &EditorField,
     focused: bool,
     advanced_open: bool,
+    mode: EditorMode,
+    platform: ccr_cli::models::Platform,
+    auth_mode: schema::CreateAuthMode,
     label_width: usize,
     width: usize,
 ) -> Line<'static> {
@@ -237,34 +276,60 @@ fn field_line(
     } else {
         Style::default()
     };
-    let marker = if field.is_dirty() { "• " } else { "  " };
+    let required = mode == EditorMode::Create && auth_mode.is_field_required(field.spec.key);
+    let marker = if required {
+        "* "
+    } else if field.is_dirty() {
+        "• "
+    } else {
+        "  "
+    };
+    let marker_style = if focused {
+        row
+    } else if field.error.is_some() {
+        theme::error_style()
+    } else if required {
+        theme::platform_style_for(platform).add_modifier(Modifier::BOLD)
+    } else if field.is_dirty() {
+        theme::warning_style()
+    } else {
+        row
+    };
     let label = pad_text(
         &truncate_text(schema::label(field.spec.key), label_width),
         label_width,
     );
     let value_budget = width.saturating_sub(marker.width() + label.width() + 1);
-    let value = truncate_text(&field_value(field, advanced_open), value_budget.max(1));
+    let value = truncate_text(
+        &field_value(field, advanced_open, mode, platform),
+        value_budget.max(1),
+    );
     Line::from(vec![
-        Span::styled(
-            marker.to_string(),
-            if field.is_dirty() && !focused {
-                theme::warning_style()
-            } else {
-                row
-            },
-        ),
+        Span::styled(marker.to_string(), marker_style),
         Span::styled(label, row),
         Span::styled(format!(" {value}"), row),
     ])
     .style(row)
 }
 
-fn field_value(field: &EditorField, advanced_open: bool) -> String {
+fn field_value(
+    field: &EditorField,
+    advanced_open: bool,
+    mode: EditorMode,
+    platform: ccr_cli::models::Platform,
+) -> String {
     match field.spec.kind {
+        FieldKind::Secret if mode == EditorMode::Create => {
+            if field.text.value().trim().is_empty() {
+                crate::tui_text!("‹empty›", "‹未填写›").to_string()
+            } else {
+                field.text.secret_dots()
+            }
+        }
         FieldKind::Secret if field.secret_clear => {
             crate::tui_text!("will clear", "将清除").to_string()
         }
-        FieldKind::Secret if field.text.value().is_empty() => {
+        FieldKind::Secret if field.text.value().trim().is_empty() => {
             crate::tui_text!("unchanged", "保留").to_string()
         }
         FieldKind::Secret => field.text.secret_dots(),
@@ -274,6 +339,12 @@ fn field_value(field: &EditorField, advanced_open: bool) -> String {
             } else {
                 crate::tui_text!("no", "否").to_string()
             }
+        }
+        FieldKind::AuthMode(_) => {
+            format!(
+                "◀ {} ▶",
+                schema::auth_mode_label(platform, field.choice_value())
+            )
         }
         FieldKind::Choice(_) | FieldKind::Credential => choice_label(field),
         FieldKind::Model(options) => model_label(field, options),
@@ -314,6 +385,8 @@ fn choice_label(field: &EditorField) -> String {
         schema::credential_label(value).to_string()
     } else if value.is_empty() {
         "—".to_string()
+    } else if let Some(mapped) = schema::choice_value_label(field.spec.key, value) {
+        mapped.to_string()
     } else {
         value.to_string()
     };
@@ -328,18 +401,25 @@ fn choice_label(field: &EditorField) -> String {
     }
 }
 
-fn preview_title(width: usize) -> Line<'static> {
-    ruler_line(
-        crate::tui_text!("Changes", "改动"),
-        None,
-        width,
-        theme::secondary_text_emphasis_style(),
-    )
+fn preview_title(is_create: bool, width: usize) -> Line<'static> {
+    let title = if is_create {
+        crate::tui_text!("New profile · not activated", "新建摘要 · 不自动激活")
+    } else {
+        crate::tui_text!("Changes", "改动")
+    };
+    ruler_line(title, None, width, theme::secondary_text_emphasis_style())
 }
 
 fn preview_lines(editor: &ProfileEditor, width: usize) -> Vec<Line<'static>> {
-    let rows = preview_rows(&editor.draft());
-    if rows.is_empty() || width == 0 {
+    if width == 0 {
+        return Vec::new();
+    }
+    let rows = if editor.is_create() {
+        create_preview_rows(&editor.create_draft())
+    } else {
+        preview_rows(&editor.draft())
+    };
+    if rows.is_empty() && !editor.is_create() {
         return Vec::new();
     }
     let key_width = rows
@@ -356,6 +436,9 @@ fn preview_lines(editor: &ProfileEditor, width: usize) -> Vec<Line<'static>> {
         );
         let value = match row.value {
             PreviewValue::Text { old, new } => format!("{old} → {new}"),
+            PreviewValue::Set(text) => text,
+            PreviewValue::SecretSet => crate::tui_text!("‹set›", "‹已设置›").to_string(),
+            PreviewValue::SecretUnset => crate::tui_text!("‹unset›", "‹未设置›").to_string(),
             PreviewValue::Replaced => crate::tui_text!("‹replaced›", "‹已替换›").to_string(),
             PreviewValue::Clear => crate::tui_text!("will clear", "将清除").to_string(),
         };
@@ -383,6 +466,19 @@ fn preview_lines(editor: &ProfileEditor, width: usize) -> Vec<Line<'static>> {
             spans.extend(value_line.spans);
             lines.push(Line::from(spans));
         }
+    }
+    if editor.is_create() {
+        lines.extend(wrap_lines(
+            vec![Line::styled(
+                crate::tui_text!(
+                    "Creates inactive profile; current runtime unchanged.",
+                    "新建后默认未激活；不修改当前运行时。"
+                )
+                .to_string(),
+                theme::muted_style(),
+            )],
+            width.max(1),
+        ));
     }
     lines
 }

@@ -1,9 +1,16 @@
 //! TUI profile adapter. The application owns all writes and success effects.
+use ccr_cli::application::profile_create::{
+    CreateProfileOutcome, CreateProfileRequest, create_profile,
+};
 use ccr_cli::application::profile_lifecycle::{ApplyProfileRequest, ProfileOutcome, apply_profile};
 use ccr_core::Result;
 
 pub fn apply(request: ApplyProfileRequest) -> Result<ProfileOutcome> {
     apply_profile(request)
+}
+
+pub fn create(request: CreateProfileRequest) -> Result<CreateProfileOutcome> {
+    create_profile(request)
 }
 
 pub fn presentation(outcome: &ProfileOutcome) -> super::toast::Toast {

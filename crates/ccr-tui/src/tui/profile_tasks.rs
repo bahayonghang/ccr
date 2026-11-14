@@ -1,12 +1,13 @@
 //! Bounded background Profile reads and one complete synchronous mutation.
 //! Only read generations can be discarded; mutation outcomes are always delivered.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, mpsc};
 
 use ccr_cli::application::profile_activity::{
     ProfileActivityError, ProfileActivitySnapshot, load_profile_activity,
 };
+use ccr_cli::application::profile_create::CreateProfileOutcome;
 use ccr_cli::application::profile_edit::{EditProfileOutcome, edit_profile};
 use ccr_cli::application::profile_lifecycle::{ApplyProfileRequest, ProfileOutcome};
 use ccr_cli::application::{ProfileOffResult, profile_off_for_platform};
@@ -19,7 +20,7 @@ use ccr_cli::platforms::{GrokActivationState, GrokPlatform, create_platform};
 use ccr_core::core::error::CcrError;
 use indexmap::IndexMap;
 
-use super::profile_edit::EditRequest;
+use super::profile_edit::{CreateRequest, EditRequest};
 use super::runtime::AsyncTaskExecutor;
 
 pub(super) struct ReadIssue {
@@ -83,21 +84,26 @@ pub(super) fn read_profiles(platform: Platform) -> std::result::Result<ProfileSn
 
 // Separately injectable repository seam: no auth service or history discovery.
 pub(super) fn read_instance_profiles(instance: &dyn PlatformConfig) -> ProfileSnapshot {
+    let paths = PlatformPaths::new(instance.platform_type()).ok();
+    read_instance_profiles_with_paths(instance, paths.as_ref())
+}
+
+pub(super) fn read_instance_profiles_with_paths(
+    instance: &dyn PlatformConfig,
+    paths: Option<&PlatformPaths>,
+) -> ProfileSnapshot {
     let platform = instance.platform_type();
-    let paths = PlatformPaths::new(platform).ok();
     let profiles_path = paths
-        .as_ref()
         .map(|paths| paths.profiles_file.display().to_string())
         .unwrap_or_else(|| format!("~/.ccr/platforms/{}/profiles.toml", platform.short_name()));
     let registry_path = paths
-        .as_ref()
         .map(|paths| paths.registry_file.display().to_string())
         .unwrap_or_else(|| "~/.ccr/config.toml".to_string());
     let mut current_paths = vec![registry_path];
     if platform == Platform::Codex {
         current_paths.push(profiles_path.clone());
     }
-    let current = if platform == Platform::Grok {
+    let current = if platform == Platform::Grok && paths.is_none() {
         // Production resolves this once using the richer typed activation state.
         Ok(None)
     } else {
@@ -110,9 +116,7 @@ pub(super) fn read_instance_profiles(instance: &dyn PlatformConfig) -> ProfileSn
         locations: vec![profiles_path.clone()],
         reason: error.to_string(),
     });
-    let revision = paths
-        .as_ref()
-        .and_then(|paths| catalog_revision(&paths.profiles_file));
+    let revision = paths.and_then(|paths| catalog_revision(&paths.profiles_file));
     ProfileSnapshot {
         instance: None,
         configs,
@@ -127,13 +131,12 @@ pub(super) fn read_instance_profiles(instance: &dyn PlatformConfig) -> ProfileSn
     }
 }
 
-fn catalog_revision(path: &std::path::Path) -> Option<String> {
+pub(super) fn catalog_revision(path: &std::path::Path) -> Option<String> {
     match ConfigManager::new(path).snapshot() {
         Ok(snapshot) => Some(snapshot.version),
+        Err(CcrError::ConfigMissing(_)) => Some(String::new()),
         Err(error) => {
-            if !matches!(error, CcrError::ConfigMissing(_)) {
-                tracing::warn!("Profile catalog revision unavailable: {error}");
-            }
+            tracing::warn!("Profile catalog revision unavailable: {error}");
             None
         }
     }
@@ -144,6 +147,7 @@ pub(super) enum MutationRequest {
     Apply(ApplyProfileRequest),
     Off(Platform),
     Edit(Box<EditRequest>),
+    Create(Box<CreateRequest>),
 }
 
 impl MutationRequest {
@@ -152,6 +156,7 @@ impl MutationRequest {
             Self::Apply(request) => request.platform,
             Self::Off(platform) => *platform,
             Self::Edit(request) => request.platform(),
+            Self::Create(request) => request.platform(),
         }
     }
     pub fn profile(&self) -> Option<&str> {
@@ -159,7 +164,52 @@ impl MutationRequest {
             Self::Apply(request) => Some(&request.name),
             Self::Off(_) => None,
             Self::Edit(request) => Some(request.name()),
+            Self::Create(request) => Some(request.name()),
         }
+    }
+}
+
+pub(super) struct SyncedCreateCatalog {
+    pub revision: Option<String>,
+    pub existing_names: BTreeSet<String>,
+    pub load_issue: Option<ReadIssue>,
+}
+
+pub(super) fn sync_create_catalog(platform: Platform) -> SyncedCreateCatalog {
+    let Ok(instance) = create_platform(platform) else {
+        return SyncedCreateCatalog {
+            revision: None,
+            existing_names: BTreeSet::new(),
+            load_issue: None,
+        };
+    };
+    let paths = PlatformPaths::new(platform).ok();
+    sync_create_catalog_with_paths(instance.as_ref(), paths.as_ref())
+}
+
+pub(super) fn sync_create_catalog_with_paths(
+    instance: &dyn PlatformConfig,
+    paths: Option<&PlatformPaths>,
+) -> SyncedCreateCatalog {
+    let platform = instance.platform_type();
+    let profiles_path = paths
+        .map(|paths| paths.profiles_file.display().to_string())
+        .unwrap_or_else(|| format!("~/.ccr/platforms/{}/profiles.toml", platform.short_name()));
+    let revision = paths.and_then(|paths| catalog_revision(&paths.profiles_file));
+    match instance.load_profiles() {
+        Ok(configs) => SyncedCreateCatalog {
+            revision,
+            existing_names: configs.keys().cloned().collect(),
+            load_issue: None,
+        },
+        Err(error) => SyncedCreateCatalog {
+            revision: None,
+            existing_names: BTreeSet::new(),
+            load_issue: Some(ReadIssue {
+                locations: vec![profiles_path],
+                reason: error.to_string(),
+            }),
+        },
     }
 }
 
@@ -167,6 +217,11 @@ pub(super) enum MutationOutcome {
     Applied(ProfileOutcome),
     Off(ProfileOffResult),
     Edited(Box<EditProfileOutcome>),
+    Created(Box<CreateProfileOutcome>),
+    CreateFailed {
+        error: CcrError,
+        synced_catalog: Option<SyncedCreateCatalog>,
+    },
 }
 
 pub(super) type ProfileLoader =
@@ -185,6 +240,17 @@ fn mutate(request: MutationRequest) -> std::result::Result<MutationOutcome, Stri
         }
         MutationRequest::Edit(request) => edit_profile(request.into_inner())
             .map(|outcome| MutationOutcome::Edited(Box::new(outcome))),
+        MutationRequest::Create(request) => {
+            let inner = request.into_inner();
+            let platform = inner.platform;
+            return match super::profile_backend::create(inner) {
+                Ok(outcome) => Ok(MutationOutcome::Created(Box::new(outcome))),
+                Err(error) => Ok(MutationOutcome::CreateFailed {
+                    error,
+                    synced_catalog: Some(sync_create_catalog(platform)),
+                }),
+            };
+        }
     }
     .map_err(|error| error.to_string())
 }
@@ -432,8 +498,12 @@ mod tests {
     fn missing_catalog_has_no_revision_and_creates_nothing() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("profiles.toml");
-        assert!(catalog_revision(&path).is_none());
+        assert_eq!(catalog_revision(&path).as_deref(), Some(""));
         assert!(!path.exists());
+
+        let corrupt = dir.path().join("corrupt.toml");
+        std::fs::write(&corrupt, "[broken").unwrap();
+        assert!(catalog_revision(&corrupt).is_none());
     }
 
     #[test]

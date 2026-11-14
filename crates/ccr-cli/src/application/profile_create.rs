@@ -53,6 +53,7 @@ impl std::fmt::Debug for CreateSecret {
     }
 }
 
+#[derive(Clone)]
 pub struct CreateProfileRequest {
     pub platform: Platform,
     pub name: String,
@@ -261,6 +262,17 @@ fn build_profile(request: &CreateProfileRequest) -> Result<(ProfileConfig, Vec<S
             } else {
                 profile.auth_token = Some(Secret::new(trimmed));
                 push_unique(&mut set_fields, "auth_token");
+                if request.platform == Platform::Codex
+                    && !profile.platform_data.contains_key("auth_mode")
+                    && !profile.platform_data.contains_key("env_key")
+                    && !ccr_codex::CodexPlatform::is_official_profile(&profile)
+                    && profile.platform_data.get("requires_openai_auth") != Some(&Value::Bool(true))
+                {
+                    profile.platform_data.insert(
+                        "auth_mode".to_string(),
+                        Value::String("provider_bearer_token".to_string()),
+                    );
+                }
             }
         }
         CreateSecret::UseEnvKey(env_name) => {
@@ -304,7 +316,7 @@ mod tests {
         let locks = ccr.join(".locks");
         let history = ccr.join("history.db");
         let runtime = root.join("runtime").join(platform.short_name());
-        match platform {
+        let context = match platform {
             Platform::Claude => ProfileLifecycleContext::for_claude(
                 paths,
                 ccr_config::ClaudeRuntimePaths {
@@ -329,7 +341,8 @@ mod tests {
             )
             .unwrap(),
             other => panic!("unexpected platform {other:?}"),
-        }
+        };
+        context.with_process_environment(false)
     }
 
     fn base_fields_for(platform: Platform) -> Vec<ProfileFieldValue> {
@@ -724,5 +737,60 @@ mod tests {
         let stored = claude_ctx.instance().load_profiles().unwrap();
         assert!(stored["clean-fields"].description.is_none());
         assert!(stored["clean-fields"].tags.is_none());
+    }
+
+    #[test]
+    fn codex_non_official_secret_without_auth_mode_defaults_to_provider_bearer_token() {
+        let temp = tempfile::tempdir().unwrap();
+        let codex_ctx = test_context(
+            &temp.path().join("codex-default-auth-mode"),
+            Platform::Codex,
+        );
+        let outcome = create_profile_with_context(
+            &codex_ctx,
+            CreateProfileRequest {
+                platform: Platform::Codex,
+                name: "relay".into(),
+                expected_revision: Some(String::new()),
+                fields: vec![
+                    ProfileFieldValue {
+                        field: "base_url".into(),
+                        value: json!("https://relay.example.com/v1"),
+                    },
+                    ProfileFieldValue {
+                        field: "model".into(),
+                        value: json!("gpt-5.4"),
+                    },
+                ],
+                secret: CreateSecret::Secret(Secret::new(SENTINEL)),
+            },
+        )
+        .unwrap();
+
+        assert_eq!(
+            outcome.set_fields,
+            vec![
+                "base_url".to_string(),
+                "model".to_string(),
+                "auth_token".to_string()
+            ]
+        );
+        let stored = codex_ctx.instance().load_profiles().unwrap();
+        assert_eq!(
+            stored["relay"].platform_data.get("auth_mode"),
+            Some(&json!("provider_bearer_token"))
+        );
+        assert_eq!(
+            stored["relay"].auth_token.as_ref().map(Secret::expose),
+            Some(SENTINEL)
+        );
+        let catalog = codex_ctx.manager().load().unwrap();
+        assert!(catalog.sections["relay"].auth_token.is_none());
+        let raw_db = std::fs::read(codex_ctx.manager().profiles_db()).unwrap();
+        assert!(!String::from_utf8_lossy(&raw_db).contains(SENTINEL));
+        let secrets_file = temp
+            .path()
+            .join("codex-default-auth-mode/ccr/platforms/codex/profile_secrets.json");
+        assert!(secrets_file.exists());
     }
 }

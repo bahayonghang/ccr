@@ -128,6 +128,37 @@ impl Overlay {
         }
     }
 
+    /// Profile create. Default is cancel. Secrets show set/unset only; runtime stays untouched.
+    pub fn confirm_profile_create(
+        platform: &str,
+        name: &str,
+        summary_lines: &[String],
+        current_active: Option<&str>,
+    ) -> Self {
+        let mut message = vec![crate::tui_format!(
+            "Create new {platform} profile: {name}",
+            "即将在 {platform} 目录创建新配置：{name}"
+        )];
+        message.extend(summary_lines.iter().cloned());
+        message.push(match current_active {
+            Some(active) => crate::tui_format!(
+                "• Runtime: not activated; keeps current active profile ({active}).",
+                "• 运行时态：创建后不自动激活，保持当前激活项不变 ({active})。"
+            ),
+            None => crate::tui_text!(
+                "• Runtime: not activated; current runtime stays unchanged.",
+                "• 运行时态：创建后不自动激活，当前运行时保持不变。"
+            )
+            .to_string(),
+        });
+        Self::ConfirmGate {
+            title: crate::tui_text!("Confirm create profile", "确认新建配置").to_string(),
+            subject: name.to_string(),
+            message,
+            kind: ConfirmKind::Save,
+        }
+    }
+
     /// Profile edit. Default is cancel. Secrets are named, never printed.
     pub fn confirm_profile_save(name: &str, changes: &[String], rewrites_runtime: bool) -> Self {
         let mut message = vec![crate::tui_format!(

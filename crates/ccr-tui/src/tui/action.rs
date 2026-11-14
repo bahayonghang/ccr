@@ -38,4 +38,6 @@ pub enum Action {
     Reload,
     /// Open the profile editor for the selected profile
     EditSelected,
+    /// Open the profile creation wizard for the active platform
+    CreateProfile,
 }

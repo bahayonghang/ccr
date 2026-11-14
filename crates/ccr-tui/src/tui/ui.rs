@@ -600,7 +600,7 @@ fn render_profile_context_workspace(
     area: Rect,
     mode: theme::ViewportMode,
 ) {
-    if app.profile_editor.is_some() || app.profile_edit_saving {
+    if app.profile_editor.is_some() || app.is_saving_on_current_tab() {
         render_profile_details(f, app, area, mode);
         return;
     }
@@ -617,8 +617,8 @@ fn render_profile_context_workspace(
 }
 
 fn render_profile_details(f: &mut Frame, app: &mut App, area: Rect, _mode: theme::ViewportMode) {
-    if app.profile_edit_saving {
-        super::profile_edit::ui::render_saving(f, area);
+    if app.is_saving_on_current_tab() {
+        super::profile_edit::ui::render_saving(f, area, app.is_saving_create());
         app.detail_area.set(Some(area));
         return;
     }
@@ -1900,37 +1900,63 @@ fn last_apply_message(
     }
 }
 
+#[cfg(test)]
 fn empty_profile_state_lines(platform: Platform) -> Vec<Line<'static>> {
+    empty_profile_state_lines_styled(platform, false)
+}
+
+fn empty_profile_state_lines_styled(platform: Platform, dimmed: bool) -> Vec<Line<'static>> {
     let platform_name = platform.display_name();
     let short_name = platform.short_name();
+    let title_style = if dimmed {
+        theme::muted_style()
+    } else {
+        theme::empty_hint_style()
+    };
+    let primary_style = if dimmed {
+        theme::muted_style()
+    } else {
+        theme::platform_style_for(platform).add_modifier(Modifier::BOLD)
+    };
+    let secondary_style = if dimmed {
+        theme::muted_style()
+    } else {
+        theme::secondary_text_style()
+    };
+    let muted_style = theme::muted_style();
 
     vec![
-        Line::from(""),
         Line::from(Span::styled(
             crate::tui_format!(
                 "No {} configurations found",
                 "未找到 {} 配置",
                 platform_name
             ),
-            theme::empty_hint_style(),
+            title_style,
         )),
-        Line::from(""),
-        Line::from(Span::styled(
-            crate::tui_format!(
-                "Run 'ccr {} profile create --help' to create a profile",
-                "运行 'ccr {} profile create --help' 查看创建方式",
-                short_name
-            ),
-            theme::secondary_text_style(),
-        )),
-        Line::from(""),
         Line::from(Span::styled(
             crate::tui_text!(
-                "After creating it, press 'r' to reload",
-                "创建后按 'r' 重新加载"
+                "Press 'n' to create a new profile here",
+                "按 'n' 在当前界面直接新建第一条配置"
             )
             .to_string(),
-            theme::muted_style(),
+            primary_style,
+        )),
+        Line::from(Span::styled(
+            crate::tui_format!(
+                "Or run 'ccr {} profile create --help' / import",
+                "或运行 'ccr {} profile create --help' / import",
+                short_name
+            ),
+            secondary_style,
+        )),
+        Line::from(Span::styled(
+            crate::tui_text!(
+                "After CLI changes, press 'r' to reload",
+                "外部创建或导入后，按 'r' 重新加载"
+            )
+            .to_string(),
+            muted_style,
         )),
     ]
 }
@@ -1982,11 +2008,18 @@ fn render_empty_state(f: &mut Frame, app: &App, area: Rect, block: Block) {
         return;
     }
 
-    let empty_text = empty_profile_state_lines(platform);
+    let dimmed = app.profile_editor.is_some() || app.is_saving_on_current_tab();
+    let inner_height = block.inner(area).height;
+    let mut empty_text = Vec::new();
+    if inner_height >= 6 {
+        empty_text.push(Line::from(""));
+    }
+    empty_text.extend(empty_profile_state_lines_styled(platform, dimmed));
 
     let paragraph = Paragraph::new(empty_text)
         .block(block)
-        .alignment(Alignment::Center);
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true });
 
     f.render_widget(paragraph, area);
 }
@@ -2113,20 +2146,47 @@ fn footer_hints(app: &App, width: u16, edit_hint: bool) -> Vec<ShortcutHint<'sta
         ];
     }
 
-    if app.profile_editor.is_some() {
+    if let Some(editor) = app.profile_editor.as_ref() {
+        let horizontal = if editor.is_create() {
+            crate::tui_text!("option/model", "选项/模型")
+        } else {
+            crate::tui_text!("model", "模型")
+        };
+        let save_label = if editor.is_create() {
+            crate::tui_text!("create", "保存新建")
+        } else {
+            crate::tui_text!("save", "保存")
+        };
         return vec![
             ShortcutHint::new("Tab", crate::tui_text!("field", "字段")),
-            ShortcutHint::new("←→", crate::tui_text!("model", "模型")),
-            ShortcutHint::new("Ctrl+S", crate::tui_text!("save", "保存")),
+            ShortcutHint::new("←→", horizontal),
+            ShortcutHint::new("Ctrl+S", save_label),
             ShortcutHint::new("Esc", crate::tui_text!("cancel", "取消")),
             ShortcutHint::new("Ctrl+D", crate::tui_text!("clear secret", "清除密钥")),
         ];
     }
 
     let is_profile = matches!(app.current_tab().variant, TabVariant::Profile);
+    let is_empty_ready_profile = is_profile
+        && edit_hint
+        && app.current_profiles().is_empty()
+        && !app.current_profile_loading()
+        && app.current_profile_load_error().is_none()
+        && app.current_tab().catalog_revision.is_some();
 
     if width < 90 {
-        // Required hints stay first. `e` is dropped before `x` and `o` when the line does not fit.
+        if is_empty_ready_profile {
+            return vec![
+                ShortcutHint::new("Tab", ""),
+                ShortcutHint::new("n", crate::tui_text!("new", "新建")),
+                ShortcutHint::new("o", crate::tui_text!("deactivate", "解绑")),
+                ShortcutHint::new("r", crate::tui_text!("reload", "刷新")),
+                ShortcutHint::new("Ctrl+L", crate::tui_text!("lang", "语言")),
+                ShortcutHint::new("q", crate::tui_text!("quit", "退出")),
+            ];
+        }
+
+        // Required hints stay first. `n` and `e` are dropped before `x` and `o` when the line does not fit.
         let mut hints = vec![
             ShortcutHint::new("Tab", ""),
             ShortcutHint::new("↑↓", crate::tui_text!("select", "选择")),
@@ -2135,11 +2195,13 @@ fn footer_hints(app: &App, width: u16, edit_hint: bool) -> Vec<ShortcutHint<'sta
             ShortcutHint::new("Ctrl+L", crate::tui_text!("lang", "语言")),
         ];
         if is_profile {
+            let new_profile = ShortcutHint::new("n", crate::tui_text!("new", "新建"));
             let edit = ShortcutHint::new("e", crate::tui_text!("edit", "编辑"));
             let all_fields = ShortcutHint::new("x", crate::tui_text!("all fields", "全部字段"));
             let deactivate = ShortcutHint::new("o", crate::tui_text!("deactivate", "解绑"));
             let mut with_edit = hints.clone();
             if edit_hint {
+                with_edit.push(new_profile);
                 with_edit.push(edit);
             }
             with_edit.push(all_fields);
@@ -2175,6 +2237,7 @@ fn footer_hints(app: &App, width: u16, edit_hint: bool) -> Vec<ShortcutHint<'sta
     ]);
     if is_profile {
         if edit_hint {
+            hints.push(ShortcutHint::new("n", crate::tui_text!("new", "新建")));
             hints.push(ShortcutHint::new("e", crate::tui_text!("edit", "编辑")));
         }
         hints.push(ShortcutHint::new(
@@ -2374,6 +2437,10 @@ mod tests {
             let expected_command = format!("ccr {} profile create --help", platform.short_name());
 
             assert!(
+                rendered.contains("Press 'n' to create a new profile here"),
+                "{platform:?}: {rendered}"
+            );
+            assert!(
                 rendered.contains(&expected_command),
                 "{platform:?}: {rendered}"
             );
@@ -2401,6 +2468,10 @@ mod tests {
             .collect::<Vec<_>>()
             .join("\n");
 
+        assert!(
+            rendered.contains("按 'n' 在当前界面直接新建第一条配置"),
+            "{rendered}"
+        );
         assert!(
             rendered.contains("ccr grok profile create --help"),
             "{rendered}"
@@ -4477,13 +4548,15 @@ mod tests {
         let app = sample_profile_app(profile, ProfileConfig::new());
 
         assert!(footer_text(&app).contains("x all fields"));
+        assert!(footer_text(&app).contains("n new"));
         assert!(footer_text(&app).contains("e edit"));
 
-        // 紧凑分支: spec 强制保留的 PgUp/PgDn details 与 Ctrl+L language 不被挤掉
+        // 紧凑分支: 非空列表下优先丢弃 n / e，保留 PgUp/PgDn details 与 Ctrl+L language
         let compact = footer_text_for_width(&app, 80);
         assert!(compact.contains("x all fields"), "{compact}");
         assert!(compact.contains("PgUp/PgDn"), "{compact}");
         assert!(compact.contains("Ctrl+L"), "{compact}");
+        assert!(!compact.contains("n new"), "{compact}");
         assert!(!compact.contains("e edit"), "{compact}");
 
         let enabled = footer_hints(&app, u16::MAX, true);
@@ -4492,11 +4565,12 @@ mod tests {
             .map(|hint| format!("{} {}", hint.key, hint.label))
             .collect::<Vec<_>>()
             .join("  │  ");
+        let new_at = enabled_text.find("n new").expect("wide footer shows new");
         let edit_at = enabled_text.find("e edit").expect("wide footer shows edit");
         let fields_at = enabled_text
             .find("x all fields")
             .expect("wide footer shows all fields");
-        assert!(edit_at < fields_at, "{enabled_text}");
+        assert!(new_at < edit_at && edit_at < fields_at, "{enabled_text}");
 
         let narrow = footer_hints(&app, 80, true);
         let narrow_text = narrow
@@ -4504,9 +4578,27 @@ mod tests {
             .map(|hint| format!("{} {}", hint.key, hint.label))
             .collect::<Vec<_>>()
             .join("  │  ");
+        assert!(!narrow_text.contains("n new"), "{narrow_text}");
         assert!(!narrow_text.contains("e edit"), "{narrow_text}");
         assert!(narrow_text.contains("x all fields"), "{narrow_text}");
         assert!(narrow_text.contains("o deactivate"), "{narrow_text}");
+
+        // 空目录但尚无有效 catalog_revision (损坏/未就绪): 80 列下不展示不可用的 `n new`
+        let mut empty_app = app;
+        empty_app.tabs[0].profiles.clear();
+        empty_app.tabs[0].profile_configs.clear();
+        empty_app.tabs[0].catalog_revision = None;
+        let unready_empty_compact = footer_text_for_width(&empty_app, 80);
+        assert!(
+            !unready_empty_compact.contains("n new"),
+            "{unready_empty_compact}"
+        );
+
+        // 空目录就绪态 (total == 0, 无错误且具备 CAS 基线 Some("")): 80 列下仍保留 `n new`
+        empty_app.tabs[0].catalog_revision = Some(String::new());
+        let empty_compact = footer_text_for_width(&empty_app, 80);
+        assert!(empty_compact.contains("n new"), "{empty_compact}");
+        assert!(!empty_compact.contains("e edit"), "{empty_compact}");
     }
 
     #[test]
@@ -5066,6 +5158,130 @@ mod tests {
                 text.contains("Edit") || flattened.contains("编辑"),
                 "{text}"
             );
+        }
+        crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn create_editor_and_empty_state_render_across_viewports_and_languages() {
+        use crate::tui::profile_edit::{CreateEditorOpen, ProfileEditor};
+        use std::collections::BTreeSet;
+
+        const SENTINEL: &str = "CCR_CREATE_UI_SECRET_SENTINEL_901";
+
+        for (language, expected_empty, expected_new_chip, expected_title, expected_preview) in [
+            (
+                ccr_cli::managers::TuiLanguage::English,
+                "Press 'n'",
+                "n new",
+                "New Codex profile",
+                "New profile",
+            ),
+            (
+                ccr_cli::managers::TuiLanguage::SimplifiedChinese,
+                "按 'n'",
+                "n 新建",
+                "新建 Codex 配置",
+                "新建摘要",
+            ),
+        ] {
+            crate::tui::i18n::set_language(language);
+            let mut app = sample_profile_app_for(
+                Platform::Codex,
+                ProfileItem {
+                    name: "tmp".into(),
+                    description: None,
+                    is_current: false,
+                },
+                ProfileConfig::new(),
+            );
+            app.tabs[0].profiles.clear();
+            app.tabs[0].profile_configs.clear();
+            app.tabs[0].catalog_revision = Some(String::new());
+
+            for (width, height) in [(80, 24), (100, 30), (140, 30)] {
+                let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+                terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+                let rendered = buffer_text(terminal.backend());
+                let flattened = rendered.replace(' ', "");
+                assert!(
+                    rendered.contains(expected_empty)
+                        || flattened.contains(&expected_empty.replace(' ', "")),
+                    "{language:?} {width}x{height} missing empty prompt:\n{rendered}"
+                );
+                assert!(
+                    rendered.contains(expected_new_chip)
+                        || flattened.contains(&expected_new_chip.replace(' ', "")),
+                    "{language:?} {width}x{height} missing footer new chip:\n{rendered}"
+                );
+            }
+
+            // Open Create editor on empty catalog in Wide (140x30): left empty state dims to muted.
+            let mut editor = ProfileEditor::open_create(CreateEditorOpen {
+                platform: Platform::Codex,
+                revision: "",
+                existing_names: BTreeSet::new(),
+            });
+            let mut wide_term = Terminal::new(TestBackend::new(140, 30)).unwrap();
+            app.profile_editor = Some(editor);
+            wide_term.draw(|frame| draw(frame, &mut app)).unwrap();
+            let empty_secret_text = buffer_text(wide_term.backend());
+            let empty_secret_flat = empty_secret_text.replace(' ', "");
+            assert!(
+                empty_secret_text.contains(expected_title)
+                    || empty_secret_flat.contains(&expected_title.replace(' ', "")),
+                "{empty_secret_text}"
+            );
+            assert!(
+                empty_secret_text.contains("‹empty›") || empty_secret_flat.contains("‹未填写›"),
+                "{empty_secret_text}"
+            );
+            let list = app.list_area.get().expect("wide create keeps list pane");
+            let buf = wide_term.backend().buffer();
+            let mut saw_dimmed_quote = false;
+            for y in list.y + 1..list.y + list.height.saturating_sub(1) {
+                for x in list.x + 1..list.x + list.width.saturating_sub(1) {
+                    if let Some(cell) = buf.cell((x, y))
+                        && cell.symbol() == "'"
+                    {
+                        assert_eq!(cell.fg, theme::muted(), "empty state should be dimmed");
+                        saw_dimmed_quote = true;
+                    }
+                }
+            }
+            assert!(
+                saw_dimmed_quote,
+                "did not find dimmed 'n' quote in wide list"
+            );
+
+            // Type name, base_url, and secret -> dots render, SENTINEL never appears in any viewport.
+            editor = app.profile_editor.take().unwrap();
+            editor.set_text("name", "codex-relay");
+            editor.set_text("base_url", "https://relay.example.com/v1");
+            editor.set_text("auth_token", SENTINEL);
+            app.profile_editor = Some(editor);
+
+            for (width, height) in [(80, 24), (100, 30), (140, 30)] {
+                let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+                terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+                let rendered = buffer_text(terminal.backend());
+                let flattened = rendered.replace(' ', "");
+                assert!(
+                    !rendered.contains(SENTINEL) && !flattened.contains(SENTINEL),
+                    "{language:?} {width}x{height} leaked secret:\n{rendered}"
+                );
+                assert!(rendered.contains("••••••"), "{rendered}");
+                assert!(
+                    rendered.contains(expected_preview)
+                        || flattened.contains(&expected_preview.replace(' ', "")),
+                    "{rendered}"
+                );
+                assert!(
+                    rendered.contains("‹set›") || flattened.contains("‹已设置›"),
+                    "{rendered}"
+                );
+            }
         }
         crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
     }

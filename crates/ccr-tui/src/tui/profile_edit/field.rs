@@ -5,7 +5,7 @@ use ccr_cli::models::{Platform, ProfileConfig};
 use unicode_width::UnicodeWidthStr;
 
 use super::catalog::ModelOption;
-use super::schema::{FieldGroup, FieldKind, FieldSpec, specs};
+use super::schema::{FieldGroup, FieldKind, FieldSpec, create_specs, specs};
 
 #[derive(Clone, Debug)]
 pub(crate) struct TextBuffer {
@@ -152,7 +152,7 @@ impl EditorField {
         match self.spec.kind {
             FieldKind::Secret => self.secret_clear || !self.text.value().is_empty(),
             FieldKind::Toggle => self.toggle != self.original_toggle,
-            FieldKind::Choice(_) | FieldKind::Credential => {
+            FieldKind::Choice(_) | FieldKind::AuthMode(_) | FieldKind::Credential => {
                 self.choice_index != self.original_choice
             }
             FieldKind::Model(_) => self.model_id() != self.original_text.trim(),
@@ -204,6 +204,68 @@ pub(crate) fn load_fields(
         .collect()
 }
 
+pub(crate) fn load_create_fields(platform: Platform) -> Vec<EditorField> {
+    create_specs(platform)
+        .into_iter()
+        .map(create_field_from_spec)
+        .collect()
+}
+
+fn create_field_from_spec(spec: FieldSpec) -> EditorField {
+    let mut field = EditorField {
+        spec,
+        text: TextBuffer::new(String::new()),
+        original_text: String::new(),
+        toggle: false,
+        original_toggle: false,
+        choices: Vec::new(),
+        choice_index: 0,
+        original_choice: 0,
+        secret_clear: false,
+        error: None,
+        shown: spec.group == FieldGroup::General,
+    };
+    match spec.kind {
+        FieldKind::Text | FieldKind::Number | FieldKind::Tags | FieldKind::Secret => {}
+        FieldKind::Toggle => {
+            let enabled = spec.key == "enabled";
+            field.toggle = enabled;
+            field.original_toggle = enabled;
+        }
+        FieldKind::AuthMode(options) => {
+            let (choices, index) = choices_with_current(options, None, false);
+            field.choices = choices;
+            field.choice_index = index;
+            field.original_choice = index;
+        }
+        FieldKind::Choice(options) => {
+            let (choices, index) = choices_with_current(options, None, true);
+            field.choices = choices;
+            field.choice_index = index;
+            field.original_choice = index;
+        }
+        FieldKind::Model(options) => {
+            let (choices, index, custom, original) = model_choices(options, None);
+            field.original_text = original;
+            field.text = TextBuffer::new(custom);
+            field.choices = choices;
+            field.choice_index = index;
+            field.original_choice = index;
+        }
+        FieldKind::Credential => {
+            let (choices, index) =
+                choices_with_current(&["keep", "replace", "env", "clear"], None, false);
+            field.choices = choices;
+            field.choice_index = index;
+            field.original_choice = index;
+        }
+        FieldKind::Advanced => {
+            field.shown = true;
+        }
+    }
+    field
+}
+
 fn field_from_config(
     spec: FieldSpec,
     platform: Platform,
@@ -235,6 +297,13 @@ fn field_from_config(
             let enabled = initial_toggle(spec.key, config);
             field.toggle = enabled;
             field.original_toggle = enabled;
+        }
+        FieldKind::AuthMode(options) => {
+            let current = initial_choice(spec.key, config);
+            let (choices, index) = choices_with_current(options, current.as_deref(), false);
+            field.choices = choices;
+            field.choice_index = index;
+            field.original_choice = index;
         }
         FieldKind::Choice(options) => {
             let current = initial_choice(spec.key, config);
