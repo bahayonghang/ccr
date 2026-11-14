@@ -1,44 +1,45 @@
 use super::WorkflowEngine;
 use super::gitignore::{ensure_project_gitignore, ensure_ref_dir};
 use super::render::{
-    GitRepoOutcome, ProjectInitSummary, WizardCapabilities, format_config_confirmation,
-    format_final_ready_line, format_header, format_stage_1_git, format_stage_2_config,
-    format_stage_3_engine, format_stage_4_workspace_files, format_subprocess_end,
-    format_subprocess_start, format_wizard_status, next_steps_for_engine, render_summary_table,
+    GitRepoOutcome, ProjectInitSummary, STAGE_1_GIT_MESSAGE, STAGE_2_CONFIG_MESSAGE,
+    STAGE_4_WORKSPACE_FILES_MESSAGE, WizardCapabilities, final_ready_message,
+    format_subprocess_end, format_subprocess_start, next_steps_for_engine,
+    print_config_confirmation, print_header, render_summary_table, stage_3_engine_message,
 };
 use super::wizard::resolve_workflow_request;
 use super::workflow::{WorkflowInitRequest, build_workflow_init_args, validate_workflow_outputs};
 use crate::commands::common::print_next_steps;
 use ccr_core::core::error::{CcrError, Result};
-use ccr_core::core::logging::OutputStatus;
+use ccr_core::core::logging::ColorOutput;
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
+/// Run the four-stage project workflow initialization command in the current working directory.
 pub fn project_init_command(auto_yes: bool, workflow: Option<WorkflowEngine>) -> Result<()> {
     let root = std::env::current_dir().map_err(|error| {
         CcrError::FileIoError(format!("项目初始化阶段：无法获取当前工作目录: {error}"))
     })?;
     let caps = WizardCapabilities::for_stdout();
 
-    println!("{}", format_header(&root, auto_yes, workflow, caps));
+    print_header(&root, auto_yes, workflow);
     println!();
 
-    let (git, git_outcome) = ensure_git_repository(&root, caps)?;
+    let (git, git_outcome) = ensure_git_repository(&root)?;
     println!();
 
-    println!("{}", format_stage_2_config(caps));
-    let request = resolve_workflow_request(auto_yes, workflow, &git, &root, caps)?;
-    println!("{}", format_config_confirmation(&request, caps));
+    ColorOutput::step(STAGE_2_CONFIG_MESSAGE);
+    let request = resolve_workflow_request(auto_yes, workflow, &git, &root)?;
+    print_config_confirmation(&request);
     println!();
 
     run_workflow_init(&root, &request, caps)?;
     println!();
 
-    println!("{}", format_stage_4_workspace_files(caps));
-    let ref_outcome = ensure_ref_dir(&root, caps)?;
-    let gitignore_outcome = ensure_project_gitignore(&root, caps)?;
+    ColorOutput::step(STAGE_4_WORKSPACE_FILES_MESSAGE);
+    let ref_outcome = ensure_ref_dir(&root)?;
+    let gitignore_outcome = ensure_project_gitignore(&root)?;
     println!();
 
     let summary = ProjectInitSummary {
@@ -48,17 +49,14 @@ pub fn project_init_command(auto_yes: bool, workflow: Option<WorkflowEngine>) ->
         gitignore: &gitignore_outcome,
     };
     println!("{}", render_summary_table(&summary, caps));
-    println!("{}", format_final_ready_line(request.workflow, caps));
+    ColorOutput::success(&final_ready_message(request.workflow));
     print_next_steps(next_steps_for_engine(request.workflow));
 
     Ok(())
 }
 
-fn ensure_git_repository(
-    root: &Path,
-    caps: WizardCapabilities,
-) -> Result<(PathBuf, GitRepoOutcome)> {
-    println!("{}", format_stage_1_git(caps));
+fn ensure_git_repository(root: &Path) -> Result<(PathBuf, GitRepoOutcome)> {
+    ColorOutput::step(STAGE_1_GIT_MESSAGE);
 
     let git = resolve_tool("git", "Git")?;
 
@@ -79,26 +77,19 @@ fn ensure_git_repository(
         }
 
         let outcome = if paths_match(root, &repository_root) {
-            println!("  当前目录已经是 Git 仓库根，跳过 git init");
+            ColorOutput::info("  当前目录已经是 Git 仓库根，跳过 git init");
             GitRepoOutcome::ExistingRoot
         } else {
-            println!(
-                "{}",
-                format_wizard_status(
-                    OutputStatus::Warning,
-                    &format!(
-                        "当前目录位于 Git 仓库 {} 中，跳过嵌套 git init",
-                        repository_root.display()
-                    ),
-                    caps,
-                )
-            );
+            ColorOutput::warning(&format!(
+                "当前目录位于 Git 仓库 {} 中，跳过嵌套 git init",
+                repository_root.display()
+            ));
             GitRepoOutcome::ParentWorktree { repository_root }
         };
         return Ok((git, outcome));
     }
 
-    println!("  当前目录不在 Git 工作树中，运行 git init");
+    ColorOutput::info("  当前目录不在 Git 工作树中，运行 git init");
     let _ = io::stdout().flush();
     let status = Command::new(&git)
         .arg("init")
@@ -117,10 +108,7 @@ fn ensure_git_repository(
         )));
     }
 
-    println!(
-        "{}",
-        format_wizard_status(OutputStatus::Success, "Git 仓库初始化完成", caps)
-    );
+    ColorOutput::success("Git 仓库初始化完成");
     Ok((git, GitRepoOutcome::Initialized))
 }
 
@@ -130,9 +118,9 @@ fn run_workflow_init(
     caps: WizardCapabilities,
 ) -> Result<()> {
     let engine = request.workflow;
-    let stage = engine.stage_name();
+    let stage = engine.display_name();
     let binary_name = engine.binary_name();
-    println!("{}", format_stage_3_engine(engine, caps));
+    ColorOutput::step(&stage_3_engine_message(engine));
 
     let executable = resolve_tool(binary_name, stage)?;
     let args = build_workflow_init_args(request)?;
@@ -160,14 +148,7 @@ fn run_workflow_init(
     }
 
     validate_workflow_outputs(root, engine)?;
-    println!(
-        "{}",
-        format_wizard_status(
-            OutputStatus::Success,
-            &format!("{binary_name} 工作流产物校验通过"),
-            caps,
-        )
-    );
+    ColorOutput::success(&format!("{binary_name} 工作流产物校验通过"));
     Ok(())
 }
 

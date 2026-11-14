@@ -51,30 +51,40 @@ impl WorkspaceMarkers {
     }
 }
 
+// 扫描单个工作流引擎的特征文件及 AGENTS.md 闭合受管块签名。
+fn collect_engine_markers(
+    root: &Path,
+    file_markers: &[&'static str],
+    agents_signature: &str,
+    agents_label: &'static str,
+) -> Result<Vec<&'static str>> {
+    let mut matched = Vec::new();
+    for &rel in file_markers {
+        if root.join(rel).is_file() {
+            matched.push(rel);
+        }
+    }
+    if agents_md_contains_marker(root, agents_signature)? {
+        matched.push(agents_label);
+    }
+    Ok(matched)
+}
+
 pub(crate) fn detect_workspace_markers(root: &Path) -> Result<WorkspaceMarkers> {
-    let mut markers = WorkspaceMarkers::default();
-
-    for rel in TRELLIS_FILE_MARKERS {
-        if root.join(rel).is_file() {
-            markers.trellis.push(rel);
-        }
-    }
-    if agents_md_contains_marker(root, TRELLIS_MANAGED_SIGNATURE)? {
-        markers.trellis.push("AGENTS.md (Managed by Trellis.)");
-    }
-
-    for rel in MINI_TRELLIS_FILE_MARKERS {
-        if root.join(rel).is_file() {
-            markers.mini_trellis.push(rel);
-        }
-    }
-    if agents_md_contains_marker(root, MINI_TRELLIS_MANAGED_SIGNATURE)? {
-        markers
-            .mini_trellis
-            .push("AGENTS.md (Managed by mini-trellis.)");
-    }
-
-    Ok(markers)
+    Ok(WorkspaceMarkers {
+        trellis: collect_engine_markers(
+            root,
+            &TRELLIS_FILE_MARKERS,
+            TRELLIS_MANAGED_SIGNATURE,
+            "AGENTS.md (Managed by Trellis.)",
+        )?,
+        mini_trellis: collect_engine_markers(
+            root,
+            &MINI_TRELLIS_FILE_MARKERS,
+            MINI_TRELLIS_MANAGED_SIGNATURE,
+            "AGENTS.md (Managed by mini-trellis.)",
+        )?,
+    })
 }
 
 pub(crate) fn ensure_not_mixed_workspace(root: &Path) -> Result<WorkspaceMarkers> {
@@ -266,6 +276,34 @@ mod tests {
             assert!(matches!(err, CcrError::ValidationError(_)));
             assert_eq!(err.exit_code(), 90);
             assert!(err.to_string().contains("混杂"), "err: {err}");
+        }
+    }
+
+    #[test]
+    fn handwritten_or_unclosed_agents_md_does_not_trigger_false_marker() {
+        // 手写普通 AGENTS.md 提及同名文案或受管块未闭合时，不应误判为已初始化工作区
+        for content in [
+            "# Repository Notes\nThis repo is not Managed by mini-trellis. or Managed by Trellis.\n",
+            "<!-- TRELLIS:START -->\n# Truncated\nManaged by mini-trellis.\n",
+            "<!-- TRELLIS:START -->\n# Truncated\nManaged by Trellis.\n",
+        ] {
+            let temp = tempdir().unwrap();
+            write_file(temp.path(), "AGENTS.md", content);
+
+            let markers = detect_workspace_markers(temp.path()).unwrap();
+            assert_eq!(
+                markers.state(),
+                WorkspaceState::Uninitialized,
+                "content: {content:?}"
+            );
+            assert_eq!(
+                ensure_workflow_compatible(temp.path(), WorkflowEngine::Trellis).unwrap(),
+                WorkflowInitMode::Fresh
+            );
+            assert_eq!(
+                ensure_workflow_compatible(temp.path(), WorkflowEngine::MiniTrellis).unwrap(),
+                WorkflowInitMode::Fresh
+            );
         }
     }
 }

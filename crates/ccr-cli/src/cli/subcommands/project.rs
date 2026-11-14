@@ -9,8 +9,13 @@ pub enum ProjectAction {
         about = "在当前目录初始化 Git、工作流引擎（Trellis / mini-trellis）、本地 ref/ 与 .gitignore 规则"
     )]
     Init {
-        /// 选择工作流引擎（交互模式默认推荐 mini-trellis；-y 非交互模式默认兼容 trellis）
-        #[arg(long, value_enum, ignore_case = true)]
+        /// Workflow engine preset to initialize.
+        #[arg(
+            long,
+            value_enum,
+            ignore_case = true,
+            help = "选择工作流引擎（交互模式默认推荐 mini-trellis；-y 非交互模式默认兼容 trellis）"
+        )]
         workflow: Option<WorkflowEngine>,
     },
 }

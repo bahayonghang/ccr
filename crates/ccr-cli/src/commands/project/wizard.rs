@@ -1,9 +1,9 @@
 use super::WorkflowEngine;
 use super::fingerprint::{ensure_not_mixed_workspace, validate_markers_for_target};
-use super::render::{WizardCapabilities, format_wizard_status};
+use super::render::WizardCapabilities;
 use super::workflow::{WorkflowInitRequest, WorkflowPlatform};
 use ccr_core::core::error::{CcrError, Result};
-use ccr_core::core::logging::OutputStatus;
+use ccr_core::core::logging::ColorOutput;
 use dialoguer::console::{Style, style};
 use dialoguer::theme::{ColorfulTheme, SimpleTheme, Theme};
 use dialoguer::{Input, MultiSelect, Select};
@@ -74,18 +74,13 @@ pub(crate) trait ProjectWizardPrompter {
 
 struct DialoguerPrompter {
     theme: Box<dyn Theme>,
-    stdout_caps: WizardCapabilities,
     stderr_caps: WizardCapabilities,
 }
 
 impl DialoguerPrompter {
-    fn new(stdout_caps: WizardCapabilities, stderr_caps: WizardCapabilities) -> Self {
+    fn new(stderr_caps: WizardCapabilities) -> Self {
         let theme = WizardThemeKind::for_capabilities(stderr_caps).into_theme();
-        Self {
-            theme,
-            stdout_caps,
-            stderr_caps,
-        }
+        Self { theme, stderr_caps }
     }
 }
 
@@ -109,7 +104,7 @@ impl ProjectWizardPrompter for DialoguerPrompter {
         items: &[&str],
         defaults: &[bool],
     ) -> Result<Vec<usize>> {
-        // `defaults` applies to items already added, so `items` must come first.
+        // `defaults` 依赖已添加的选项列表，因此必须先调用 `items`。
         MultiSelect::with_theme(self.theme.as_ref())
             .with_prompt(prompt)
             .items(items)
@@ -131,10 +126,7 @@ impl ProjectWizardPrompter for DialoguerPrompter {
     }
 
     fn warn(&mut self, message: &str) {
-        println!(
-            "{}",
-            format_wizard_status(OutputStatus::Warning, message, self.stdout_caps)
-        );
+        ColorOutput::warning(message);
     }
 }
 
@@ -143,10 +135,9 @@ pub(crate) fn resolve_workflow_request(
     workflow: Option<WorkflowEngine>,
     git: &Path,
     root: &Path,
-    stdout_caps: WizardCapabilities,
 ) -> Result<WorkflowInitRequest> {
     let stderr_caps = WizardCapabilities::for_stderr();
-    let mut prompter = DialoguerPrompter::new(stdout_caps, stderr_caps);
+    let mut prompter = DialoguerPrompter::new(stderr_caps);
     resolve_workflow_request_with(auto_yes, workflow, git, root, &mut prompter)
 }
 
@@ -272,13 +263,7 @@ fn prompt_developer_with(
 }
 
 fn optional_git_user_name(git: &Path, root: &Path) -> Option<String> {
-    let output = Command::new(git)
-        .args(["config", "user.name"])
-        .current_dir(root)
-        .output()
-        .ok()?;
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    developer_name_from_git_config(output.status.success(), &stdout).ok()
+    read_git_user_name(git, root).ok()
 }
 
 fn read_git_user_name(git: &Path, root: &Path) -> Result<String> {
@@ -420,7 +405,7 @@ mod tests {
         let mut prompter = ScriptedPrompter {
             workflow_choices: VecDeque::from([0]),
             platform_choices: VecDeque::from([vec![0, 1, 2, 3]]),
-            // Empty Enter accepts prefilled default
+            // 直接回车应采用预填的 Git 用户名默认值
             developer_inputs: VecDeque::from([String::new()]),
             ..Default::default()
         };
@@ -433,7 +418,7 @@ mod tests {
         assert!(prompter.observed_workflow_items[0][0].starts_with("mini-trellis"));
         assert!(prompter.observed_workflow_items[0][1].starts_with("trellis"));
 
-        // mini-trellis platform menu has 4 default-checked items with flag labels, without Grok
+        // mini-trellis 宿主平台菜单默认全选 4 项带开关标签的平台，不含 Grok
         assert!(prompter.observed_workflow_prompts[0].contains("方向键移动"));
         assert!(prompter.observed_workflow_prompts[0].contains("回车确认"));
         assert!(prompter.observed_platform_prompts[0].contains("空格勾选"));
@@ -485,7 +470,7 @@ mod tests {
             ..Default::default()
         };
 
-        // Explicit --workflow trellis skips workflow menu
+        // 显式传入 --workflow trellis 时跳过引擎单选菜单
         let req = resolve_workflow_request_with(
             false,
             Some(WorkflowEngine::Trellis),
@@ -508,7 +493,7 @@ mod tests {
             ]
         );
         assert_eq!(prompter.observed_developer_defaults, vec![None, None, None]);
-        // 1 warning for empty platform selection + 2 warnings for blank developer input
+        // 1 次空平台选择告警 + 2 次空白用户名告警
         assert_eq!(
             prompter.warnings.len(),
             3,
@@ -531,7 +516,7 @@ mod tests {
         fs::write(temp.path().join(".trellis/workflow.md"), "trellis").unwrap();
         let git = write_fake_git(temp.path(), Some("Ada"));
         let mut prompter = ScriptedPrompter {
-            // User picks index 0 (mini-trellis) in an existing trellis workspace
+            // 在已有 trellis 工作区中选择下标 0（mini-trellis）
             workflow_choices: VecDeque::from([0]),
             ..Default::default()
         };
@@ -541,7 +526,7 @@ mod tests {
 
         assert_eq!(err.exit_code(), 90);
         assert!(err.to_string().contains("mini-trellis migrate"));
-        // Platform and developer prompts were never reached
+        // 冲突应立即终止，不进入后续平台复选与用户名输入提示
         assert!(prompter.observed_platform_items.is_empty());
         assert!(prompter.observed_developer_defaults.is_empty());
     }
@@ -576,5 +561,40 @@ mod tests {
         for forbidden in ['→', '✓', '⚠', '═', '┌', '─', '│', '❯'] {
             assert!(!rendered.contains(forbidden), "{rendered:?}");
         }
+    }
+
+    #[test]
+    fn stderr_tty_keeps_colorful_theme_when_stdout_is_redirected_or_no_color_is_empty() {
+        use std::ffi::OsStr;
+
+        let mut env = crate::test_support::TestHostEnv::new();
+        env.set_env("TERM", OsStr::new("xterm-256color"));
+        env.remove_env("CLICOLOR");
+        env.remove_env("CLICOLOR_FORCE");
+
+        // 仅重定向 stdout 但 stderr 仍是交互 TTY 时，交互菜单应保留彩色主题
+        env.remove_env("NO_COLOR");
+        let redirected_stdout = WizardCapabilities::from_env(false);
+        let tty_stderr = WizardCapabilities::from_env(true);
+        assert!(!redirected_stdout.style);
+        assert_eq!(
+            WizardThemeKind::for_capabilities(tty_stderr),
+            WizardThemeKind::Colorful
+        );
+
+        // 空值 NO_COLOR="" 对齐 colored 3.x 语义，不禁用 TTY 彩色主题
+        env.set_env("NO_COLOR", OsStr::new(""));
+        let tty_stderr_empty_no_color = WizardCapabilities::from_env(true);
+        assert_eq!(
+            WizardThemeKind::for_capabilities(tty_stderr_empty_no_color),
+            WizardThemeKind::Colorful
+        );
+
+        env.set_env("NO_COLOR", OsStr::new("1"));
+        let tty_stderr_disabled = WizardCapabilities::from_env(true);
+        assert_eq!(
+            WizardThemeKind::for_capabilities(tty_stderr_disabled),
+            WizardThemeKind::Simple
+        );
     }
 }

@@ -783,6 +783,44 @@ fn mini_trellis_failure_keeps_git_result_and_skips_gitignore() {
 }
 
 #[test]
+fn handwritten_agents_md_without_closed_managed_block_does_not_block_init() {
+    // 手写 AGENTS.md 正文提及受管签名但无闭合受管块时，不应误触发冲突阻断
+    let trellis_fixture = ProjectInitFixture::new();
+    trellis_fixture.install_all_tools();
+    fs::write(
+        trellis_fixture.project.join("AGENTS.md"),
+        "# Project Notes\nMentions Managed by mini-trellis. and Managed by Trellis. in prose.\n",
+    )
+    .unwrap();
+
+    let trellis_out = trellis_fixture.run(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
+    assert_success(&trellis_out);
+    assert!(stdout(&trellis_out).contains("trellis（首次初始化）"));
+
+    let mini_fixture = ProjectInitFixture::new();
+    mini_fixture.install_all_tools();
+    fs::write(
+        mini_fixture.project.join("AGENTS.md"),
+        "<!-- TRELLIS:START -->\nManaged by Trellis.\n",
+    )
+    .unwrap();
+
+    let mini_out = mini_fixture.run_mini_trellis(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init", "--workflow", "mini-trellis"],
+    );
+    assert_success(&mini_out);
+    assert!(stdout(&mini_out).contains("mini-trellis（首次初始化）"));
+}
+
+#[test]
 fn mini_trellis_zero_exit_missing_any_minimum_artifact_returns_validation_error_90() {
     for mode in [
         "missing",
@@ -790,21 +828,32 @@ fn mini_trellis_zero_exit_missing_any_minimum_artifact_returns_validation_error_
         "missing_add_session",
         "missing_agents",
         "wrong_agents",
+        "unmanaged_agents",
+        "unclosed_agents",
+        "corrupt_agents",
     ] {
         let fixture = ProjectInitFixture::new();
         fixture.install_all_tools();
+        let corrupt_source = fixture.root.join("corrupt-agents.bin");
+        fs::write(&corrupt_source, [0xFF_u8, 0xFE, 0x00, 0xD8]).unwrap();
 
-        let output = fixture.run_mini_trellis(
-            "root",
-            mode,
-            Some(GIT_USER),
-            &["--yes", "project", "init", "--workflow", "mini-trellis"],
-        );
+        let mut command = fixture.command("root", "success");
+        command
+            .env("FAKE_MINI_TRELLIS_MODE", mode)
+            .env("FAKE_CORRUPT_AGENTS", &corrupt_source)
+            .env("FAKE_GIT_USER", GIT_USER)
+            .args(["--yes", "project", "init", "--workflow", "mini-trellis"]);
+        let output = command.output().unwrap();
 
         assert_eq!(output.status.code(), Some(90), "mode: {mode}");
+        let err = stderr(&output);
         assert!(
-            stderr(&output).contains("缺少最低工作流文件"),
-            "mode: {mode}"
+            err.contains("mini-trellis 阶段"),
+            "mode: {mode}, err: {err}"
+        );
+        assert!(
+            err.contains("缺少最低工作流文件"),
+            "mode: {mode}, err: {err}"
         );
         assert!(
             fixture
@@ -821,7 +870,7 @@ fn mini_trellis_zero_exit_missing_any_minimum_artifact_returns_validation_error_
 
 #[test]
 fn four_stage_wizard_renders_header_boundaries_summary_card_and_next_steps_across_modes() {
-    // 1. Fresh mini-trellis in a brand-new repo with downstream CLI banner output
+    // 1. 全新仓库首次初始化 mini-trellis，并携带下游 CLI 横幅输出
     let fixture = ProjectInitFixture::new();
     fixture.install_all_tools();
     let mut cmd = fixture.command("none", "success");
@@ -833,7 +882,7 @@ fn four_stage_wizard_renders_header_boundaries_summary_card_and_next_steps_acros
     let fresh_out = stdout(&fresh);
 
     for header_line in [
-        "项目工作流初始化\n================",
+        "项目工作流初始化\n========",
         &format!("  目标目录: {}", fixture.project.display()),
         "  运行模式: 非交互自动模式 (-y)",
         "  工作流预设: mini-trellis",
@@ -872,7 +921,7 @@ fn four_stage_wizard_renders_header_boundaries_summary_card_and_next_steps_acros
         ],
     );
 
-    // 2. Idempotent second run of mini-trellis at existing repository root
+    // 2. 在已有仓库根目录二次幂等运行 mini-trellis
     let rerun = fixture.run_mini_trellis(
         "root",
         "success",
@@ -894,7 +943,7 @@ fn four_stage_wizard_renders_header_boundaries_summary_card_and_next_steps_acros
         );
     }
 
-    // 3. Default trellis (no --workflow preset) inside a parent repository subdirectory
+    // 3. 在父仓库子目录中默认初始化 trellis（不带 --workflow 预设）
     let parent_fixture = ProjectInitFixture::in_parent_repository();
     parent_fixture.install_all_tools();
     let parent_run = parent_fixture.run(
@@ -986,7 +1035,7 @@ fn assert_no_success_tail(output: &Output, label: &str) {
 
 #[test]
 fn output_degrades_cleanly_across_pipe_no_color_and_dumb_terminal() {
-    // 1. Pure pipe capture (non-TTY, without NO_COLOR or CLICOLOR)
+    // 1. 纯管道捕获模式（非 TTY，且未设置 NO_COLOR 或 CLICOLOR）
     let pipe_fixture = ProjectInitFixture::new();
     pipe_fixture.install_all_tools();
     let mut pipe_cmd = pipe_fixture.command("root", "success");
@@ -1018,7 +1067,7 @@ fn output_degrades_cleanly_across_pipe_no_color_and_dumb_terminal() {
     assert_no_ansi(&pipe_err, "pipe error");
     assert_no_success_tail(&pipe_err, "pipe error");
 
-    // 2. NO_COLOR=1 (without CLICOLOR=0)
+    // 2. NO_COLOR=1 禁用颜色（未设置 CLICOLOR=0）
     let no_color_fixture = ProjectInitFixture::new();
     no_color_fixture.install_all_tools();
     let mut nc_cmd = no_color_fixture.command("root", "success");
@@ -1045,7 +1094,7 @@ fn output_degrades_cleanly_across_pipe_no_color_and_dumb_terminal() {
     assert_no_ansi(&nc_err, "NO_COLOR=1 error");
     assert_no_success_tail(&nc_err, "NO_COLOR=1 error");
 
-    // 3. TERM=dumb (even with CLICOLOR_FORCE=1): ASCII table + zero ANSI + zero decorative Unicode
+    // 3. TERM=dumb（即使同时设置 CLICOLOR_FORCE=1）：纯 ASCII 表格 + 零 ANSI + 零装饰性 Unicode
     let dumb_fixture = ProjectInitFixture::new();
     dumb_fixture.install_all_tools();
     let mut dumb_cmd = dumb_fixture.command("none", "success");
@@ -1088,7 +1137,7 @@ fn output_degrades_cleanly_across_pipe_no_color_and_dumb_terminal() {
 
 #[test]
 fn every_stage_failure_omits_summary_table_ready_line_and_next_steps() {
-    // 1. Missing Git binary
+    // 1. 缺少 Git 可执行文件
     let missing_git = ProjectInitFixture::new();
     missing_git.install_all_tools();
     fs::remove_file(
@@ -1107,7 +1156,7 @@ fn every_stage_failure_omits_summary_table_ready_line_and_next_steps() {
     assert!(stderr(&out).contains("Git 阶段"));
     assert_no_success_tail(&out, "missing git");
 
-    // 2. git init failure
+    // 2. git init 执行失败
     let git_fail = ProjectInitFixture::new();
     git_fail.install_all_tools();
     let out = git_fail.run(
@@ -1120,7 +1169,7 @@ fn every_stage_failure_omits_summary_table_ready_line_and_next_steps() {
     assert!(stderr(&out).contains("Git 阶段"));
     assert_no_success_tail(&out, "git init fail");
 
-    // 3. Missing Git user.name in -y
+    // 3. -y 非交互模式下缺少 Git user.name
     let no_user = ProjectInitFixture::new();
     no_user.install_all_tools();
     let out = no_user.run("root", "success", None, &["--yes", "project", "init"]);
@@ -1128,7 +1177,7 @@ fn every_stage_failure_omits_summary_table_ready_line_and_next_steps() {
     assert!(stderr(&out).contains("用户名阶段"));
     assert_no_success_tail(&out, "missing git user");
 
-    // 4. Cross-engine conflict
+    // 4. 跨工作流引擎冲突阻断
     let conflict = ProjectInitFixture::new();
     conflict.install_all_tools();
     fs::create_dir_all(conflict.project.join(".trellis")).unwrap();
@@ -1143,7 +1192,7 @@ fn every_stage_failure_omits_summary_table_ready_line_and_next_steps() {
     assert!(stderr(&out).contains("工作流冲突"));
     assert_no_success_tail(&out, "cross-engine conflict");
 
-    // 5. Missing downstream CLI binary
+    // 5. 缺少下游工作流 CLI 可执行文件
     let missing_cli = ProjectInitFixture::new();
     missing_cli.install_git();
     let out = missing_cli.run(
@@ -1156,7 +1205,7 @@ fn every_stage_failure_omits_summary_table_ready_line_and_next_steps() {
     assert!(stderr(&out).contains("Trellis 阶段"));
     assert_no_success_tail(&out, "missing trellis cli");
 
-    // 6. Downstream CLI non-zero exit
+    // 6. 下游工作流 CLI 非零退出
     let cli_fail = ProjectInitFixture::new();
     cli_fail.install_all_tools();
     let out = cli_fail.run(
@@ -1169,7 +1218,7 @@ fn every_stage_failure_omits_summary_table_ready_line_and_next_steps() {
     assert!(stderr(&out).contains("Trellis 阶段"));
     assert_no_success_tail(&out, "downstream cli fail");
 
-    // 7. Missing minimum workflow outputs
+    // 7. 缺少最低工作流产物文件
     let post_fail = ProjectInitFixture::new();
     post_fail.install_all_tools();
     let out = post_fail.run(
@@ -1182,7 +1231,7 @@ fn every_stage_failure_omits_summary_table_ready_line_and_next_steps() {
     assert!(stderr(&out).contains("Trellis 阶段"));
     assert_no_success_tail(&out, "missing minimum files");
 
-    // 8. ref file conflict
+    // 8. ref 同名普通文件冲突
     let ref_conflict = ProjectInitFixture::new();
     ref_conflict.install_all_tools();
     fs::write(ref_conflict.project.join("ref"), "conflict").unwrap();
@@ -1196,7 +1245,7 @@ fn every_stage_failure_omits_summary_table_ready_line_and_next_steps() {
     assert!(stderr(&out).contains("ref/ 阶段"));
     assert_no_success_tail(&out, "ref file conflict");
 
-    // 9. .gitignore read/write failure
+    // 9. .gitignore 读写失败
     let gitignore_fail = ProjectInitFixture::new();
     gitignore_fail.install_all_tools();
     fs::create_dir(gitignore_fail.project.join(".gitignore")).unwrap();
@@ -1376,6 +1425,25 @@ if /I "%FAKE_MINI_TRELLIS_MODE%"=="wrong_agents" (
   )
   exit /b 0
 )
+if /I "%FAKE_MINI_TRELLIS_MODE%"=="unmanaged_agents" (
+  > "AGENTS.md" (
+    echo # mini-trellis
+    echo Managed by mini-trellis.
+  )
+  exit /b 0
+)
+if /I "%FAKE_MINI_TRELLIS_MODE%"=="unclosed_agents" (
+  > "AGENTS.md" (
+    echo ^<!-- TRELLIS:START --^>
+    echo # mini-trellis
+    echo Managed by mini-trellis.
+  )
+  exit /b 0
+)
+if /I "%FAKE_MINI_TRELLIS_MODE%"=="corrupt_agents" (
+  copy /b "%FAKE_CORRUPT_AGENTS%" "AGENTS.md" >nul
+  exit /b 0
+)
 > "AGENTS.md" (
   echo ^<!-- TRELLIS:START --^>
   echo # mini-trellis
@@ -1403,6 +1471,18 @@ fi
 [ "$FAKE_MINI_TRELLIS_MODE" = "missing_agents" ] && exit 0
 if [ "$FAKE_MINI_TRELLIS_MODE" = "wrong_agents" ]; then
   printf '<!-- TRELLIS:START -->\nManaged by Trellis.\n<!-- TRELLIS:END -->\n' > AGENTS.md
+  exit 0
+fi
+if [ "$FAKE_MINI_TRELLIS_MODE" = "unmanaged_agents" ]; then
+  printf '# mini-trellis\nManaged by mini-trellis.\n' > AGENTS.md
+  exit 0
+fi
+if [ "$FAKE_MINI_TRELLIS_MODE" = "unclosed_agents" ]; then
+  printf '<!-- TRELLIS:START -->\n# mini-trellis\nManaged by mini-trellis.\n' > AGENTS.md
+  exit 0
+fi
+if [ "$FAKE_MINI_TRELLIS_MODE" = "corrupt_agents" ]; then
+  /bin/cp "$FAKE_CORRUPT_AGENTS" AGENTS.md
   exit 0
 fi
 printf '<!-- TRELLIS:START -->\n# mini-trellis\nManaged by mini-trellis.\n<!-- TRELLIS:END -->\n' > AGENTS.md

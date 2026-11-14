@@ -1,7 +1,7 @@
-use super::render::{GitignoreOutcome, RefDirOutcome, WizardCapabilities, format_wizard_status};
+use super::render::{GitignoreOutcome, RefDirOutcome};
 use ccr_core::core::AtomicWriter;
 use ccr_core::core::error::{CcrError, Result};
-use ccr_core::core::logging::OutputStatus;
+use ccr_core::core::logging::ColorOutput;
 use std::fs;
 use std::path::Path;
 
@@ -11,10 +11,10 @@ pub(crate) const PROJECT_IGNORE_RULES: [&str; 7] = [
     ".agents/", ".claude/", ".codex/", ".cursor/", ".omp/", ".grok/", "ref/",
 ];
 
-pub(crate) fn ensure_ref_dir(root: &Path, caps: WizardCapabilities) -> Result<RefDirOutcome> {
+pub(crate) fn ensure_ref_dir(root: &Path) -> Result<RefDirOutcome> {
     let path = root.join("ref");
     if path.is_dir() {
-        println!("  ref/ 目录已存在，保留现有内容");
+        ColorOutput::info("  ref/ 目录已存在，保留现有内容");
         return Ok(RefDirOutcome::Existing);
     }
     if path.is_file() {
@@ -33,17 +33,11 @@ pub(crate) fn ensure_ref_dir(root: &Path, caps: WizardCapabilities) -> Result<Re
     fs::create_dir(&path).map_err(|error| {
         CcrError::FileIoError(format!("ref/ 阶段：创建 {} 失败: {error}", path.display()))
     })?;
-    println!(
-        "{}",
-        format_wizard_status(OutputStatus::Success, "已创建 ref/ 目录", caps)
-    );
+    ColorOutput::success("已创建 ref/ 目录");
     Ok(RefDirOutcome::Created)
 }
 
-pub(crate) fn ensure_project_gitignore(
-    root: &Path,
-    caps: WizardCapabilities,
-) -> Result<GitignoreOutcome> {
+pub(crate) fn ensure_project_gitignore(root: &Path) -> Result<GitignoreOutcome> {
     let path = root.join(".gitignore");
     let existing = match fs::read_to_string(&path) {
         Ok(content) => content,
@@ -56,14 +50,13 @@ pub(crate) fn ensure_project_gitignore(
         }
     };
 
-    let missing = missing_project_ignore_rules(&existing);
-    let Some(merged) = merge_project_ignore_rules(&existing) else {
-        println!("  .gitignore 已包含全部项目忽略规则，跳过写入");
+    let Some(plan) = plan_project_ignore_merge(&existing) else {
+        ColorOutput::info("  .gitignore 已包含全部项目忽略规则，跳过写入");
         return Ok(GitignoreOutcome::Unchanged);
     };
 
     AtomicWriter::new(&path)
-        .write_string(&merged)
+        .write_string(&plan.merged)
         .map_err(|error| {
             CcrError::FileIoError(format!(
                 ".gitignore 阶段：原子写入 {} 失败: {error}",
@@ -71,16 +64,13 @@ pub(crate) fn ensure_project_gitignore(
             ))
         })?;
 
-    println!(
-        "{}",
-        format_wizard_status(OutputStatus::Success, &gitignore_ready_message(), caps)
-    );
+    ColorOutput::success(&gitignore_ready_message());
     Ok(GitignoreOutcome::Updated {
-        added_rules: missing,
+        added_rules: plan.added_rules,
     })
 }
 
-pub(crate) fn gitignore_ready_message() -> String {
+fn gitignore_ready_message() -> String {
     format!(
         ".gitignore 已包含 {}",
         join_chinese_list(&PROJECT_IGNORE_RULES)
@@ -104,10 +94,15 @@ fn missing_project_ignore_rules(existing: &str) -> Vec<&'static str> {
         .collect()
 }
 
-pub(crate) fn merge_project_ignore_rules(existing: &str) -> Option<String> {
-    let missing = missing_project_ignore_rules(existing);
+struct GitignoreMergePlan {
+    merged: String,
+    added_rules: Vec<&'static str>,
+}
 
-    if missing.is_empty() {
+// 一次计算缺失规则并生成合并文本，保留原有内容与 LF/CRLF 换行风格。
+fn plan_project_ignore_merge(existing: &str) -> Option<GitignoreMergePlan> {
+    let added_rules = missing_project_ignore_rules(existing);
+    if added_rules.is_empty() {
         return None;
     }
 
@@ -120,12 +115,20 @@ pub(crate) fn merge_project_ignore_rules(existing: &str) -> Option<String> {
     if !merged.is_empty() && !merged.ends_with('\n') {
         merged.push_str(line_ending);
     }
-    for rule in missing {
+    for &rule in &added_rules {
         merged.push_str(rule);
         merged.push_str(line_ending);
     }
 
-    Some(merged)
+    Some(GitignoreMergePlan {
+        merged,
+        added_rules,
+    })
+}
+
+#[cfg(test)]
+fn merge_project_ignore_rules(existing: &str) -> Option<String> {
+    plan_project_ignore_merge(existing).map(|plan| plan.merged)
 }
 
 #[cfg(test)]

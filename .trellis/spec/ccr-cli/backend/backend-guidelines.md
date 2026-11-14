@@ -117,11 +117,11 @@ Codex Auth plaintext import must return the service error after printing its fai
   - `mini-trellis` (4 items): Claude Code (`--claude`), Codex (`--codex`), Cursor (`--cursor`), Oh My Pi (`--omp`) — excludes unsupported `--grok`.
   - Downstream invocation: `<trellis|mini-trellis> init -u <developer> <selected-flags-in-order...> [--yes]`. Append `--yes` last only when `auto_yes` is true; never pass `-s` / `--skip-existing`.
 - Workspace fingerprint markers (`Uninitialized`, `Trellis`, `MiniTrellis`, `Mixed`):
-  - `TrellisMarkers` (5 items, any match): `.trellis/workflow.md`, `.trellis/scripts/task.py`, `.trellis/.template-hashes.json`, `.trellis/.version`, or `AGENTS.md` containing `Managed by Trellis.` (checked within `<!-- TRELLIS:START -->...<!-- TRELLIS:END -->` blocks when present, otherwise full file).
-  - `MiniTrellisMarkers` (6 items, any match): `.trellis/.mini-trellis-manifest.json`, `.trellis/spec/guides/mini-memory.md`, `.claude/commands/mini-trellis/remember.md`, `.agents/skills/mini-trellis-remember/SKILL.md`, `.omp/extensions/mini-trellis/index.ts`, or `AGENTS.md` containing `Managed by mini-trellis.` (same managed-block rule).
+  - `TrellisMarkers` (5 items, any match): `.trellis/workflow.md`, `.trellis/scripts/task.py`, `.trellis/.template-hashes.json`, `.trellis/.version`, or `AGENTS.md` containing `Managed by Trellis.` strictly inside a closed `<!-- TRELLIS:START -->...<!-- TRELLIS:END -->` managed block.
+  - `MiniTrellisMarkers` (6 items, any match): `.trellis/.mini-trellis-manifest.json`, `.trellis/spec/guides/mini-memory.md`, `.claude/commands/mini-trellis/remember.md`, `.agents/skills/mini-trellis-remember/SKILL.md`, `.omp/extensions/mini-trellis/index.ts`, or `AGENTS.md` containing `Managed by mini-trellis.` (same closed managed-block rule).
 - Minimum workflow postconditions (checked after downstream CLI exits zero):
   - `trellis`: `<cwd>/.trellis/workflow.md` and `<cwd>/.trellis/scripts/task.py` are files.
-  - `mini-trellis`: `<cwd>/.trellis/.mini-trellis-manifest.json` and `<cwd>/.trellis/scripts/add_session.py` are files, and `<cwd>/AGENTS.md` is a file containing `Managed by mini-trellis.`.
+  - `mini-trellis`: `<cwd>/.trellis/.mini-trellis-manifest.json` and `<cwd>/.trellis/scripts/add_session.py` are files, and `<cwd>/AGENTS.md` is a valid UTF-8 file containing `Managed by mini-trellis.` inside a closed `<!-- TRELLIS:START -->...<!-- TRELLIS:END -->` managed block.
 - Fixed ignore rules, in this order: `.agents/`, `.claude/`, `.codex/`, `.cursor/`, `.omp/`, `.grok/`, `ref/`. They do not vary with the selected workflow engine or platforms. `.agents/` is the shared Codex directory. `.trellis/` stays tracked. Kimi stays off both menus and is not an ignore rule. A file that only has the older four rules (`.agents/`, `.claude/`, `.codex/`, `ref/`) gains `.cursor/`, `.omp/`, and `.grok/` on the next run. Source: Grok session `01a1c998-2fde-7572-910a-b5d6808135e4` (2026-11-11, user accepted the init fix and asked to commit); implemented by `PROJECT_IGNORE_RULES` in `crates/ccr-cli/src/commands/project/gitignore.rs` and stated in `docs/reference/commands/project-init.md`.
 
 ### 3. Contracts
@@ -137,8 +137,8 @@ Codex Auth plaintext import must return the service error after printing its fai
   3. `[3/4] 执行 <trellis|mini-trellis> 初始化`: resolve the selected engine binary on `PATH`, wrap inherited `stdin`/`stdout`/`stderr` output between start/end boundary lines (`┌─ 外部工具输出 (<cmd>) ──...` / `└─ 外部工具执行完毕 ──...` on non-dumb TTY; `--- 开始执行 <cmd> ---` / `--- <cmd> 执行结束 ---` when captured or `TERM=dumb`), and require both exit code `0` and the engine's minimum postcondition before continuing.
   4. `[4/4] 准备 ref/ 目录与 .gitignore 忽略规则`: keep an existing `ref/` directory, fail with `FileIoError` (51) if `ref` is a file/non-directory without touching `.gitignore`, or create a missing `ref/` directory (even when `.gitignore` is already complete). Merge only missing rules from the fixed seven-rule list while preserving existing text and LF/CRLF line endings, skipping the write when unchanged and using `AtomicWriter` when updated.
 - Terminal capability adaptation (`WizardCapabilities` / `WizardThemeKind`):
-  - `dialoguer` uses the custom `ColorfulTheme` only on styled non-dumb TTY stderr, falling back to `SimpleTheme` under non-TTY, `NO_COLOR`, `CLICOLOR=0`, or `TERM=dumb`.
-  - After stage 4 succeeds, render a 6-row summary table (`Git 仓库`, `工作流引擎`, `宿主平台`, `开发者`, `ref/ 目录`, `.gitignore`) via `new_utf8_table()` (or ASCII `new_table()` under `TERM=dumb`), calling `force_no_tty()` and omitting cell ANSI styling whenever `!caps.style`, while keeping `...` truncation.
+  - `dialoguer` uses the custom `ColorfulTheme` only on styled non-dumb TTY stderr (evaluated per stream without coupling to `stdout`, ignoring empty `NO_COLOR=""`), falling back to `SimpleTheme` under non-TTY, non-empty `NO_COLOR`, `CLICOLOR=0`, or `TERM=dumb`.
+  - After stage 4 succeeds, render a 6-row summary table (`Git 仓库`, `工作流引擎`, `宿主平台`, `开发者`, `ref/ 目录`, `.gitignore`) via `new_utf8_table()` (or ASCII `new_table()` under `TERM=dumb`) with `ContentArrangement::Dynamic`, preserving TTY width before `force_no_tty()` and omitting cell ANSI styling whenever `!caps.style`, while keeping `...` truncation.
   - Print the ready line (`项目工作流初始化完成（Git、<Trellis|mini-trellis>、Agent 忽略规则和 ref/ 均已就绪）`) and engine-specific `print_next_steps`:
     - `mini-trellis`: `mini-trellis doctor` and `mini-trellis mem recall "project init"`.
     - `trellis`: `trellis doctor` and `ccr project init --help`.
@@ -155,7 +155,7 @@ Codex Auth plaintext import must return the service error after printing its fai
 - `-y` cannot start `git config user.name` -> `ExternalCommandError` (75); do not run workflow CLI.
 - `-y` and Git user name is missing or blank -> `ValidationError` (90, `用户名阶段`); do not run workflow CLI, create `ref/`, or write `.gitignore`.
 - Selected workflow executable (`trellis` or `mini-trellis`) missing or exits non-zero -> `ExternalCommandError` (75, `Trellis 阶段` / `mini-trellis 阶段`); keep Git result, do not create `ref/` or write `.gitignore`.
-- Selected workflow exits zero but misses any minimum postcondition artifact -> `ValidationError` (90, `缺少最低工作流文件`); do not create `ref/` or write `.gitignore`.
+- Selected workflow exits zero but misses any minimum postcondition artifact (including unreadable/non-UTF-8 or unclosed managed-block `AGENTS.md`) -> `ValidationError` (90, `<Trellis|mini-trellis> 阶段` / `缺少最低工作流文件`); do not create `ref/` or write `.gitignore`.
 - `ref` is a file (or non-directory) -> `FileIoError` (51, `ref/ 阶段`); do not write `.gitignore`.
 - `.gitignore` read/write fails -> `FileIoError` (51, `.gitignore 阶段`); keep completed Git, workflow, and `ref/` results.
 - All seven fixed rules already exist -> success without rewriting `.gitignore` (`.gitignore 已包含全部项目忽略规则，跳过写入`), while still creating a missing `ref/` directory.
@@ -200,13 +200,14 @@ Checking only `.git` creates nested repositories in subdirectories. Skipping fin
 #### Correct
 
 ```rust
-let (git, git_outcome) = ensure_git_repository(&root, caps)?;          // detects parent worktrees
-let request = resolve_workflow_request(auto_yes, workflow, &git, &root, caps)?; // fingerprint guard + 5/4 platforms
-run_workflow_init(&root, &request, caps)?;                             // bounded TTY output + engine postcondition
-let ref_outcome = ensure_ref_dir(&root, caps)?;                        // keep directory, reject file
-let gitignore_outcome = ensure_project_gitignore(&root, caps)?;        // 7-rule merge + no-op + AtomicWriter
-println!("{}", render_summary_table(&summary, caps));                  // new_utf8_table / new_table in dumb mode
-print_next_steps(next_steps_for_engine(request.workflow));
+let (git, git_outcome) = ensure_git_repository(&root)?;          // detects parent worktrees
+let request = resolve_workflow_request(auto_yes, workflow, &git, &root)?; // fingerprint guard + 5/4 platforms
+run_workflow_init(&root, &request, stdout_caps)?;                // bounded TTY output + engine postcondition
+let ref_outcome = ensure_ref_dir(&root)?;                        // keep directory, reject file
+let gitignore_outcome = ensure_project_gitignore(&root)?;        // 7-rule merge + no-op + AtomicWriter
+println!("{}", render_summary_table(&summary, stdout_caps));     // Dynamic + new_utf8_table / new_table in dumb mode
+ColorOutput::success(&final_ready_message(request.workflow));
+print_next_steps(next_steps_for_engine(request.workflow), stdout_caps);
 ```
 
 This enforces cross-engine safety, preserves ownership boundaries, adapts cleanly to non-TTY/`NO_COLOR`/`TERM=dumb`, and keeps retries idempotent.

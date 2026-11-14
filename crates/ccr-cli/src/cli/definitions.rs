@@ -636,7 +636,7 @@ mod tests {
 
     #[test]
     fn profile_open_flags_parse_for_all_platforms() {
-        // claude: no flag
+        // claude：不带参数
         let cli = Cli::try_parse_from(["ccr", "claude", "profile", "open"]).unwrap();
         assert!(matches!(
             cli.command,
@@ -644,7 +644,7 @@ mod tests {
                 action: Some(ClaudeAction::Profile { action })
             }) if matches!(action.as_ref(), ClaudeProfileAction::Open { json: false })
         ));
-        // claude: --json
+        // claude：带 --json
         let cli = Cli::try_parse_from(["ccr", "claude", "profile", "open", "--json"]).unwrap();
         assert!(matches!(
             cli.command,
@@ -652,7 +652,7 @@ mod tests {
                 action: Some(ClaudeAction::Profile { action })
             }) if matches!(action.as_ref(), ClaudeProfileAction::Open { json: true })
         ));
-        // codex: --json
+        // codex：带 --json
         let codex = Cli::try_parse_from(["ccr", "codex", "profile", "open", "--json"]).unwrap();
         assert!(matches!(
             codex.command,
@@ -662,7 +662,7 @@ mod tests {
                 })
             })
         ));
-        // grok: --json
+        // grok：带 --json
         let grok = Cli::try_parse_from(["ccr", "grok", "profile", "open", "--json"]).unwrap();
         assert!(matches!(
             grok.command,

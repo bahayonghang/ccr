@@ -30,9 +30,7 @@ impl WorkflowEngine {
     // 交互态单选菜单顺序：默认第 1 项（索引 0）推荐 mini-trellis，第 2 项为 trellis。
     pub(crate) const INTERACTIVE_MENU_ORDER: [Self; 2] = [Self::MiniTrellis, Self::Trellis];
 
-    /// Resolve the workflow engine in `-y` (non-interactive) mode.
-    ///
-    /// Preserves `trellis` as the default when `--workflow` is omitted.
+    // 解析 -y 非交互模式下的工作流引擎；省略 --workflow 时默认保持 trellis 兼容。
     pub(crate) fn resolve_non_interactive(explicit: Option<Self>) -> Self {
         explicit.unwrap_or(Self::Trellis)
     }
@@ -44,7 +42,7 @@ impl WorkflowEngine {
         }
     }
 
-    pub(crate) fn stage_name(self) -> &'static str {
+    pub(crate) fn display_name(self) -> &'static str {
         match self {
             Self::Trellis => "Trellis",
             Self::MiniTrellis => "mini-trellis",
@@ -129,8 +127,20 @@ pub(crate) struct WorkflowInitRequest {
     pub(crate) auto_yes: bool,
 }
 
+impl WorkflowInitRequest {
+    // 按目标引擎定义的固定菜单顺序返回已启用平台的显示名称。
+    pub(crate) fn ordered_platform_labels(&self) -> Vec<&'static str> {
+        self.workflow
+            .supported_platforms()
+            .iter()
+            .filter(|platform| self.platforms.contains(platform))
+            .map(|platform| platform.label())
+            .collect()
+    }
+}
+
 pub(crate) fn build_workflow_init_args(request: &WorkflowInitRequest) -> Result<Vec<String>> {
-    let stage = request.workflow.stage_name();
+    let stage = request.workflow.display_name();
     let developer = request.developer.trim();
     if developer.is_empty() {
         return Err(CcrError::ValidationError(format!(
@@ -192,11 +202,26 @@ pub(crate) fn validate_workflow_outputs(root: &Path, engine: WorkflowEngine) -> 
             let agents_md = root.join("AGENTS.md");
             if !agents_md.is_file() {
                 missing.push(agents_md.display().to_string());
-            } else if !agents_md_contains_marker(root, MINI_TRELLIS_MANAGED_SIGNATURE)? {
-                missing.push(format!(
-                    "{} (缺少 {MINI_TRELLIS_MANAGED_SIGNATURE})",
-                    agents_md.display()
-                ));
+            } else {
+                match fs::read_to_string(&agents_md) {
+                    Ok(content)
+                        if managed_block_contains_marker(
+                            &content,
+                            MINI_TRELLIS_MANAGED_SIGNATURE,
+                        ) => {}
+                    Ok(_) => {
+                        missing.push(format!(
+                            "{} (缺少闭合受管块签名 {MINI_TRELLIS_MANAGED_SIGNATURE})",
+                            agents_md.display()
+                        ));
+                    }
+                    Err(error) => {
+                        missing.push(format!(
+                            "{} (无法作为有效 UTF-8 读取: {error})",
+                            agents_md.display()
+                        ));
+                    }
+                }
             }
         }
     }
@@ -206,11 +231,29 @@ pub(crate) fn validate_workflow_outputs(root: &Path, engine: WorkflowEngine) -> 
     } else {
         Err(CcrError::ValidationError(format!(
             "{} 阶段：{} init 成功退出，但缺少最低工作流文件: {}",
-            engine.stage_name(),
+            engine.display_name(),
             engine.binary_name(),
             missing.join(", ")
         )))
     }
+}
+
+// 严格在闭合的 `<!-- TRELLIS:START -->...<!-- TRELLIS:END -->` 受管块内部检测标记。
+pub(crate) fn managed_block_contains_marker(content: &str, marker: &str) -> bool {
+    let mut remainder = content;
+    while let Some(start_idx) = remainder.find(MANAGED_BLOCK_START) {
+        let after_start = &remainder[start_idx + MANAGED_BLOCK_START.len()..];
+        let Some(end_idx) = after_start.find(MANAGED_BLOCK_END) else {
+            break;
+        };
+        let block = &after_start[..end_idx];
+        let inner = block.rsplit(MANAGED_BLOCK_START).next().unwrap_or(block);
+        if inner.contains(marker) {
+            return true;
+        }
+        remainder = &after_start[end_idx + MANAGED_BLOCK_END.len()..];
+    }
+    false
 }
 
 pub(crate) fn agents_md_contains_marker(root: &Path, marker: &str) -> Result<bool> {
@@ -226,26 +269,7 @@ pub(crate) fn agents_md_contains_marker(root: &Path, marker: &str) -> Result<boo
         ))
     })?;
 
-    let mut remainder = content.as_str();
-    let mut saw_managed_block = false;
-    while let Some(start_idx) = remainder.find(MANAGED_BLOCK_START) {
-        let after_start = &remainder[start_idx + MANAGED_BLOCK_START.len()..];
-        let Some(end_idx) = after_start.find(MANAGED_BLOCK_END) else {
-            break;
-        };
-        saw_managed_block = true;
-        let block = &after_start[..end_idx];
-        if block.contains(marker) {
-            return Ok(true);
-        }
-        remainder = &after_start[end_idx + MANAGED_BLOCK_END.len()..];
-    }
-
-    if saw_managed_block {
-        Ok(false)
-    } else {
-        Ok(content.contains(marker))
-    }
+    Ok(managed_block_contains_marker(&content, marker))
 }
 
 #[cfg(test)]
@@ -321,7 +345,7 @@ mod tests {
         let root = temp.path();
         std::fs::create_dir_all(root.join(".trellis/scripts")).unwrap();
 
-        // 1. Only manifest + add_session.py (missing AGENTS.md) -> ValidationError (90)
+        // 1. 仅存在清单与 add_session.py（缺少 AGENTS.md）-> ValidationError (90)
         std::fs::write(root.join(".trellis/.mini-trellis-manifest.json"), "{}").unwrap();
         std::fs::write(root.join(".trellis/scripts/add_session.py"), "# script").unwrap();
         let err_no_agents =
@@ -329,7 +353,7 @@ mod tests {
         assert_eq!(err_no_agents.exit_code(), 90);
         assert!(err_no_agents.to_string().contains("AGENTS.md"));
 
-        // 2. AGENTS.md exists but only has Trellis marker (not mini-trellis) -> ValidationError (90)
+        // 2. AGENTS.md 仅包含 Trellis 受管签名（缺少 mini-trellis 签名）-> ValidationError (90)
         std::fs::write(
             root.join("AGENTS.md"),
             "<!-- TRELLIS:START -->\nManaged by Trellis.\n<!-- TRELLIS:END -->\n",
@@ -340,7 +364,7 @@ mod tests {
         assert_eq!(err_wrong_agents.exit_code(), 90);
         assert!(err_wrong_agents.to_string().contains("AGENTS.md"));
 
-        // 3. Valid AGENTS.md with Managed by mini-trellis., but missing manifest -> ValidationError (90)
+        // 3. AGENTS.md 受管块合法，但缺少 .mini-trellis-manifest.json -> ValidationError (90)
         std::fs::write(
             root.join("AGENTS.md"),
             "<!-- TRELLIS:START -->\n# mini-trellis\nManaged by mini-trellis.\n<!-- TRELLIS:END -->\n",
@@ -356,7 +380,7 @@ mod tests {
                 .contains(".mini-trellis-manifest.json")
         );
 
-        // 4. Restore manifest, remove add_session.py -> ValidationError (90)
+        // 4. 恢复清单文件但移除 add_session.py -> ValidationError (90)
         std::fs::write(root.join(".trellis/.mini-trellis-manifest.json"), "{}").unwrap();
         std::fs::remove_file(root.join(".trellis/scripts/add_session.py")).unwrap();
         let err_no_script =
@@ -364,8 +388,48 @@ mod tests {
         assert_eq!(err_no_script.exit_code(), 90);
         assert!(err_no_script.to_string().contains("add_session.py"));
 
-        // 5. All three minimum artifacts valid -> Ok
+        // 5. 三项最低工作流产物全部齐备 -> 校验通过
         std::fs::write(root.join(".trellis/scripts/add_session.py"), "# script").unwrap();
         validate_workflow_outputs(root, WorkflowEngine::MiniTrellis).unwrap();
+    }
+
+    #[test]
+    fn mini_trellis_validation_rejects_unmanaged_unclosed_and_non_utf8_agents_md_with_exit_90() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path();
+        std::fs::create_dir_all(root.join(".trellis/scripts")).unwrap();
+        std::fs::write(root.join(".trellis/.mini-trellis-manifest.json"), "{}").unwrap();
+        std::fs::write(root.join(".trellis/scripts/add_session.py"), "# script").unwrap();
+
+        // 无受管块或受管块未闭合的 AGENTS.md 均应按最低产物校验失败返回 90
+        for invalid_text in [
+            "# Notes\nManaged by mini-trellis.\n",
+            "<!-- TRELLIS:START -->\n# Unclosed\nManaged by mini-trellis.\n",
+        ] {
+            std::fs::write(root.join("AGENTS.md"), invalid_text).unwrap();
+            let err = validate_workflow_outputs(root, WorkflowEngine::MiniTrellis).unwrap_err();
+            assert!(matches!(err, CcrError::ValidationError(_)), "err: {err}");
+            assert_eq!(err.exit_code(), 90);
+            assert!(err.to_string().contains("mini-trellis 阶段"), "err: {err}");
+            assert!(err.to_string().contains("AGENTS.md"), "err: {err}");
+        }
+
+        // 非 UTF-8 损坏的 AGENTS.md 在第 3 阶段同样统一返回 ValidationError (90)
+        std::fs::write(root.join("AGENTS.md"), [0xff, 0xfe, 0x00]).unwrap();
+        let non_utf8_err =
+            validate_workflow_outputs(root, WorkflowEngine::MiniTrellis).unwrap_err();
+        assert!(
+            matches!(non_utf8_err, CcrError::ValidationError(_)),
+            "err: {non_utf8_err}"
+        );
+        assert_eq!(non_utf8_err.exit_code(), 90);
+        assert!(
+            non_utf8_err.to_string().contains("mini-trellis 阶段"),
+            "err: {non_utf8_err}"
+        );
+        assert!(
+            non_utf8_err.to_string().contains("AGENTS.md"),
+            "err: {non_utf8_err}"
+        );
     }
 }

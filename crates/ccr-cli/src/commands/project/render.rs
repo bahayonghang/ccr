@@ -2,15 +2,19 @@ use super::WorkflowEngine;
 use super::fingerprint::WorkflowInitMode;
 use super::workflow::WorkflowInitRequest;
 use crate::commands::common::{new_table, new_utf8_table};
-use ccr_core::core::logging::OutputStatus;
+use ccr_core::core::logging::ColorOutput;
 use colored::Colorize;
-use comfy_table::{Attribute, Cell, Color as TableColor, Table};
+use comfy_table::{Attribute, Cell, Color as TableColor, ContentArrangement, Row, Table};
 use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 
 const HEADER_TITLE: &str = "项目工作流初始化";
-const HEADER_UNDERLINE: &str = "================";
+pub(crate) const STAGE_1_GIT_MESSAGE: &str = "[1/4] 检查 Git 仓库";
+pub(crate) const STAGE_2_CONFIG_MESSAGE: &str = "[2/4] 配置工作流与宿主平台";
+pub(crate) const STAGE_4_WORKSPACE_FILES_MESSAGE: &str =
+    "[4/4] 准备 ref/ 目录与 .gitignore 忽略规则";
 
+// 仅负责 `project init` 专属控件（dialoguer 主题、子进程边界线、摘要表样式与边框）的流级能力判定。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct WizardCapabilities {
     pub(crate) is_tty: bool,
@@ -27,22 +31,35 @@ impl WizardCapabilities {
         Self::from_env(std::io::stderr().is_terminal())
     }
 
-    fn from_env(is_tty: bool) -> Self {
+    pub(crate) fn from_env(is_tty: bool) -> Self {
         let term = std::env::var("TERM").ok();
-        let no_color = std::env::var_os("NO_COLOR").map(|_| "1");
-        let clicolor = std::env::var("CLICOLOR").ok();
-        let clicolor_force = std::env::var("CLICOLOR_FORCE").ok();
-        let mut caps = Self::resolve(
+        let no_color = std::env::var_os("NO_COLOR");
+        let clicolor = std::env::var_os("CLICOLOR");
+        let clicolor_force = std::env::var_os("CLICOLOR_FORCE");
+        let no_color_str = match no_color.as_deref() {
+            None => None,
+            Some(v) if v.is_empty() => Some(""),
+            Some(v) => Some(v.to_str().unwrap_or("1")),
+        };
+        let clicolor_str = match clicolor.as_deref() {
+            None => None,
+            Some(v) if v.is_empty() => Some(""),
+            Some(v) if v == "0" => Some("0"),
+            Some(v) => Some(v.to_str().unwrap_or("1")),
+        };
+        let clicolor_force_str = match clicolor_force.as_deref() {
+            None => None,
+            Some(v) if v.is_empty() => Some(""),
+            Some(v) if v == "0" => Some("0"),
+            Some(v) => Some(v.to_str().unwrap_or("1")),
+        };
+        Self::resolve(
             is_tty,
             term.as_deref(),
-            no_color,
-            clicolor.as_deref(),
-            clicolor_force.as_deref(),
-        );
-        if !colored::control::SHOULD_COLORIZE.should_colorize() {
-            caps.style = false;
-        }
-        caps
+            no_color_str,
+            clicolor_str,
+            clicolor_force_str,
+        )
     }
 
     pub(crate) fn resolve(
@@ -54,7 +71,8 @@ impl WizardCapabilities {
     ) -> Self {
         let is_dumb = term == Some("dumb");
         let force_color = clicolor_force.is_some_and(|value| !value.is_empty() && value != "0");
-        let color_disabled = no_color.is_some() || clicolor == Some("0");
+        let color_disabled =
+            no_color.is_some_and(|value| !value.is_empty()) || clicolor == Some("0");
         let style = is_tty && !is_dumb && (force_color || !color_disabled);
         Self {
             is_tty,
@@ -72,142 +90,55 @@ impl WizardCapabilities {
     }
 }
 
-pub(crate) fn format_kv_line(key: &str, value: &str, indent: usize, style: bool) -> String {
-    let padding = " ".repeat(indent);
-    let styled_key = if style {
-        key.bold().to_string()
-    } else {
-        key.to_string()
-    };
-    let mut lines = value.split('\n');
-    let mut output = format!(
-        "{padding}{styled_key}: {}",
-        lines.next().unwrap_or_default()
-    );
-    for line in lines {
-        output.push_str(&format!("\n{padding}  {line}"));
-    }
-    output
-}
-
-pub(crate) fn format_header(
+pub(crate) fn header_context_fields(
     root: &Path,
     auto_yes: bool,
     explicit_workflow: Option<WorkflowEngine>,
-    caps: WizardCapabilities,
-) -> String {
-    let (title, underline) = if caps.style {
-        (
-            HEADER_TITLE.blue().bold().to_string(),
-            HEADER_UNDERLINE.blue().to_string(),
-        )
-    } else {
-        (HEADER_TITLE.to_string(), HEADER_UNDERLINE.to_string())
-    };
-
+) -> Vec<(&'static str, String)> {
     let mode_label = if auto_yes {
         "非交互自动模式 (-y)"
     } else {
         "交互式向导"
     };
 
-    let mut lines = vec![
-        title,
-        underline,
-        format_kv_line("目标目录", &root.display().to_string(), 2, caps.style),
-        format_kv_line("运行模式", mode_label, 2, caps.style),
+    let mut fields = vec![
+        ("目标目录", root.display().to_string()),
+        ("运行模式", mode_label.to_string()),
     ];
 
     if let Some(engine) = explicit_workflow {
-        lines.push(format_kv_line(
-            "工作流预设",
-            engine.binary_name(),
-            2,
-            caps.style,
-        ));
+        fields.push(("工作流预设", engine.binary_name().to_string()));
     }
 
-    lines.join("\n")
+    fields
 }
 
-pub(crate) fn format_wizard_status(
-    status: OutputStatus,
-    msg: &str,
-    caps: WizardCapabilities,
-) -> String {
-    let (marker, label) = match (status, caps.symbols()) {
-        (OutputStatus::Success, true) => ("✓", ""),
-        (OutputStatus::Warning, true) => ("!", " 警告:"),
-        (OutputStatus::Error, true) => ("×", " 错误:"),
-        (OutputStatus::Step, true) => ("→", ""),
-        (OutputStatus::Skipped, true) => ("-", " 跳过:"),
-        (OutputStatus::Success, false) => ("成功:", ""),
-        (OutputStatus::Warning, false) => ("警告:", ""),
-        (OutputStatus::Error, false) => ("错误:", ""),
-        (OutputStatus::Step, false) => ("进度:", ""),
-        (OutputStatus::Skipped, false) => ("跳过:", ""),
-    };
-
-    let marker = if caps.style {
-        match status {
-            OutputStatus::Success => marker.green().bold().to_string(),
-            OutputStatus::Warning => marker.yellow().bold().to_string(),
-            OutputStatus::Error => marker.red().bold().to_string(),
-            OutputStatus::Step => marker.cyan().bold().to_string(),
-            OutputStatus::Skipped => marker.to_string(),
-        }
-    } else {
-        marker.to_string()
-    };
-
-    format!("{marker}{label} {msg}")
+pub(crate) fn print_header(root: &Path, auto_yes: bool, explicit_workflow: Option<WorkflowEngine>) {
+    ColorOutput::title(HEADER_TITLE);
+    for (key, value) in header_context_fields(root, auto_yes, explicit_workflow) {
+        ColorOutput::key_value(key, &value, 2);
+    }
 }
 
-pub(crate) fn format_stage_1_git(caps: WizardCapabilities) -> String {
-    format_wizard_status(OutputStatus::Step, "[1/4] 检查 Git 仓库", caps)
+pub(crate) fn stage_3_engine_message(engine: WorkflowEngine) -> String {
+    format!("[3/4] 执行 {} 初始化", engine.binary_name())
 }
 
-pub(crate) fn format_stage_2_config(caps: WizardCapabilities) -> String {
-    format_wizard_status(OutputStatus::Step, "[2/4] 配置工作流与宿主平台", caps)
-}
-
-pub(crate) fn format_stage_3_engine(engine: WorkflowEngine, caps: WizardCapabilities) -> String {
-    format_wizard_status(
-        OutputStatus::Step,
-        &format!("[3/4] 执行 {} 初始化", engine.binary_name()),
-        caps,
-    )
-}
-
-pub(crate) fn format_stage_4_workspace_files(caps: WizardCapabilities) -> String {
-    format_wizard_status(
-        OutputStatus::Step,
-        "[4/4] 准备 ref/ 目录与 .gitignore 忽略规则",
-        caps,
-    )
-}
-
-pub(crate) fn ordered_platform_labels(request: &WorkflowInitRequest) -> Vec<&'static str> {
-    request
-        .workflow
-        .supported_platforms()
-        .iter()
-        .filter(|platform| request.platforms.contains(platform))
-        .map(|platform| platform.label())
-        .collect()
-}
-
-pub(crate) fn format_config_confirmation(
+pub(crate) fn config_confirmation_fields(
     request: &WorkflowInitRequest,
-    caps: WizardCapabilities,
-) -> String {
-    let platforms = ordered_platform_labels(request).join(", ");
+) -> [(&'static str, String); 3] {
+    let platforms = request.ordered_platform_labels().join(", ");
     [
-        format_kv_line("工作流引擎", request.workflow.binary_name(), 2, caps.style),
-        format_kv_line("宿主平台", &platforms, 2, caps.style),
-        format_kv_line("开发者", request.developer.trim(), 2, caps.style),
+        ("工作流引擎", request.workflow.binary_name().to_string()),
+        ("宿主平台", platforms),
+        ("开发者", request.developer.trim().to_string()),
     ]
-    .join("\n")
+}
+
+pub(crate) fn print_config_confirmation(request: &WorkflowInitRequest) {
+    for (key, value) in config_confirmation_fields(request) {
+        ColorOutput::key_value(key, &value, 2);
+    }
 }
 
 pub(crate) fn format_subprocess_start(engine: WorkflowEngine, caps: WizardCapabilities) -> String {
@@ -317,14 +248,23 @@ pub(crate) fn build_summary_table(
     } else {
         new_table()
     };
+    table.set_content_arrangement(ContentArrangement::Dynamic);
 
+    if caps.is_tty
+        && let Some(tty_width) = table.width()
+    {
+        table.set_width(tty_width);
+    }
     if !caps.style {
         table.force_no_tty();
     }
 
-    let headers = ["阶段项", "状态", "结果详情"]
-        .map(|title| summary_cell(title, caps.style, Some(TableColor::Cyan), true));
-    table.set_header(headers);
+    let mut header_row = Row::from(
+        ["阶段项", "状态", "结果详情"]
+            .map(|title| summary_cell(title, caps.style, Some(TableColor::Cyan), true)),
+    );
+    header_row.max_height(1);
+    table.set_header(header_row);
 
     let (git_status, git_tone, git_detail) = match summary.git {
         GitRepoOutcome::Initialized => (
@@ -353,7 +293,7 @@ pub(crate) fn build_summary_table(
         WorkflowInitMode::Reinit => ("已更新", format!("{binary}（幂等更新）")),
     };
 
-    let platform_labels = ordered_platform_labels(summary.request);
+    let platform_labels = summary.request.ordered_platform_labels();
     let platform_status = format!("{} 项启用", platform_labels.len());
     let platform_detail = platform_labels.join(", ");
 
@@ -411,11 +351,13 @@ pub(crate) fn build_summary_table(
             SummaryStatusTone::Active => TableColor::Green,
             SummaryStatusTone::Reused => TableColor::Yellow,
         };
-        table.add_row(vec![
+        let mut row = Row::from(vec![
             summary_cell(item, caps.style, None, caps.style),
             summary_cell(status, caps.style, Some(status_color), true),
             summary_cell(detail, caps.style, None, false),
         ]);
+        row.max_height(2);
+        table.add_row(row);
     }
 
     table
@@ -428,14 +370,10 @@ pub(crate) fn render_summary_table(
     build_summary_table(summary, caps).to_string()
 }
 
-pub(crate) fn format_final_ready_line(engine: WorkflowEngine, caps: WizardCapabilities) -> String {
-    format_wizard_status(
-        OutputStatus::Success,
-        &format!(
-            "项目工作流初始化完成（Git、{}、Agent 忽略规则和 ref/ 均已就绪）",
-            engine.stage_name()
-        ),
-        caps,
+pub(crate) fn final_ready_message(engine: WorkflowEngine) -> String {
+    format!(
+        "项目工作流初始化完成（Git、{}、Agent 忽略规则和 ref/ 均已就绪）",
+        engine.display_name()
     )
 }
 
@@ -452,6 +390,7 @@ pub(crate) fn next_steps_for_engine(
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use ccr_core::core::logging::OutputStatus;
     use std::path::Path;
 
     #[test]
@@ -489,67 +428,121 @@ mod tests {
     }
 
     #[test]
-    fn header_renders_context_fields_and_optional_workflow_preset_without_ansi_when_unstyled() {
-        let plain = WizardCapabilities::resolve(false, Some("xterm-256color"), None, None, None);
-        let interactive = format_header(Path::new("/tmp/demo-app"), false, None, plain);
+    fn empty_no_color_and_redirected_stdout_keep_tty_stream_styled() {
+        use std::ffi::OsStr;
+
+        let empty_no_color =
+            WizardCapabilities::resolve(true, Some("xterm-256color"), Some(""), None, None);
+        assert!(empty_no_color.style);
+        assert!(empty_no_color.symbols());
+
+        let empty_clicolor =
+            WizardCapabilities::resolve(true, Some("xterm-256color"), None, Some(""), None);
+        assert!(empty_clicolor.style);
+
+        let clicolor_zero =
+            WizardCapabilities::resolve(true, Some("xterm-256color"), None, Some("0"), None);
+        assert!(!clicolor_zero.style);
+
+        for non_forcing in [Some(""), Some("0")] {
+            let unforced = WizardCapabilities::resolve(
+                true,
+                Some("xterm-256color"),
+                Some("1"),
+                None,
+                non_forcing,
+            );
+            assert!(!unforced.style);
+        }
+
+        let forced_over_no_color = WizardCapabilities::resolve(
+            true,
+            Some("xterm-256color"),
+            Some("1"),
+            Some("0"),
+            Some("1"),
+        );
+        assert!(forced_over_no_color.style);
+
+        let mut env = crate::test_support::TestHostEnv::new();
+        env.set_env("TERM", OsStr::new("xterm-256color"));
+        env.set_env("NO_COLOR", OsStr::new(""));
+        env.remove_env("CLICOLOR");
+        env.remove_env("CLICOLOR_FORCE");
+
+        let redirected_stdout = WizardCapabilities::from_env(false);
+        let interactive_stderr = WizardCapabilities::from_env(true);
+        assert!(!redirected_stdout.style);
+        assert!(interactive_stderr.style);
+    }
+
+    #[test]
+    fn header_context_fields_reflect_mode_and_optional_workflow_preset() {
+        let interactive = header_context_fields(Path::new("/tmp/demo-app"), false, None);
         assert_eq!(
             interactive,
-            concat!(
-                "项目工作流初始化\n",
-                "================\n",
-                "  目标目录: /tmp/demo-app\n",
-                "  运行模式: 交互式向导"
-            )
+            vec![
+                ("目标目录", "/tmp/demo-app".to_string()),
+                ("运行模式", "交互式向导".to_string()),
+            ]
         );
-        assert!(!interactive.contains("\u{1b}["));
 
-        let auto_with_preset = format_header(
+        let auto_with_preset = header_context_fields(
             Path::new("/tmp/demo-app"),
             true,
             Some(WorkflowEngine::MiniTrellis),
-            plain,
         );
         assert_eq!(
             auto_with_preset,
-            concat!(
-                "项目工作流初始化\n",
-                "================\n",
-                "  目标目录: /tmp/demo-app\n",
-                "  运行模式: 非交互自动模式 (-y)\n",
-                "  工作流预设: mini-trellis"
-            )
+            vec![
+                ("目标目录", "/tmp/demo-app".to_string()),
+                ("运行模式", "非交互自动模式 (-y)".to_string()),
+                ("工作流预设", "mini-trellis".to_string()),
+            ]
         );
-        assert!(!auto_with_preset.contains("\u{1b}["));
     }
 
     #[test]
     fn stages_confirmation_and_boundaries_adapt_between_tty_no_color_captured_and_dumb() {
         use crate::commands::project::fingerprint::WorkflowInitMode;
         use crate::commands::project::workflow::WorkflowPlatform;
+        use std::ffi::OsStr;
+
+        let mut env = crate::test_support::TestHostEnv::new();
+        env.set_env("TERM", OsStr::new("xterm-256color"));
+        env.set_env("NO_COLOR", OsStr::new("1"));
+        env.remove_env("CLICOLOR");
+        env.remove_env("CLICOLOR_FORCE");
 
         let no_color_tty =
             WizardCapabilities::resolve(true, Some("xterm-256color"), Some("1"), None, None);
         let captured = WizardCapabilities::resolve(false, Some("xterm-256color"), None, None, None);
         let dumb = WizardCapabilities::resolve(true, Some("dumb"), None, None, Some("1"));
 
-        assert_eq!(format_stage_1_git(no_color_tty), "→ [1/4] 检查 Git 仓库");
+        // 状态行复用 ccr-core::ColorOutput::format_status
         assert_eq!(
-            format_stage_2_config(no_color_tty),
+            ColorOutput::format_status(OutputStatus::Step, STAGE_1_GIT_MESSAGE, true),
+            "→ [1/4] 检查 Git 仓库"
+        );
+        assert_eq!(
+            ColorOutput::format_status(OutputStatus::Step, STAGE_2_CONFIG_MESSAGE, true),
             "→ [2/4] 配置工作流与宿主平台"
         );
         assert_eq!(
-            format_stage_3_engine(WorkflowEngine::MiniTrellis, no_color_tty),
+            ColorOutput::format_status(
+                OutputStatus::Step,
+                &stage_3_engine_message(WorkflowEngine::MiniTrellis),
+                true,
+            ),
             "→ [3/4] 执行 mini-trellis 初始化"
         );
         assert_eq!(
-            format_stage_4_workspace_files(no_color_tty),
+            ColorOutput::format_status(OutputStatus::Step, STAGE_4_WORKSPACE_FILES_MESSAGE, true),
             "→ [4/4] 准备 ref/ 目录与 .gitignore 忽略规则"
         );
-
-        assert_eq!(format_stage_1_git(captured), "进度: [1/4] 检查 Git 仓库");
         assert_eq!(
-            format_stage_3_engine(WorkflowEngine::Trellis, dumb),
-            "进度: [3/4] 执行 trellis 初始化"
+            ColorOutput::format_status(OutputStatus::Step, STAGE_1_GIT_MESSAGE, false),
+            "进度: [1/4] 检查 Git 仓库"
         );
 
         let req = WorkflowInitRequest {
@@ -565,12 +558,15 @@ mod tests {
             auto_yes: false,
         };
         assert_eq!(
-            format_config_confirmation(&req, captured),
-            concat!(
-                "  工作流引擎: mini-trellis\n",
-                "  宿主平台: Claude Code, Codex, Cursor, Oh My Pi\n",
-                "  开发者: Ada Lovelace"
-            )
+            config_confirmation_fields(&req),
+            [
+                ("工作流引擎", "mini-trellis".to_string()),
+                (
+                    "宿主平台",
+                    "Claude Code, Codex, Cursor, Oh My Pi".to_string()
+                ),
+                ("开发者", "Ada Lovelace".to_string()),
+            ]
         );
 
         let tty_start = format_subprocess_start(WorkflowEngine::MiniTrellis, no_color_tty);
@@ -589,22 +585,29 @@ mod tests {
                 format_subprocess_end(WorkflowEngine::MiniTrellis, plain_caps),
                 "  --- mini-trellis init 执行结束 ---"
             );
-            assert_eq!(
-                format_wizard_status(
-                    OutputStatus::Success,
-                    "mini-trellis 工作流产物校验通过",
-                    plain_caps
-                ),
-                "成功: mini-trellis 工作流产物校验通过"
-            );
         }
+
+        assert_eq!(
+            ColorOutput::format_status(
+                OutputStatus::Success,
+                "mini-trellis 工作流产物校验通过",
+                false,
+            ),
+            "成功: mini-trellis 工作流产物校验通过"
+        );
     }
 
     #[test]
     fn summary_table_ready_line_and_next_steps_reflect_outcomes_truncation_and_dumb_ascii() {
         use crate::commands::project::gitignore::PROJECT_IGNORE_RULES;
         use crate::commands::project::workflow::WorkflowPlatform;
-        use comfy_table::ContentArrangement;
+        use std::ffi::OsStr;
+
+        let mut env = crate::test_support::TestHostEnv::new();
+        env.set_env("TERM", OsStr::new("xterm-256color"));
+        env.set_env("NO_COLOR", OsStr::new("1"));
+        env.remove_env("CLICOLOR");
+        env.remove_env("CLICOLOR_FORCE");
 
         let no_color_tty =
             WizardCapabilities::resolve(true, Some("xterm-256color"), Some("1"), None, None);
@@ -670,7 +673,7 @@ mod tests {
             );
         }
 
-        // Idempotent rerun in parent worktree under TERM=dumb -> ASCII borders + zero decorative Unicode
+        // 在父仓库子目录幂等重跑且处于 TERM=dumb 时，应使用纯 ASCII 边框且不含任何装饰性 Unicode
         let reinit_request = WorkflowInitRequest {
             workflow: WorkflowEngine::Trellis,
             mode: WorkflowInitMode::Reinit,
@@ -713,26 +716,65 @@ mod tests {
             );
         }
 
-        // Narrow width truncation preserves `...` (never `…`)
-        let mut narrow = build_summary_table(&fresh_summary, no_color_tty);
-        for row in narrow.row_iter_mut() {
-            row.max_height(1);
+        // 直接使用 build_summary_table 验证 80 列不超宽、120 列单行完整显示、36 列触发 `...` 截断
+        let mut table_80 = build_summary_table(&fresh_summary, no_color_tty);
+        table_80.set_width(80);
+        let rendered_80 = table_80.to_string();
+        for line in rendered_80.lines() {
+            let width = dialoguer::console::measure_text_width(line);
+            assert!(
+                width <= 80,
+                "line width {width} > 80: {line}\n{rendered_80}"
+            );
         }
-        narrow
-            .set_content_arrangement(ContentArrangement::Dynamic)
-            .set_width(36);
+        for rule in PROJECT_IGNORE_RULES {
+            assert!(
+                rendered_80.contains(rule),
+                "missing {rule} in 80-column table:\n{rendered_80}"
+            );
+        }
+
+        let mut table_120 = build_summary_table(&fresh_summary, no_color_tty);
+        table_120.set_width(120);
+        let rendered_120 = table_120.to_string();
+        for line in rendered_120.lines() {
+            let width = dialoguer::console::measure_text_width(line);
+            assert!(width <= 120, "line width {width} > 120: {line}");
+        }
+        assert!(
+            rendered_120.contains(".agents/、.claude/、.codex/、.cursor/、.omp/、.grok/、ref/"),
+            "{rendered_120}"
+        );
+
+        let mut narrow = build_summary_table(&fresh_summary, no_color_tty);
+        narrow.set_width(36);
         let narrow_rendered = narrow.to_string();
+        for line in narrow_rendered.lines() {
+            let width = dialoguer::console::measure_text_width(line);
+            assert!(
+                width <= 36,
+                "line width {width} > 36: {line}\n{narrow_rendered}"
+            );
+        }
         assert!(narrow_rendered.contains("..."), "{narrow_rendered}");
         assert!(!narrow_rendered.contains('…'), "{narrow_rendered}");
         assert!(!narrow_rendered.contains("\u{1b}["));
 
-        // Ready line & engine-specific next steps
+        // 收尾就绪文案与引擎专属下一步引导
         assert_eq!(
-            format_final_ready_line(WorkflowEngine::MiniTrellis, no_color_tty),
+            ColorOutput::format_status(
+                OutputStatus::Success,
+                &final_ready_message(WorkflowEngine::MiniTrellis),
+                true,
+            ),
             "✓ 项目工作流初始化完成（Git、mini-trellis、Agent 忽略规则和 ref/ 均已就绪）"
         );
         assert_eq!(
-            format_final_ready_line(WorkflowEngine::Trellis, dumb),
+            ColorOutput::format_status(
+                OutputStatus::Success,
+                &final_ready_message(WorkflowEngine::Trellis),
+                false,
+            ),
             "成功: 项目工作流初始化完成（Git、Trellis、Agent 忽略规则和 ref/ 均已就绪）"
         );
 
