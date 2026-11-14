@@ -1,4 +1,5 @@
-use clap::Args;
+use clap::{Args, ValueEnum};
+use std::path::PathBuf;
 
 #[derive(Args, Debug, Clone)]
 pub struct ProfileCreateActionArgs {
@@ -143,6 +144,113 @@ pub struct CodexProfileEditActionArgs {
 
 #[derive(Args, Debug, Clone)]
 pub struct ProfileOffActionArgs {
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ImportConflictStrategy {
+    /// 保留本地同名配置不变，跳过导入项（默认）
+    #[default]
+    Skip,
+    /// 用导入项整条更新本地同名配置（保留本地 usage_count；若命中当前激活项默认自动重应用运行时）
+    Overwrite,
+    /// 保留本地同名配置，将导入项自动改名为 <name>-imported（或递增序号）新增入库
+    Rename,
+}
+
+impl ImportConflictStrategy {
+    pub const fn to_application_strategy(self) -> crate::application::ConflictStrategy {
+        match self {
+            Self::Skip => crate::application::ConflictStrategy::Skip,
+            Self::Overwrite => crate::application::ConflictStrategy::Overwrite,
+            Self::Rename => crate::application::ConflictStrategy::Rename,
+        }
+    }
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct ProfileExportActionArgs {
+    /// 仅导出指定名称的 Profile（可传多个；任一名称不存在则报错退出，与 --tag 互斥）
+    #[arg(value_name = "NAME", conflicts_with = "tags")]
+    pub names: Vec<String>,
+
+    /// 按标签筛选导出（可重复传入，匹配任一标签即导出，与位置参数 NAME 互斥）
+    #[arg(
+        short = 't',
+        long = "tag",
+        value_name = "TAG",
+        conflicts_with = "names"
+    )]
+    pub tags: Vec<String>,
+
+    /// 写入指定文件路径 [默认: ./ccr-<platform>-profiles-<YYYYMMDD-HHMMSS>.toml]
+    #[arg(
+        short = 'o',
+        long = "output",
+        value_name = "FILE",
+        conflicts_with = "stdout"
+    )]
+    pub output: Option<PathBuf>,
+
+    /// 将导出的 TOML 直接输出到标准输出，不创建本地文件（提示与警告改走 stderr；与 -o、--json 互斥）
+    #[arg(long, conflicts_with_all = ["output", "json"])]
+    pub stdout: bool,
+
+    /// 剥离所有内联密钥、可疑敏感扩展字段与 URL 内嵌凭据（写出 secrets_mode = "redacted"）
+    #[arg(long = "no-secrets")]
+    pub no_secrets: bool,
+
+    /// 将导出结果元数据以 JSON 输出到标准输出（仍落盘写入文件，JSON 内不含任何密钥；与 --stdout 互斥）
+    #[arg(long, conflicts_with = "stdout")]
+    pub json: bool,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct ProfileImportActionArgs {
+    /// 要导入的 TOML 文件路径；传入 "-" 表示从标准输入读取（与 --stdin 二选一必填）
+    #[arg(
+        value_name = "FILE",
+        required_unless_present = "stdin",
+        conflicts_with = "stdin"
+    )]
+    pub file: Option<PathBuf>,
+
+    /// 从标准输入读取导入 TOML 内容（与位置参数 FILE 互斥）
+    #[arg(long, conflicts_with = "file")]
+    pub stdin: bool,
+
+    /// 合并模式下遇到同名且内容不同的 Profile 时的处理策略（与 --replace 互斥）
+    #[arg(
+        long = "on-conflict",
+        value_name = "STRATEGY",
+        value_enum,
+        default_value_t = ImportConflictStrategy::Skip,
+        conflicts_with = "replace"
+    )]
+    pub on_conflict: ImportConflictStrategy,
+
+    /// 合并模式下，若新增或改名候选的归一化配置内容与本地已有异名 Profile 完全相同，则作为重复项跳过（与 --replace 互斥）
+    #[arg(long, conflicts_with = "replace")]
+    pub dedup: bool,
+
+    /// 整体替换模式：将本地平台目录收敛为导入文件内容，移除未出现在导入文件中的本地 Profile（需交互确认或附加 -y/--yes）
+    #[arg(long, conflicts_with_all = ["on_conflict", "dedup"])]
+    pub replace: bool,
+
+    /// 仅预览导入计划、冲突与待补密钥明细，不写入数据库、不生成备份、不改动运行时
+    #[arg(long = "dry-run")]
+    pub dry_run: bool,
+
+    /// 当更新命中本机当前正在生效的 Profile 时，仅更新目录存储而不重新应用平台运行时文件
+    #[arg(long = "no-apply")]
+    pub no_apply: bool,
+
+    /// 乐观并发校验：仅当平台目录当前 document.revision 等于 <REV>（首次建库传 ""）时才提交写入
+    #[arg(long = "expected-revision", value_name = "REV")]
+    pub expected_revision: Option<String>,
+
+    /// 以 JSON 格式输出结构化导入报告（不含密钥值；与 --dry-run 可组合使用）
     #[arg(long)]
     pub json: bool,
 }

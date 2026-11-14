@@ -359,3 +359,65 @@ fn version_subcommand_reports_short_flag_usage_hint() {
     assert!(stdout.contains("ccr --version"));
     assert!(stdout.contains("ccr -V"));
 }
+
+#[test]
+fn platform_profile_export_and_import_help_parity_and_boundaries() {
+    for platform in ["claude", "codex", "grok"] {
+        let profile_help = run_help(&[platform, "profile", "--help"]);
+        for sub in ["export", "import"] {
+            assert!(
+                profile_help
+                    .lines()
+                    .any(|line| line.trim_start().starts_with(sub)),
+                "{platform} profile --help missing `{sub}`:\n{profile_help}"
+            );
+        }
+
+        let export_direct = run_help(&[platform, "profile", "export", "--help"]);
+        let export_cmd = run_help(&["help", platform, "profile", "export"]);
+        assert_eq!(export_cmd, export_direct);
+        for expected in [
+            "--tag",
+            "--output",
+            "--stdout",
+            "--no-secrets",
+            "--json",
+            "--yes",
+            "常用任务:",
+            "边界:",
+            "Schema v1",
+            "退出码 64",
+        ] {
+            assert!(
+                export_direct.contains(expected),
+                "{platform} profile export --help missing `{expected}`:\n{export_direct}"
+            );
+        }
+
+        let import_direct = run_help(&[platform, "profile", "import", "--help"]);
+        let import_cmd = run_help(&["help", platform, "profile", "import"]);
+        assert_eq!(import_cmd, import_direct);
+        for expected in [
+            "--stdin",
+            "--on-conflict",
+            "skip",
+            "overwrite",
+            "rename",
+            "--dedup",
+            "--replace",
+            "--dry-run",
+            "--no-apply",
+            "--expected-revision",
+            "--json",
+            "--yes",
+            "常用任务:",
+            "边界:",
+            "0600 备份",
+        ] {
+            assert!(
+                import_direct.contains(expected),
+                "{platform} profile import --help missing `{expected}`:\n{import_direct}"
+            );
+        }
+    }
+}

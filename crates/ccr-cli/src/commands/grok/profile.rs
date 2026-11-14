@@ -3,14 +3,15 @@
 use crate::application::profile_off_for_platform;
 use crate::cli::subcommands::grok::{GrokProfileCreateActionArgs, GrokProfileEditActionArgs};
 use crate::cli::subcommands::profile_args::{
-    ProfileDeleteActionArgs, ProfileDisableActionArgs, ProfileNameJsonActionArgs,
-    ProfileSetFieldActionArgs,
+    ProfileDeleteActionArgs, ProfileDisableActionArgs, ProfileExportActionArgs,
+    ProfileImportActionArgs, ProfileNameJsonActionArgs, ProfileSetFieldActionArgs,
 };
 use crate::commands::common::new_utf8_table;
 use crate::commands::platform::{
     ProfileEditCommand, catalog_revision, create_from_grok_args, platform_profile_delete_command,
     platform_profile_disable_command, platform_profile_edit_command,
-    platform_profile_enable_command, platform_profile_set_field_command,
+    platform_profile_enable_command, platform_profile_export_command,
+    platform_profile_import_command, platform_profile_set_field_command,
 };
 use crate::commands::profile::{
     switch_command_for_platform, switch_command_for_platform_with_options,
@@ -282,6 +283,14 @@ pub async fn edit_command(args: GrokProfileEditActionArgs) -> Result<()> {
     command.supports_backend_search = args.supports_backend_search;
     command.reasoning_effort = args.reasoning_effort;
     platform_profile_edit_command(command).await
+}
+
+pub async fn export_command(args: ProfileExportActionArgs, auto_yes: bool) -> Result<()> {
+    platform_profile_export_command("grok", args, auto_yes).await
+}
+
+pub async fn import_command(args: ProfileImportActionArgs, auto_yes: bool) -> Result<()> {
+    platform_profile_import_command("grok", args, auto_yes).await
 }
 
 pub async fn enable_command(args: ProfileNameJsonActionArgs) -> Result<()> {

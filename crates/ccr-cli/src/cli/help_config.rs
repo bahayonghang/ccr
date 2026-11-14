@@ -282,9 +282,134 @@ pub fn build_cli_command() -> Command {
         .mut_subcommand("project", configure_project_command)
         .mut_subcommand("platform", configure_platform_command)
         .mut_subcommand("version", configure_version_command)
+        .mut_subcommand("claude", configure_claude_command)
         .mut_subcommand("codex", configure_codex_command)
         .mut_subcommand("grok", configure_grok_command)
         .mut_subcommand("clean", configure_clean_command)
+}
+
+#[derive(Clone, Copy)]
+enum ProfileHelpPlatform {
+    Claude,
+    Codex,
+    Grok,
+}
+
+impl ProfileHelpPlatform {
+    const fn short_name(self) -> &'static str {
+        match self {
+            Self::Claude => "claude",
+            Self::Codex => "codex",
+            Self::Grok => "grok",
+        }
+    }
+
+    const fn display_name(self) -> &'static str {
+        match self {
+            Self::Claude => "Claude",
+            Self::Codex => "Codex",
+            Self::Grok => "Grok",
+        }
+    }
+
+    const fn edit_secret_flag(self) -> &'static str {
+        match self {
+            Self::Claude | Self::Codex => "--auth-token-stdin",
+            Self::Grok => "--api-key-stdin",
+        }
+    }
+}
+
+fn configure_claude_command(cmd: Command) -> Command {
+    cmd.help_template(SUBCOMMAND_HELP_TEMPLATE)
+        .mut_subcommand("profile", |sub| {
+            configure_platform_profile_command(sub, ProfileHelpPlatform::Claude)
+        })
+}
+
+fn configure_platform_profile_command(cmd: Command, platform: ProfileHelpPlatform) -> Command {
+    cmd.help_template(SUBCOMMAND_HELP_TEMPLATE)
+        .mut_subcommand("export", |sub| {
+            configure_profile_export_command(sub, platform)
+        })
+        .mut_subcommand("import", |sub| {
+            configure_profile_import_command(sub, platform)
+        })
+}
+
+fn configure_profile_export_command(cmd: Command, platform: ProfileHelpPlatform) -> Command {
+    let short = platform.short_name();
+    let display = platform.display_name();
+    let about = format!("导出全部或选定 {display} profiles 为可交换 TOML");
+    let long_about = format!(
+        "将当前平台的全部或指定 {display} Profile 导出为带版本与平台标识的交换文件（Schema v1 TOML）。\n\n默认导出全部 Profile 并包含内联密钥（落盘权限限制为当前用户可读写 0600），适合个人跨机迁移与本地备份；对外分享或交由 AI 排查时请显式附加 --no-secrets。本命令为纯只读操作，不会修改本地目录、锁文件或激活状态。"
+    );
+    let after_long_help = format!(
+        "\
+常用任务:
+  备份当前平台全部 Profile（含密钥，写入当前目录时间戳文件）
+    ccr {short} profile export
+
+  导出指定 Profile 生成可公开分享的脱敏模板
+    ccr {short} profile export primary backup --no-secrets -o team-{short}.toml
+
+  按标签筛选导出（并集匹配）
+    ccr {short} profile export --tag relay --tag production -o prod-relays.toml
+
+  通过管道直接迁移到远程机器合并导入
+    ccr {short} profile export --stdout | ssh dev-box ccr {short} profile import -
+
+  自动化脚本落盘并获取 JSON 回执（覆盖同名输出文件）
+    ccr {short} profile export -o ./backup/{short}.toml --yes --json
+
+边界:
+  - 交换文件只承载 Profile 本体配置，不包含 current_config、default_config、settings 与 usage_count
+  - 官方登录会话（如 ~/.claude/.credentials.json、~/.codex/auth.json、~/.grok/auth.json）不随 Profile 导出
+  - 非交互环境或 --json 模式下，若 -o 目标文件已存在且未传 -y/--yes，将以退出码 64 报错拒绝覆盖"
+    );
+
+    cmd.about(about)
+        .help_template(SUBCOMMAND_HELP_TEMPLATE)
+        .long_about(long_about)
+        .after_long_help(after_long_help)
+}
+
+fn configure_profile_import_command(cmd: Command, platform: ProfileHelpPlatform) -> Command {
+    let short = platform.short_name();
+    let display = platform.display_name();
+    let secret_flag = platform.edit_secret_flag();
+    let about = format!("从交换文件或历史配置导入 {display} profiles");
+    let long_about = format!(
+        "从交换文件（Schema v1）或历史导出/备份 TOML 导入 {display} Profile。\n\n默认采用非破坏性的合并模式（保留本地已有配置，遇到同名异内容默认跳过）；如需整表覆盖对齐，请显式使用 --replace。所有实际改动本地已存在目录的导入都会在同一事务锁内自动创建 0600 备份。"
+    );
+    let after_long_help = format!(
+        "\
+常用任务:
+  先预览团队分享模板的导入变更（零磁盘副作用）
+    ccr {short} profile import team-{short}.toml --dry-run
+
+  安全合并导入（默认保留本地同名配置，新增缺密钥条目自动禁用待补全）
+    ccr {short} profile import team-{short}.toml
+
+  合并导入并覆盖同名配置（同时跳过异名重复项）
+    ccr {short} profile import backup.toml --on-conflict overwrite --dedup
+
+  合并导入但将同名冲突配置另存为新名称对照测试
+    ccr {short} profile import shared.toml --on-conflict rename
+
+  从标准输入整表替换恢复（非交互必须显式带 -y/--yes）
+    cat backup.toml | ccr {short} profile import --stdin --replace --yes
+
+边界:
+  - 强校验平台标识：ExchangeV1 的 platform 必须为 {short}，跨平台文件一律拒绝且不支持强制导入
+  - 保护当前激活运行时：禁止通过导入禁用当前激活 Profile，也禁止在 --replace 中移除当前激活 Profile（需先运行 ccr {short} profile off 或切换到其他 Profile）
+  - 脱敏文件导入时：同名覆盖会自动保留本机已有密钥；新增缺密钥条目会以禁用态（enabled = false）入库，通过 ccr {short} profile edit <name> {secret_flag} 补全后即可启用"
+    );
+
+    cmd.about(about)
+        .help_template(SUBCOMMAND_HELP_TEMPLATE)
+        .long_about(long_about)
+        .after_long_help(after_long_help)
 }
 
 fn configure_project_command(cmd: Command) -> Command {
@@ -330,6 +455,9 @@ fn configure_codex_command(cmd: Command) -> Command {
         .long_about(CODEX_LONG_ABOUT)
         .after_long_help(CODEX_AFTER_LONG_HELP)
         .mut_subcommand("auth", configure_codex_auth_command)
+        .mut_subcommand("profile", |sub| {
+            configure_platform_profile_command(sub, ProfileHelpPlatform::Codex)
+        })
 }
 
 fn configure_codex_auth_command(cmd: Command) -> Command {
@@ -341,6 +469,9 @@ fn configure_codex_auth_command(cmd: Command) -> Command {
 fn configure_grok_command(cmd: Command) -> Command {
     cmd.help_template(SUBCOMMAND_HELP_TEMPLATE)
         .mut_subcommand("auth", configure_grok_auth_command)
+        .mut_subcommand("profile", |sub| {
+            configure_platform_profile_command(sub, ProfileHelpPlatform::Grok)
+        })
 }
 
 fn configure_grok_auth_command(cmd: Command) -> Command {

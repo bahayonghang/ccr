@@ -3,13 +3,15 @@
 use crate::application::profile_off_for_platform;
 use crate::cli::subcommands::profile_args::{
     ProfileCreateActionArgs, ProfileDeleteActionArgs, ProfileDisableActionArgs,
-    ProfileEditActionArgs, ProfileNameJsonActionArgs, ProfileSetFieldActionArgs,
+    ProfileEditActionArgs, ProfileExportActionArgs, ProfileImportActionArgs,
+    ProfileNameJsonActionArgs, ProfileSetFieldActionArgs,
 };
 use crate::commands::common::new_utf8_table;
 use crate::commands::platform::{
     ProfileEditCommand, catalog_revision, create_from_common_args, platform_profile_delete_command,
     platform_profile_disable_command, platform_profile_edit_command,
-    platform_profile_enable_command, platform_profile_set_field_command, print_status_card,
+    platform_profile_enable_command, platform_profile_export_command,
+    platform_profile_import_command, platform_profile_set_field_command, print_status_card,
 };
 use crate::commands::profile::{
     switch_command_for_platform, switch_command_for_platform_with_options,
@@ -183,6 +185,14 @@ pub async fn set_field_command(args: ProfileSetFieldActionArgs) -> Result<()> {
 
 pub async fn edit_command(args: ProfileEditActionArgs) -> Result<()> {
     platform_profile_edit_command(ProfileEditCommand::from_common("claude", args)).await
+}
+
+pub async fn export_command(args: ProfileExportActionArgs, auto_yes: bool) -> Result<()> {
+    platform_profile_export_command("claude", args, auto_yes).await
+}
+
+pub async fn import_command(args: ProfileImportActionArgs, auto_yes: bool) -> Result<()> {
+    platform_profile_import_command("claude", args, auto_yes).await
 }
 
 pub async fn enable_command(args: ProfileNameJsonActionArgs) -> Result<()> {

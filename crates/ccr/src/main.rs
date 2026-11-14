@@ -1,8 +1,6 @@
 use ccr::cli::dispatch::TuiLaunchers;
 use ccr::cli::{Cli, CommandDispatcher, Commands, build_cli_command};
-#[cfg(feature = "tui")]
-use ccr::init_file_only_logger;
-use ccr::init_logger;
+use ccr::{init_file_only_logger, init_logger};
 use clap::FromArgMatches;
 use std::process::ExitCode;
 
@@ -53,15 +51,22 @@ async fn main() -> ExitCode {
     }
 
     // 🔧 根据模式初始化日志系统
-    // TUI 模式下仅输出到文件，避免日志覆盖 TUI 界面
-    #[cfg(feature = "tui")]
-    if cli.is_tui_mode() {
-        init_file_only_logger();
-    } else {
-        init_logger();
+    // TUI 模式下仅输出到文件，避免日志覆盖 TUI 界面；
+    // 只读 profile export 与 import --dry-run 跳过日志落盘，保持零磁盘副作用与纯净 stdout。
+    if !CommandDispatcher::skips_logger_init(&cli) {
+        if CommandDispatcher::uses_file_only_logger(&cli) {
+            init_file_only_logger();
+        } else {
+            #[cfg(feature = "tui")]
+            if cli.is_tui_mode() {
+                init_file_only_logger();
+            } else {
+                init_logger();
+            }
+            #[cfg(not(feature = "tui"))]
+            init_logger();
+        }
     }
-    #[cfg(not(feature = "tui"))]
-    init_logger();
 
     // 🖥️ TUI 启动器注入
     // ccr-cli 不能依赖 ccr-tui（ccr-tui 依赖 ccr-cli，会形成循环），

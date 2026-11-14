@@ -357,29 +357,23 @@ impl ConfigService {
     ///
     /// 返回配置的 TOML 字符串
     pub fn export_config(&self, include_secrets: bool) -> Result<String> {
+        let Some((canonical, _revision)) = self.config_manager.canonical_toml()? else {
+            return Err(CcrError::ConfigMissing(
+                self.config_manager.config_path().display().to_string(),
+            ));
+        };
+
         if include_secrets {
-            return match self.config_manager.canonical_toml()? {
-                Some((content, _revision)) => Ok(content),
-                None => Err(CcrError::ConfigMissing(
-                    self.config_manager.config_path().display().to_string(),
-                )),
-            };
+            return Ok(canonical);
         }
 
-        let mut config = self.config_manager.load()?;
+        let mut table: toml::Table = toml::from_str(&canonical).map_err(|err| {
+            crate::services::exchange::safe_canonical_toml_parse_error(&canonical, &err)
+        })?;
+        let mut warnings = Vec::new();
+        crate::services::exchange::scrub_catalog_toml_table(&mut table, &mut warnings);
 
-        // 🎯 掩码处理：Secret 的 Display 即统一掩码；用掩码串重建 Secret，
-        // 经 expose_plaintext 注解序列化后导出的就是掩码文本（行为与旧版一致）
-        for section in config.sections.values_mut() {
-            if let Some(ref token) = section.auth_token {
-                section.auth_token = Some(ccr_core::Secret::new(token.to_string()));
-            }
-        }
-
-        let content = toml::to_string_pretty(&config)
-            .map_err(|e| CcrError::ConfigError(format!("序列化配置失败: {}", e)))?;
-
-        Ok(content)
+        toml::to_string_pretty(&table).map_err(|_| CcrError::ConfigError("序列化配置失败".into()))
     }
 
     /// 📥 导入配置

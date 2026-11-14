@@ -174,6 +174,13 @@ impl ClaudePlatform {
         }
     }
 
+    pub(crate) fn normalize_profile_fields_quiet(profile: &mut ProfileConfig) {
+        let auth_mode = Self::profile_auth_mode(profile);
+        profile
+            .platform_data
+            .insert(Self::AUTH_MODE_FIELD.to_string(), json!(auth_mode.as_str()));
+    }
+
     fn normalize_profile(profile: &mut ProfileConfig) {
         let resolved = crate::services::ClaudeAuthService::resolve_profile_auth_mode(profile);
         let auth_mode = Self::profile_auth_mode(profile);

@@ -37,6 +37,9 @@ mod legacy_routing;
 #[path = "commands/platform_profile_surface.rs"]
 mod platform_profile_surface;
 
+#[path = "commands/profile_exchange.rs"]
+mod profile_exchange;
+
 #[path = "commands/project_init.rs"]
 mod project_init;
 

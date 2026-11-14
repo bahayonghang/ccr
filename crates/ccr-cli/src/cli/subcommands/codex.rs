@@ -6,8 +6,8 @@ use clap::Subcommand;
 
 use super::profile_args::{
     CodexProfileEditActionArgs, ProfileCreateActionArgs, ProfileDeleteActionArgs,
-    ProfileDisableActionArgs, ProfileNameJsonActionArgs, ProfileOffActionArgs,
-    ProfileSetFieldActionArgs,
+    ProfileDisableActionArgs, ProfileExportActionArgs, ProfileImportActionArgs,
+    ProfileNameJsonActionArgs, ProfileOffActionArgs, ProfileSetFieldActionArgs,
 };
 
 /// Codex 子命令
@@ -207,6 +207,12 @@ pub enum CodexProfileAction {
 
     /// 一次修改多个字段、改名或替换密钥
     Edit(Box<CodexProfileEditActionArgs>),
+
+    /// 导出全部或选定 Codex profiles 为可交换 TOML
+    Export(ProfileExportActionArgs),
+
+    /// 从交换文件或历史配置导入 Codex profiles
+    Import(ProfileImportActionArgs),
 
     /// Enable a Codex profile
     Enable(ProfileNameJsonActionArgs),

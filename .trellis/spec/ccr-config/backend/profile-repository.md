@@ -56,6 +56,7 @@ All profile content is secret. `save`, `save_config`, and `save_profiles_to_toml
 ## Partial-edit contract
 
 - A patch applies to the current document inside the resource lock. Unknown profile fields and unknown settings are retained unless explicitly edited. TOML extension values such as datetimes remain unchanged through the ProfileConfig JSON projection.
+- Secretless exports (`ConfigService::export_config(false)` and `ExchangeV1` `secrets_mode = "redacted"`) delete inline secret keys (`auth_token`, Grok `api_key`), scrub credential-bearing `base_url` components (`userinfo@`, `#fragment`, sensitive query keys), and strip secret-like extension keys/values rather than emitting `"..."` or `"***"` masked placeholder strings. `parse_import_document` parses `ExchangeV1`, `LegacyCatalog`, and `LegacySimplified` in appearance order, omits source snippets on TOML syntax errors, and rejects legacy masked secret literals.
 - Renaming requires an existing source and an unused target. Successful rename updates current/default references in the same commit. Empty or reserved profile names are rejected.
 - Unsupported provider types fail without echoing the rejected value. The historical `third_party` alias remains accepted.
 - Legacy `ConfigService::update_config` replaces typed fields and retains omitted extension fields. New editors use a patch with the read token.

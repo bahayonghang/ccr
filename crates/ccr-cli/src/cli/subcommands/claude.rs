@@ -6,8 +6,8 @@ use clap::Subcommand;
 
 use super::profile_args::{
     ProfileCreateActionArgs, ProfileDeleteActionArgs, ProfileDisableActionArgs,
-    ProfileEditActionArgs, ProfileNameJsonActionArgs, ProfileOffActionArgs,
-    ProfileSetFieldActionArgs,
+    ProfileEditActionArgs, ProfileExportActionArgs, ProfileImportActionArgs,
+    ProfileNameJsonActionArgs, ProfileOffActionArgs, ProfileSetFieldActionArgs,
 };
 
 /// Claude 子命令
@@ -137,6 +137,12 @@ pub enum ClaudeProfileAction {
 
     /// 一次修改多个字段、改名或替换密钥
     Edit(Box<ProfileEditActionArgs>),
+
+    /// 导出全部或选定 Claude profiles 为可交换 TOML
+    Export(ProfileExportActionArgs),
+
+    /// 从交换文件或历史配置导入 Claude profiles
+    Import(ProfileImportActionArgs),
 
     /// Enable a Claude profile
     Enable(ProfileNameJsonActionArgs),

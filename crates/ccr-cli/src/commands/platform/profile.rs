@@ -480,6 +480,39 @@ pub async fn platform_profile_enable_command(
     json: bool,
 ) -> Result<()> {
     let platform = parse_platform(platform_name)?;
+    if matches!(
+        platform,
+        Platform::Claude | Platform::Codex | Platform::Grok
+    ) {
+        let context = crate::application::ProfileLifecycleContext::new(platform)?;
+        let current_profile = context.run(|| {
+            let _lock = context.operation_lock()?;
+            context.with_instance(|instance| {
+                let mut profile = load_existing_profile(instance, name)?;
+                profile.enable();
+                if let Err(err) = instance.validate_profile(&profile) {
+                    return Err(crate::application::enrich_missing_secret_enable_error(
+                        platform, name, &profile, instance, err,
+                    ));
+                }
+                context.manager().mutate(|config| {
+                    config.get_section_mut(name)?.enabled = Some(true);
+                    Ok(())
+                })?;
+                instance.get_current_profile()
+            })
+        })?;
+        let output = PlatformProfileMutationOutput {
+            ok: true,
+            platform: platform_name.to_string(),
+            name: name.to_string(),
+            message: format!("已启用 {} 平台 Profile '{}'", platform_name, name),
+            enabled: Some(true),
+            current_profile,
+        };
+        return print_output(&output, json);
+    }
+
     let platform_impl = create_platform(platform)?;
     let mut profile = load_existing_profile(platform_impl.as_ref(), name)?;
     profile.enable();

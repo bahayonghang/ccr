@@ -766,7 +766,7 @@ impl GrokPlatform {
             && chars.all(|character| character == '_' || character.is_ascii_alphanumeric())
     }
 
-    fn is_official_profile(profile: &ProfileConfig) -> bool {
+    pub(crate) fn is_official_profile(profile: &ProfileConfig) -> bool {
         match profile
             .provider_type
             .as_deref()

@@ -190,7 +190,8 @@ fn test_config_service_export_import() {
     // 测试导出（不包含密钥）
     let exported_without_secrets = service.export_config(false).unwrap();
     assert!(!exported_without_secrets.contains("sk-test-token-test"));
-    assert!(exported_without_secrets.contains("..."));
+    assert!(!exported_without_secrets.contains("..."));
+    assert!(!exported_without_secrets.contains("auth_token"));
 
     // 测试导入（替换模式）
     let import_config = r#"

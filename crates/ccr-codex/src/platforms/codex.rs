@@ -265,6 +265,22 @@ impl CodexPlatform {
         }
     }
 
+    pub fn runtime_service(&self) -> &CodexRuntimeService {
+        &self.runtime_service
+    }
+
+    pub fn resolve_auth_mode(profile: &ProfileConfig) -> CodexProfileAuthMode {
+        Self::resolve_profile_auth_mode(profile)
+    }
+
+    pub fn parse_explicit_auth_mode(value: &str) -> Option<CodexProfileAuthMode> {
+        Self::canonical_auth_mode(Some(value))
+    }
+
+    pub fn normalize_profile_fields(profile: &mut ProfileConfig) {
+        *profile = Self::normalize_profile_for_storage(profile);
+    }
+
     // ═══════════════════════════════════════════════════════════
     // 🔍 Profile 分类方法
     // ═══════════════════════════════════════════════════════════

@@ -31,6 +31,13 @@ pub use platforms::base::{
 pub use services::config_service::{
     ConfigInfo, ConfigList, ConfigService, ImportMode, ImportResult,
 };
+pub use services::exchange::{
+    EXCHANGE_HEADER_COMMENT, EXCHANGE_SCHEMA_VERSION, ExchangeSecretsMode, ImportSourceFormat,
+    ParsedImportDocument, canonical_section_spec_bytes, key_looks_like_secret_field,
+    looks_like_legacy_masked_secret, parse_import_document, render_exchange_v1, scrub_base_url,
+    scrub_catalog_toml_table, scrub_section_secrets, section_contains_inline_secrets,
+    section_to_exchange_table, url_contains_credentials, value_looks_like_high_confidence_secret,
+};
 
 #[cfg(test)]
 pub(crate) mod test_support {

@@ -25,13 +25,47 @@ pub struct TuiLaunchers {
     pub claude_auth: fn() -> Result<(), CcrError>,
 }
 
-/// 纯帮助和 version 不读目录，也不应把遗留 TOML 迁走。
+/// 只读 `profile export` 与 `profile import --dry-run` 不得产生日志目录或迁移写盘副作用。
+fn command_is_readonly_profile_exchange(cli: &Cli) -> bool {
+    use crate::cli::subcommands::{
+        ClaudeAction, ClaudeProfileAction, CodexAction, CodexProfileAction, GrokAction,
+        GrokProfileAction,
+    };
+
+    match &cli.command {
+        Some(Commands::Claude {
+            action: Some(ClaudeAction::Profile { action }),
+        }) => {
+            matches!(action.as_ref(), ClaudeProfileAction::Export(_))
+                || matches!(action.as_ref(), ClaudeProfileAction::Import(args) if args.dry_run)
+        }
+        Some(Commands::Codex {
+            action: Some(CodexAction::Profile { action }),
+        }) => {
+            matches!(action, CodexProfileAction::Export(_))
+                || matches!(action, CodexProfileAction::Import(args) if args.dry_run)
+        }
+        Some(Commands::Grok {
+            action: Some(GrokAction::Profile { action }),
+        }) => {
+            matches!(action.as_ref(), GrokProfileAction::Export(_))
+                || matches!(action.as_ref(), GrokProfileAction::Import(args) if args.dry_run)
+        }
+        _ => false,
+    }
+}
+
+/// 纯帮助、version 与只读 profile 交换命令不读改目录，也不应把遗留 TOML 迁走。
 fn command_skips_catalog_migration(cli: &Cli) -> bool {
     use crate::cli::subcommands::{
         AllSyncAction, CheckAction, ClaudeAction, ClaudeAuthAction, ClaudeProfileAction,
         CodexAction, CodexAuthAction, CodexProfileAction, FolderAction, GrokAction, GrokAuthAction,
         GrokProfileAction, PlatformAction, SyncAction, TempTokenAction, UiAction,
     };
+
+    if command_is_readonly_profile_exchange(cli) {
+        return true;
+    }
 
     match &cli.command {
         Some(Commands::Version | Commands::Help { .. }) => true,
@@ -108,6 +142,41 @@ fn command_skips_catalog_migration(cli: &Cli) -> bool {
 pub struct CommandDispatcher;
 
 impl CommandDispatcher {
+    /// 只读交换命令跳过启动日志初始化，保证缺失/只读目录零磁盘副作用与纯净 stdout。
+    pub fn skips_logger_init(cli: &Cli) -> bool {
+        command_is_readonly_profile_exchange(cli)
+    }
+
+    /// 写入型 `profile import --json` 仅使用文件日志，避免运行时重应用 INFO 日志污染 stdout JSON。
+    pub fn uses_file_only_logger(cli: &Cli) -> bool {
+        use crate::cli::subcommands::{
+            ClaudeAction, ClaudeProfileAction, CodexAction, CodexProfileAction, GrokAction,
+            GrokProfileAction,
+        };
+
+        match &cli.command {
+            Some(Commands::Claude {
+                action: Some(ClaudeAction::Profile { action }),
+            }) => matches!(
+                action.as_ref(),
+                ClaudeProfileAction::Import(args) if args.json && !args.dry_run
+            ),
+            Some(Commands::Codex {
+                action: Some(CodexAction::Profile { action }),
+            }) => matches!(
+                action,
+                CodexProfileAction::Import(args) if args.json && !args.dry_run
+            ),
+            Some(Commands::Grok {
+                action: Some(GrokAction::Profile { action }),
+            }) => matches!(
+                action.as_ref(),
+                GrokProfileAction::Import(args) if args.json && !args.dry_run
+            ),
+            _ => false,
+        }
+    }
+
     /// 分发并执行命令
     pub async fn dispatch(cli: &Cli, tui: Option<&TuiLaunchers>) -> Result<(), CcrError> {
         Self::dispatch_async(cli, tui).await
@@ -265,9 +334,9 @@ impl CommandDispatcher {
             Some(Commands::Check { action }) => Self::dispatch_check(action).await,
             Some(Commands::Doctor(args)) => crate::commands::doctor_command(args.clone()).await,
 
-            Some(Commands::Codex { action }) => Self::dispatch_codex(action, tui).await,
+            Some(Commands::Codex { action }) => Self::dispatch_codex(action, tui, auto_yes).await,
 
-            Some(Commands::Claude { action }) => Self::dispatch_claude(action, tui).await,
+            Some(Commands::Claude { action }) => Self::dispatch_claude(action, tui, auto_yes).await,
             Some(Commands::Grok { action }) => Self::dispatch_grok(action, tui, auto_yes).await,
 
             Some(Commands::Sessions(args)) => {
@@ -486,6 +555,7 @@ impl CommandDispatcher {
     async fn dispatch_codex(
         action: &Option<crate::cli::subcommands::CodexAction>,
         tui: Option<&TuiLaunchers>,
+        auto_yes: bool,
     ) -> Result<(), CcrError> {
         use crate::cli::subcommands::codex::{CodexSessionsAction, CodexSyncHistoryAction};
         use crate::cli::subcommands::{CodexAction, CodexAuthAction, CodexProfileAction};
@@ -546,6 +616,12 @@ impl CommandDispatcher {
                 }
                 CodexProfileAction::Edit(args) => {
                     crate::commands::codex::profile::edit_command(args.as_ref().clone()).await
+                }
+                CodexProfileAction::Export(args) => {
+                    crate::commands::codex::profile::export_command(args.clone(), auto_yes).await
+                }
+                CodexProfileAction::Import(args) => {
+                    crate::commands::codex::profile::import_command(args.clone(), auto_yes).await
                 }
                 CodexProfileAction::Enable(args) => {
                     crate::commands::codex::profile::enable_command(args.clone()).await
@@ -786,6 +862,12 @@ impl CommandDispatcher {
                 GrokProfileAction::Edit(args) => {
                     crate::commands::grok::profile::edit_command(args.as_ref().clone()).await
                 }
+                GrokProfileAction::Export(args) => {
+                    crate::commands::grok::profile::export_command(args.clone(), auto_yes).await
+                }
+                GrokProfileAction::Import(args) => {
+                    crate::commands::grok::profile::import_command(args.clone(), auto_yes).await
+                }
                 GrokProfileAction::Enable(args) => {
                     crate::commands::grok::profile::enable_command(args.clone()).await
                 }
@@ -806,6 +888,7 @@ impl CommandDispatcher {
     async fn dispatch_claude(
         action: &Option<crate::cli::subcommands::ClaudeAction>,
         tui: Option<&TuiLaunchers>,
+        auto_yes: bool,
     ) -> Result<(), CcrError> {
         use crate::cli::subcommands::{ClaudeAction, ClaudeAuthAction, ClaudeProfileAction};
 
@@ -847,6 +930,12 @@ impl CommandDispatcher {
                 }
                 ClaudeProfileAction::Edit(args) => {
                     crate::commands::claude::profile::edit_command(args.as_ref().clone()).await
+                }
+                ClaudeProfileAction::Export(args) => {
+                    crate::commands::claude::profile::export_command(args.clone(), auto_yes).await
+                }
+                ClaudeProfileAction::Import(args) => {
+                    crate::commands::claude::profile::import_command(args.clone(), auto_yes).await
                 }
                 ClaudeProfileAction::Enable(args) => {
                     crate::commands::claude::profile::enable_command(args.clone()).await

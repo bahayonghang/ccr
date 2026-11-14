@@ -162,6 +162,8 @@ Applies when native/embedding consumers need explicit catalog, registry, runtime
 - `context.delete(name, force)` guards active/drifted checks, optional `off` cleanup, and catalog deletion under one continuous `operation_lock`.
 - `update_profile_versioned(platform, name, target, expected_version, patch)` is the production-path convenience entry.
 - `context.{apply, enable, off, needs_login_prep, export_profile_env}` retain the existing domain owners.
+- `profile_export::{export_profiles, export_profiles_with_context}` performs pure read-only `ExchangeV1` serialization (skipping startup logger creation and catalog migration), overlaying Codex `profile_secrets.json` in memory and materializing explicit `auth_mode` before `--no-secrets` deletion.
+- `profile_import::{preview_import, preview_import_with_context, commit_import, commit_import_with_context}` owns 3-format import validation, credential-pending `enabled = false` disablement, local secret preservation on compatible overwrites, 6+1 bucket conservation, active runtime protection + optional re-apply (`--no-apply` opt-out), single `0600` pre-write backup, Codex `profile_secrets.json` sync, and `operation_lock -> CatalogGuard -> WriteJournal -> CatalogTransaction::execute_or_create` CAS commit.
 
 ### 3. Contracts
 

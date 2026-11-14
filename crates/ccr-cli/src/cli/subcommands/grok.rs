@@ -4,7 +4,8 @@ use clap::{Args, Subcommand};
 
 use super::profile_args::{
     ProfileDeleteActionArgs, ProfileDisableActionArgs, ProfileEditActionArgs,
-    ProfileNameJsonActionArgs, ProfileOffActionArgs, ProfileSetFieldActionArgs,
+    ProfileExportActionArgs, ProfileImportActionArgs, ProfileNameJsonActionArgs,
+    ProfileOffActionArgs, ProfileSetFieldActionArgs,
 };
 
 #[derive(Subcommand)]
@@ -127,6 +128,12 @@ pub enum GrokProfileAction {
 
     /// 一次修改多个字段、改名或替换密钥
     Edit(Box<GrokProfileEditActionArgs>),
+
+    /// 导出全部或选定 Grok profiles 为可交换 TOML
+    Export(ProfileExportActionArgs),
+
+    /// 从交换文件或历史配置导入 Grok profiles
+    Import(ProfileImportActionArgs),
 
     /// Enable a Grok profile
     Enable(ProfileNameJsonActionArgs),

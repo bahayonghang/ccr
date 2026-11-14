@@ -218,9 +218,27 @@ fn inspect_profiles(
             0,
         );
     }
-    for (name, section) in &config.sections {
-        let profile = section_to_profile(section);
-        match ConfigValidator::new().validate_section_with(section, |section| {
+    let codex_secrets = if platform == Platform::Codex {
+        match ccr_codex::CodexPlatform::new()
+            .and_then(|codex| codex.runtime_service().load_secret_store())
+        {
+            Ok(store) => Some(store),
+            Err(error) => {
+                report.error(Some(platform), "profile_secrets", error);
+                None
+            }
+        }
+    } else {
+        None
+    };
+    for (name, raw_section) in &config.sections {
+        let section = crate::application::overlay_codex_secret_if_present(
+            name,
+            raw_section,
+            codex_secrets.as_ref(),
+        );
+        let profile = section_to_profile(&section);
+        match ConfigValidator::new().validate_section_with(&section, |section| {
             instance.validate_profile(&section_to_profile(section))
         }) {
             Ok(()) => {
@@ -254,7 +272,27 @@ fn inspect_profiles(
                     },
                 );
             }
-            Err(error) => report.error(Some(platform), name, error),
+            Err(error) => {
+                if !profile.is_enabled()
+                    && intended != Some(name.as_str())
+                    && crate::application::is_credential_pending_section(
+                        platform,
+                        &section,
+                        instance.as_ref(),
+                    )
+                {
+                    report.push(
+                        Some(platform),
+                        name,
+                        DiagnosticSeverity::Warning,
+                        DiagnosticCategory::Disabled,
+                        "Profile is disabled (missing secret; populate credentials before enabling).",
+                        0,
+                    );
+                } else {
+                    report.error(Some(platform), name, error);
+                }
+            }
         }
     }
     let Some(name) = intended else {
@@ -282,7 +320,9 @@ fn inspect_profiles(
         inspect_runtime(report, platform, instance.as_ref(), None);
         return;
     };
-    let profile = section_to_profile(section);
+    let section =
+        crate::application::overlay_codex_secret_if_present(name, section, codex_secrets.as_ref());
+    let profile = section_to_profile(&section);
     if !profile.is_enabled() || instance.validate_profile(&profile).is_err() {
         inspect_runtime(report, platform, instance.as_ref(), None);
         return;

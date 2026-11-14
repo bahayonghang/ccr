@@ -528,7 +528,7 @@ impl ProfileLifecycleContext {
     pub fn needs_login_prep(&self) -> Result<bool> {
         self.run(|| super::profile_off::needs_login_prep_with_context(self))
     }
-    fn with_instance<T>(
+    pub(crate) fn with_instance<T>(
         &self,
         operation: impl FnOnce(&dyn PlatformConfig) -> Result<T>,
     ) -> Result<T> {
@@ -582,7 +582,7 @@ pub(crate) fn operation_paths(
     operation_paths_with(&paths, platform, instance)
 }
 
-fn operation_paths_with(
+pub(crate) fn operation_paths_with(
     paths: &PlatformPaths,
     platform: Platform,
     instance: &dyn PlatformConfig,
@@ -752,7 +752,15 @@ fn enable_with_context(
         .cloned()
         .ok_or_else(|| CcrError::ProfileNotFound(request.name.clone()))?;
     profile.enabled = Some(true);
-    instance.validate_profile(&profile)?;
+    if let Err(err) = instance.validate_profile(&profile) {
+        return Err(super::enrich_missing_secret_enable_error(
+            request.platform,
+            &request.name,
+            &profile,
+            instance,
+            err,
+        ));
+    }
     execute(
         context,
         &request,

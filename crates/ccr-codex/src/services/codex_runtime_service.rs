@@ -101,14 +101,24 @@ impl CodexRuntimeService {
 
     pub fn load_secret_store(&self) -> Result<CodexProfileSecretStore> {
         let path = self.secret_store_path();
-        if !path.exists() {
-            return Ok(CodexProfileSecretStore::default());
-        }
-
-        let content = fs::read_to_string(&path)
-            .map_err(|e| CcrError::ConfigError(format!("读取 Codex secret store 失败: {}", e)))?;
-        serde_json::from_str(&content)
-            .map_err(|e| CcrError::ConfigError(format!("解析 Codex secret store 失败: {}", e)))
+        let content = match fs::read_to_string(&path) {
+            Ok(content) => content,
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+                return Ok(CodexProfileSecretStore::default());
+            }
+            Err(err) => {
+                return Err(CcrError::FileIoError(format!(
+                    "读取 Codex secret store 失败: {err}"
+                )));
+            }
+        };
+        serde_json::from_str(&content).map_err(|err| {
+            CcrError::JsonError(<serde_json::Error as serde::de::Error>::custom(format!(
+                "解析 Codex secret store 失败（第 {} 行，第 {} 列）",
+                err.line(),
+                err.column()
+            )))
+        })
     }
 
     pub fn overlay_profile_secrets(
@@ -391,7 +401,7 @@ impl CodexRuntimeService {
         })
     }
 
-    fn save_secret_store(&self, store: &CodexProfileSecretStore) -> Result<()> {
+    pub fn save_secret_store(&self, store: &CodexProfileSecretStore) -> Result<()> {
         let path = self.secret_store_path();
         if store.profiles.is_empty() {
             remove_if_exists(&path)?;
@@ -682,5 +692,33 @@ mod tests {
             .collect();
         assert_eq!(config_backups, vec![seeded.clone()]);
         assert_eq!(fs::read_to_string(&seeded).unwrap(), original);
+    }
+
+    #[test]
+    fn corrupt_secret_store_maps_to_json_error_exit_40_without_echoing_secret() {
+        let env = TestCodexEnv::new();
+        let codex_dir = env.codex_dir().to_path_buf();
+        let manager = CodexConfigManager::new(
+            codex_dir.join("config.toml"),
+            codex_dir.join("auth.json"),
+            codex_dir.join("backups"),
+            LockManager::new(env.lock_dir()),
+        );
+        let paths = PlatformPaths::new(Platform::Codex).unwrap();
+        let service = CodexRuntimeService::from_parts(paths, codex_dir, manager);
+        fs::create_dir_all(service.secret_store_path().parent().unwrap()).unwrap();
+
+        let sentinel = "sk-codex-corrupt-store-sentinel-8877";
+        fs::write(
+            service.secret_store_path(),
+            format!("{{\"profiles\": {{\"work\": \"{sentinel}\"}}}}"),
+        )
+        .unwrap();
+
+        let err = service.load_secret_store().unwrap_err();
+        assert_eq!(err.exit_code(), 40);
+        assert!(matches!(err, CcrError::JsonError(_)));
+        let msg = err.to_string();
+        assert!(!msg.contains(sentinel), "leaked sentinel in error: {msg}");
     }
 }
