@@ -17,6 +17,6 @@ pub use claude::{ClaudeAction, ClaudeAuthAction, ClaudeProfileAction};
 pub use codex::{CodexAction, CodexAuthAction, CodexProfileAction};
 pub use grok::{GrokAction, GrokAuthAction, GrokProfileAction};
 pub use platform::PlatformAction;
-pub use project::ProjectAction;
+pub use project::{ProjectAction, WorkflowEngine};
 pub use sync::{AllSyncAction, FolderAction, SyncAction};
 pub use ui::{TempTokenAction, UiAction};

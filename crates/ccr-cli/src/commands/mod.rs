@@ -69,7 +69,7 @@ pub use lifecycle::{
 pub use lifecycle::{validate_command, validate_report_command};
 
 // 🧭 Project 命令
-pub use project::project_init_command;
+pub use project::{WorkflowEngine, project_init_command};
 
 // 📦 Data 命令
 pub use data::export_command;

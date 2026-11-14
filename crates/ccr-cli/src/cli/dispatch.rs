@@ -155,7 +155,9 @@ impl CommandDispatcher {
                 crate::commands::update_command(*check, branch).await
             }
             Some(Commands::Project { action }) => match action {
-                ProjectAction::Init => crate::commands::project_init_command(auto_yes),
+                ProjectAction::Init { workflow } => {
+                    crate::commands::project_init_command(auto_yes, *workflow)
+                }
             },
             Some(Commands::Init { force }) => {
                 crate::commands::init_command(auto_yes || *force).await

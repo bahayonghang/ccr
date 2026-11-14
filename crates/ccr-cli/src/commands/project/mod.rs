@@ -1,3 +1,8 @@
+mod fingerprint;
+mod gitignore;
 mod init;
+mod wizard;
+mod workflow;
 
 pub use init::project_init_command;
+pub use workflow::WorkflowEngine;

@@ -586,7 +586,7 @@ mod tests {
     use super::*;
     use crate::cli::subcommands::{
         ClaudeAction, ClaudeProfileAction, CodexAction, CodexProfileAction, GrokAction,
-        GrokProfileAction, ProjectAction,
+        GrokProfileAction, ProjectAction, WorkflowEngine,
     };
     use clap::Parser;
 
@@ -596,7 +596,7 @@ mod tests {
         assert!(matches!(
             project.command,
             Some(Commands::Project {
-                action: ProjectAction::Init
+                action: ProjectAction::Init { workflow: None }
             })
         ));
 
@@ -605,6 +605,31 @@ mod tests {
             legacy.command,
             Some(Commands::Init { force: true })
         ));
+    }
+
+    #[test]
+    fn project_init_workflow_flag_parses_case_insensitively_and_rejects_invalid() {
+        for (raw, expected) in [
+            ("trellis", WorkflowEngine::Trellis),
+            ("TRELLIS", WorkflowEngine::Trellis),
+            ("mini-trellis", WorkflowEngine::MiniTrellis),
+            ("Mini-Trellis", WorkflowEngine::MiniTrellis),
+            ("MINI-TRELLIS", WorkflowEngine::MiniTrellis),
+        ] {
+            let parsed =
+                Cli::try_parse_from(["ccr", "project", "init", "--workflow", raw]).unwrap();
+            assert!(matches!(
+                parsed.command,
+                Some(Commands::Project {
+                    action: ProjectAction::Init {
+                        workflow: Some(engine),
+                    }
+                }) if engine == expected
+            ));
+        }
+
+        assert!(Cli::try_parse_from(["ccr", "project", "init", "--workflow", "kimi"]).is_err());
+        assert!(Cli::try_parse_from(["ccr", "project"]).is_err());
     }
 
     #[test]

@@ -8,9 +8,11 @@ use tempfile::TempDir;
 
 const GIT_USER: &str = "fake-git-user";
 const TRELLIS_ARGS: &str = "|init -u fake-git-user --claude --codex --cursor --omp --grok --yes";
+const MINI_TRELLIS_ARGS: &str = "|init -u fake-git-user --claude --codex --cursor --omp --yes";
 const GITIGNORE_RULES: &str = ".agents/\n.claude/\n.codex/\n.cursor/\n.omp/\n.grok/\nref/\n";
 const SKIP_GITIGNORE_WRITE: &str = ".gitignore 已包含全部项目忽略规则，跳过写入";
 const READY_SUMMARY: &str = "Git、Trellis、Agent 忽略规则和 ref/ 均已就绪";
+const MINI_READY_SUMMARY: &str = "Git、mini-trellis、Agent 忽略规则和 ref/ 均已就绪";
 
 struct ProjectInitFixture {
     _temp: TempDir,
@@ -57,9 +59,19 @@ impl ProjectInitFixture {
         install_fake_executable(&self.bin, "trellis", fake_trellis_script());
     }
 
+    fn install_mini_trellis(&self) {
+        install_fake_executable(&self.bin, "mini-trellis", fake_mini_trellis_script());
+    }
+
     fn install_tools(&self) {
         self.install_git();
         self.install_trellis();
+    }
+
+    fn install_all_tools(&self) {
+        self.install_git();
+        self.install_trellis();
+        self.install_mini_trellis();
     }
 
     fn command(&self, git_mode: &str, trellis_mode: &str) -> Command {
@@ -70,6 +82,7 @@ impl ProjectInitFixture {
             .env("PATH", &self.bin)
             .env("FAKE_GIT_MODE", git_mode)
             .env("FAKE_TRELLIS_MODE", trellis_mode)
+            .env("FAKE_MINI_TRELLIS_MODE", "success")
             .env("FAKE_GIT_ROOT", self.root.join("repository"))
             .env("CCR_PROJECT_INIT_LOG", &self.log)
             .env("NO_COLOR", "1")
@@ -86,6 +99,21 @@ impl ProjectInitFixture {
         args: &[&str],
     ) -> Output {
         let mut command = self.command(git_mode, trellis_mode);
+        if let Some(user) = git_user {
+            command.env("FAKE_GIT_USER", user);
+        }
+        command.args(args).output().unwrap()
+    }
+
+    fn run_mini_trellis(
+        &self,
+        git_mode: &str,
+        mini_trellis_mode: &str,
+        git_user: Option<&str>,
+        args: &[&str],
+    ) -> Output {
+        let mut command = self.command(git_mode, "success");
+        command.env("FAKE_MINI_TRELLIS_MODE", mini_trellis_mode);
         if let Some(user) = git_user {
             command.env("FAKE_GIT_USER", user);
         }
@@ -499,6 +527,296 @@ fn gitignore_read_failure_reports_file_stage_after_trellis() {
     assert!(!stdout(&output).contains("均已就绪"));
 }
 
+#[test]
+fn auto_yes_mini_trellis_runs_four_platforms_validates_outputs_and_updates_gitignore() {
+    let fixture = ProjectInitFixture::new();
+    fixture.install_all_tools();
+
+    let output = fixture.run_mini_trellis(
+        "none",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init", "--workflow", "Mini-Trellis"],
+    );
+
+    assert_success(&output);
+    let calls = fixture.calls();
+    assert_eq!(calls.len(), 4, "calls: {calls:?}");
+    assert!(calls[0].ends_with("|rev-parse --show-toplevel"));
+    assert!(calls[1].ends_with("|init"));
+    assert!(calls[2].ends_with("|config user.name"));
+    assert!(calls[3].starts_with("mini-trellis|"), "calls: {calls:?}");
+    assert!(calls[3].ends_with(MINI_TRELLIS_ARGS), "calls: {calls:?}");
+    assert!(!calls[3].contains("--grok"));
+    assert!(!calls[3].contains(" -s"));
+    assert!(!calls.iter().any(|call| call.starts_with("trellis|")));
+    assert_calls_run_in(&calls, &fixture.project);
+    assert_eq!(
+        fs::read_to_string(fixture.project.join(".gitignore")).unwrap(),
+        GITIGNORE_RULES
+    );
+    assert!(fixture.project.join("ref").is_dir());
+    assert!(
+        fixture
+            .project
+            .join(".trellis/.mini-trellis-manifest.json")
+            .is_file()
+    );
+    assert!(
+        fixture
+            .project
+            .join(".trellis/scripts/add_session.py")
+            .is_file()
+    );
+    assert!(
+        fs::read_to_string(fixture.project.join("AGENTS.md"))
+            .unwrap()
+            .contains("Managed by mini-trellis.")
+    );
+    assert!(stdout(&output).contains(MINI_READY_SUMMARY));
+}
+
+#[test]
+fn workflow_flag_parses_trellis_case_insensitively_and_rejects_invalid_values() {
+    let fixture = ProjectInitFixture::new();
+    fixture.install_all_tools();
+
+    let bare = fixture.run("root", "success", Some(GIT_USER), &["project"]);
+    assert!(!bare.status.success());
+    assert!(fixture.calls().is_empty());
+
+    let invalid = fixture.run(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["project", "init", "--workflow", "kimi"],
+    );
+    assert!(!invalid.status.success());
+    assert!(fixture.calls().is_empty());
+
+    let valid = fixture.run(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init", "--workflow", "TRELLIS"],
+    );
+    assert_success(&valid);
+    let calls = fixture.calls();
+    assert!(calls.iter().any(|call| call.ends_with(TRELLIS_ARGS)));
+    assert!(!calls.iter().any(|call| call.starts_with("mini-trellis|")));
+}
+
+#[test]
+fn existing_trellis_blocks_mini_trellis_before_external_cli_with_migrate_hint() {
+    for args in [
+        &["--yes", "project", "init", "--workflow", "mini-trellis"][..],
+        &["project", "init", "--workflow", "mini-trellis"][..],
+    ] {
+        let fixture = ProjectInitFixture::new();
+        fixture.install_all_tools();
+        fs::create_dir_all(fixture.project.join(".trellis")).unwrap();
+        fs::write(fixture.project.join(".trellis/workflow.md"), "workflow").unwrap();
+        let gitignore = fixture.project.join(".gitignore");
+        fs::write(&gitignore, "keep-existing\n").unwrap();
+
+        let output = fixture.run_mini_trellis("root", "success", Some(GIT_USER), args);
+
+        assert_eq!(output.status.code(), Some(90), "args: {args:?}");
+        let err = stderr(&output);
+        assert!(err.contains("mini-trellis migrate"), "{err}");
+        let calls = fixture.calls();
+        assert!(
+            !calls
+                .iter()
+                .any(|call| call.starts_with("mini-trellis|") || call.starts_with("trellis|")),
+            "calls: {calls:?}"
+        );
+        assert!(!fixture.project.join("ref").exists());
+        assert_eq!(fs::read_to_string(&gitignore).unwrap(), "keep-existing\n");
+        assert!(!stdout(&output).contains("均已就绪"));
+    }
+}
+
+#[test]
+fn existing_mini_trellis_blocks_trellis_before_external_cli_with_uninstall_hint() {
+    for args in [
+        &["--yes", "project", "init", "--workflow", "trellis"][..],
+        &["--yes", "project", "init"][..],
+        &["project", "init", "--workflow", "trellis"][..],
+    ] {
+        let fixture = ProjectInitFixture::new();
+        fixture.install_all_tools();
+        fs::create_dir_all(fixture.project.join(".trellis")).unwrap();
+        fs::write(
+            fixture.project.join(".trellis/.mini-trellis-manifest.json"),
+            r#"{"version":1,"files":{}}"#,
+        )
+        .unwrap();
+
+        let output = fixture.run("root", "success", Some(GIT_USER), args);
+
+        assert_eq!(output.status.code(), Some(90), "args: {args:?}");
+        let err = stderr(&output);
+        assert!(err.contains("mini-trellis uninstall"), "{err}");
+        let calls = fixture.calls();
+        assert!(
+            !calls
+                .iter()
+                .any(|call| call.starts_with("trellis|") || call.starts_with("mini-trellis|")),
+            "calls: {calls:?}"
+        );
+        assert!(!fixture.project.join("ref").exists());
+        assert!(!fixture.project.join(".gitignore").exists());
+        assert!(!stdout(&output).contains("均已就绪"));
+    }
+}
+
+#[test]
+fn mixed_workspace_markers_block_init_before_external_cli() {
+    for args in [
+        &["--yes", "project", "init", "--workflow", "mini-trellis"][..],
+        &["--yes", "project", "init", "--workflow", "trellis"][..],
+        &["project", "init"][..],
+    ] {
+        let fixture = ProjectInitFixture::new();
+        fixture.install_all_tools();
+        fs::create_dir_all(fixture.project.join(".trellis")).unwrap();
+        fs::write(fixture.project.join(".trellis/workflow.md"), "trellis").unwrap();
+        fs::write(
+            fixture.project.join(".trellis/.mini-trellis-manifest.json"),
+            "mini-trellis",
+        )
+        .unwrap();
+
+        let output = fixture.run("root", "success", Some(GIT_USER), args);
+
+        assert_eq!(output.status.code(), Some(90), "args: {args:?}");
+        let err = stderr(&output);
+        assert!(err.contains("混杂"), "{err}");
+        let calls = fixture.calls();
+        assert!(
+            !calls
+                .iter()
+                .any(|call| call.starts_with("trellis|") || call.starts_with("mini-trellis|")),
+            "calls: {calls:?}"
+        );
+        assert!(!fixture.project.join("ref").exists());
+        assert!(!fixture.project.join(".gitignore").exists());
+        assert!(!stdout(&output).contains("均已就绪"));
+    }
+}
+
+#[test]
+fn mini_trellis_same_engine_rerun_is_idempotent_for_ref_and_complete_gitignore() {
+    let fixture = ProjectInitFixture::new();
+    fixture.install_all_tools();
+    fs::create_dir(fixture.project.join("ref")).unwrap();
+    let keep = fixture.project.join("ref/keep.txt");
+    fs::write(&keep, "keep-mini").unwrap();
+
+    let first = fixture.run_mini_trellis(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init", "--workflow", "mini-trellis"],
+    );
+    assert_success(&first);
+
+    let gitignore = fixture.project.join(".gitignore");
+    let fixed_time = FileTime::from_unix_time(1_700_000_000, 0);
+    filetime::set_file_mtime(&gitignore, fixed_time).unwrap();
+
+    let second = fixture.run_mini_trellis(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init", "--workflow", "mini-trellis"],
+    );
+    assert_success(&second);
+    assert_eq!(fs::read_to_string(&keep).unwrap(), "keep-mini");
+    assert_eq!(
+        FileTime::from_last_modification_time(&fs::metadata(&gitignore).unwrap()),
+        fixed_time
+    );
+    assert!(stdout(&second).contains(SKIP_GITIGNORE_WRITE));
+}
+
+#[test]
+fn missing_mini_trellis_binary_returns_external_command_error_75() {
+    let fixture = ProjectInitFixture::new();
+    fixture.install_git();
+    fixture.install_trellis();
+
+    let output = fixture.run_mini_trellis(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init", "--workflow", "mini-trellis"],
+    );
+
+    assert_eq!(output.status.code(), Some(75));
+    assert!(stderr(&output).contains("mini-trellis 阶段"));
+    assert!(!fixture.project.join("ref").exists());
+    assert!(!fixture.project.join(".gitignore").exists());
+}
+
+#[test]
+fn mini_trellis_failure_keeps_git_result_and_skips_gitignore() {
+    let fixture = ProjectInitFixture::new();
+    fixture.install_all_tools();
+
+    let output = fixture.run_mini_trellis(
+        "none",
+        "fail",
+        Some(GIT_USER),
+        &["--yes", "project", "init", "--workflow", "mini-trellis"],
+    );
+
+    assert_eq!(output.status.code(), Some(75));
+    assert!(stderr(&output).contains("mini-trellis 阶段"));
+    assert!(fixture.project.join(".git").is_dir());
+    assert!(!fixture.project.join("ref").exists());
+    assert!(!fixture.project.join(".gitignore").exists());
+    assert!(!stdout(&output).contains("均已就绪"));
+}
+
+#[test]
+fn mini_trellis_zero_exit_missing_any_minimum_artifact_returns_validation_error_90() {
+    for mode in [
+        "missing",
+        "missing_manifest",
+        "missing_add_session",
+        "missing_agents",
+        "wrong_agents",
+    ] {
+        let fixture = ProjectInitFixture::new();
+        fixture.install_all_tools();
+
+        let output = fixture.run_mini_trellis(
+            "root",
+            mode,
+            Some(GIT_USER),
+            &["--yes", "project", "init", "--workflow", "mini-trellis"],
+        );
+
+        assert_eq!(output.status.code(), Some(90), "mode: {mode}");
+        assert!(
+            stderr(&output).contains("缺少最低工作流文件"),
+            "mode: {mode}"
+        );
+        assert!(
+            fixture
+                .calls()
+                .iter()
+                .any(|call| call.starts_with("mini-trellis|")),
+            "mode: {mode}"
+        );
+        assert!(!fixture.project.join("ref").exists(), "mode: {mode}");
+        assert!(!fixture.project.join(".gitignore").exists(), "mode: {mode}");
+        assert!(!stdout(&output).contains("均已就绪"), "mode: {mode}");
+    }
+}
+
 fn git_init_was_called(calls: &[String]) -> bool {
     calls
         .iter()
@@ -635,6 +953,61 @@ printf 'trellis|%s|%s\n' "$PWD" "$*" >> "$CCR_PROJECT_INIT_LOG"
 /bin/mkdir -p .trellis/scripts
 printf 'workflow\n' > .trellis/workflow.md
 printf 'script\n' > .trellis/scripts/task.py
+exit 0
+"#
+}
+
+#[cfg(windows)]
+fn fake_mini_trellis_script() -> &'static str {
+    r#"@echo off
+>>"%CCR_PROJECT_INIT_LOG%" echo mini-trellis^|%CD%^|%*
+if /I "%FAKE_MINI_TRELLIS_MODE%"=="fail" exit /b 9
+if /I "%FAKE_MINI_TRELLIS_MODE%"=="missing" exit /b 0
+mkdir ".trellis\scripts" >nul 2>nul
+if /I not "%FAKE_MINI_TRELLIS_MODE%"=="missing_manifest" (
+  > ".trellis\.mini-trellis-manifest.json" echo {"version":1,"files":{}}
+)
+if /I not "%FAKE_MINI_TRELLIS_MODE%"=="missing_add_session" (
+  > ".trellis\scripts\add_session.py" echo # add_session
+)
+if /I "%FAKE_MINI_TRELLIS_MODE%"=="missing_agents" exit /b 0
+if /I "%FAKE_MINI_TRELLIS_MODE%"=="wrong_agents" (
+  > "AGENTS.md" (
+    echo ^<!-- TRELLIS:START --^>
+    echo Managed by Trellis.
+    echo ^<!-- TRELLIS:END --^>
+  )
+  exit /b 0
+)
+> "AGENTS.md" (
+  echo ^<!-- TRELLIS:START --^>
+  echo # mini-trellis
+  echo Managed by mini-trellis.
+  echo ^<!-- TRELLIS:END --^>
+)
+exit /b 0
+"#
+}
+
+#[cfg(unix)]
+fn fake_mini_trellis_script() -> &'static str {
+    r#"#!/bin/sh
+printf 'mini-trellis|%s|%s\n' "$PWD" "$*" >> "$CCR_PROJECT_INIT_LOG"
+[ "$FAKE_MINI_TRELLIS_MODE" = "fail" ] && exit 9
+[ "$FAKE_MINI_TRELLIS_MODE" = "missing" ] && exit 0
+/bin/mkdir -p .trellis/scripts
+if [ "$FAKE_MINI_TRELLIS_MODE" != "missing_manifest" ]; then
+  printf '{"version":1,"files":{}}\n' > .trellis/.mini-trellis-manifest.json
+fi
+if [ "$FAKE_MINI_TRELLIS_MODE" != "missing_add_session" ]; then
+  printf '# add_session\n' > .trellis/scripts/add_session.py
+fi
+[ "$FAKE_MINI_TRELLIS_MODE" = "missing_agents" ] && exit 0
+if [ "$FAKE_MINI_TRELLIS_MODE" = "wrong_agents" ]; then
+  printf '<!-- TRELLIS:START -->\nManaged by Trellis.\n<!-- TRELLIS:END -->\n' > AGENTS.md
+  exit 0
+fi
+printf '<!-- TRELLIS:START -->\n# mini-trellis\nManaged by mini-trellis.\n<!-- TRELLIS:END -->\n' > AGENTS.md
 exit 0
 "#
 }
