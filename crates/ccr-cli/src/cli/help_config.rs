@@ -80,7 +80,7 @@ const PROJECT_LONG_ABOUT: &str = "\
 
 const PROJECT_AFTER_LONG_HELP: &str = "\
 常用任务:
-  交互式向导（默认推荐 mini-trellis，预填 git config user.name）
+  交互式向导（默认推荐 mini-trellis，手动输入开发者用户名）
     ccr project init
 
   交互式指定工作流引擎（跳过引擎单选）
@@ -106,7 +106,7 @@ const PROJECT_AFTER_LONG_HELP: &str = "\
 const PROJECT_INIT_LONG_ABOUT: &str = "\
 以四段式向导初始化当前工作目录的项目工作流（支持 trellis 与 mini-trellis 双工作流引擎）。
 
-Git 检查通过后，交互模式未传 --workflow 时默认推荐 mini-trellis，再按所选引擎展示默认全选的宿主平台复选菜单（trellis 支持 Claude Code、Codex、Cursor、Oh My Pi、Grok 共 5 项；mini-trellis 支持 Claude Code、Codex、Cursor、Oh My Pi 共 4 项，不含 Grok），并预填 git config user.name 供确认或修改开发者用户名。`ccr -y project init` 未传 --workflow 时默认兼容 trellis，读取 git config user.name 并向 `trellis init` 或 `mini-trellis init` 显式传入该引擎全部平台开关与 `--yes`（不传 `-s`）。随后校验引擎最低工作流产物，创建本地 ref/，并以原子写入把固定 7 条规则（.agents/、.claude/、.codex/、.cursor/、.omp/、.grok/ 和 ref/）合并进当前目录的 .gitignore，保留已有内容与换行风格。";
+Git 检查通过后，交互模式未传 --workflow 时默认推荐 mini-trellis，再按所选引擎展示默认全选的宿主平台复选菜单（trellis 支持 Claude Code、Codex、Cursor、Oh My Pi、Grok 共 5 项；mini-trellis 支持 Claude Code、Codex、Cursor、Oh My Pi 共 4 项，不含 Grok），并要求手动输入开发者用户名（不读取 git config user.name 作为默认值）。`ccr -y project init` 未传 --workflow 时默认兼容 trellis，读取 git config user.name 并向 `trellis init` 或 `mini-trellis init` 显式传入该引擎全部平台开关与 `--yes`（不传 `-s`）。随后校验引擎最低工作流产物，创建本地 ref/，并以原子写入把固定 7 条规则（.agents/、.claude/、.codex/、.cursor/、.omp/、.grok/ 和 ref/）合并进当前目录的 .gitignore，保留已有内容与换行风格。";
 
 const PROJECT_INIT_AFTER_LONG_HELP: &str = "\
 用法:

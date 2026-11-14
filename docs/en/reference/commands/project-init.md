@@ -5,7 +5,7 @@
 ## Usage
 
 ```bash
-# Interactive wizard: recommends mini-trellis by default and prefills git config user.name
+# Interactive wizard: recommends mini-trellis by default and prompts for a developer username
 ccr project init
 
 # Explicitly select a workflow engine (skips engine selection and goes to platform & username prompts)
@@ -62,7 +62,7 @@ At the start of stage 2, CCR inspects workspace fingerprint markers (see "Cross-
 - **Interactive mode**:
   - When `--workflow` is omitted, CCR displays a single-select menu with `mini-trellis` highlighted first as the recommended choice; passing `--workflow` skips this menu.
   - Immediately after the target engine is chosen, CCR checks for cross-engine conflicts before prompting further. If compatible, it displays the host platform multi-select menu (`5` items for `trellis`, `4` items for `mini-trellis`, all checked by default). Clearing every item prints a warning and re-opens the menu without starting the downstream CLI.
-  - CCR silently probes `git config user.name` in the current directory: a non-empty value prefills the developer name prompt (press Enter to accept), while an unset value requires typing a non-empty name and re-prompts on blank input.
+  - Prompts you to enter a non-empty developer username without probing or prefilling `git config user.name` (avoiding echoing or defaulting a real name from Git config); blank input prints a warning and re-prompts.
 - **Non-interactive mode (`-y` / `--yes`)**:
   - Shows no interactive prompts. Omitting `--workflow` defaults to `trellis`, and CCR enables every supported platform for the resolved engine (`5` for `trellis` or `4` for `mini-trellis`).
   - Reads the developer name strictly from `git config user.name` in the current directory. Spawn failure, non-zero exit status, or blank output fails before invoking the downstream CLI, advising you to set `git config user.name` or rerun without `-y`.

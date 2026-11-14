@@ -5,10 +5,10 @@
 ## 用法
 
 ```bash
-# 交互式向导：默认推荐 mini-trellis，并自动预填 git config user.name
+# 交互式向导：默认推荐 mini-trellis，并要求手动输入开发者用户名
 ccr project init
 
-# 显式指定工作流引擎（跳过引擎单选，直接进入平台复选与用户名确认）
+# 显式指定工作流引擎（跳过引擎单选，直接进入平台复选与用户名输入）
 ccr project init --workflow mini-trellis
 ccr project init --workflow trellis
 
@@ -62,7 +62,7 @@ CCR 先在当前目录运行 `git rev-parse --show-toplevel`：
 - **交互模式**：
   - 未传 `--workflow` 时显示单选菜单，默认高亮推荐第 1 项 `mini-trellis`；已传 `--workflow` 时直接采用指定引擎。
   - 目标引擎确定后立即校验是否存在跨引擎冲突；无冲突再显示对应引擎的宿主平台复选菜单（`trellis` 5 项、`mini-trellis` 4 项，默认全部勾选）。全部取消勾选时会提示警告并重新显示菜单，不会启动下游 CLI。
-  - 静默读取当前目录 `git config user.name`：若存在非空值则预填为开发者用户名默认值（直接回车即可采用）；若未配置，则要求手动输入非空名称，空白输入会提示并重问。
+  - 提示手动输入非空的开发者用户名（不读取或预填 `git config user.name`，避免在终端回显或默认写入 Git 真实姓名）；空白输入会提示警告并重问。
 - **非交互模式（`-y` / `--yes`）**：
   - 不显示任何交互菜单；未传 `--workflow` 时默认采用 `trellis`，并启用目标引擎支持的全部平台（`trellis` 5 项或 `mini-trellis` 4 项）。
   - 开发者用户名严格读取自当前目录 `git config user.name`；若该命令无法启动、退出非零或输出为空白，命令会在调用下游 CLI 前直接失败并提示配置 `git config user.name` 或去掉 `-y` 手动输入。

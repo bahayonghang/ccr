@@ -68,7 +68,7 @@ pub(crate) trait ProjectWizardPrompter {
         items: &[&str],
         defaults: &[bool],
     ) -> Result<Vec<usize>>;
-    fn input_developer(&mut self, prompt: &str, default: Option<&str>) -> Result<String>;
+    fn input_developer(&mut self, prompt: &str) -> Result<String>;
     fn warn(&mut self, message: &str);
 }
 
@@ -113,14 +113,10 @@ impl ProjectWizardPrompter for DialoguerPrompter {
             .map_err(|error| CcrError::UiError(format!("平台选择阶段：交互失败: {error}")))
     }
 
-    fn input_developer(&mut self, prompt: &str, default: Option<&str>) -> Result<String> {
-        let mut input = Input::<String>::with_theme(self.theme.as_ref()).with_prompt(prompt);
-        if let Some(default_value) = default {
-            input = input.default(default_value.to_string());
-        } else {
-            input = input.allow_empty(true);
-        }
-        input
+    fn input_developer(&mut self, prompt: &str) -> Result<String> {
+        Input::<String>::with_theme(self.theme.as_ref())
+            .with_prompt(prompt)
+            .allow_empty(true)
             .interact_text()
             .map_err(|error| CcrError::UiError(format!("用户名阶段：交互失败: {error}")))
     }
@@ -169,8 +165,7 @@ pub(crate) fn resolve_workflow_request_with(
     };
     let mode = validate_markers_for_target(&markers, engine)?;
     let platforms = prompt_platforms_with(engine, prompter)?;
-    let default_user = optional_git_user_name(git, root);
-    let developer = prompt_developer_with(default_user.as_deref(), prompter)?;
+    let developer = prompt_developer_with(prompter)?;
 
     Ok(WorkflowInitRequest {
         workflow: engine,
@@ -243,27 +238,15 @@ fn platforms_from_indices(
     Ok(platforms)
 }
 
-fn prompt_developer_with(
-    default: Option<&str>,
-    prompter: &mut impl ProjectWizardPrompter,
-) -> Result<String> {
+fn prompt_developer_with(prompter: &mut impl ProjectWizardPrompter) -> Result<String> {
     loop {
-        let raw = prompter.input_developer(DEVELOPER_PROMPT, default)?;
+        let raw = prompter.input_developer(DEVELOPER_PROMPT)?;
         let trimmed = raw.trim();
         if !trimmed.is_empty() {
             return Ok(trimmed.to_string());
         }
-        if raw.is_empty()
-            && let Some(default_name) = default.map(str::trim).filter(|name| !name.is_empty())
-        {
-            return Ok(default_name.to_string());
-        }
         prompter.warn(EMPTY_DEVELOPER_WARNING);
     }
-}
-
-fn optional_git_user_name(git: &Path, root: &Path) -> Option<String> {
-    read_git_user_name(git, root).ok()
 }
 
 fn read_git_user_name(git: &Path, root: &Path) -> Result<String> {
@@ -308,7 +291,7 @@ mod tests {
         observed_platform_prompts: Vec<String>,
         observed_platform_items: Vec<Vec<String>>,
         observed_platform_defaults: Vec<Vec<bool>>,
-        observed_developer_defaults: Vec<Option<String>>,
+        observed_developer_prompts: Vec<String>,
         warnings: Vec<String>,
     }
 
@@ -339,9 +322,8 @@ mod tests {
             Ok(self.platform_choices.pop_front().expect("platform choice"))
         }
 
-        fn input_developer(&mut self, _prompt: &str, default: Option<&str>) -> Result<String> {
-            self.observed_developer_defaults
-                .push(default.map(str::to_owned));
+        fn input_developer(&mut self, prompt: &str) -> Result<String> {
+            self.observed_developer_prompts.push(prompt.to_string());
             Ok(self.developer_inputs.pop_front().expect("developer input"))
         }
 
@@ -398,15 +380,15 @@ mod tests {
     }
 
     #[test]
-    fn interactive_without_workflow_flag_defaults_first_choice_to_mini_trellis_and_prefills_git_user()
+    fn interactive_without_workflow_flag_defaults_first_choice_to_mini_trellis_without_prefilling_git_user()
      {
         let temp = tempdir().unwrap();
         let git = write_fake_git(temp.path(), Some("  Ada Lovelace  "));
         let mut prompter = ScriptedPrompter {
             workflow_choices: VecDeque::from([0]),
             platform_choices: VecDeque::from([vec![0, 1, 2, 3]]),
-            // 直接回车应采用预填的 Git 用户名默认值
-            developer_inputs: VecDeque::from([String::new()]),
+            // 即使 git config user.name 存在，也不应预填，直接回车必须提示告警并要求手动输入
+            developer_inputs: VecDeque::from([String::new(), "  lyh  ".to_string()]),
             ..Default::default()
         };
 
@@ -437,12 +419,13 @@ mod tests {
             vec![vec![true, true, true, true]]
         );
         assert_eq!(
-            prompter.observed_developer_defaults,
-            vec![Some("Ada Lovelace".to_string())]
+            prompter.observed_developer_prompts,
+            vec![DEVELOPER_PROMPT, DEVELOPER_PROMPT]
         );
+        assert_eq!(prompter.warnings, vec![EMPTY_DEVELOPER_WARNING]);
 
         assert_eq!(req.workflow, WorkflowEngine::MiniTrellis);
-        assert_eq!(req.developer, "Ada Lovelace");
+        assert_eq!(req.developer, "lyh");
         assert_eq!(
             req.platforms,
             vec![
@@ -456,8 +439,34 @@ mod tests {
     }
 
     #[test]
-    fn interactive_reprompts_on_empty_platforms_and_enforces_non_empty_developer_when_git_user_missing()
-     {
+    fn auto_yes_reads_git_user_name_without_prompting() {
+        let temp = tempdir().unwrap();
+        let git = write_fake_git(temp.path(), Some("  Ada Lovelace  "));
+        let mut prompter = ScriptedPrompter::default();
+
+        let req = resolve_workflow_request_with(
+            true,
+            Some(WorkflowEngine::MiniTrellis),
+            &git,
+            temp.path(),
+            &mut prompter,
+        )
+        .unwrap();
+
+        assert_eq!(req.workflow, WorkflowEngine::MiniTrellis);
+        assert_eq!(req.developer, "Ada Lovelace");
+        assert_eq!(
+            req.platforms,
+            WorkflowPlatform::MINI_TRELLIS_PLATFORMS.to_vec()
+        );
+        assert!(req.auto_yes);
+        assert!(prompter.observed_workflow_prompts.is_empty());
+        assert!(prompter.observed_platform_prompts.is_empty());
+        assert!(prompter.observed_developer_prompts.is_empty());
+    }
+
+    #[test]
+    fn interactive_reprompts_on_empty_platforms_and_enforces_non_empty_developer() {
         let temp = tempdir().unwrap();
         let git = write_fake_git(temp.path(), None);
         let mut prompter = ScriptedPrompter {
@@ -492,7 +501,10 @@ mod tests {
                 "Grok (--grok)",
             ]
         );
-        assert_eq!(prompter.observed_developer_defaults, vec![None, None, None]);
+        assert_eq!(
+            prompter.observed_developer_prompts,
+            vec![DEVELOPER_PROMPT, DEVELOPER_PROMPT, DEVELOPER_PROMPT]
+        );
         // 1 次空平台选择告警 + 2 次空白用户名告警
         assert_eq!(
             prompter.warnings.len(),
@@ -528,7 +540,7 @@ mod tests {
         assert!(err.to_string().contains("mini-trellis migrate"));
         // 冲突应立即终止，不进入后续平台复选与用户名输入提示
         assert!(prompter.observed_platform_items.is_empty());
-        assert!(prompter.observed_developer_defaults.is_empty());
+        assert!(prompter.observed_developer_prompts.is_empty());
     }
 
     #[test]

@@ -256,6 +256,18 @@ fn help_subcommand_supports_project_init_path() {
         help_command.contains("git config user.name"),
         "{help_command}"
     );
+    assert!(
+        !project_help.contains("预填 git config user.name"),
+        "{project_help}"
+    );
+    assert!(
+        !help_command.contains("预填 git config user.name"),
+        "{help_command}"
+    );
+    assert!(
+        help_command.contains("手动输入开发者用户名"),
+        "{help_command}"
+    );
     assert!(help_command.contains("git init"), "{help_command}");
     assert!(
         !help_command.contains("交互模式默认勾选五项"),
