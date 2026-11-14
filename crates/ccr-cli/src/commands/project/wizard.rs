@@ -1,16 +1,56 @@
 use super::WorkflowEngine;
 use super::fingerprint::{ensure_not_mixed_workspace, validate_markers_for_target};
+use super::render::{WizardCapabilities, format_wizard_status};
 use super::workflow::{WorkflowInitRequest, WorkflowPlatform};
-use ccr_core::core::ColorOutput;
 use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::logging::OutputStatus;
+use dialoguer::console::{Style, style};
 use dialoguer::theme::{ColorfulTheme, SimpleTheme, Theme};
 use dialoguer::{Input, MultiSelect, Select};
-use std::io::IsTerminal;
 use std::path::Path;
 use std::process::Command;
 
-const WORKFLOW_PROMPT: &str = "选择项目工作流引擎";
-const PLATFORM_PROMPT: &str = "选择要初始化的平台";
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum WizardThemeKind {
+    Colorful,
+    Simple,
+}
+
+impl WizardThemeKind {
+    pub(crate) fn for_capabilities(caps: WizardCapabilities) -> Self {
+        if caps.style {
+            Self::Colorful
+        } else {
+            Self::Simple
+        }
+    }
+
+    fn into_theme(self) -> Box<dyn Theme> {
+        match self {
+            Self::Colorful => Box::new(build_colorful_theme()),
+            Self::Simple => Box::new(SimpleTheme),
+        }
+    }
+}
+
+fn build_colorful_theme() -> ColorfulTheme {
+    ColorfulTheme {
+        prompt_prefix: style("?".to_string()).for_stderr().yellow().bold(),
+        prompt_style: Style::new().for_stderr().bold(),
+        prompt_suffix: style("›".to_string()).for_stderr().black().bright(),
+        active_item_prefix: style("❯".to_string()).for_stderr().cyan().bold(),
+        active_item_style: Style::new().for_stderr().cyan().bold(),
+        checked_item_prefix: style("✓".to_string()).for_stderr().green().bold(),
+        unchecked_item_prefix: style("·".to_string()).for_stderr().black().bright(),
+        values_style: Style::new().for_stderr().green(),
+        ..ColorfulTheme::default()
+    }
+}
+
+const WORKFLOW_PROMPT_TTY: &str = "选择项目工作流引擎 (方向键移动 · 回车确认)";
+const WORKFLOW_PROMPT_DUMB: &str = "选择项目工作流引擎 (方向键移动, 回车确认)";
+const PLATFORM_PROMPT_TTY: &str = "选择要初始化的宿主平台 (空格勾选 · 回车确认)";
+const PLATFORM_PROMPT_DUMB: &str = "选择要初始化的宿主平台 (空格勾选, 回车确认)";
 const EMPTY_PLATFORM_WARNING: &str = "请至少选择一个平台";
 const DEVELOPER_PROMPT: &str = "开发者用户名";
 const EMPTY_DEVELOPER_WARNING: &str = "开发者用户名不能为空（用于工作流工作区目录）";
@@ -18,6 +58,9 @@ const MISSING_GIT_USER_MESSAGE: &str =
     "用户名阶段：需要设置 git config user.name，或去掉 -y 后手动输入开发者用户名";
 
 pub(crate) trait ProjectWizardPrompter {
+    fn is_dumb(&self) -> bool {
+        false
+    }
     fn select_workflow(&mut self, prompt: &str, items: &[&str], default: usize) -> Result<usize>;
     fn select_platforms(
         &mut self,
@@ -31,31 +74,26 @@ pub(crate) trait ProjectWizardPrompter {
 
 struct DialoguerPrompter {
     theme: Box<dyn Theme>,
+    stdout_caps: WizardCapabilities,
+    stderr_caps: WizardCapabilities,
 }
 
 impl DialoguerPrompter {
-    fn new() -> Self {
+    fn new(stdout_caps: WizardCapabilities, stderr_caps: WizardCapabilities) -> Self {
+        let theme = WizardThemeKind::for_capabilities(stderr_caps).into_theme();
         Self {
-            theme: select_dialoguer_theme(),
+            theme,
+            stdout_caps,
+            stderr_caps,
         }
     }
 }
 
-fn select_dialoguer_theme() -> Box<dyn Theme> {
-    let is_tty = std::io::stderr().is_terminal();
-    let is_dumb = std::env::var_os("TERM").is_some_and(|term| term == "dumb");
-    let no_color = std::env::var_os("NO_COLOR").is_some();
-    let force_color =
-        std::env::var_os("CLICOLOR_FORCE").is_some_and(|value| !value.is_empty() && value != "0");
-
-    if is_tty && !is_dumb && (force_color || !no_color) {
-        Box::new(ColorfulTheme::default())
-    } else {
-        Box::new(SimpleTheme)
-    }
-}
-
 impl ProjectWizardPrompter for DialoguerPrompter {
+    fn is_dumb(&self) -> bool {
+        self.stderr_caps.is_dumb
+    }
+
     fn select_workflow(&mut self, prompt: &str, items: &[&str], default: usize) -> Result<usize> {
         Select::with_theme(self.theme.as_ref())
             .with_prompt(prompt)
@@ -93,7 +131,10 @@ impl ProjectWizardPrompter for DialoguerPrompter {
     }
 
     fn warn(&mut self, message: &str) {
-        ColorOutput::warning(message);
+        println!(
+            "{}",
+            format_wizard_status(OutputStatus::Warning, message, self.stdout_caps)
+        );
     }
 }
 
@@ -102,8 +143,10 @@ pub(crate) fn resolve_workflow_request(
     workflow: Option<WorkflowEngine>,
     git: &Path,
     root: &Path,
+    stdout_caps: WizardCapabilities,
 ) -> Result<WorkflowInitRequest> {
-    let mut prompter = DialoguerPrompter::new();
+    let stderr_caps = WizardCapabilities::for_stderr();
+    let mut prompter = DialoguerPrompter::new(stdout_caps, stderr_caps);
     resolve_workflow_request_with(auto_yes, workflow, git, root, &mut prompter)
 }
 
@@ -148,8 +191,15 @@ pub(crate) fn resolve_workflow_request_with(
 }
 
 fn prompt_workflow_with(prompter: &mut impl ProjectWizardPrompter) -> Result<WorkflowEngine> {
-    let labels = WorkflowEngine::INTERACTIVE_MENU_ORDER.map(WorkflowEngine::menu_label);
-    let index = prompter.select_workflow(WORKFLOW_PROMPT, &labels, 0)?;
+    let is_dumb = prompter.is_dumb();
+    let labels =
+        WorkflowEngine::INTERACTIVE_MENU_ORDER.map(|engine| engine.menu_label_for(is_dumb));
+    let prompt = if is_dumb {
+        WORKFLOW_PROMPT_DUMB
+    } else {
+        WORKFLOW_PROMPT_TTY
+    };
+    let index = prompter.select_workflow(prompt, &labels, 0)?;
     WorkflowEngine::INTERACTIVE_MENU_ORDER
         .get(index)
         .copied()
@@ -166,12 +216,17 @@ fn prompt_platforms_with(
     let labels = supported
         .iter()
         .copied()
-        .map(WorkflowPlatform::label)
+        .map(WorkflowPlatform::menu_label)
         .collect::<Vec<_>>();
     let defaults = vec![true; supported.len()];
+    let prompt = if prompter.is_dumb() {
+        PLATFORM_PROMPT_DUMB
+    } else {
+        PLATFORM_PROMPT_TTY
+    };
 
     loop {
-        let selected = prompter.select_platforms(PLATFORM_PROMPT, &labels, &defaults)?;
+        let selected = prompter.select_platforms(prompt, &labels, &defaults)?;
         if selected.is_empty() {
             prompter.warn(EMPTY_PLATFORM_WARNING);
             continue;
@@ -262,8 +317,10 @@ mod tests {
         workflow_choices: VecDeque<usize>,
         platform_choices: VecDeque<Vec<usize>>,
         developer_inputs: VecDeque<String>,
+        observed_workflow_prompts: Vec<String>,
         observed_workflow_items: Vec<Vec<String>>,
         observed_workflow_defaults: Vec<usize>,
+        observed_platform_prompts: Vec<String>,
         observed_platform_items: Vec<Vec<String>>,
         observed_platform_defaults: Vec<Vec<bool>>,
         observed_developer_defaults: Vec<Option<String>>,
@@ -273,10 +330,11 @@ mod tests {
     impl ProjectWizardPrompter for ScriptedPrompter {
         fn select_workflow(
             &mut self,
-            _prompt: &str,
+            prompt: &str,
             items: &[&str],
             default: usize,
         ) -> Result<usize> {
+            self.observed_workflow_prompts.push(prompt.to_string());
             self.observed_workflow_items
                 .push(items.iter().map(|s| (*s).to_string()).collect());
             self.observed_workflow_defaults.push(default);
@@ -285,10 +343,11 @@ mod tests {
 
         fn select_platforms(
             &mut self,
-            _prompt: &str,
+            prompt: &str,
             items: &[&str],
             defaults: &[bool],
         ) -> Result<Vec<usize>> {
+            self.observed_platform_prompts.push(prompt.to_string());
             self.observed_platform_items
                 .push(items.iter().map(|s| (*s).to_string()).collect());
             self.observed_platform_defaults.push(defaults.to_vec());
@@ -374,10 +433,19 @@ mod tests {
         assert!(prompter.observed_workflow_items[0][0].starts_with("mini-trellis"));
         assert!(prompter.observed_workflow_items[0][1].starts_with("trellis"));
 
-        // mini-trellis platform menu has 4 default-checked items without Grok
+        // mini-trellis platform menu has 4 default-checked items with flag labels, without Grok
+        assert!(prompter.observed_workflow_prompts[0].contains("方向键移动"));
+        assert!(prompter.observed_workflow_prompts[0].contains("回车确认"));
+        assert!(prompter.observed_platform_prompts[0].contains("空格勾选"));
+        assert!(prompter.observed_platform_prompts[0].contains("回车确认"));
         assert_eq!(
             prompter.observed_platform_items,
-            vec![vec!["Claude Code", "Codex", "Cursor", "Oh My Pi"]]
+            vec![vec![
+                "Claude Code (--claude)",
+                "Codex (--codex)",
+                "Cursor (--cursor)",
+                "Oh My Pi (--omp)",
+            ]]
         );
         assert_eq!(
             prompter.observed_platform_defaults,
@@ -431,7 +499,13 @@ mod tests {
         assert_eq!(prompter.observed_platform_items.len(), 2);
         assert_eq!(
             prompter.observed_platform_items[0],
-            vec!["Claude Code", "Codex", "Cursor", "Oh My Pi", "Grok"]
+            vec![
+                "Claude Code (--claude)",
+                "Codex (--codex)",
+                "Cursor (--cursor)",
+                "Oh My Pi (--omp)",
+                "Grok (--grok)",
+            ]
         );
         assert_eq!(prompter.observed_developer_defaults, vec![None, None, None]);
         // 1 warning for empty platform selection + 2 warnings for blank developer input
@@ -470,5 +544,37 @@ mod tests {
         // Platform and developer prompts were never reached
         assert!(prompter.observed_platform_items.is_empty());
         assert!(prompter.observed_developer_defaults.is_empty());
+    }
+
+    #[test]
+    fn wizard_theme_uses_colorful_only_on_styled_non_dumb_tty_and_falls_back_to_simple() {
+        let styled_tty =
+            WizardCapabilities::resolve(true, Some("xterm-256color"), None, None, None);
+        let no_color_tty =
+            WizardCapabilities::resolve(true, Some("xterm-256color"), Some("1"), None, None);
+        let captured =
+            WizardCapabilities::resolve(false, Some("xterm-256color"), None, None, Some("1"));
+        let dumb = WizardCapabilities::resolve(true, Some("dumb"), None, None, Some("1"));
+
+        assert_eq!(
+            WizardThemeKind::for_capabilities(styled_tty),
+            WizardThemeKind::Colorful
+        );
+        for degraded in [no_color_tty, captured, dumb] {
+            assert_eq!(
+                WizardThemeKind::for_capabilities(degraded),
+                WizardThemeKind::Simple
+            );
+        }
+
+        let simple_theme = WizardThemeKind::Simple.into_theme();
+        let mut rendered = String::new();
+        simple_theme
+            .format_multi_select_prompt_item(&mut rendered, "Claude Code (--claude)", true, true)
+            .unwrap();
+        assert!(!rendered.contains("\u{1b}["), "{rendered:?}");
+        for forbidden in ['→', '✓', '⚠', '═', '┌', '─', '│', '❯'] {
+            assert!(!rendered.contains(forbidden), "{rendered:?}");
+        }
     }
 }

@@ -1,10 +1,18 @@
 use super::WorkflowEngine;
 use super::gitignore::{ensure_project_gitignore, ensure_ref_dir};
+use super::render::{
+    GitRepoOutcome, ProjectInitSummary, WizardCapabilities, format_config_confirmation,
+    format_final_ready_line, format_header, format_stage_1_git, format_stage_2_config,
+    format_stage_3_engine, format_stage_4_workspace_files, format_subprocess_end,
+    format_subprocess_start, format_wizard_status, next_steps_for_engine, render_summary_table,
+};
 use super::wizard::resolve_workflow_request;
 use super::workflow::{WorkflowInitRequest, build_workflow_init_args, validate_workflow_outputs};
-use ccr_core::core::ColorOutput;
+use crate::commands::common::print_next_steps;
 use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::logging::OutputStatus;
 use std::fs;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
@@ -12,32 +20,45 @@ pub fn project_init_command(auto_yes: bool, workflow: Option<WorkflowEngine>) ->
     let root = std::env::current_dir().map_err(|error| {
         CcrError::FileIoError(format!("项目初始化阶段：无法获取当前工作目录: {error}"))
     })?;
+    let caps = WizardCapabilities::for_stdout();
 
-    ColorOutput::title("项目工作流初始化");
-    ColorOutput::key_value("目标目录", &root.display().to_string(), 2);
+    println!("{}", format_header(&root, auto_yes, workflow, caps));
     println!();
 
-    let git = ensure_git_repository(&root)?;
+    let (git, git_outcome) = ensure_git_repository(&root, caps)?;
     println!();
-    let request = resolve_workflow_request(auto_yes, workflow, &git, &root)?;
-    run_workflow_init(&root, &request)?;
-    println!();
-    ensure_ref_dir(&root)?;
-    ensure_project_gitignore(&root)?;
 
+    println!("{}", format_stage_2_config(caps));
+    let request = resolve_workflow_request(auto_yes, workflow, &git, &root, caps)?;
+    println!("{}", format_config_confirmation(&request, caps));
     println!();
-    ColorOutput::separator();
+
+    run_workflow_init(&root, &request, caps)?;
     println!();
-    ColorOutput::success(&format!(
-        "Git、{}、Agent 忽略规则和 ref/ 均已就绪",
-        request.workflow.stage_name()
-    ));
+
+    println!("{}", format_stage_4_workspace_files(caps));
+    let ref_outcome = ensure_ref_dir(&root, caps)?;
+    let gitignore_outcome = ensure_project_gitignore(&root, caps)?;
+    println!();
+
+    let summary = ProjectInitSummary {
+        git: &git_outcome,
+        request: &request,
+        ref_dir: ref_outcome,
+        gitignore: &gitignore_outcome,
+    };
+    println!("{}", render_summary_table(&summary, caps));
+    println!("{}", format_final_ready_line(request.workflow, caps));
+    print_next_steps(next_steps_for_engine(request.workflow));
 
     Ok(())
 }
 
-fn ensure_git_repository(root: &Path) -> Result<PathBuf> {
-    ColorOutput::step("检查 Git 仓库");
+fn ensure_git_repository(
+    root: &Path,
+    caps: WizardCapabilities,
+) -> Result<(PathBuf, GitRepoOutcome)> {
+    println!("{}", format_stage_1_git(caps));
 
     let git = resolve_tool("git", "Git")?;
 
@@ -57,18 +78,28 @@ fn ensure_git_repository(root: &Path) -> Result<PathBuf> {
             ));
         }
 
-        if paths_match(root, &repository_root) {
-            ColorOutput::info("当前目录已经是 Git 仓库根，跳过 git init");
+        let outcome = if paths_match(root, &repository_root) {
+            println!("  当前目录已经是 Git 仓库根，跳过 git init");
+            GitRepoOutcome::ExistingRoot
         } else {
-            ColorOutput::warning(&format!(
-                "当前目录位于 Git 仓库 {} 中，跳过嵌套 git init",
-                repository_root.display()
-            ));
-        }
-        return Ok(git);
+            println!(
+                "{}",
+                format_wizard_status(
+                    OutputStatus::Warning,
+                    &format!(
+                        "当前目录位于 Git 仓库 {} 中，跳过嵌套 git init",
+                        repository_root.display()
+                    ),
+                    caps,
+                )
+            );
+            GitRepoOutcome::ParentWorktree { repository_root }
+        };
+        return Ok((git, outcome));
     }
 
-    ColorOutput::info("当前目录不在 Git 工作树中，运行 git init");
+    println!("  当前目录不在 Git 工作树中，运行 git init");
+    let _ = io::stdout().flush();
     let status = Command::new(&git)
         .arg("init")
         .current_dir(root)
@@ -86,18 +117,28 @@ fn ensure_git_repository(root: &Path) -> Result<PathBuf> {
         )));
     }
 
-    ColorOutput::success("Git 仓库初始化完成");
-    Ok(git)
+    println!(
+        "{}",
+        format_wizard_status(OutputStatus::Success, "Git 仓库初始化完成", caps)
+    );
+    Ok((git, GitRepoOutcome::Initialized))
 }
 
-fn run_workflow_init(root: &Path, request: &WorkflowInitRequest) -> Result<()> {
+fn run_workflow_init(
+    root: &Path,
+    request: &WorkflowInitRequest,
+    caps: WizardCapabilities,
+) -> Result<()> {
     let engine = request.workflow;
     let stage = engine.stage_name();
     let binary_name = engine.binary_name();
-    ColorOutput::step(&format!("初始化 {stage} 工作流"));
+    println!("{}", format_stage_3_engine(engine, caps));
 
     let executable = resolve_tool(binary_name, stage)?;
     let args = build_workflow_init_args(request)?;
+
+    println!("{}", format_subprocess_start(engine, caps));
+    let _ = io::stdout().flush();
     let status = Command::new(executable)
         .args(&args)
         .current_dir(root)
@@ -110,6 +151,7 @@ fn run_workflow_init(root: &Path, request: &WorkflowInitRequest) -> Result<()> {
                 "{stage} 阶段：无法启动 {binary_name} init: {error}"
             ))
         })?;
+    println!("{}", format_subprocess_end(engine, caps));
 
     if !status.success() {
         return Err(CcrError::ExternalCommandError(format!(
@@ -118,7 +160,14 @@ fn run_workflow_init(root: &Path, request: &WorkflowInitRequest) -> Result<()> {
     }
 
     validate_workflow_outputs(root, engine)?;
-    ColorOutput::success(&format!("{stage} 工作流已就绪"));
+    println!(
+        "{}",
+        format_wizard_status(
+            OutputStatus::Success,
+            &format!("{binary_name} 工作流产物校验通过"),
+            caps,
+        )
+    );
     Ok(())
 }
 

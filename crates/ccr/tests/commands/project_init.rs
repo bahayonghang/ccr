@@ -87,6 +87,8 @@ impl ProjectInitFixture {
             .env("CCR_PROJECT_INIT_LOG", &self.log)
             .env("NO_COLOR", "1")
             .env("CLICOLOR", "0")
+            .env_remove("CLICOLOR_FORCE")
+            .env_remove("FAKE_CLI_BANNER")
             .env_remove("FAKE_GIT_USER");
         command
     }
@@ -817,6 +819,398 @@ fn mini_trellis_zero_exit_missing_any_minimum_artifact_returns_validation_error_
     }
 }
 
+#[test]
+fn four_stage_wizard_renders_header_boundaries_summary_card_and_next_steps_across_modes() {
+    // 1. Fresh mini-trellis in a brand-new repo with downstream CLI banner output
+    let fixture = ProjectInitFixture::new();
+    fixture.install_all_tools();
+    let mut cmd = fixture.command("none", "success");
+    cmd.env("FAKE_GIT_USER", GIT_USER)
+        .env("FAKE_CLI_BANNER", "Downstream mini-trellis banner")
+        .args(["--yes", "project", "init", "--workflow", "mini-trellis"]);
+    let fresh = cmd.output().unwrap();
+    assert_success(&fresh);
+    let fresh_out = stdout(&fresh);
+
+    for header_line in [
+        "项目工作流初始化\n================",
+        &format!("  目标目录: {}", fixture.project.display()),
+        "  运行模式: 非交互自动模式 (-y)",
+        "  工作流预设: mini-trellis",
+    ] {
+        assert!(
+            fresh_out.contains(header_line),
+            "missing {header_line:?} in:\n{fresh_out}"
+        );
+    }
+
+    assert_substrings_in_order(
+        &fresh_out,
+        &[
+            "[1/4] 检查 Git 仓库",
+            "[2/4] 配置工作流与宿主平台",
+            "  工作流引擎: mini-trellis",
+            "  宿主平台: Claude Code, Codex, Cursor, Oh My Pi",
+            "  开发者: fake-git-user",
+            "[3/4] 执行 mini-trellis 初始化",
+            "  --- 开始执行 mini-trellis init ---",
+            "Downstream mini-trellis banner",
+            "  --- mini-trellis init 执行结束 ---",
+            "mini-trellis 工作流产物校验通过",
+            "[4/4] 准备 ref/ 目录与 .gitignore 忽略规则",
+            "阶段项",
+            "Git 仓库",
+            "已执行 git init 初始化仓库",
+            "mini-trellis（首次初始化）",
+            "4 项启用",
+            "ref/ 目录",
+            ".gitignore",
+            MINI_READY_SUMMARY,
+            "下一步",
+            "    mini-trellis doctor",
+            "    mini-trellis mem recall \"project init\"",
+        ],
+    );
+
+    // 2. Idempotent second run of mini-trellis at existing repository root
+    let rerun = fixture.run_mini_trellis(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init", "--workflow", "mini-trellis"],
+    );
+    assert_success(&rerun);
+    let rerun_out = stdout(&rerun);
+    for expected in [
+        "当前目录已是仓库根",
+        "mini-trellis（幂等更新）",
+        "保留现有 ref/ 目录内容",
+        "已包含全部项目忽略规则，跳过写入",
+        "    mini-trellis doctor",
+    ] {
+        assert!(
+            rerun_out.contains(expected),
+            "missing {expected:?} in:\n{rerun_out}"
+        );
+    }
+
+    // 3. Default trellis (no --workflow preset) inside a parent repository subdirectory
+    let parent_fixture = ProjectInitFixture::in_parent_repository();
+    parent_fixture.install_all_tools();
+    let parent_run = parent_fixture.run(
+        "parent",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
+    assert_success(&parent_run);
+    let parent_out = stdout(&parent_run);
+    assert!(!parent_out.contains("工作流预设:"), "{parent_out}");
+    assert_substrings_in_order(
+        &parent_out,
+        &[
+            "[1/4] 检查 Git 仓库",
+            "跳过嵌套 git init",
+            "[2/4] 配置工作流与宿主平台",
+            "  工作流引擎: trellis",
+            "  宿主平台: Claude Code, Codex, Cursor, Oh My Pi, Grok",
+            "[3/4] 执行 trellis 初始化",
+            "  --- 开始执行 trellis init ---",
+            "  --- trellis init 执行结束 ---",
+            "trellis 工作流产物校验通过",
+            "[4/4] 准备 ref/ 目录与 .gitignore 忽略规则",
+            "复用父仓库",
+            "trellis（首次初始化）",
+            "5 项启用",
+            READY_SUMMARY,
+            "下一步",
+            "    trellis doctor",
+            "    ccr project init --help",
+        ],
+    );
+}
+
+fn assert_substrings_in_order(haystack: &str, needles: &[&str]) {
+    let mut offset = 0;
+    for needle in needles {
+        let Some(rel) = haystack[offset..].find(needle) else {
+            panic!("expected to find {needle:?} after byte {offset} in output:\n{haystack}");
+        };
+        offset += rel + needle.len();
+    }
+}
+
+fn assert_no_ansi(output: &Output, label: &str) {
+    let out = stdout(output);
+    let err = stderr(output);
+    assert!(
+        !out.contains("\u{1b}["),
+        "{label} stdout contained ANSI escape:\n{out:?}"
+    );
+    assert!(
+        !err.contains("\u{1b}["),
+        "{label} stderr contained ANSI escape:\n{err:?}"
+    );
+}
+
+fn assert_no_decorative_unicode(text: &str, label: &str) {
+    for forbidden in [
+        '→', '✓', '⚠', '×', '═', '┌', '─', '│', '┆', '╞', '╪', '╡', '├', '┼', '┤', '└', '┴', '┬',
+        '┐', '┘', '❯',
+    ] {
+        assert!(
+            !text.contains(forbidden),
+            "{label} contained decorative Unicode {forbidden:?}:\n{text}"
+        );
+    }
+}
+
+fn assert_no_success_tail(output: &Output, label: &str) {
+    let out = stdout(output);
+    for forbidden in [
+        "阶段项",
+        "结果详情",
+        "均已就绪",
+        "项目工作流初始化完成",
+        "\n下一步",
+        "trellis doctor",
+        "mini-trellis doctor",
+        "mem recall",
+    ] {
+        assert!(
+            !out.contains(forbidden),
+            "{label} unexpectedly printed {forbidden:?} in stdout:\n{out}"
+        );
+    }
+}
+
+#[test]
+fn output_degrades_cleanly_across_pipe_no_color_and_dumb_terminal() {
+    // 1. Pure pipe capture (non-TTY, without NO_COLOR or CLICOLOR)
+    let pipe_fixture = ProjectInitFixture::new();
+    pipe_fixture.install_all_tools();
+    let mut pipe_cmd = pipe_fixture.command("root", "success");
+    pipe_cmd
+        .env_remove("NO_COLOR")
+        .env_remove("CLICOLOR")
+        .env_remove("CLICOLOR_FORCE")
+        .env("TERM", "xterm-256color")
+        .env("FAKE_GIT_USER", GIT_USER)
+        .args(["--yes", "project", "init", "--workflow", "mini-trellis"]);
+    let pipe_ok = pipe_cmd.output().unwrap();
+    assert_success(&pipe_ok);
+    assert_no_ansi(&pipe_ok, "pipe success");
+    assert!(
+        stdout(&pipe_ok).contains("┌"),
+        "expected UTF-8 table in pipe mode"
+    );
+    assert!(stdout(&pipe_ok).contains("  --- 开始执行 mini-trellis init ---"));
+
+    let mut pipe_err_cmd = pipe_fixture.command("root", "success");
+    pipe_err_cmd
+        .env_remove("NO_COLOR")
+        .env_remove("CLICOLOR")
+        .env_remove("CLICOLOR_FORCE")
+        .env("TERM", "xterm-256color")
+        .args(["--yes", "project", "init", "--workflow", "trellis"]);
+    let pipe_err = pipe_err_cmd.output().unwrap();
+    assert!(!pipe_err.status.success());
+    assert_no_ansi(&pipe_err, "pipe error");
+    assert_no_success_tail(&pipe_err, "pipe error");
+
+    // 2. NO_COLOR=1 (without CLICOLOR=0)
+    let no_color_fixture = ProjectInitFixture::new();
+    no_color_fixture.install_all_tools();
+    let mut nc_cmd = no_color_fixture.command("root", "success");
+    nc_cmd
+        .env("NO_COLOR", "1")
+        .env_remove("CLICOLOR")
+        .env_remove("CLICOLOR_FORCE")
+        .env("TERM", "xterm-256color")
+        .env("FAKE_GIT_USER", GIT_USER)
+        .args(["--yes", "project", "init"]);
+    let nc_ok = nc_cmd.output().unwrap();
+    assert_success(&nc_ok);
+    assert_no_ansi(&nc_ok, "NO_COLOR=1 success");
+
+    let mut nc_err_cmd = no_color_fixture.command("root", "success");
+    nc_err_cmd
+        .env("NO_COLOR", "1")
+        .env_remove("CLICOLOR")
+        .env_remove("CLICOLOR_FORCE")
+        .env("TERM", "xterm-256color")
+        .args(["--yes", "project", "init", "--workflow", "mini-trellis"]);
+    let nc_err = nc_err_cmd.output().unwrap();
+    assert!(!nc_err.status.success());
+    assert_no_ansi(&nc_err, "NO_COLOR=1 error");
+    assert_no_success_tail(&nc_err, "NO_COLOR=1 error");
+
+    // 3. TERM=dumb (even with CLICOLOR_FORCE=1): ASCII table + zero ANSI + zero decorative Unicode
+    let dumb_fixture = ProjectInitFixture::new();
+    dumb_fixture.install_all_tools();
+    let mut dumb_cmd = dumb_fixture.command("none", "success");
+    dumb_cmd
+        .env("TERM", "dumb")
+        .env("CLICOLOR_FORCE", "1")
+        .env_remove("NO_COLOR")
+        .env_remove("CLICOLOR")
+        .env("FAKE_GIT_USER", GIT_USER)
+        .args(["--yes", "project", "init", "--workflow", "mini-trellis"]);
+    let dumb_ok = dumb_cmd.output().unwrap();
+    assert_success(&dumb_ok);
+    assert_no_ansi(&dumb_ok, "TERM=dumb success");
+    let dumb_out = stdout(&dumb_ok);
+    assert_no_decorative_unicode(&dumb_out, "TERM=dumb success stdout");
+    assert_no_decorative_unicode(&stderr(&dumb_ok), "TERM=dumb success stderr");
+    assert!(
+        dumb_out.contains("+---"),
+        "expected ASCII table border in:\n{dumb_out}"
+    );
+    assert!(dumb_out.contains("| 阶段项"));
+    assert!(dumb_out.contains("| Git 仓库"));
+    assert!(dumb_out.contains("  --- 开始执行 mini-trellis init ---"));
+
+    let mut dumb_err_cmd = dumb_fixture.command("root", "success");
+    dumb_err_cmd
+        .env("TERM", "dumb")
+        .env("CLICOLOR_FORCE", "1")
+        .env_remove("NO_COLOR")
+        .env_remove("CLICOLOR")
+        .env("FAKE_GIT_USER", GIT_USER)
+        .args(["--yes", "project", "init", "--workflow", "trellis"]);
+    let dumb_err = dumb_err_cmd.output().unwrap();
+    assert!(!dumb_err.status.success());
+    assert_no_ansi(&dumb_err, "TERM=dumb error");
+    assert_no_decorative_unicode(&stdout(&dumb_err), "TERM=dumb error stdout");
+    assert_no_decorative_unicode(&stderr(&dumb_err), "TERM=dumb error stderr");
+    assert_no_success_tail(&dumb_err, "TERM=dumb error");
+}
+
+#[test]
+fn every_stage_failure_omits_summary_table_ready_line_and_next_steps() {
+    // 1. Missing Git binary
+    let missing_git = ProjectInitFixture::new();
+    missing_git.install_all_tools();
+    fs::remove_file(
+        missing_git
+            .bin
+            .join(if cfg!(windows) { "git.cmd" } else { "git" }),
+    )
+    .unwrap();
+    let out = missing_git.run(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
+    assert_eq!(out.status.code(), Some(75));
+    assert!(stderr(&out).contains("Git 阶段"));
+    assert_no_success_tail(&out, "missing git");
+
+    // 2. git init failure
+    let git_fail = ProjectInitFixture::new();
+    git_fail.install_all_tools();
+    let out = git_fail.run(
+        "fail",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
+    assert_eq!(out.status.code(), Some(75));
+    assert!(stderr(&out).contains("Git 阶段"));
+    assert_no_success_tail(&out, "git init fail");
+
+    // 3. Missing Git user.name in -y
+    let no_user = ProjectInitFixture::new();
+    no_user.install_all_tools();
+    let out = no_user.run("root", "success", None, &["--yes", "project", "init"]);
+    assert_eq!(out.status.code(), Some(90));
+    assert!(stderr(&out).contains("用户名阶段"));
+    assert_no_success_tail(&out, "missing git user");
+
+    // 4. Cross-engine conflict
+    let conflict = ProjectInitFixture::new();
+    conflict.install_all_tools();
+    fs::create_dir_all(conflict.project.join(".trellis")).unwrap();
+    fs::write(conflict.project.join(".trellis/workflow.md"), "trellis").unwrap();
+    let out = conflict.run_mini_trellis(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init", "--workflow", "mini-trellis"],
+    );
+    assert_eq!(out.status.code(), Some(90));
+    assert!(stderr(&out).contains("工作流冲突"));
+    assert_no_success_tail(&out, "cross-engine conflict");
+
+    // 5. Missing downstream CLI binary
+    let missing_cli = ProjectInitFixture::new();
+    missing_cli.install_git();
+    let out = missing_cli.run(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
+    assert_eq!(out.status.code(), Some(75));
+    assert!(stderr(&out).contains("Trellis 阶段"));
+    assert_no_success_tail(&out, "missing trellis cli");
+
+    // 6. Downstream CLI non-zero exit
+    let cli_fail = ProjectInitFixture::new();
+    cli_fail.install_all_tools();
+    let out = cli_fail.run(
+        "root",
+        "fail",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
+    assert_eq!(out.status.code(), Some(75));
+    assert!(stderr(&out).contains("Trellis 阶段"));
+    assert_no_success_tail(&out, "downstream cli fail");
+
+    // 7. Missing minimum workflow outputs
+    let post_fail = ProjectInitFixture::new();
+    post_fail.install_all_tools();
+    let out = post_fail.run(
+        "root",
+        "missing",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
+    assert_eq!(out.status.code(), Some(90));
+    assert!(stderr(&out).contains("Trellis 阶段"));
+    assert_no_success_tail(&out, "missing minimum files");
+
+    // 8. ref file conflict
+    let ref_conflict = ProjectInitFixture::new();
+    ref_conflict.install_all_tools();
+    fs::write(ref_conflict.project.join("ref"), "conflict").unwrap();
+    let out = ref_conflict.run(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
+    assert_eq!(out.status.code(), Some(51));
+    assert!(stderr(&out).contains("ref/ 阶段"));
+    assert_no_success_tail(&out, "ref file conflict");
+
+    // 9. .gitignore read/write failure
+    let gitignore_fail = ProjectInitFixture::new();
+    gitignore_fail.install_all_tools();
+    fs::create_dir(gitignore_fail.project.join(".gitignore")).unwrap();
+    let out = gitignore_fail.run(
+        "root",
+        "success",
+        Some(GIT_USER),
+        &["--yes", "project", "init"],
+    );
+    assert_eq!(out.status.code(), Some(51));
+    assert!(stderr(&out).contains(".gitignore 阶段"));
+    assert_no_success_tail(&out, "gitignore failure");
+}
+
 fn git_init_was_called(calls: &[String]) -> bool {
     calls
         .iter()
@@ -935,6 +1329,7 @@ exit 2
 fn fake_trellis_script() -> &'static str {
     r#"@echo off
 >>"%CCR_PROJECT_INIT_LOG%" echo trellis^|%CD%^|%*
+if defined FAKE_CLI_BANNER echo %FAKE_CLI_BANNER%
 if /I "%FAKE_TRELLIS_MODE%"=="fail" exit /b 8
 if /I "%FAKE_TRELLIS_MODE%"=="missing" exit /b 0
 mkdir ".trellis\scripts" >nul 2>nul
@@ -948,6 +1343,7 @@ exit /b 0
 fn fake_trellis_script() -> &'static str {
     r#"#!/bin/sh
 printf 'trellis|%s|%s\n' "$PWD" "$*" >> "$CCR_PROJECT_INIT_LOG"
+[ -n "$FAKE_CLI_BANNER" ] && printf '%s\n' "$FAKE_CLI_BANNER"
 [ "$FAKE_TRELLIS_MODE" = "fail" ] && exit 8
 [ "$FAKE_TRELLIS_MODE" = "missing" ] && exit 0
 /bin/mkdir -p .trellis/scripts
@@ -961,6 +1357,7 @@ exit 0
 fn fake_mini_trellis_script() -> &'static str {
     r#"@echo off
 >>"%CCR_PROJECT_INIT_LOG%" echo mini-trellis^|%CD%^|%*
+if defined FAKE_CLI_BANNER echo %FAKE_CLI_BANNER%
 if /I "%FAKE_MINI_TRELLIS_MODE%"=="fail" exit /b 9
 if /I "%FAKE_MINI_TRELLIS_MODE%"=="missing" exit /b 0
 mkdir ".trellis\scripts" >nul 2>nul
@@ -993,6 +1390,7 @@ exit /b 0
 fn fake_mini_trellis_script() -> &'static str {
     r#"#!/bin/sh
 printf 'mini-trellis|%s|%s\n' "$PWD" "$*" >> "$CCR_PROJECT_INIT_LOG"
+[ -n "$FAKE_CLI_BANNER" ] && printf '%s\n' "$FAKE_CLI_BANNER"
 [ "$FAKE_MINI_TRELLIS_MODE" = "fail" ] && exit 9
 [ "$FAKE_MINI_TRELLIS_MODE" = "missing" ] && exit 0
 /bin/mkdir -p .trellis/scripts

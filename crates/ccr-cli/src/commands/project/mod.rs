@@ -1,6 +1,7 @@
 mod fingerprint;
 mod gitignore;
 mod init;
+mod render;
 mod wizard;
 mod workflow;
 

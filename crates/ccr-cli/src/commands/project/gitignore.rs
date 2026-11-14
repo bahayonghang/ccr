@@ -1,5 +1,7 @@
+use super::render::{GitignoreOutcome, RefDirOutcome, WizardCapabilities, format_wizard_status};
+use ccr_core::core::AtomicWriter;
 use ccr_core::core::error::{CcrError, Result};
-use ccr_core::core::{AtomicWriter, ColorOutput};
+use ccr_core::core::logging::OutputStatus;
 use std::fs;
 use std::path::Path;
 
@@ -9,12 +11,11 @@ pub(crate) const PROJECT_IGNORE_RULES: [&str; 7] = [
     ".agents/", ".claude/", ".codex/", ".cursor/", ".omp/", ".grok/", "ref/",
 ];
 
-pub(crate) fn ensure_ref_dir(root: &Path) -> Result<()> {
-    ColorOutput::step("准备 ref/ 目录");
+pub(crate) fn ensure_ref_dir(root: &Path, caps: WizardCapabilities) -> Result<RefDirOutcome> {
     let path = root.join("ref");
     if path.is_dir() {
-        ColorOutput::info("ref/ 目录已存在，保留现有内容");
-        return Ok(());
+        println!("  ref/ 目录已存在，保留现有内容");
+        return Ok(RefDirOutcome::Existing);
     }
     if path.is_file() {
         return Err(CcrError::FileIoError(format!(
@@ -32,12 +33,17 @@ pub(crate) fn ensure_ref_dir(root: &Path) -> Result<()> {
     fs::create_dir(&path).map_err(|error| {
         CcrError::FileIoError(format!("ref/ 阶段：创建 {} 失败: {error}", path.display()))
     })?;
-    ColorOutput::success("已创建 ref/ 目录");
-    Ok(())
+    println!(
+        "{}",
+        format_wizard_status(OutputStatus::Success, "已创建 ref/ 目录", caps)
+    );
+    Ok(RefDirOutcome::Created)
 }
 
-pub(crate) fn ensure_project_gitignore(root: &Path) -> Result<()> {
-    ColorOutput::step("更新 .gitignore 中的项目忽略规则");
+pub(crate) fn ensure_project_gitignore(
+    root: &Path,
+    caps: WizardCapabilities,
+) -> Result<GitignoreOutcome> {
     let path = root.join(".gitignore");
     let existing = match fs::read_to_string(&path) {
         Ok(content) => content,
@@ -50,9 +56,10 @@ pub(crate) fn ensure_project_gitignore(root: &Path) -> Result<()> {
         }
     };
 
+    let missing = missing_project_ignore_rules(&existing);
     let Some(merged) = merge_project_ignore_rules(&existing) else {
-        ColorOutput::info(".gitignore 已包含全部项目忽略规则，跳过写入");
-        return Ok(());
+        println!("  .gitignore 已包含全部项目忽略规则，跳过写入");
+        return Ok(GitignoreOutcome::Unchanged);
     };
 
     AtomicWriter::new(&path)
@@ -64,8 +71,13 @@ pub(crate) fn ensure_project_gitignore(root: &Path) -> Result<()> {
             ))
         })?;
 
-    ColorOutput::success(&gitignore_ready_message());
-    Ok(())
+    println!(
+        "{}",
+        format_wizard_status(OutputStatus::Success, &gitignore_ready_message(), caps)
+    );
+    Ok(GitignoreOutcome::Updated {
+        added_rules: missing,
+    })
 }
 
 pub(crate) fn gitignore_ready_message() -> String {
@@ -85,11 +97,15 @@ fn join_chinese_list(items: &[&str]) -> String {
     format!("{} 和 {last}", rest.join("、"))
 }
 
-pub(crate) fn merge_project_ignore_rules(existing: &str) -> Option<String> {
-    let missing = PROJECT_IGNORE_RULES
+fn missing_project_ignore_rules(existing: &str) -> Vec<&'static str> {
+    PROJECT_IGNORE_RULES
         .into_iter()
         .filter(|rule| !existing.lines().any(|line| line.trim() == *rule))
-        .collect::<Vec<_>>();
+        .collect()
+}
+
+pub(crate) fn merge_project_ignore_rules(existing: &str) -> Option<String> {
+    let missing = missing_project_ignore_rules(existing);
 
     if missing.is_empty() {
         return None;

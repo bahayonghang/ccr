@@ -45,10 +45,12 @@ impl WorkflowEngine {
         }
     }
 
-    pub(crate) fn menu_label(self) -> &'static str {
-        match self {
-            Self::MiniTrellis => "mini-trellis — 轻量规格、研究笔记与跨会话记忆层 (推荐)",
-            Self::Trellis => "trellis — 任务驱动的完整多阶段工作流",
+    pub(crate) fn menu_label_for(self, is_dumb: bool) -> &'static str {
+        match (self, is_dumb) {
+            (Self::MiniTrellis, false) => "mini-trellis — 轻量规格、研究笔记与跨会话记忆层 (推荐)",
+            (Self::MiniTrellis, true) => "mini-trellis - 轻量规格、研究笔记与跨会话记忆层 (推荐)",
+            (Self::Trellis, false) => "trellis — 任务驱动的完整多阶段工作流",
+            (Self::Trellis, true) => "trellis - 任务驱动的完整多阶段工作流",
         }
     }
 
@@ -98,6 +100,16 @@ impl WorkflowPlatform {
             Self::Cursor => "--cursor",
             Self::Omp => "--omp",
             Self::Grok => "--grok",
+        }
+    }
+
+    pub(crate) fn menu_label(self) -> &'static str {
+        match self {
+            Self::Claude => "Claude Code (--claude)",
+            Self::Codex => "Codex (--codex)",
+            Self::Cursor => "Cursor (--cursor)",
+            Self::Omp => "Oh My Pi (--omp)",
+            Self::Grok => "Grok (--grok)",
         }
     }
 }
