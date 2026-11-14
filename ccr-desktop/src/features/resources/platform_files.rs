@@ -13,7 +13,7 @@ use crate::{
 use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent};
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
-    FocusTrapElement,
+    ActiveTheme, FocusTrapElement,
     button::{Button, ButtonVariants},
     input::{Input, InputState, Textarea, TextareaState},
 };
@@ -506,6 +506,8 @@ impl Render for PlatformFilesView {
                 .child(
                     div().flex_shrink_0().child(
                         Textarea::new(&self.editor)
+                            .font_family(cx.theme().mono_font_family.clone())
+                            .text_size(cx.theme().mono_font_size)
                             .aria_label(text(cx, "Resource source", "资源源码"))
                             .accessibility_id("platform-file-content")
                             .readonly(!session.kind.writable())

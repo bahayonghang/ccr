@@ -272,7 +272,7 @@ impl Render for CheckinView {
                     .test_support()
                     .role(gpui_kit::Role::Heading)
                     .aria_level(1)
-                    .text_size(px(theme::TITLE_SIZE))
+                    .text_size(crate::theme::text_size(theme::TITLE_SIZE))
                     .font_weight(gpui_kit::FontWeight::SEMIBOLD)
                     .child(text(cx, "Check-ins", "签到管理")),
             )
@@ -378,8 +378,11 @@ impl Render for CheckinView {
                         };
                         let clicked = account.id.clone();
                         root = root.child(
-                            div().h(px(theme::ROW_HEIGHT)).flex().items_center().child(
-                                semantics::button(
+                            div()
+                                .h(crate::theme::text_size(theme::ROW_HEIGHT))
+                                .flex()
+                                .items_center()
+                                .child(semantics::button(
                                     Button::new(format!("checkin-account-{index}"))
                                         .label(label)
                                         .ghost()
@@ -391,8 +394,7 @@ impl Render for CheckinView {
                                     false,
                                     false,
                                     cx,
-                                ),
-                            ),
+                                )),
                         );
                     }
                     if let Some(selected) = self.selected.clone()

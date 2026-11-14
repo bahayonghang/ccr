@@ -433,14 +433,15 @@ impl InsightsView {
             .max(1) as f32;
         let mut chart = div().flex().flex_col().gap(px(4.)).bg(cx.theme().secondary);
         if !rows.is_empty() {
-            chart = chart
-                .h(px(160.))
-                .p(px(8.))
-                .child(div().text_size(px(theme::META_SIZE)).child(text(
-                    cx,
-                    "Source comparison (first four); all exact values below",
-                    "来源比较（前四项）；全部精确数值见下表",
-                )));
+            chart = chart.h(px(160.)).p(px(8.)).child(
+                div()
+                    .text_size(crate::theme::text_size(theme::META_SIZE))
+                    .child(text(
+                        cx,
+                        "Source comparison (first four); all exact values below",
+                        "来源比较（前四项）；全部精确数值见下表",
+                    )),
+            );
         }
         for (label, value) in rows {
             chart = chart.child(

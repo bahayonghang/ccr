@@ -109,7 +109,7 @@ pub(super) fn group(
                 .id(SharedString::from(format!("{id}-scope")))
                 .test_support()
                 .aria_label(statement.clone())
-                .text_size(px(theme::META_SIZE))
+                .text_size(crate::theme::text_size(theme::META_SIZE))
                 .text_color(cx.theme().muted_foreground)
                 .child(statement),
         )

@@ -247,7 +247,7 @@ impl Render for ToolsView {
             .on_key_down(cx.listener(|this,event: &gpui_kit::KeyDownEvent,window,cx| {
                 if event.keystroke.key == "escape" && this.decision { this.dismiss(window,cx); cx.stop_propagation(); }
             }))
-            .child(div().text_size(px(theme::SECTION_TITLE_SIZE)).child(text(cx,"CLI and companion tools","CLI 与配套工具")))
+            .child(div().text_size(crate::theme::text_size(theme::SECTION_TITLE_SIZE)).child(text(cx,"CLI and companion tools","CLI 与配套工具")))
             .child(text(cx,"Installed CLI versions are self-reported. Bundled sidecar identity is checked separately by SHA-256. Automatic desktop updates remain disabled.","已安装 CLI 版本由工具自报告；便携 sidecar 身份另由 SHA-256 校验。桌面自动更新仍禁用。"))
             .child(self.controls(cx))
             .child(div().id("tools-status").test_support().role(gpui_kit::Role::Status).child(status));
@@ -298,6 +298,7 @@ impl Render for ToolsView {
                     .max_h(px(120.))
                     .overflow_y_scroll()
                     .font_family(cx.theme().mono_font_family.clone())
+                    .text_size(cx.theme().mono_font_size)
                     .child(output.clone()),
             );
         }

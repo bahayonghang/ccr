@@ -238,7 +238,7 @@ impl SystemView {
                     .id(id)
                     .test_support()
                     .aria_label(value.clone())
-                    .text_size(px(theme::BODY_SIZE))
+                    .text_size(crate::theme::text_size(theme::BODY_SIZE))
                     .child(value),
             );
         }
@@ -265,7 +265,7 @@ impl Render for SystemView {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let mut root=div().id("monitoring-host").test_support().flex_shrink_0().flex().flex_col().gap(px(theme::CONTROL_GAP))
             .child(semantics::button(Button::new("monitoring-host-read").label(if self.busy {text(cx,"Sampling host information…","正在采样主机信息…")} else {text(cx,"Read system information","读取系统信息")}).ghost().on_click(cx.listener(|this,_,_,cx|this.read(cx))),self.busy,self.busy,cx))
-            .child(div().text_size(px(theme::META_SIZE)).text_color(cx.theme().muted_foreground).child(text(cx,"Local host running CCR Desktop. Explicit reads only; host RAM is separate from process RSS. Missing/zero capacity stays unavailable, including swap.","运行 CCR Desktop 的本地主机。仅手动读取；主机内存与进程 RSS 分开统计。缺失或报告为零的容量保持不可用，包括交换空间。")));
+            .child(div().text_size(crate::theme::text_size(theme::META_SIZE)).text_color(cx.theme().muted_foreground).child(text(cx,"Local host running CCR Desktop. Explicit reads only; host RAM is separate from process RSS. Missing/zero capacity stays unavailable, including swap.","运行 CCR Desktop 的本地主机。仅手动读取；主机内存与进程 RSS 分开统计。缺失或报告为零的容量保持不可用，包括交换空间。")));
         if let Some(report) = &self.report {
             root = root.child(Self::facts(report, cx));
         } else {

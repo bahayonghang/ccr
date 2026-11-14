@@ -359,7 +359,7 @@ impl InsightsView {
             .flex()
             .flex_col()
             .gap(px(theme::SELECTION_RADIUS))
-            .text_size(px(theme::META_SIZE))
+            .text_size(crate::theme::text_size(theme::META_SIZE))
             .text_color(cx.theme().muted_foreground);
         if self.session_ops_active() {
             root = root.child(text(
@@ -476,7 +476,7 @@ impl InsightsView {
                     .rounded(px(theme::INPUT_RADIUS))
                     .bg(cx.theme().secondary)
                     .font_family(cx.theme().mono_font_family.clone())
-                    .text_size(px(theme::META_SIZE))
+                    .text_size(cx.theme().mono_font_size)
                     .child(preview.content.clone()),
             );
         if self.session_ops.copied {

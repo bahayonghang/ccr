@@ -765,7 +765,7 @@ fn local_projection(
         .flex()
         .flex_col()
         .gap(px(theme::CONTROL_GAP))
-        .text_size(px(theme::BODY_SIZE))
+        .text_size(crate::theme::text_size(theme::BODY_SIZE))
         .child(
             div()
                 .id(id)
@@ -792,7 +792,7 @@ fn local_projection(
                     format!("platform-field-{}", field.key)
                 }))
                 .test_support()
-                .h(px(theme::ROW_HEIGHT))
+                .h(crate::theme::text_size(theme::ROW_HEIGHT))
                 .flex()
                 .items_center()
                 .overflow_hidden()
@@ -1197,7 +1197,7 @@ impl PlatformsView {
                 .test_support()
                 .role(gpui_kit::Role::Status)
                 .aria_label(status.clone())
-                .text_size(px(theme::META_SIZE))
+                .text_size(crate::theme::text_size(theme::META_SIZE))
                 .text_color(cx.theme().muted_foreground)
                 .child(status),
         );
@@ -1282,7 +1282,7 @@ impl PlatformsView {
                 }),
             )
             .on_click(cx.listener(move |this, _, _, cx| this.select_account(click.clone(), cx)))
-            .h(px(theme::ROW_HEIGHT))
+            .h(crate::theme::text_size(theme::ROW_HEIGHT))
             .flex()
             .items_center()
             .overflow_hidden()
@@ -1753,7 +1753,11 @@ impl Render for PlatformsView {
                 }),
             )
             .when(!self.pinned, |root| {
-                root.child(div().text_size(px(theme::TITLE_SIZE)).child(title))
+                root.child(
+                    div()
+                        .text_size(crate::theme::text_size(theme::TITLE_SIZE))
+                        .child(title),
+                )
             })
             .child(tabs);
         let mut surfaces = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));

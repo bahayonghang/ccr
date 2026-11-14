@@ -251,7 +251,7 @@ fn caption_line(caption: String, cx: &App) -> Node {
         .role(Role::Label)
         .aria_label(caption.clone())
         .mt_auto()
-        .text_size(px(theme::META_SIZE))
+        .text_size(crate::theme::text_size(theme::META_SIZE))
         .text_color(cx.theme().muted_foreground)
         .font_features(theme::tabular_figures())
         .child(caption)
@@ -313,7 +313,7 @@ fn ticks(labels: &[String], selected: Distribution, cx: &App) -> Div {
     let mut row = div()
         .flex()
         .gap(px(2.))
-        .text_size(px(theme::META_SIZE))
+        .text_size(crate::theme::text_size(theme::META_SIZE))
         .text_color(cx.theme().muted_foreground);
     for (index, label) in labels.iter().enumerate() {
         // 24 小时每 6 小时标一次，星期逐日标注。

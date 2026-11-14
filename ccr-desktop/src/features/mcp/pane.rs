@@ -184,7 +184,7 @@ impl McpView {
             .child(
                 div()
                     .min_w_0()
-                    .text_size(px(theme::SECTION_TITLE_SIZE))
+                    .text_size(crate::theme::text_size(theme::SECTION_TITLE_SIZE))
                     .font_weight(FontWeight::SEMIBOLD)
                     .child(title),
             )
@@ -390,7 +390,7 @@ fn field(id: &'static str, label: &'static str, control: impl IntoElement, cx: &
                 .test_support()
                 .role(gpui_kit::Role::Label)
                 .aria_label(label)
-                .text_size(px(theme::META_SIZE))
+                .text_size(crate::theme::text_size(theme::META_SIZE))
                 .font_weight(FontWeight::MEDIUM)
                 .text_color(cx.theme().muted_foreground)
                 .child(label),
@@ -400,7 +400,7 @@ fn field(id: &'static str, label: &'static str, control: impl IntoElement, cx: &
 
 fn muted_line(line: impl Into<SharedString>, cx: &App) -> Div {
     div()
-        .text_size(px(theme::META_SIZE))
+        .text_size(crate::theme::text_size(theme::META_SIZE))
         .text_color(cx.theme().muted_foreground)
         .child(line.into())
 }
@@ -411,7 +411,7 @@ fn read_only_note(cx: &App) -> Div {
         .flex()
         .items_start()
         .gap(px(theme::CONTROL_GAP))
-        .text_size(px(theme::META_SIZE))
+        .text_size(crate::theme::text_size(theme::META_SIZE))
         .text_color(muted)
         .child(
             Icon::new(IconName::Eye)
@@ -465,7 +465,7 @@ fn detail_head(entry: &McpEntry, cx: &App) -> Div {
                 .child(muted_line(eyebrow, cx))
                 .child(
                     div()
-                        .text_size(px(theme::TITLE_SIZE))
+                        .text_size(crate::theme::text_size(theme::TITLE_SIZE))
                         .font_weight(FontWeight::SEMIBOLD)
                         .child(entry.name.clone()),
                 ),
@@ -547,9 +547,14 @@ fn state_value(cx: &App, entry: &McpEntry) -> String {
 }
 
 fn cell(label: &'static str, value: String, mono: bool, wide: bool, cx: &App) -> Div {
-    let value = div().min_w_0().text_size(px(theme::BODY_SIZE)).child(value);
+    let value = div()
+        .min_w_0()
+        .text_size(crate::theme::text_size(theme::BODY_SIZE))
+        .child(value);
     let value = if mono {
-        value.font_family(cx.theme().mono_font_family.clone())
+        value
+            .font_family(cx.theme().mono_font_family.clone())
+            .text_size(cx.theme().mono_font_size)
     } else {
         value
     };
@@ -607,7 +612,7 @@ fn preset_row(preset: McpPreset, cx: &mut Context<McpView>) -> gpui_kit::base::B
         .accessibility_label(label)
         .flex_shrink_0()
         .w_full()
-        .h(px(theme::MCP_ROW_HEIGHT))
+        .h(crate::theme::data_row_height(theme::MCP_ROW_HEIGHT, cx))
         .px(px(theme::CONTROL_GAP))
         .gap(px(theme::CONTROL_GAP + 4.))
         .justify_start()
@@ -626,7 +631,7 @@ fn preset_row(preset: McpPreset, cx: &mut Context<McpView>) -> gpui_kit::base::B
                 .child(
                     div()
                         .truncate()
-                        .text_size(px(theme::BODY_SIZE))
+                        .text_size(crate::theme::text_size(theme::BODY_SIZE))
                         .line_height(px(20.))
                         .font_weight(FontWeight::MEDIUM)
                         .child(preset.name.clone()),
@@ -635,7 +640,7 @@ fn preset_row(preset: McpPreset, cx: &mut Context<McpView>) -> gpui_kit::base::B
                     div()
                         .id(SharedString::from(format!("mcp-preset-{id}-meta")))
                         .truncate()
-                        .text_size(px(theme::META_SIZE))
+                        .text_size(crate::theme::text_size(theme::META_SIZE))
                         .line_height(px(16.))
                         .text_color(colors.muted_foreground)
                         .tooltip(move |window, cx| Tooltip::new(tip.clone()).build(window, cx))

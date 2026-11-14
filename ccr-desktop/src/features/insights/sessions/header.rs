@@ -46,13 +46,13 @@ fn title(cx: &mut Context<InsightsView>) -> Div {
                 .role(Role::Heading)
                 .aria_level(1)
                 .aria_label(text(cx, "Agent sessions", "Agent 会话"))
-                .text_size(px(theme::TITLE_SIZE))
+                .text_size(crate::theme::text_size(theme::TITLE_SIZE))
                 .font_weight(FontWeight::SEMIBOLD)
                 .child(text(cx, "Agent sessions", "Agent 会话")),
         )
         .child(
             div()
-                .text_size(px(theme::META_SIZE))
+                .text_size(crate::theme::text_size(theme::META_SIZE))
                 .text_color(cx.theme().muted_foreground)
                 .child(text(
                     cx,

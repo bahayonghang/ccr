@@ -361,7 +361,7 @@ impl ConfigurationApp {
             .map(|row| row.name.as_str())
             .unwrap_or(text(cx, "None observed", "未观测到"));
         controls = controls
-            .child(div().text_size(px(12.)).child(format!(
+            .child(div().text_size(crate::theme::text_size(12.)).child(format!(
                 "{}: {current}",
                 text(cx, "Current runtime profile", "当前运行方案")
             )))
@@ -542,7 +542,7 @@ fn profile_details(row: &ConfigRow, cx: &gpui_kit::App) -> gpui_kit::Div {
                 .min_w_0()
                 .child(
                     div()
-                        .text_size(px(12.))
+                        .text_size(crate::theme::text_size(12.))
                         .text_color(cx.theme().muted_foreground)
                         .child(label),
                 )
@@ -679,7 +679,7 @@ impl Render for ConfigurationApp {
                                     .child(
                                         div()
                                             .truncate()
-                                            .text_size(px(12.))
+                                            .text_size(crate::theme::text_size(12.))
                                             .text_color(muted)
                                             .child(format!(
                                                 "{} · {} · {} · {}",
@@ -706,7 +706,7 @@ impl Render for ConfigurationApp {
                                     .flex()
                                     .items_center()
                                     .gap(px(theme::CONTROL_GAP))
-                                    .text_size(px(theme::META_SIZE))
+                                    .text_size(crate::theme::text_size(theme::META_SIZE))
                                     .text_color(muted)
                                     .when(row.is_current, |status| {
                                         status.child(badge::dot(cx.theme().primary))
@@ -852,7 +852,7 @@ impl Render for ConfigurationApp {
                         ))
                         .child(
                             div()
-                                .text_size(px(theme::TITLE_SIZE))
+                                .text_size(crate::theme::text_size(theme::TITLE_SIZE))
                                 .font_weight(gpui_kit::FontWeight::SEMIBOLD)
                                 .child(row.name.clone()),
                         )
@@ -920,7 +920,7 @@ impl Render for ConfigurationApp {
             .bg(cx.theme().background)
             .rounded_tr(px(theme::SHEET_CONTENT_RADIUS))
             .text_color(cx.theme().foreground)
-            .text_size(px(theme::BODY_SIZE))
+            .text_size(crate::theme::text_size(theme::BODY_SIZE))
             .when(!self.pinned, |root| {
                 root.child(
                     div()
@@ -928,7 +928,7 @@ impl Render for ConfigurationApp {
                         .role(gpui_kit::Role::Heading)
                         .aria_label(text(cx, title_en, title_zh))
                         .aria_level(1)
-                        .text_size(px(theme::TITLE_SIZE))
+                        .text_size(crate::theme::text_size(theme::TITLE_SIZE))
                         .font_weight(gpui_kit::FontWeight::SEMIBOLD)
                         .child(text(cx, title_en, title_zh)),
                 )

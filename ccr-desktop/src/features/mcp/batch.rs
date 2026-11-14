@@ -328,7 +328,7 @@ impl McpBatch {
         } else {
             root = root.child(
                 div()
-                    .text_size(px(theme::META_SIZE))
+                    .text_size(crate::theme::text_size(theme::META_SIZE))
                     .text_color(cx.theme().muted_foreground)
                     .child(text(cx, "Preset", "预设")),
             );
@@ -389,7 +389,7 @@ impl McpBatch {
             .child(targets)
             .child(
                 div()
-                    .text_size(px(theme::META_SIZE))
+                    .text_size(crate::theme::text_size(theme::META_SIZE))
                     .text_color(cx.theme().muted_foreground)
                     .child(text(cx, "Options", "选项")),
             )
@@ -410,7 +410,7 @@ impl McpBatch {
         // 按钮标签单行不换行：后果说明拆成下方的 muted 辅助句，窄 pane 不溢出。
         root.child(
             div()
-                .text_size(px(theme::META_SIZE))
+                .text_size(crate::theme::text_size(theme::META_SIZE))
                 .text_color(cx.theme().muted_foreground)
                 .child(text(
                     cx,
@@ -433,7 +433,7 @@ impl McpBatch {
             .child(
                 div()
                     .min_w_0()
-                    .text_size(px(theme::SECTION_TITLE_SIZE))
+                    .text_size(crate::theme::text_size(theme::SECTION_TITLE_SIZE))
                     .font_weight(gpui_kit::FontWeight::SEMIBOLD)
                     .child(text(cx, "MCP batch operations", "MCP 批量操作")),
             );
@@ -487,7 +487,7 @@ impl Render for McpBatch {
             .is_some_and(|operation| operation.snapshot().running);
         let mut root=div().id("mcp-batch").test_support().track_focus(&self.focus).tab_stop(false).flex().flex_col().gap(px(theme::CONTROL_GAP))
             .child(self.heading(cx))
-            .child(div().text_size(px(theme::META_SIZE)).text_color(cx.theme().muted_foreground).child(text(cx,"Review each destination before writing. Entries with unsupported options remain unchanged. Each destination commits once; successful destinations remain saved if another fails. No server process starts.","写入前逐项检查目标。含不兼容选项的条目保持原样。每个目标一次提交；其他目标失败不会回滚已保存的目标。不会启动服务器进程。")));
+            .child(div().text_size(crate::theme::text_size(theme::META_SIZE)).text_color(cx.theme().muted_foreground).child(text(cx,"Review each destination before writing. Entries with unsupported options remain unchanged. Each destination commits once; successful destinations remain saved if another fails. No server process starts.","写入前逐项检查目标。含不兼容选项的条目保持原样。每个目标一次提交；其他目标失败不会回滚已保存的目标。不会启动服务器进程。")));
         if let Some(message) = self.message {
             root = root.child(
                 div()
@@ -590,7 +590,7 @@ impl Render for McpBatch {
                                     .id(SharedString::from(format!("mcp-batch-row-{index}")))
                                     .test_support()
                                     .aria_label(row_label(cx, row))
-                                    .h(px(theme::ROW_HEIGHT))
+                                    .h(crate::theme::text_size(theme::ROW_HEIGHT))
                                     .min_w_0()
                                     .text_ellipsis()
                                     .child(row_summary(cx, row))
@@ -610,7 +610,7 @@ impl Render for McpBatch {
                     reasons.push(error);
                     root = root.child(
                         div()
-                            .text_size(px(theme::META_SIZE))
+                            .text_size(crate::theme::text_size(theme::META_SIZE))
                             .child(service_error(cx, error.message())),
                     );
                 }

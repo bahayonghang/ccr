@@ -56,7 +56,7 @@ fn panel(cx: &App) -> Div {
 }
 fn heading(label: &'static str) -> Div {
     div()
-        .text_size(px(theme::SECTION_TITLE_SIZE))
+        .text_size(crate::theme::text_size(theme::SECTION_TITLE_SIZE))
         .font_weight(gpui_kit::FontWeight::SEMIBOLD)
         .child(label)
 }
@@ -119,7 +119,43 @@ impl WorkbenchView {
             .as_ref()
             .and_then(|rows| rows.as_ref().ok())
             .and_then(|rows| rows.iter().find(|row| row.is_current));
-        let mut facts = panel(cx).child(heading(text(cx, "Access facts", "接入状态")));
+        let toggle_label = if self.access_expanded {
+            text(cx, "Hide details", "收起详情")
+        } else {
+            text(cx, "Show details", "展开详情")
+        };
+        let toggle = gpui_kit::base::Button::new("workbench-access-toggle")
+            .accessibility_label(toggle_label)
+            .aria_expanded(self.access_expanded)
+            .px(px(theme::CONTROL_GAP))
+            .py(px(4.))
+            .rounded(px(theme::PILL_RADIUS))
+            .text_color(cx.theme().primary)
+            .focus_visible(|style| style.border_2().border_color(cx.theme().ring))
+            .child(toggle_label)
+            .on_click(cx.listener(|this, _, _, cx| {
+                this.access_expanded = !this.access_expanded;
+                cx.notify();
+            }));
+        let mut identity = div()
+            .flex_1()
+            .min_w_0()
+            .flex()
+            .flex_wrap()
+            .items_center()
+            .gap(px(theme::CONTROL_GAP))
+            .child(
+                heading(text(cx, "Access facts", "接入状态"))
+                    .text_size(theme::text_size(theme::META_SIZE))
+                    .text_color(cx.theme().muted_foreground),
+            );
+        let mut summary = div().flex().flex_wrap().gap(px(theme::SECTION_GAP));
+        let mut details = div()
+            .id("workbench-access-details")
+            .test_support()
+            .flex()
+            .flex_wrap()
+            .gap(px(theme::SECTION_GAP));
         if let Some(row) = current {
             for (index, (label, value)) in [
                 (
@@ -152,25 +188,77 @@ impl WorkbenchView {
             .into_iter()
             .enumerate()
             {
-                facts = facts.child(
-                    div()
-                        .id(if index == 0 {
-                            "workbench-current-profile".to_string()
-                        } else {
-                            format!("workbench-access-fact-{index}")
-                        })
-                        .test_support()
-                        .aria_label(format!("{label}: {value}"))
-                        .text_size(px(12.))
-                        .child(format!("{label}: {value}")),
-                );
+                let field = div()
+                    .id(if index == 0 {
+                        "workbench-current-profile".to_string()
+                    } else {
+                        format!("workbench-access-fact-{index}")
+                    })
+                    .test_support()
+                    .min_w_0()
+                    .max_w_full()
+                    .aria_label(format!("{label}: {value}"))
+                    .text_size(crate::theme::text_size(12.))
+                    .child(if index == 0 {
+                        value
+                    } else {
+                        format!("{label}: {value}")
+                    });
+                if index == 0 {
+                    identity = identity.child(
+                        field
+                            .font_weight(gpui_kit::FontWeight::SEMIBOLD)
+                            .text_size(theme::text_size(theme::SECTION_TITLE_SIZE)),
+                    );
+                } else if index == 1 || index == 3 {
+                    summary = summary.child(field);
+                } else {
+                    details = details.child(field);
+                }
             }
         } else {
-            facts = facts.child(self.current_profile(cx));
+            identity = identity.child(self.current_profile(cx));
         }
-        facts.child(self.credential_status(cx))
-            .child(div().text_size(px(12.)).text_color(cx.theme().muted_foreground).child(text(cx,"Local configuration and credential observations do not verify network access. API access does not require a saved official account.","本地配置与凭据观测不证明网络可用；API 接入不要求保存官方账户。")))
-            .child(self.claude_refresh(cx)).into_any_element()
+        panel(cx)
+            .child(
+                div()
+                    .flex()
+                    .flex_wrap()
+                    .items_center()
+                    .justify_between()
+                    .gap(px(theme::CONTROL_GAP))
+                    .child(identity)
+                    .child(
+                        div()
+                            .flex()
+                            .flex_shrink_0()
+                            .items_center()
+                            .gap(px(theme::CONTROL_GAP))
+                            .child(self.claude_refresh(cx))
+                            .child(toggle),
+                    ),
+            )
+            .child(summary)
+            .child(self.credential_status(cx))
+            .child(
+                div()
+                    .text_size(theme::text_size(theme::META_SIZE))
+                    .text_color(cx.theme().muted_foreground)
+                    .child(text(
+                        cx,
+                        "Local configuration and credential observations do not verify network access. API access does not require a saved official account.",
+                        "本地配置与凭据观测不证明网络可用；API 接入不要求保存官方账户。",
+                    )),
+            )
+            .when(self.access_expanded, |facts| {
+                facts.child(
+                    details
+                        .border_t_1()
+                        .border_color(cx.theme().border)
+                        .pt(px(theme::CONTROL_GAP)),
+                )
+            })
+            .into_any_element()
     }
 
     // 读取在途时保持禁用与忙碌语义，并用文字陈述正在刷新。
@@ -231,7 +319,7 @@ impl WorkbenchView {
             });
         let mut section = div().flex_shrink_0().flex().flex_col().gap(px(8.)).child(
             div()
-                .text_size(px(12.))
+                .text_size(crate::theme::text_size(12.))
                 .text_color(cx.theme().muted_foreground)
                 .child(context),
         );
@@ -265,7 +353,7 @@ impl WorkbenchView {
                     .id("claude-usage-freshness")
                     .test_support()
                     .aria_label(freshness.clone())
-                    .text_size(px(12.))
+                    .text_size(crate::theme::text_size(12.))
                     .child(freshness),
             );
         }
@@ -351,13 +439,13 @@ impl WorkbenchView {
                     })
                     .child(
                         div()
-                            .text_size(px(12.))
+                            .text_size(crate::theme::text_size(12.))
                             .text_color(cx.theme().muted_foreground)
                             .child(text(cx, en, zh)),
                     )
                     .child(
                         div()
-                            .text_size(px(if measured.is_none() {
+                            .text_size(theme::text_size(if measured.is_none() {
                                 16.
                             } else if index == 1 {
                                 32.
@@ -374,7 +462,7 @@ impl WorkbenchView {
                     )
                     .child(
                         div()
-                            .text_size(px(12.))
+                            .text_size(crate::theme::text_size(12.))
                             .text_color(cx.theme().muted_foreground)
                             .child(detail),
                     ),
@@ -475,11 +563,12 @@ impl WorkbenchView {
             }
             if self.exact_costs {
                 for row in rows {
-                    pane = pane.child(div().text_size(px(12.)).child(format!(
-                        "{}: {}",
-                        row.model,
-                        format_exact_usd(row.cost_with_cache_usd)
-                    )));
+                    pane =
+                        pane.child(div().text_size(crate::theme::text_size(12.)).child(format!(
+                            "{}: {}",
+                            row.model,
+                            format_exact_usd(row.cost_with_cache_usd)
+                        )));
                 }
             } else {
                 // 精确值表在趋势面板；这里给同一面板内的入口，避免宽窗下要去另一列找开关。
@@ -754,12 +843,14 @@ impl WorkbenchView {
             .into_iter()
             .enumerate()
             {
-                pane = pane.child(div().text_size(px(12.)).child(label)).child(
-                    Input::new(&fields[index])
-                        .id(format!("workbench-subscription-field-{index}"))
-                        .aria_label(label)
-                        .disabled(busy),
-                );
+                pane = pane
+                    .child(div().text_size(crate::theme::text_size(12.)).child(label))
+                    .child(
+                        Input::new(&fields[index])
+                            .id(format!("workbench-subscription-field-{index}"))
+                            .aria_label(label)
+                            .disabled(busy),
+                    );
             }
         } else {
             let summary = match &self.subscription_state {
@@ -836,7 +927,7 @@ impl WorkbenchView {
                     .child(crate::locales::localized_line(cx, message)),
             );
         }
-        pane.child(div().text_size(px(12.)).text_color(cx.theme().muted_foreground).child(text(cx,"Month-to-date recorded cost / full monthly price. No proration; this is not savings or a bill.","本月截至今日记录费用 ÷ 整月月费。不按天折算，不代表节省或账单。"))).into_any_element()
+        pane.child(div().text_size(crate::theme::text_size(12.)).text_color(cx.theme().muted_foreground).child(text(cx,"Month-to-date recorded cost / full monthly price. No proration; this is not savings or a bill.","本月截至今日记录费用 ÷ 整月月费。不按天折算，不代表节省或账单。"))).into_any_element()
     }
 }
 

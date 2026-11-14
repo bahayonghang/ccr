@@ -89,6 +89,7 @@ pub struct WorkbenchView {
     /// 键盘激活的日期条：在同面板给出可见读数，日期信息不再只能靠 hover 获取。
     trend_highlight: Option<(chrono::NaiveDate, f64)>,
     exact_costs: bool,
+    access_expanded: bool,
     focus: FocusHandle,
 }
 
@@ -118,6 +119,7 @@ impl WorkbenchView {
             subscription_stale: false,
             trend_highlight: None,
             exact_costs: false,
+            access_expanded: false,
             focus: cx.focus_handle().tab_stop(false),
         }
     }
@@ -273,7 +275,7 @@ impl WorkbenchView {
             .aria_value(profile.clone())
             .min_w_0()
             .max_w_full()
-            .text_size(px(theme::SECTION_TITLE_SIZE))
+            .text_size(crate::theme::text_size(theme::SECTION_TITLE_SIZE))
             .font_weight(gpui_kit::FontWeight::SEMIBOLD)
             .child(profile)
             .into_any_element()
@@ -339,7 +341,7 @@ impl WorkbenchView {
         for (key, value) in self.facts.iter().take(4) {
             section = section.child(
                 div()
-                    .text_size(px(theme::META_SIZE))
+                    .text_size(crate::theme::text_size(theme::META_SIZE))
                     .child(format!("{key}: {value}")),
             );
         }
@@ -347,8 +349,8 @@ impl WorkbenchView {
     }
     fn usage(&self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
         let mut section = div().flex().flex_col().gap(px(theme::CONTROL_GAP))
-            .child(div().text_size(px(theme::SECTION_TITLE_SIZE)).font_weight(gpui_kit::FontWeight::SEMIBOLD).child(text(cx,"Usage · last 30 days","用量 · 最近 30 天")))
-            .child(div().text_size(px(theme::META_SIZE)).text_color(cx.theme().muted_foreground).child(text(cx,"Local calendar days. Costs recorded by llmusage (USD); missing data is not zero.","按本地日历日统计。费用为 llmusage 记录的美元费用；缺失数据不记为零。")));
+            .child(div().text_size(crate::theme::text_size(theme::SECTION_TITLE_SIZE)).font_weight(gpui_kit::FontWeight::SEMIBOLD).child(text(cx,"Usage · last 30 days","用量 · 最近 30 天")))
+            .child(div().text_size(crate::theme::text_size(theme::META_SIZE)).text_color(cx.theme().muted_foreground).child(text(cx,"Local calendar days. Costs recorded by llmusage (USD); missing data is not zero.","按本地日历日统计。费用为 llmusage 记录的美元费用；缺失数据不记为零。")));
         match &self.usage {
             Some(Ok(snapshot)) => {
                 if let InsightsSnapshot::Usage(usage) = snapshot.as_ref() {
@@ -380,14 +382,14 @@ impl WorkbenchView {
                                 .child(
                                     div()
                                         .flex_1()
-                                        .text_size(px(theme::META_SIZE))
+                                        .text_size(crate::theme::text_size(theme::META_SIZE))
                                         .text_color(cx.theme().muted_foreground)
                                         .child(label),
                                 )
                                 .child(
                                     div()
                                         .font_features(theme::tabular_figures())
-                                        .text_size(px(theme::TITLE_SIZE))
+                                        .text_size(crate::theme::text_size(theme::TITLE_SIZE))
                                         .text_right()
                                         .child(value),
                                 ),
@@ -415,7 +417,7 @@ impl WorkbenchView {
                                 .child(
                                     div()
                                         .w(px(theme::DATE_COLUMN_WIDTH))
-                                        .text_size(px(theme::META_SIZE))
+                                        .text_size(crate::theme::text_size(theme::META_SIZE))
                                         .child(row.date.clone()),
                                 )
                                 .child(
@@ -442,7 +444,7 @@ impl WorkbenchView {
                                         .w(px(theme::DAILY_VALUE_WIDTH))
                                         .text_right()
                                         .font_features(theme::tabular_figures())
-                                        .text_size(px(theme::META_SIZE))
+                                        .text_size(crate::theme::text_size(theme::META_SIZE))
                                         .child(format!(
                                             "{} / {}",
                                             row.request_count,

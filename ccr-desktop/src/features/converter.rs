@@ -118,7 +118,7 @@ impl Converter {
                     .test_support()
                     .role(gpui_kit::Role::Heading)
                     .aria_level(1)
-                    .text_size(px(theme::TITLE_SIZE))
+                    .text_size(crate::theme::text_size(theme::TITLE_SIZE))
                     .font_weight(gpui_kit::FontWeight::SEMIBOLD)
                     .child(text(cx, "Configuration converter", "配置转换")),
             );

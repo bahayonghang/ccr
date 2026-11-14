@@ -61,7 +61,7 @@ pub(crate) fn row(
         row = row.child(
             div()
                 .flex_shrink_0()
-                .text_size(px(theme::META_SIZE))
+                .text_size(crate::theme::text_size(theme::META_SIZE))
                 .text_color(cx.theme().muted_foreground)
                 .child(context),
         );
@@ -272,13 +272,13 @@ impl Render for LensBar {
                         .aria_label(text(cx, item.2, item.3))
                         .role(gpui_kit::Role::Heading)
                         .aria_level(1)
-                        .text_size(px(theme::TITLE_SIZE))
+                        .text_size(crate::theme::text_size(theme::TITLE_SIZE))
                         .font_weight(gpui_kit::FontWeight::SEMIBOLD)
                         .child(text(cx, item.2, item.3)),
                 )
                 .child(
                     div()
-                        .text_size(px(theme::META_SIZE))
+                        .text_size(crate::theme::text_size(theme::META_SIZE))
                         .text_color(cx.theme().muted_foreground)
                         .child(crate::features::workbench::name(
                             destination.platform().unwrap_or(super::Platform::Claude),

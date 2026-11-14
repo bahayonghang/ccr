@@ -115,6 +115,7 @@ pub struct Shell {
     lens: Lens,
     settings_nav: settings::Navigation,
     preference: Preference,
+    typography: crate::runtime::preferences::TypographyPreferences,
     close_guard: close::CloseGuard,
     preferences_requests: crate::runtime::preferences::PreferencesRequests,
     preferences_task: Option<gpui_kit::Task<()>>,
@@ -185,6 +186,7 @@ impl Shell {
         let appearance = cx.observe_window_appearance(window, |this, window, cx| {
             if this.preference == Preference::System {
                 theme::apply(this.preference, window, cx);
+                theme::apply_typography(&this.typography, cx);
                 cx.notify();
             }
         });
@@ -237,8 +239,9 @@ impl Shell {
             }),
             destination: Destination::Dashboard,
             lens: Lens::Primary,
-            settings_nav: settings::Navigation::new(cx),
+            settings_nav: settings::Navigation::new(window, cx),
             preference: Preference::Light,
+            typography: Default::default(),
             close_guard,
             preferences_requests: crate::runtime::preferences::PreferencesRequests::new(&services),
             preferences_task: None,
@@ -681,7 +684,7 @@ impl Shell {
                     .id("nav-settings-summary")
                     .test_support()
                     .aria_label(summary.clone())
-                    .text_size(px(theme::META_SIZE))
+                    .text_size(crate::theme::text_size(theme::META_SIZE))
                     .font_weight(gpui_kit::FontWeight::NORMAL)
                     .text_color(colors.muted_foreground)
                     .child(summary),
@@ -697,7 +700,11 @@ impl Shell {
             .group(id)
             .w_full()
             .flex_shrink_0()
-            .h(px(if settings { 50. } else { theme::NAV_ROW_HEIGHT }))
+            .h(theme::text_size(if settings {
+                50.
+            } else {
+                theme::NAV_ROW_HEIGHT
+            }))
             .px(px(theme::CONTROL_GAP))
             .rounded(px(theme::PILL_RADIUS))
             // 2px 透明边框只为键盘焦点环预留位置，选中态不画边框。
@@ -782,7 +789,7 @@ impl Shell {
             .flex()
             .items_center()
             .gap(px(theme::CONTROL_GAP))
-            .text_size(px(theme::META_SIZE))
+            .text_size(crate::theme::text_size(theme::META_SIZE))
             .font_weight(gpui_kit::FontWeight::MEDIUM)
             .text_color(cx.theme().muted_foreground)
             .child(text(cx, en, zh))
@@ -915,6 +922,7 @@ impl Shell {
 
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        window.set_rem_size(cx.theme().font_size);
         if self.overview.read(cx).has_pending() {
             let shell = cx.weak_entity();
             window.on_next_frame(move |window, cx| {
@@ -1002,14 +1010,14 @@ impl Render for Shell {
                             .flex_col()
                             .child(
                                 div()
-                                    .text_size(px(16.))
+                                    .text_size(crate::theme::text_size(16.))
                                     .font_weight(gpui_kit::FontWeight::SEMIBOLD)
                                     .child("CCR"),
                             )
                             .child(
                                 div()
                                     .text_color(cx.theme().muted_foreground)
-                                    .text_size(px(theme::META_SIZE))
+                                    .text_size(crate::theme::text_size(theme::META_SIZE))
                                     .child(if self.fixture {
                                         text(cx, "Demo data", "演示数据")
                                     } else {
@@ -1053,7 +1061,7 @@ impl Render for Shell {
             div()
                 .flex_shrink_0()
                 .px(px(theme::CONTROL_GAP))
-                .text_size(px(theme::META_SIZE))
+                .text_size(crate::theme::text_size(theme::META_SIZE))
                 .text_color(cx.theme().muted_foreground)
                 .child(format!("CCR {}", env!("CARGO_PKG_VERSION"))),
         );
@@ -1142,7 +1150,7 @@ impl Render for Shell {
                     .border_t_1()
                     .border_color(cx.theme().status_bar_border)
                     .focus(|style| style.border_color(cx.theme().ring))
-                    .text_size(px(theme::META_SIZE))
+                    .text_size(crate::theme::text_size(theme::META_SIZE))
                     .text_color(cx.theme().muted_foreground)
                     .child(self.status_contents(status, cx)),
             );
@@ -1154,7 +1162,7 @@ impl Render for Shell {
             .shadow(material.shadow.to_vec())
             .text_color(cx.theme().foreground)
             .font(theme::body_font(cx))
-            .text_size(px(theme::BODY_SIZE))
+            .text_size(cx.theme().font_size)
             .on_key_down(
                 cx.listener(|this, event: &gpui_kit::KeyDownEvent, window, cx| {
                     if event.keystroke.key == "f6" {

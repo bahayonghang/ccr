@@ -147,9 +147,10 @@ fn detail_heading(view: &mut InsightsView, cx: &mut Context<InsightsView>) -> An
                 .id("session-detail-id")
                 .min_w_0()
                 .truncate()
-                .text_size(px(theme::META_SIZE))
+                .text_size(crate::theme::text_size(theme::META_SIZE))
                 .text_color(cx.theme().muted_foreground)
                 .font_family(cx.theme().mono_font_family.clone())
+                .text_size(cx.theme().mono_font_size)
                 .child(session_id),
         );
     if let Some(variant) = variant {
@@ -170,7 +171,7 @@ fn detail_heading(view: &mut InsightsView, cx: &mut Context<InsightsView>) -> An
                 .aria_level(2)
                 .min_w_0()
                 .truncate()
-                .text_size(px(theme::SECTION_TITLE_SIZE))
+                .text_size(crate::theme::text_size(theme::SECTION_TITLE_SIZE))
                 .font_weight(FontWeight::SEMIBOLD)
                 .tooltip(move |window, cx| Tooltip::new(tip.clone()).build(window, cx))
                 .child(title),
@@ -226,7 +227,7 @@ fn fidelity_notice(view: &InsightsView, cx: &App) -> Option<AnyElement> {
             .border_color(colors.edge)
             .bg(colors.fill)
             .text_color(colors.ink)
-            .text_size(px(theme::META_SIZE))
+            .text_size(crate::theme::text_size(theme::META_SIZE))
             .child(
                 Icon::new(IconName::TriangleAlert)
                     .size(px(theme::NAV_ICON_SIZE))
@@ -245,7 +246,7 @@ fn read_state(view: &InsightsView, cx: &mut Context<InsightsView>) -> AnyElement
         .flex_wrap()
         .items_center()
         .gap(px(theme::CONTROL_GAP))
-        .text_size(px(theme::META_SIZE))
+        .text_size(crate::theme::text_size(theme::META_SIZE))
         .text_color(cx.theme().muted_foreground);
     if view.detail.loading {
         return row
@@ -352,7 +353,7 @@ fn message_card(message: &AgentSessionMessage, cx: &App) -> AnyElement {
         .flex()
         .items_center()
         .gap(px(theme::SELECTION_RADIUS + 2.))
-        .text_size(px(theme::META_SIZE))
+        .text_size(crate::theme::text_size(theme::META_SIZE))
         .child(
             Icon::new(icon)
                 .size(px(theme::META_SIZE + 2.))
@@ -366,6 +367,7 @@ fn message_card(message: &AgentSessionMessage, cx: &App) -> AnyElement {
                 .truncate()
                 .text_color(colors.muted_foreground)
                 .font_family(colors.mono_font_family.clone())
+                .text_size(colors.mono_font_size)
                 .child(tool.clone()),
         );
     }
@@ -394,7 +396,7 @@ fn message_card(message: &AgentSessionMessage, cx: &App) -> AnyElement {
         .child(head)
         .child(
             div()
-                .text_size(px(theme::BODY_SIZE))
+                .text_size(crate::theme::text_size(theme::BODY_SIZE))
                 .child(message.content.clone()),
         )
         .into_any_element()

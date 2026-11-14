@@ -215,7 +215,11 @@ impl ResourcesView {
             .rounded(px(12.))
             .child(heading);
         for (row, entry) in source.entries.iter().enumerate() {
-            card = card.child(div().text_size(px(12.)).child(entry.text.clone()));
+            card = card.child(
+                div()
+                    .text_size(crate::theme::text_size(12.))
+                    .child(entry.text.clone()),
+            );
             if let Some(same) = &entry.same_name {
                 card = card.child(same_name_row(index, row, same, cx));
             }
@@ -432,7 +436,7 @@ impl ResourcesView {
 #[inline(never)]
 fn extensions_intro(cx: &App) -> AnyElement {
     div()
-        .text_size(px(12.))
+        .text_size(crate::theme::text_size(12.))
         .child(text(
             cx,
             "Read-only user metadata. Discovery does not verify client loading; no installation, network or execution. Same-name entries stay listed under each source. Legacy CCR arrays are preserved and are not read by Claude.",
@@ -458,7 +462,7 @@ fn same_name_row(index: usize, row: usize, same: &extensions::SameName, cx: &App
         .id(format!("claude-extension-same-name-{index}-{row}"))
         .test_support()
         .aria_label(line.clone())
-        .text_size(px(12.))
+        .text_size(crate::theme::text_size(12.))
         .text_color(cx.theme().muted_foreground)
         .child(line)
         .into_any_element()

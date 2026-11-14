@@ -31,7 +31,7 @@ impl Shell {
         if !self.preferences_loaded || self.preferences_closing {
             return;
         }
-        self.apply_preferences(value, window, cx);
+        self.apply_preferences(value.clone(), window, cx);
         self.persist_preferences(value, window, cx);
     }
 
@@ -84,9 +84,12 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         self.preference = value.theme;
+        self.typography = value.typography;
         self.close_guard.confirm.set(value.confirm_quit);
         cx.set_global(value.language);
         theme::apply(value.theme, window, cx);
+        theme::apply_typography(&self.typography, cx);
+        self.settings_nav.sync_fonts(&self.typography, window, cx);
         // Menu labels follow the same language owner as the window.
         cx.set_menus(vec![gpui_kit::Menu::new("CCR").items([
             gpui_kit::MenuItem::action(text(cx, "Quit CCR", "退出 CCR"), close::Quit),
@@ -114,7 +117,11 @@ impl Shell {
                                 Completion::Success(value) => {
                                     this.preferences_loaded = true;
                                     if loading {
-                                        this.accept_loaded_preferences(Ok(*value), window, cx);
+                                        this.accept_loaded_preferences(
+                                            Ok(value.clone()),
+                                            window,
+                                            cx,
+                                        );
                                     }
                                     if this.reveal_preferences_after_save {
                                         this.reveal_preferences_after_save = false;
@@ -144,6 +151,7 @@ impl Shell {
             language: *cx.global::<Language>(),
             confirm_quit: self.close_guard.confirm.get(),
             window: self.window_placement,
+            typography: self.typography.clone(),
         }
     }
 

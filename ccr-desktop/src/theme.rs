@@ -74,11 +74,71 @@ pub const HEATMAP_LABEL_WIDTH: f32 = 28.;
 pub const DISTRIBUTION_HEIGHT: f32 = 160.;
 /// 排行行高：8 行时与分布面板大致等高，不用列表页的 36px。
 pub const OVERVIEW_LEADER_ROW_HEIGHT: f32 = 28.;
+pub const SETTINGS_NAV_WIDTH: f32 = 176.;
+
+/// One process-local directory shared by the default resolver and both pickers.
+pub struct FontCatalog(pub Vec<String>);
+impl gpui_kit::Global for FontCatalog {}
+
+pub fn font_catalog(cx: &mut App) -> &[String] {
+    if cx.try_global::<FontCatalog>().is_none() {
+        let mut names = cx.text_system().all_font_names();
+        names.retain(|name| {
+            !name.trim().is_empty() && name.len() <= 256 && !name.chars().any(char::is_control)
+        });
+        names.sort();
+        names.dedup();
+        cx.set_global(FontCatalog(names));
+    }
+    &cx.global::<FontCatalog>().0
+}
+
+/// Text roles use the current UI baseline; geometry remains independently owned.
+pub fn text_size(base: f32) -> gpui_kit::Rems {
+    gpui_kit::rems(base / BODY_SIZE)
+}
+
+/// Virtual rows must admit the independently sized code/path line as well.
+pub fn data_row_height(base: f32, cx: &App) -> Pixels {
+    let theme = Theme::global(cx);
+    px(base
+        * (f32::from(theme.font_size) / BODY_SIZE).max(f32::from(theme.mono_font_size) / META_SIZE))
+}
+
+pub fn apply_typography(value: &crate::runtime::preferences::TypographyPreferences, cx: &mut App) {
+    let names = font_catalog(cx).to_vec();
+    let available = |name: &Option<String>| {
+        name.as_ref()
+            .filter(|name| names.contains(name))
+            .cloned()
+            .map(gpui_kit::SharedString::from)
+    };
+    let ui = available(&value.ui_font).unwrap_or_else(|| native_font(cx));
+    let mono = available(&value.mono_font).unwrap_or_else(|| {
+        [
+            "Consolas",
+            "Menlo",
+            "DejaVu Sans Mono",
+            "Liberation Mono",
+            "Cascadia Mono",
+        ]
+        .into_iter()
+        .find(|candidate| names.iter().any(|name| name == candidate))
+        .map(gpui_kit::SharedString::from)
+        .unwrap_or_else(|| Theme::global(cx).mono_font_family.clone())
+    });
+    Theme::update(cx, |theme| {
+        theme.font_family = ui;
+        theme.mono_font_family = mono;
+        theme.font_size = px(f32::from(value.ui_size));
+        theme.mono_font_size = px(f32::from(value.mono_size));
+    });
+}
 
 /// Choose an installed sans family, rather than trusting the virtual system
 /// alias (which can resolve to a serif on Windows). No font file is bundled.
 fn native_font(cx: &App) -> gpui_kit::SharedString {
-    let names = cx.text_system().all_font_names();
+    let names = &cx.global::<FontCatalog>().0;
     #[cfg(target_os = "windows")]
     let candidates = [
         "Segoe UI Variable",
@@ -548,6 +608,7 @@ pub fn apply(preference: Preference, window: &mut Window, cx: &mut App) {
 }
 
 fn apply_palette(cx: &mut App) {
+    font_catalog(cx);
     let font_family = native_font(cx);
     Theme::update(cx, |theme| {
         theme.font_family = font_family;
@@ -623,6 +684,38 @@ fn apply_palette(cx: &mut App) {
 mod tests {
     use super::*;
     use gpui_kit::size;
+
+    #[gpui_kit::test]
+    fn unavailable_families_keep_independent_sizes_and_code_rows_fit(
+        cx: &mut gpui_kit::TestAppContext,
+    ) {
+        cx.update(|cx| {
+            gpui_kit::init(cx);
+            font_catalog(cx);
+            let preferences = crate::runtime::preferences::TypographyPreferences {
+                ui_font: Some("Fixture uninstalled UI font".into()),
+                mono_font: Some("Fixture uninstalled code font".into()),
+                ui_size: 12,
+                mono_size: 20,
+            };
+            apply_typography(&preferences, cx);
+            assert_ne!(
+                Theme::global(cx).font_family.as_ref(),
+                "Fixture uninstalled UI font"
+            );
+            assert_ne!(
+                Theme::global(cx).mono_font_family.as_ref(),
+                "Fixture uninstalled code font"
+            );
+            assert_eq!(Theme::global(cx).font_size, px(12.));
+            assert_eq!(Theme::global(cx).mono_font_size, px(20.));
+            assert_eq!(data_row_height(TWO_LINE_ROW_HEIGHT, cx), px(100.));
+            assert_eq!(
+                preferences.ui_font.as_deref(),
+                Some("Fixture uninstalled UI font")
+            );
+        });
+    }
 
     type Rgb = [f64; 3];
 

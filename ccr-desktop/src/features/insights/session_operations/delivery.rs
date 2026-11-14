@@ -177,7 +177,7 @@ impl InsightsView {
             .child(self.render_session_trash_heading(cx))
             .child(
                 div()
-                    .text_size(px(theme::META_SIZE))
+                    .text_size(crate::theme::text_size(theme::META_SIZE))
                     .text_color(cx.theme().muted_foreground)
                     .child(text(cx,"Recoverable Codex sessions from this captured local home. Existing rollout files and index identities are never overwritten.","此本地 Codex 目录中的可恢复会话。不会覆盖已有记录文件或索引标识。")),
             );
@@ -213,7 +213,7 @@ impl InsightsView {
             return root
                 .child(
                     div()
-                        .text_size(px(theme::META_SIZE))
+                        .text_size(crate::theme::text_size(theme::META_SIZE))
                         .text_color(cx.theme().muted_foreground)
                         .child(line),
                 )
@@ -360,8 +360,9 @@ impl InsightsView {
                     .child(
                         div()
                             .id("metadata")
-                            .text_size(px(theme::META_SIZE))
+                            .text_size(crate::theme::text_size(theme::META_SIZE))
                             .font_family(cx.theme().mono_font_family.clone())
+                            .text_size(cx.theme().mono_font_size)
                             .text_ellipsis()
                             .child(detail.clone())
                             .tooltip(move |window, cx| {

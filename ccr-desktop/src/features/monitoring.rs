@@ -323,7 +323,7 @@ impl MonitoringView {
                 "刷新后读取运行指标。",
             ));
         }
-        line.child(div().text_size(px(theme::META_SIZE)).text_color(cx.theme().muted_foreground)
+        line.child(div().text_size(crate::theme::text_size(theme::META_SIZE)).text_color(cx.theme().muted_foreground)
             .child(text(cx,"The latest at most 2048 successful Usage page reports, with the database already open. Excludes Home/Workbench, database opening, queueing, rendering and failed reads. These samples do not establish benchmark performance.","最近最多 2048 次成功的 Usage 页面报表处理（DB 已打开），不含 Home/Workbench、开库、排队、渲染与失败读取；这些样本不证明性能基准达标。"))).into_any_element()
     }
     fn row(&self, entry: &MonitoringEntry, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
@@ -358,7 +358,7 @@ impl MonitoringView {
                     cx.notify();
                 });
             })
-            .h(px(theme::ROW_HEIGHT))
+            .h(crate::theme::data_row_height(theme::ROW_HEIGHT, cx))
             .flex()
             .items_center()
             .gap(px(theme::CONTROL_GAP))
@@ -386,8 +386,9 @@ impl MonitoringView {
             .child(
                 div()
                     .w(px(180.))
-                    .text_size(px(theme::META_SIZE))
+                    .text_size(crate::theme::text_size(theme::META_SIZE))
                     .font_family(cx.theme().mono_font_family.clone())
+                    .text_size(cx.theme().mono_font_size)
                     .truncate()
                     .child(entry.timestamp.clone()),
             )
@@ -480,7 +481,7 @@ impl MonitoringView {
             .gap(px(theme::SECTION_GAP))
             .child(
                 div()
-                    .text_size(px(theme::TITLE_SIZE))
+                    .text_size(crate::theme::text_size(theme::TITLE_SIZE))
                     .font_weight(gpui_kit::FontWeight::SEMIBOLD)
                     .child(text(cx, "Global monitoring", "全局监控")),
             );

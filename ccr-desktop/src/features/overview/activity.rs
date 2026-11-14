@@ -357,7 +357,7 @@ fn weekday_labels(cell: f32, cx: &App) -> Div {
         .flex()
         .flex_col()
         .gap(px(theme::HEATMAP_GAP))
-        .text_size(px(theme::META_SIZE))
+        .text_size(crate::theme::text_size(theme::META_SIZE))
         .text_color(cx.theme().muted_foreground);
     for row in 0..HEAT_DAYS {
         // 行高等于格子高，文字以格子中线为准居中；相邻行没有标签，不会重叠。
@@ -391,7 +391,7 @@ fn legend(cell: f32, cx: &App) -> Node {
         .items_center()
         .justify_end()
         .gap(px(theme::HEATMAP_GAP))
-        .text_size(px(theme::META_SIZE))
+        .text_size(crate::theme::text_size(theme::META_SIZE))
         .text_color(cx.theme().muted_foreground)
         .child(div().mr(px(4.)).child(text(cx, "Less", "少")));
     for level in 0..=4 {
@@ -504,7 +504,7 @@ fn summary_reading(reading: Reading, share: f32, cx: &App) -> Node {
         .gap(px(2.))
         .child(
             div()
-                .text_size(px(theme::META_SIZE))
+                .text_size(crate::theme::text_size(theme::META_SIZE))
                 .text_color(cx.theme().muted_foreground)
                 .child(reading.label),
         )
@@ -567,7 +567,7 @@ pub(super) fn week_panel(report: &WorkbenchReport, cx: &App) -> Node {
     let frame = panel("overview-week", cx)
         .flex_shrink_0()
         .gap(px(theme::CONTROL_GAP))
-        .text_size(px(theme::META_SIZE))
+        .text_size(crate::theme::text_size(theme::META_SIZE))
         .font_features(theme::tabular_figures())
         .child(badge::section_heading(
             text(cx, "7-day comparison", "近 7 日对比"),

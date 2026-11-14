@@ -225,7 +225,7 @@ impl InsightsView {
                     .id("insights-import-status")
                     .test_support()
                     .role(gpui_kit::Role::Status)
-                    .text_size(px(theme::META_SIZE))
+                    .text_size(crate::theme::text_size(theme::META_SIZE))
                     .child(status),
             )
     }
@@ -239,11 +239,11 @@ impl InsightsView {
             .flex_wrap()
             .items_center()
             .gap(px(theme::CONTROL_GAP))
-            .child(div().text_size(px(theme::META_SIZE)).child(text(
-                cx,
-                "Import scope",
-                "导入范围",
-            )))
+            .child(
+                div()
+                    .text_size(crate::theme::text_size(theme::META_SIZE))
+                    .child(text(cx, "Import scope", "导入范围")),
+            )
             .child(semantics::button(
                 Button::new("insights-import-source")
                     .label(source_label(self.effective_import_options().source, cx))

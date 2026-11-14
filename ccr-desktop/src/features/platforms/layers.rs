@@ -135,14 +135,14 @@ impl LayersView {
             )
             .child(
                 div()
-                    .text_size(px(theme::META_SIZE))
+                    .text_size(crate::theme::text_size(theme::META_SIZE))
                     .text_color(cx.theme().muted_foreground)
                     .truncate()
                     .child(path),
             )
             .child(
                 div()
-                    .text_size(px(theme::META_SIZE))
+                    .text_size(crate::theme::text_size(theme::META_SIZE))
                     .text_color(cx.theme().muted_foreground)
                     .child(match (row.size, row.mtime) {
                         (Some(size), Some(mtime)) => {

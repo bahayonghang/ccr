@@ -40,7 +40,7 @@ pub(crate) async fn open_app_window(
         while let Some(event) = subscription.next().await {
             if let TaskEvent::Terminal(result) = event {
                 loaded = match result.as_ref() {
-                    Completion::Success(value) => Ok(*value),
+                    Completion::Success(value) => Ok(value.clone()),
                     Completion::Failed(error) => Err(*error),
                     _ => Err(runtime::preferences::PreferencesError::Storage),
                 };
@@ -49,7 +49,7 @@ pub(crate) async fn open_app_window(
         }
     }
     cx.update(|cx| {
-        let mut options = window_options(loaded.ok(), cx);
+        let mut options = window_options(loaded.clone().ok(), cx);
         if let Some(title) = services.benchmark_title()
             && let Some(titlebar) = &mut options.titlebar
         {

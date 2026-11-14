@@ -356,7 +356,7 @@ fn panel(id: &'static str, cx: &App) -> Node {
 
 fn heading(label: &'static str) -> gpui_kit::Div {
     div()
-        .text_size(px(theme::SECTION_TITLE_SIZE))
+        .text_size(crate::theme::text_size(theme::SECTION_TITLE_SIZE))
         .font_weight(gpui_kit::FontWeight::SEMIBOLD)
         .child(label)
 }

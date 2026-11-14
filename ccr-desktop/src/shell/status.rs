@@ -37,6 +37,7 @@ impl Render for Clock {
             .test_support()
             .aria_label(self.value.clone())
             .font_family(cx.theme().mono_font_family.clone())
+            .text_size(cx.theme().mono_font_size)
             .child(self.value.clone())
     }
 }

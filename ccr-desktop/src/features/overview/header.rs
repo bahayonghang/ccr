@@ -100,7 +100,7 @@ impl OverviewView {
             .flex()
             .items_center()
             .gap(px(theme::CONTROL_GAP))
-            .text_size(px(theme::META_SIZE))
+            .text_size(crate::theme::text_size(theme::META_SIZE))
             .text_color(cx.theme().muted_foreground)
             .child("·");
         let row = if stale {
@@ -135,7 +135,7 @@ impl OverviewView {
                     .test_support()
                     .role(gpui_kit::Role::Heading)
                     .aria_level(1)
-                    .text_size(px(theme::TITLE_SIZE))
+                    .text_size(crate::theme::text_size(theme::TITLE_SIZE))
                     .font_weight(gpui_kit::FontWeight::SEMIBOLD)
                     .child(text(cx, "Overview", "运行概览")),
             );
@@ -191,7 +191,7 @@ impl OverviewView {
                             .test_support()
                             .role(gpui_kit::Role::Status)
                             .aria_label(status.clone())
-                            .text_size(px(theme::META_SIZE))
+                            .text_size(crate::theme::text_size(theme::META_SIZE))
                             .text_color(ink)
                             .child(status),
                     )
@@ -199,7 +199,7 @@ impl OverviewView {
                     .when(self.fixture, |row| {
                         row.child(
                             div()
-                                .text_size(px(theme::META_SIZE))
+                                .text_size(crate::theme::text_size(theme::META_SIZE))
                                 .text_color(cx.theme().warning)
                                 .child(text(cx, "Isolated demo", "隔离演示")),
                         )

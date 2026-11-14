@@ -45,7 +45,7 @@ pub(super) fn providers(
             .role(Role::Status)
             .aria_label(line.clone())
             .flex_shrink_0()
-            .text_size(px(theme::META_SIZE))
+            .text_size(crate::theme::text_size(theme::META_SIZE))
             .text_color(cx.theme().muted_foreground)
             .child(line)
             .into_any_element();

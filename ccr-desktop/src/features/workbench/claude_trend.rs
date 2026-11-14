@@ -31,8 +31,8 @@ impl WorkbenchView {
     pub(super) fn claude_trend(&self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
         let mut section=div().id("workbench-claude-trend").test_support().flex_shrink_0().min_w_0().flex().flex_col().gap(px(8.))
             .p(px(16.)).bg(cx.theme().background).rounded(px(theme::PANEL_RADIUS)).border_1().border_color(theme::hairline(cx.theme().mode))
-            .child(div().text_size(px(16.)).font_weight(gpui_kit::FontWeight::SEMIBOLD).child(text(cx,"Daily recorded cost · 30 days (USD)","每日记录费用 · 30 天（USD）")))
-            .child(div().text_size(px(12.)).text_color(cx.theme().muted_foreground).child(text(cx,"Missing dates are gaps. Tab to a recorded day, then press Enter for its exact estimate in the panel; hover shows the same line.","缺失日留空。Tab 到有记录的日期后按 Enter，可在本面板读到该日精确估算；hover 显示同一行。")));
+            .child(div().text_size(crate::theme::text_size(16.)).font_weight(gpui_kit::FontWeight::SEMIBOLD).child(text(cx,"Daily recorded cost · 30 days (USD)","每日记录费用 · 30 天（USD）")))
+            .child(div().text_size(crate::theme::text_size(12.)).text_color(cx.theme().muted_foreground).child(text(cx,"Missing dates are gaps. Tab to a recorded day, then press Enter for its exact estimate in the panel; hover shows the same line.","缺失日留空。Tab 到有记录的日期后按 Enter，可在本面板读到该日精确估算；hover 显示同一行。")));
         if let Some(usage) = self.claude_usage() {
             let days = calendar(self.usage_until, &usage.recent.trends);
             let maximum = days
@@ -95,7 +95,7 @@ impl WorkbenchView {
                 div()
                     .flex()
                     .justify_between()
-                    .text_size(px(12.))
+                    .text_size(crate::theme::text_size(12.))
                     .child(days[0].0.to_string())
                     .child(days[29].0.to_string()),
             );
@@ -108,7 +108,7 @@ impl WorkbenchView {
                         .test_support()
                         .role(gpui_kit::Role::Status)
                         .aria_label(description.clone())
-                        .text_size(px(12.))
+                        .text_size(crate::theme::text_size(12.))
                         .border_1()
                         .rounded(px(theme::PANEL_RADIUS))
                         .border_color(theme::hairline(cx.theme().mode))
@@ -147,7 +147,7 @@ impl WorkbenchView {
                         let highlighted = self.trend_highlight.is_some_and(|(day, _)| day == date);
                         table = table.child(
                             div()
-                                .text_size(px(12.))
+                                .text_size(crate::theme::text_size(12.))
                                 .when(highlighted, |row| {
                                     row.bg(theme::chart_series("claude", cx.theme().mode))
                                         .text_color(cx.theme().background)
@@ -166,7 +166,7 @@ impl WorkbenchView {
                         &usage.history,
                     ),
                 ] {
-                    table = table.child(div().text_size(px(12.)).child(
+                    table = table.child(div().text_size(crate::theme::text_size(12.)).child(
                         if overview.bucket_count == 0 {
                             format!(
                                 "{label}: {}",

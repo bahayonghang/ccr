@@ -75,7 +75,7 @@ impl WorkbenchView {
             rows = rows.child(
                 div()
                     .font_features(theme::tabular_figures())
-                    .text_size(px(theme::BODY_SIZE))
+                    .text_size(crate::theme::text_size(theme::BODY_SIZE))
                     .child(value),
             );
         }
@@ -85,19 +85,23 @@ impl WorkbenchView {
     pub(super) fn rolling_usage(&self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
         let busy = self.rolling_task.is_some();
         let mut section = div().id("workbench-rolling").test_support().flex().flex_col().gap(px(theme::CONTROL_GAP))
-            .child(div().text_size(px(theme::SECTION_TITLE_SIZE)).font_weight(gpui_kit::FontWeight::SEMIBOLD).child(text(cx,"Codex local rolling usage","Codex 本地滚动用量")))
-            .child(div().text_size(px(theme::META_SIZE)).text_color(cx.theme().muted_foreground).child(text(cx,"All local Codex sessions; usage records are not account quota. Reading refreshes the derived local cache.","统计本地全部 Codex 会话；用量记录不代表账户配额。读取会刷新本地派生缓存。")))
+            .child(div().text_size(crate::theme::text_size(theme::SECTION_TITLE_SIZE)).font_weight(gpui_kit::FontWeight::SEMIBOLD).child(text(cx,"Codex local rolling usage","Codex 本地滚动用量")))
+            .child(div().text_size(crate::theme::text_size(theme::META_SIZE)).text_color(cx.theme().muted_foreground).child(text(cx,"All local Codex sessions; usage records are not account quota. Reading refreshes the derived local cache.","统计本地全部 Codex 会话；用量记录不代表账户配额。读取会刷新本地派生缓存。")))
             .child(semantics::button(Button::new("workbench-rolling-read")
                 .label(if busy {text(cx,"Reading sessions…","正在读取会话…")} else {text(cx,"Read rolling usage","读取滚动用量")})
                 .ghost().on_click(cx.listener(|this,_,_,cx| this.read_rolling(cx))),busy,busy,cx));
         match &self.rolling {
             Some(Ok(report)) => {
                 section = section
-                    .child(div().text_size(px(theme::META_SIZE)).child(format!(
-                        "{} {}",
-                        text(cx, "As of (UTC)", "统计截止（UTC）"),
-                        report.as_of.format("%Y-%m-%d %H:%M:%S")
-                    )))
+                    .child(
+                        div()
+                            .text_size(crate::theme::text_size(theme::META_SIZE))
+                            .child(format!(
+                                "{} {}",
+                                text(cx, "As of (UTC)", "统计截止（UTC）"),
+                                report.as_of.format("%Y-%m-%d %H:%M:%S")
+                            )),
+                    )
                     .child(Self::rolling_totals(report, cx));
                 if report.usage.all_time.total_requests == 0 {
                     section = section.child(text(
@@ -131,7 +135,7 @@ impl WorkbenchView {
                     div()
                         .id("workbench-rolling-diagnostics")
                         .test_support()
-                        .text_size(px(theme::META_SIZE))
+                        .text_size(crate::theme::text_size(theme::META_SIZE))
                         .child(diagnostic),
                 );
                 if !d.is_complete() {

@@ -20,7 +20,7 @@ fn cell(value: Option<&Value>) -> String {
 }
 fn heading(label: &str) -> gpui_kit::Div {
     div()
-        .text_size(px(theme::SECTION_TITLE_SIZE))
+        .text_size(crate::theme::text_size(theme::SECTION_TITLE_SIZE))
         .font_weight(gpui_kit::FontWeight::SEMIBOLD)
         .child(label.to_string())
 }
@@ -78,7 +78,7 @@ fn table(
             .role(gpui_kit::Role::ColumnHeader)
             .flex_1()
             .min_w_0()
-            .text_size(px(theme::META_SIZE))
+            .text_size(crate::theme::text_size(theme::META_SIZE))
             .text_color(cx.theme().muted_foreground)
             .child((*label).to_string());
         if numeric_column(key) {
@@ -111,12 +111,13 @@ fn table(
                 .flex_1()
                 .min_w_0()
                 .text_ellipsis()
-                .text_size(px(theme::META_SIZE))
+                .text_size(crate::theme::text_size(theme::META_SIZE))
                 .child(value.clone())
                 .tooltip(move |window, cx| Tooltip::new(value.clone()).build(window, cx));
             if numeric_column(key) {
                 cell = cell
                     .font_family(cx.theme().mono_font_family.clone())
+                    .text_size(cx.theme().mono_font_size)
                     .text_right();
             }
             line = line.child(cell);
@@ -142,7 +143,7 @@ pub(super) fn report(view: &ObserverView, cx: &mut Context<ObserverView>) -> gpu
             ))
             .into_any_element();
     };
-    root=root.child(div().text_size(px(theme::META_SIZE)).text_color(cx.theme().muted_foreground).child(text(cx,"Usage uses local calendar days and recorded USD costs. Tool calls come from CCR's main database; absent sources are shown separately.","用量按本地日历日和已记录美元费用统计。工具调用来自 CCR 主数据库；缺失来源分别显示。")));
+    root=root.child(div().text_size(crate::theme::text_size(theme::META_SIZE)).text_color(cx.theme().muted_foreground).child(text(cx,"Usage uses local calendar days and recorded USD costs. Tool calls come from CCR's main database; absent sources are shown separately.","用量按本地日历日和已记录美元费用统计。工具调用来自 CCR 主数据库；缺失来源分别显示。")));
     match &report.insight {
         Ok(value) => {
             let mut totals = div().flex().flex_wrap().gap(px(theme::SECTION_GAP));
@@ -183,7 +184,7 @@ pub(super) fn report(view: &ObserverView, cx: &mut Context<ObserverView>) -> gpu
                         .gap(px(theme::CONTROL_GAP))
                         .child(
                             div()
-                                .text_size(px(theme::META_SIZE))
+                                .text_size(crate::theme::text_size(theme::META_SIZE))
                                 .child(text(cx, en, zh)),
                         )
                         .child(
@@ -192,6 +193,7 @@ pub(super) fn report(view: &ObserverView, cx: &mut Context<ObserverView>) -> gpu
                                 .test_support()
                                 .aria_label(display.clone())
                                 .font_family(cx.theme().mono_font_family.clone())
+                                .text_size(cx.theme().mono_font_size)
                                 .child(display),
                         ),
                 );

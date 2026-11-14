@@ -206,7 +206,7 @@ fn page_count(view: &InsightsView, cx: &mut Context<InsightsView>) -> AnyElement
         .test_support()
         .aria_label(line.clone())
         .flex_shrink_0()
-        .text_size(px(theme::META_SIZE))
+        .text_size(crate::theme::text_size(theme::META_SIZE))
         .text_color(cx.theme().muted_foreground)
         .font_features(theme::tabular_figures())
         .child(line)
@@ -315,7 +315,7 @@ fn list_state(view: &InsightsView, cx: &mut Context<InsightsView>) -> AnyElement
         }
         _ => reading_panel("session-list", cx)
             .p(px(theme::SECTION_GAP))
-            .text_size(px(theme::META_SIZE))
+            .text_size(crate::theme::text_size(theme::META_SIZE))
             .text_color(cx.theme().muted_foreground)
             .child(if view.loading {
                 text(cx, "Reading the archive.", "正在读取归档。")
@@ -542,7 +542,10 @@ fn session_row(
         .on_a11y_action(gpui_kit::AccessibleAction::Click, move |_, window, cx| {
             let _ = weak.update(cx, |this, cx| this.open_session(index, window, cx));
         })
-        .h(px(theme::TWO_LINE_ROW_HEIGHT))
+        .h(crate::theme::data_row_height(
+            theme::TWO_LINE_ROW_HEIGHT,
+            cx,
+        ))
         .w_full()
         .flex()
         .flex_col()
@@ -578,7 +581,7 @@ fn title_line(row: &AgentSessionArchiveRow, title: String, when: String, cx: &Ap
                 .flex_1()
                 .min_w_0()
                 .truncate()
-                .text_size(px(theme::BODY_SIZE))
+                .text_size(crate::theme::text_size(theme::BODY_SIZE))
                 .line_height(px(20.))
                 .font_weight(FontWeight::MEDIUM)
                 .tooltip(move |window, cx| Tooltip::new(tip.clone()).build(window, cx))
@@ -587,7 +590,7 @@ fn title_line(row: &AgentSessionArchiveRow, title: String, when: String, cx: &Ap
         .child(
             div()
                 .flex_shrink_0()
-                .text_size(px(theme::META_SIZE))
+                .text_size(crate::theme::text_size(theme::META_SIZE))
                 .text_color(cx.theme().muted_foreground)
                 .font_features(theme::tabular_figures())
                 .child(when),
@@ -604,7 +607,7 @@ fn meta_line(row: &AgentSessionArchiveRow, summary: String, cx: &App) -> Div {
         .flex()
         .items_center()
         .gap(px(theme::SELECTION_RADIUS))
-        .text_size(px(theme::META_SIZE))
+        .text_size(crate::theme::text_size(theme::META_SIZE))
         .line_height(px(theme::TAG_HEIGHT))
         .text_color(cx.theme().muted_foreground)
         .child(
@@ -634,6 +637,7 @@ fn meta_line(row: &AgentSessionArchiveRow, summary: String, cx: &App) -> Div {
                 .min_w_0()
                 .truncate()
                 .font_family(cx.theme().mono_font_family.clone())
+                .text_size(cx.theme().mono_font_size)
                 .tooltip(move |window, cx| Tooltip::new(tip.clone()).build(window, cx))
                 .child(format!("· {}", row.cwd)),
         )

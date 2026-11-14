@@ -39,12 +39,62 @@ impl WindowPlacement {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
+pub struct TypographyPreferences {
+    pub ui_font: Option<String>,
+    pub mono_font: Option<String>,
+    pub ui_size: u8,
+    pub mono_size: u8,
+}
+
+impl Default for TypographyPreferences {
+    fn default() -> Self {
+        Self {
+            ui_font: None,
+            mono_font: None,
+            ui_size: 14,
+            mono_size: 12,
+        }
+    }
+}
+
+impl TypographyPreferences {
+    fn read(value: &serde_json::Value) -> Self {
+        let family = |key| {
+            value
+                .get(key)
+                .and_then(|v| v.as_str())
+                .filter(|name| {
+                    !name.trim().is_empty()
+                        && name.len() <= 256
+                        && !name.chars().any(char::is_control)
+                })
+                .map(str::to_owned)
+        };
+        let size = |key, min, max, default| {
+            value
+                .get(key)
+                .and_then(|v| v.as_u64())
+                .filter(|n| (min..=max).contains(n))
+                .map(|n| n as u8)
+                .unwrap_or(default)
+        };
+        Self {
+            ui_font: family("ui_font"),
+            mono_font: family("mono_font"),
+            ui_size: size("ui_font_size", 12, 20, 14),
+            mono_size: size("mono_font_size", 11, 20, 12),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq)]
 pub struct DesktopPreferences {
     pub theme: Preference,
     pub language: Language,
     pub confirm_quit: bool,
     pub window: Option<WindowPlacement>,
+    pub typography: TypographyPreferences,
 }
 
 impl Default for DesktopPreferences {
@@ -54,6 +104,7 @@ impl Default for DesktopPreferences {
             language: Language::English,
             confirm_quit: true,
             window: None,
+            typography: TypographyPreferences::default(),
         }
     }
 }
@@ -121,7 +172,7 @@ impl PreferencesRequests {
                 if cancel.is_cancelled() {
                     return Completion::Cancelled;
                 }
-                match write(path.as_deref(), preferences) {
+                match write(path.as_deref(), &preferences) {
                     Ok(()) => Completion::Success(preferences),
                     Err(error) => Completion::Failed(error),
                 }
@@ -161,6 +212,7 @@ fn read(path: Option<&std::path::Path>) -> Result<DesktopPreferences, Preference
         return Err(PreferencesError::Invalid);
     }
     Ok(DesktopPreferences {
+        typography: TypographyPreferences::read(&value),
         theme: match value.get("theme").and_then(|v| v.as_str()) {
             Some("system") => Preference::System,
             Some("light") => Preference::Light,
@@ -232,7 +284,7 @@ fn reject_redirected_path(path: &std::path::Path) -> Result<(), PreferencesError
 
 fn write(
     path: Option<&std::path::Path>,
-    preferences: DesktopPreferences,
+    preferences: &DesktopPreferences,
 ) -> Result<(), PreferencesError> {
     let path = path.ok_or(PreferencesError::Storage)?;
     // Do not silently overwrite an unreadable or newer-format preference file.
@@ -243,11 +295,29 @@ fn write(
     {
         return Err(PreferencesError::Invalid);
     }
+    if !(12..=20).contains(&preferences.typography.ui_size)
+        || !(11..=20).contains(&preferences.typography.mono_size)
+        || [
+            &preferences.typography.ui_font,
+            &preferences.typography.mono_font,
+        ]
+        .into_iter()
+        .flatten()
+        .any(|name| {
+            name.trim().is_empty() || name.len() > 256 || name.chars().any(char::is_control)
+        })
+    {
+        return Err(PreferencesError::Invalid);
+    }
     let value = serde_json::json!({
         "version": 1,
         "theme": match preferences.theme { Preference::System => "system", Preference::Light => "light", Preference::Dark => "dark" },
         "language": match preferences.language { Language::English => "en", Language::Chinese => "zh" },
         "confirm_quit": preferences.confirm_quit,
+        "ui_font": preferences.typography.ui_font,
+        "mono_font": preferences.typography.mono_font,
+        "ui_font_size": preferences.typography.ui_size,
+        "mono_font_size": preferences.typography.mono_size,
         "window": preferences.window.map(|placement| serde_json::json!({
             "x": placement.x, "y": placement.y,
             "width": placement.width, "height": placement.height,
@@ -280,12 +350,18 @@ mod tests {
                 height: 800.,
                 maximized: true,
             }),
+            typography: TypographyPreferences {
+                ui_font: Some("Example UI".into()),
+                mono_font: Some("Example Mono".into()),
+                ui_size: 18,
+                mono_size: 16,
+            },
         };
-        write(Some(&path), selected).unwrap();
+        write(Some(&path), &selected).unwrap();
         assert!(read(Some(&path)).unwrap() == selected);
         std::fs::write(&path, b"{broken").unwrap();
         assert_eq!(
-            write(Some(&path), DesktopPreferences::default()),
+            write(Some(&path), &DesktopPreferences::default()),
             Err(PreferencesError::Invalid)
         );
         assert_eq!(std::fs::read(&path).unwrap(), b"{broken");
@@ -300,6 +376,7 @@ mod tests {
         });
         std::fs::write(&path, value.to_string()).unwrap();
         let preferences = read(Some(&path)).unwrap();
+        assert_eq!(preferences.typography, TypographyPreferences::default());
         assert!(preferences.window.is_none());
         assert!(preferences.theme == Preference::Dark);
         value["window"] = serde_json::json!({
@@ -309,10 +386,41 @@ mod tests {
         std::fs::write(&path, &bytes).unwrap();
         assert!(matches!(read(Some(&path)), Err(PreferencesError::Invalid)));
         assert_eq!(
-            write(Some(&path), preferences),
+            write(Some(&path), &preferences),
             Err(PreferencesError::Invalid)
         );
         assert_eq!(std::fs::read_to_string(&path).unwrap(), bytes);
+    }
+
+    #[test]
+    fn typography_fields_recover_independently_without_discarding_other_preferences() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("preferences.json");
+        std::fs::write(
+            &path,
+            serde_json::json!({
+                "version": 1, "theme": "dark", "language": "zh", "confirm_quit": false,
+                "ui_font": "Removed font", "mono_font": "bad\nname", "ui_font_size": 99,
+                "mono_font_size": 17
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let value = read(Some(&path)).unwrap();
+        assert!(value.theme == Preference::Dark);
+        assert!(value.language == Language::Chinese);
+        assert!(!value.confirm_quit);
+        assert_eq!(
+            value.typography,
+            TypographyPreferences {
+                ui_font: Some("Removed font".into()),
+                mono_font: None,
+                ui_size: 14,
+                mono_size: 17
+            }
+        );
+        write(Some(&path), &value).unwrap();
+        assert!(read(Some(&path)).unwrap() == value);
     }
 
     #[test]
@@ -333,7 +441,7 @@ mod tests {
             Err(PreferencesError::Storage)
         ));
         assert_eq!(
-            write(requests.path(), DesktopPreferences::default()),
+            write(requests.path(), &DesktopPreferences::default()),
             Err(PreferencesError::Storage)
         );
         owner.shutdown();
@@ -348,7 +456,7 @@ mod tests {
         std::fs::create_dir_all(&fixture).unwrap();
         std::fs::create_dir_all(&outside).unwrap();
         let target = outside.join("preferences.json");
-        write(Some(&target), DesktopPreferences::default()).unwrap();
+        write(Some(&target), &DesktopPreferences::default()).unwrap();
         let original = std::fs::read(&target).unwrap();
         let redirected = fixture.join("desktop-gpui");
         #[cfg(unix)]
@@ -370,7 +478,7 @@ mod tests {
         assert_eq!(
             write(
                 Some(&path),
-                DesktopPreferences {
+                &DesktopPreferences {
                     confirm_quit: false,
                     ..DesktopPreferences::default()
                 }

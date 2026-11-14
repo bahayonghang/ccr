@@ -97,7 +97,7 @@ impl OverviewView {
                     .id("overview-chart-since")
                     .test_support()
                     .aria_label(since.clone())
-                    .text_size(px(theme::META_SIZE))
+                    .text_size(crate::theme::text_size(theme::META_SIZE))
                     .text_color(cx.theme().muted_foreground)
                     .child(since),
             );
@@ -162,7 +162,7 @@ impl OverviewView {
             .when(report.other_requests > 0, |el| {
                 el.child(
                     div()
-                        .text_size(px(theme::META_SIZE))
+                        .text_size(crate::theme::text_size(theme::META_SIZE))
                         .text_color(cx.theme().muted_foreground)
                         .child(format!(
                             "{} {}",
@@ -213,7 +213,7 @@ impl OverviewView {
                 div()
                     .flex_1()
                     .min_w_0()
-                    .text_size(px(theme::META_SIZE))
+                    .text_size(crate::theme::text_size(theme::META_SIZE))
                     .when(index > 0, |cell| cell.text_right())
                     .child(label),
             );
@@ -418,7 +418,7 @@ fn latest_suffix(date: &str, cx: &App) -> Node {
         .id("overview-chart-latest")
         .test_support()
         .aria_label(suffix.clone())
-        .text_size(px(theme::META_SIZE))
+        .text_size(crate::theme::text_size(theme::META_SIZE))
         .text_color(cx.theme().muted_foreground)
         .child(suffix)
 }
@@ -430,7 +430,7 @@ fn ticks(visible: &[WorkbenchDay], cx: &App) -> Node {
         .test_support()
         .flex()
         .gap(px(if visible.len() > 30 { 1. } else { 3. }))
-        .text_size(px(theme::META_SIZE))
+        .text_size(crate::theme::text_size(theme::META_SIZE))
         .text_color(cx.theme().muted_foreground);
     let count = visible.len();
     let buckets = if count <= 7 { count } else { 6 };
@@ -521,7 +521,7 @@ fn legend(report: &WorkbenchReport, cx: &App) -> impl IntoElement {
         .flex()
         .flex_wrap()
         .gap(px(theme::CONTROL_GAP))
-        .text_size(px(theme::META_SIZE));
+        .text_size(crate::theme::text_size(theme::META_SIZE));
     for (index, id) in SERIES.into_iter().enumerate() {
         if report.days.iter().any(|d| day_values(d)[index] > 0) {
             row = row.child(

@@ -148,7 +148,7 @@ impl Render for CapabilitiesView {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let mut root=div().id("usage-capabilities").test_support().flex_1().min_h_0().overflow_y_scroll()
             .flex().flex_col().gap(px(theme::CONTROL_GAP))
-            .child(div().text_size(px(theme::SECTION_TITLE_SIZE)).font_weight(gpui_kit::FontWeight::SEMIBOLD)
+            .child(div().text_size(crate::theme::text_size(theme::SECTION_TITLE_SIZE)).font_weight(gpui_kit::FontWeight::SEMIBOLD)
                 .child(text(cx,"Usage storage and CLI capabilities","用量存储与 CLI 能力")))
             .child(text(cx,"Capabilities describe the complete captured database, independent of report filters. No import or database migration is started.","能力描述整份捕获的数据库，与报表筛选无关。读取不会启动导入或迁移。"))
             .child(semantics::button(Button::new("usage-capabilities-refresh")

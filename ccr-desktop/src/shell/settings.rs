@@ -1,16 +1,21 @@
 use super::{Destination, Lens, Shell, semantics};
 use crate::{
     locales::{Language, text},
-    runtime::preferences::DesktopPreferences,
+    runtime::preferences::{DesktopPreferences, TypographyPreferences},
     theme::{self, Preference},
 };
 use gpui_kit::{
-    App, Context, Div, FocusHandle, FontWeight, InteractiveElement, IntoElement, ParentElement,
-    ScrollHandle, StatefulInteractiveElement, Styled, Window,
+    App, AppContext, Context, Div, Entity, FocusHandle, FontWeight, InteractiveElement,
+    IntoElement, ParentElement, ScrollHandle, SharedString, StatefulInteractiveElement, Styled,
+    Window,
     accesskit::Toggled,
     assets::IconName,
     base::{Button as Control, TestSupportExt},
-    component::{ActiveTheme, Icon, button::Button},
+    component::{
+        ActiveTheme, Icon, IndexPath,
+        button::{Button, ButtonVariants},
+        select::{SearchableVec, Select, SelectEvent, SelectItem, SelectState},
+    },
     div,
     prelude::FluentBuilder,
     px,
@@ -19,14 +24,16 @@ use gpui_kit::{
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Section {
     Appearance,
+    Typography,
     Language,
     Workbench,
     Environment,
 }
 
 impl Section {
-    const ALL: [Self; 4] = [
+    const ALL: [Self; 5] = [
         Self::Appearance,
+        Self::Typography,
         Self::Language,
         Self::Workbench,
         Self::Environment,
@@ -35,6 +42,7 @@ impl Section {
     fn label(self, cx: &App) -> &'static str {
         match self {
             Self::Appearance => text(cx, "Appearance", "外观"),
+            Self::Typography => text(cx, "Fonts & sizes", "字体与字号"),
             Self::Language => text(cx, "Language", "语言"),
             Self::Workbench => text(cx, "Workbench preferences", "工作台偏好"),
             Self::Environment => text(cx, "Diagnostics & environment", "诊断与环境"),
@@ -44,6 +52,7 @@ impl Section {
     fn icon(self) -> IconName {
         match self {
             Self::Appearance => IconName::Sun,
+            Self::Typography => IconName::Type,
             Self::Language => IconName::Globe,
             Self::Workbench => IconName::Settings2,
             Self::Environment => IconName::Info,
@@ -53,6 +62,7 @@ impl Section {
     fn nav_id(self) -> &'static str {
         match self {
             Self::Appearance => "settings-nav-appearance",
+            Self::Typography => "settings-nav-typography",
             Self::Language => "settings-nav-language",
             Self::Workbench => "settings-nav-workbench",
             Self::Environment => "settings-nav-environment",
@@ -63,20 +73,136 @@ impl Section {
 pub(super) struct Navigation {
     active: Section,
     scroll: ScrollHandle,
-    anchors: [FocusHandle; 4],
+    anchors: [FocusHandle; 5],
+    fonts: [Entity<SelectState<SearchableVec<FontChoice>>>; 2],
+    language: Language,
+}
+
+#[derive(Clone)]
+struct FontChoice(Option<String>, SharedString);
+impl SelectItem for FontChoice {
+    type Value = Option<String>;
+    fn title(&self) -> SharedString {
+        self.0
+            .clone()
+            .map(SharedString::from)
+            .unwrap_or_else(|| self.1.clone())
+    }
+    fn value(&self) -> &Self::Value {
+        &self.0
+    }
+    fn render(&self, _: &mut Window, _: &mut App) -> impl IntoElement {
+        let title = self.title();
+        div()
+            .id(title.clone())
+            .role(gpui_kit::Role::Label)
+            .aria_label(title.clone())
+            .child(title)
+    }
+}
+
+fn font_choices(cx: &App) -> Vec<FontChoice> {
+    std::iter::once(FontChoice(
+        None,
+        text(cx, "System default", "系统默认").into(),
+    ))
+    .chain(
+        cx.global::<theme::FontCatalog>()
+            .0
+            .iter()
+            .cloned()
+            .map(|name| FontChoice(Some(name), SharedString::default())),
+    )
+    .collect()
 }
 
 impl Navigation {
-    pub(super) fn new(cx: &mut Context<Shell>) -> Self {
+    pub(super) fn new(window: &mut Window, cx: &mut Context<Shell>) -> Self {
+        let items = font_choices(cx);
+        let fonts = std::array::from_fn(|index| {
+            let select = cx.new(|cx| {
+                SelectState::new(
+                    SearchableVec::new(items.clone()),
+                    Some(IndexPath::default()),
+                    window,
+                    cx,
+                )
+                .searchable(true)
+            });
+            cx.subscribe_in(&select, window, move |this, _, event, window, cx| {
+                let SelectEvent::Confirm(Some(font)) = event else {
+                    return;
+                };
+                let mut value = this.preference_snapshot(cx);
+                if index == 0 {
+                    value.typography.ui_font = font.clone();
+                } else {
+                    value.typography.mono_font = font.clone();
+                }
+                this.save_preferences(value, window, cx);
+            })
+            .detach();
+            select
+        });
         Self {
             active: Section::Appearance,
             scroll: ScrollHandle::new(),
             anchors: std::array::from_fn(|_| cx.focus_handle().tab_stop(false)),
+            fonts,
+            language: *cx.global::<Language>(),
+        }
+    }
+
+    pub(super) fn sync_fonts(
+        &mut self,
+        value: &TypographyPreferences,
+        window: &mut Window,
+        cx: &mut Context<Shell>,
+    ) {
+        let language_changed = self.language != *cx.global::<Language>();
+        if language_changed {
+            self.language = *cx.global::<Language>();
+            let items = font_choices(cx);
+            for select in &self.fonts {
+                select.update(cx, |state, cx| {
+                    state.set_items(SearchableVec::new(items.clone()), window, cx)
+                });
+            }
+        }
+        for (select, selected) in self.fonts.iter().zip([&value.ui_font, &value.mono_font]) {
+            if language_changed || select.read(cx).selected_value() != Some(selected) {
+                select.update(cx, |state, cx| {
+                    state.set_selected_value(selected, window, cx)
+                });
+            }
         }
     }
 }
 
 impl Shell {
+    fn follow_settings_scroll(&self, window: &mut Window, cx: &mut Context<Self>) {
+        let weak = cx.weak_entity();
+        window.on_next_frame(move |_, cx| {
+            let _ = weak.update(cx, |this, cx| {
+                if this.destination != Destination::Settings {
+                    return;
+                }
+                let scroll = &this.settings_nav.scroll;
+                let index = if scroll.max_offset().y > px(0.)
+                    && scroll.offset().y <= -scroll.max_offset().y + px(1.)
+                {
+                    Section::ALL.len() - 1
+                } else {
+                    scroll.top_item().min(Section::ALL.len() - 1)
+                };
+                if this.settings_nav.active != Section::ALL[index] {
+                    this.settings_nav.active = Section::ALL[index];
+                    cx.notify();
+                }
+            });
+        });
+    }
+
     fn locate(&mut self, section: Section, window: &mut Window, cx: &mut Context<Self>) {
         self.settings_nav.active = section;
         self.settings_nav
@@ -121,63 +247,75 @@ impl Shell {
         let mut nav = div()
             .flex()
             .flex_col()
-            .gap(px(1.))
-            .rounded(px(theme::INPUT_RADIUS))
-            .overflow_hidden()
-            .border_1()
-            .border_color(cx.theme().border)
-            .bg(cx.theme().border);
-        for pair in Section::ALL.chunks(2) {
-            let mut row = div().flex().gap(px(1.));
-            for &section in pair {
-                let active = self.settings_nav.active == section;
-                row =
-                    row.child(
-                        control(section.nav_id(), section.label(cx), active, cx)
+            .w(px(theme::SETTINGS_NAV_WIDTH))
+            .flex_shrink_0()
+            .gap(px(theme::CONTROL_GAP));
+        for section in Section::ALL {
+            let active = self.settings_nav.active == section;
+            nav = nav.child(
+                control(section.nav_id(), section.label(cx), active, cx)
+                    .min_h(px(40.))
+                    .justify_start()
+                    .px(px(theme::SECTION_GAP))
+                    .rounded(px(theme::INPUT_RADIUS))
+                    .border_color(gpui_kit::transparent_black())
+                    .child(Icon::new(section.icon()).size(px(16.)))
+                    .child(
+                        div()
                             .flex_1()
-                            .h(px(40.))
-                            .justify_start()
-                            .px(px(theme::SECTION_GAP))
-                            .rounded(px(0.))
-                            .border_color(gpui_kit::transparent_black())
-                            .child(Icon::new(section.icon()).size(px(16.)))
-                            .child(section.label(cx))
-                            .on_click(cx.listener(move |this, _, window, cx| {
-                                this.locate(section, window, cx)
-                            })),
-                    );
-            }
-            nav = nav.child(row);
+                            .min_w_0()
+                            .whitespace_normal()
+                            .child(section.label(cx)),
+                    )
+                    .on_click(
+                        cx.listener(move |this, _, window, cx| this.locate(section, window, cx)),
+                    ),
+            );
         }
         let mut content = div()
             .id("settings-body")
+            .test_support()
             .min_h_0()
+            .min_w_0()
             .flex_1()
             .overflow_y_scroll()
             .track_scroll(&self.settings_nav.scroll)
             .flex()
             .flex_col()
-            .gap(px(theme::SECTION_GAP));
+            .gap(px(theme::SECTION_GAP))
+            .on_scroll_wheel(
+                cx.listener(|this, _, window, cx| this.follow_settings_scroll(window, cx)),
+            )
+            .on_key_down(
+                cx.listener(|this, event: &gpui_kit::KeyDownEvent, window, cx| {
+                    if matches!(
+                        event.keystroke.key.as_str(),
+                        "up" | "down" | "pageup" | "pagedown" | "home" | "end"
+                    ) {
+                        this.follow_settings_scroll(window, cx);
+                    }
+                }),
+            );
         for section in Section::ALL {
             let mut panel = div()
                 .track_focus(&self.settings_nav.anchors[section as usize])
                 .flex_shrink_0()
+                .min_w_0()
                 .flex()
                 .flex_col()
                 .p(px(theme::SECTION_GAP))
                 .gap(px(theme::SECTION_GAP))
-                .rounded(px(theme::PANEL_RADIUS))
-                .border_1()
+                .border_b_1()
                 .border_color(cx.theme().border)
-                .bg(cx.theme().background)
                 .child(
                     div()
-                        .text_size(px(theme::SECTION_TITLE_SIZE))
+                        .text_size(crate::theme::text_size(theme::SECTION_TITLE_SIZE))
                         .font_weight(FontWeight::SEMIBOLD)
                         .child(section.label(cx)),
                 );
             panel = match section {
                 Section::Appearance => panel.child(self.theme_choices(cx)),
+                Section::Typography => panel.child(self.typography_controls(cx)),
                 Section::Language => panel.child(self.language_choices(cx)),
                 Section::Workbench => panel.child(self.workbench_controls(cx)),
                 Section::Environment => panel
@@ -202,7 +340,7 @@ impl Shell {
                     .gap(px(theme::CONTROL_GAP))
                     .child(
                         div()
-                            .text_size(px(theme::DISPLAY_SIZE))
+                            .text_size(crate::theme::text_size(theme::DISPLAY_SIZE))
                             .font_weight(FontWeight::SEMIBOLD)
                             .child(text(cx, "Global settings", "全局设置")),
                     )
@@ -213,16 +351,265 @@ impl Shell {
                             .role(gpui_kit::Role::Label)
                             .aria_label(meta.clone())
                             .aria_value(meta.clone())
-                            .text_size(px(theme::META_SIZE))
+                            .text_size(crate::theme::text_size(theme::META_SIZE))
                             .text_color(cx.theme().muted_foreground)
                             .child(meta),
                     ),
             )
-            .child(nav.flex_shrink_0())
             .when(self.preferences_busy || self.preferences_failed, |el| {
                 el.child(self.preference_status(cx))
             })
-            .child(content)
+            .child(
+                div()
+                    .flex()
+                    .flex_1()
+                    .min_h_0()
+                    .min_w_0()
+                    .gap(px(theme::SECTION_GAP))
+                    .child(nav)
+                    .child(
+                        content
+                            .rounded(px(theme::PANEL_RADIUS))
+                            .bg(cx.theme().background),
+                    ),
+            )
+    }
+
+    fn typography_controls(&self, cx: &mut Context<Self>) -> Div {
+        let mut content = div().flex().flex_col().gap(px(theme::SECTION_GAP));
+        for (index, id, en, zh, size, range) in [
+            (
+                0,
+                "settings-ui-font",
+                "Interface font",
+                "界面字体",
+                self.typography.ui_size,
+                12..=20,
+            ),
+            (
+                1,
+                "settings-mono-font",
+                "Code / monospace font",
+                "等宽字体",
+                self.typography.mono_size,
+                11..=20,
+            ),
+        ] {
+            let family = if index == 0 {
+                &self.typography.ui_font
+            } else {
+                &self.typography.mono_font
+            };
+            let mut row = div()
+                .flex()
+                .flex_wrap()
+                .items_center()
+                .justify_between()
+                .gap(px(theme::CONTROL_GAP))
+                .child(div().min_w(px(140.)).child(text(cx, en, zh)))
+                .child(
+                    div()
+                        .flex()
+                        .flex_wrap()
+                        .items_center()
+                        .gap(px(theme::CONTROL_GAP))
+                        .child(
+                            div().w(px(240.)).child(
+                                Select::new(&self.settings_nav.fonts[index])
+                                    .placeholder(text(cx, "System default", "系统默认"))
+                                    .id(id)
+                                    .accessibility_label(text(cx, en, zh))
+                                    .search_placeholder(text(
+                                        cx,
+                                        "Search installed fonts",
+                                        "搜索本机字体",
+                                    ))
+                                    .disabled(!self.preferences_loaded || self.preferences_closing),
+                            ),
+                        )
+                        .child(self.font_size_control(index, size, range, cx)),
+                );
+            if let Some(missing) = family
+                .as_ref()
+                .filter(|name| !cx.global::<theme::FontCatalog>().0.contains(name))
+            {
+                row = row.child(
+                    div()
+                        .text_size(theme::text_size(theme::META_SIZE))
+                        .text_color(cx.theme().warning)
+                        .child(format!(
+                            "{}: {missing}",
+                            text(
+                                cx,
+                                "Font unavailable; using system default",
+                                "字体不可用，已回退到系统默认"
+                            )
+                        )),
+                );
+            }
+            content = content.child(row);
+            let preview = if index == 0 {
+                div()
+                    .id("settings-ui-preview")
+                    .test_support()
+                    .font(theme::body_font(cx))
+                    .text_size(cx.theme().font_size)
+                    .child(text(
+                        cx,
+                        "A readable workbench · 中文 / English · 0123456789",
+                        "清晰的工作台 · 中文 / English · 0123456789",
+                    ))
+            } else {
+                div()
+                    .id("settings-mono-preview")
+                    .test_support()
+                    .font_family(cx.theme().mono_font_family.clone())
+                    .text_size(cx.theme().mono_font_size)
+                    .child("ccr status --platform claude\n0123456789  il1  O0  {} [] =>")
+            };
+            content = content.child(
+                preview
+                    .p(px(theme::SECTION_GAP))
+                    .rounded(px(theme::INPUT_RADIUS))
+                    .bg(cx.theme().muted),
+            );
+        }
+        content
+            .child(hint(
+                text(
+                    cx,
+                    "Fonts are read from this machine. Code font selection is independent; preview its spacing before choosing.",
+                    "字体来自本机。代码字体独立选择，请通过预览确认字符对齐。",
+                ),
+                cx,
+            ))
+            .child(semantics::button(
+                Button::new("settings-fonts-reset")
+                    .label(text(cx, "Reset fonts and sizes", "恢复默认字体与字号"))
+                    .ghost()
+                    .on_click(cx.listener(|this, _, window, cx| {
+                        let mut value = this.preference_snapshot(cx);
+                        value.typography = Default::default();
+                        this.save_preferences(value, window, cx);
+                    })),
+                !self.preferences_loaded || self.preferences_closing,
+                false,
+                cx,
+            ))
+    }
+
+    fn font_size_control(
+        &self,
+        index: usize,
+        size: u8,
+        range: std::ops::RangeInclusive<u8>,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        let mut controls = div()
+            .id(if index == 0 {
+                "settings-ui-size-controls"
+            } else {
+                "settings-mono-size-controls"
+            })
+            .role(gpui_kit::Role::Group)
+            .aria_label(if index == 0 {
+                text(cx, "Interface font size", "界面字号")
+            } else {
+                text(cx, "Code font size", "等宽字号")
+            })
+            .flex()
+            .items_center()
+            .gap(px(theme::CONTROL_GAP));
+        for (increase, id) in [
+            (
+                false,
+                if index == 0 {
+                    "settings-ui-smaller"
+                } else {
+                    "settings-mono-smaller"
+                },
+            ),
+            (
+                true,
+                if index == 0 {
+                    "settings-ui-larger"
+                } else {
+                    "settings-mono-larger"
+                },
+            ),
+        ] {
+            let disabled = !self.preferences_loaded
+                || self.preferences_closing
+                || if increase {
+                    size == *range.end()
+                } else {
+                    size == *range.start()
+                };
+            controls = controls.child(
+                Control::new(id)
+                    .disabled(disabled)
+                    .a11y_synthetic_children(move |tree| {
+                        if disabled {
+                            tree.parent_node().set_disabled();
+                        } else {
+                            tree.parent_node().clear_disabled();
+                        }
+                    })
+                    .accessibility_label(if increase {
+                        text(cx, "Increase font size", "增大字号")
+                    } else {
+                        text(cx, "Decrease font size", "减小字号")
+                    })
+                    .w(px(36.))
+                    .h(px(36.))
+                    .rounded(px(theme::PILL_RADIUS))
+                    .border_1()
+                    .border_color(cx.theme().input)
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .focus_visible(|style| style.border_color(cx.theme().ring))
+                    .child(
+                        Icon::new(if increase {
+                            IconName::Plus
+                        } else {
+                            IconName::Minus
+                        })
+                        .size(px(16.)),
+                    )
+                    .on_click(cx.listener(move |this, _, window, cx| {
+                        let mut value = this.preference_snapshot(cx);
+                        let current = if index == 0 {
+                            &mut value.typography.ui_size
+                        } else {
+                            &mut value.typography.mono_size
+                        };
+                        *current = (if increase {
+                            current.saturating_add(1)
+                        } else {
+                            current.saturating_sub(1)
+                        })
+                        .clamp(if index == 0 { 12 } else { 11 }, 20);
+                        this.save_preferences(value, window, cx);
+                    })),
+            );
+            if !increase {
+                controls = controls.child(
+                    div()
+                        .id(if index == 0 {
+                            "settings-ui-size"
+                        } else {
+                            "settings-mono-size"
+                        })
+                        .test_support()
+                        .role(gpui_kit::Role::Label)
+                        .aria_label(format!("{size} px"))
+                        .aria_value(format!("{size}"))
+                        .child(format!("{size} px")),
+                );
+            }
+        }
+        controls
     }
 
     fn theme_choices(&self, cx: &mut Context<Self>) -> Div {
@@ -377,7 +764,6 @@ impl Shell {
         cx: &Context<Self>,
     ) -> Control {
         control(id, label, selected, cx)
-            .flex_1()
             .min_w(px(120.))
             .h(px(44.))
             .disabled(!self.preferences_loaded || self.preferences_closing)
@@ -418,7 +804,7 @@ impl Shell {
             .justify_between()
             .role(gpui_kit::Role::Status)
             .aria_label(status)
-            .text_size(px(theme::META_SIZE))
+            .text_size(crate::theme::text_size(theme::META_SIZE))
             .text_color(if self.preferences_failed {
                 cx.theme().warning
             } else {
@@ -452,7 +838,7 @@ fn choice_row() -> Div {
 fn hint(label: &'static str, cx: &App) -> Div {
     div()
         .text_color(cx.theme().muted_foreground)
-        .text_size(px(theme::META_SIZE))
+        .text_size(crate::theme::text_size(theme::META_SIZE))
         .child(label)
 }
 

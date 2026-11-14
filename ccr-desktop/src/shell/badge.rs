@@ -51,7 +51,7 @@ fn tag_frame(id: impl Into<ElementId>, label: SharedString, tone: Tone, cx: &App
         .role(Role::Label)
         .aria_label(label)
         .flex_shrink_0()
-        .h(px(theme::TAG_HEIGHT))
+        .h(crate::theme::text_size(theme::TAG_HEIGHT))
         .flex()
         .items_center()
         .px(px(theme::CONTROL_GAP))
@@ -60,7 +60,7 @@ fn tag_frame(id: impl Into<ElementId>, label: SharedString, tone: Tone, cx: &App
         .border_color(colors.edge)
         .bg(colors.fill)
         .text_color(colors.ink)
-        .text_size(px(theme::META_SIZE))
+        .text_size(crate::theme::text_size(theme::META_SIZE))
         .font_weight(FontWeight::MEDIUM)
         .whitespace_nowrap()
 }
@@ -107,7 +107,7 @@ pub fn filter_chip(button: Button, pressed: bool, disabled: bool, cx: &App) -> B
     let button = semantics::button(button.ghost().xsmall(), disabled, false, cx)
         .selected(pressed)
         .toggled(pressed)
-        .h(px(theme::FILTER_CHIP_HEIGHT))
+        .h(crate::theme::text_size(theme::FILTER_CHIP_HEIGHT))
         .px(px(theme::CONTROL_GAP + 4.))
         .border_1()
         .bg(if raised {
@@ -190,13 +190,13 @@ pub fn empty_panel(
         )
         .child(
             div()
-                .text_size(px(theme::BODY_SIZE))
+                .text_size(crate::theme::text_size(theme::BODY_SIZE))
                 .font_weight(FontWeight::MEDIUM)
                 .child(title),
         )
         .child(
             div()
-                .text_size(px(theme::META_SIZE))
+                .text_size(crate::theme::text_size(theme::META_SIZE))
                 .text_color(colors.muted_foreground)
                 .child(body),
         );
@@ -219,14 +219,14 @@ pub fn section_heading(
         .gap(px(theme::CONTROL_GAP))
         .child(
             div()
-                .text_size(px(theme::SECTION_TITLE_SIZE))
+                .text_size(crate::theme::text_size(theme::SECTION_TITLE_SIZE))
                 .font_weight(FontWeight::SEMIBOLD)
                 .child(title.into()),
         );
     match scope {
         Some(scope) => heading.child(
             div()
-                .text_size(px(theme::META_SIZE))
+                .text_size(crate::theme::text_size(theme::META_SIZE))
                 .text_color(cx.theme().muted_foreground)
                 .child(scope),
         ),

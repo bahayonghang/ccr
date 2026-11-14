@@ -267,7 +267,7 @@ impl Render for CommandState {
             snapshot.favorites.len()
         };
         let mut content=div().id("command-state").role(gpui_kit::Role::Region).aria_label(if history{text(cx,"Recent commands","最近命令")}else{text(cx,"Favorite commands","收藏命令")}).track_focus(&self.content_focus).tab_stop(false).flex().flex_col().size_full().min_w_0().p(px(theme::CONTENT_PADDING)).gap(px(theme::SECTION_GAP))
-            .child(div().text_size(px(theme::TITLE_SIZE)).font_weight(gpui_kit::FontWeight::SEMIBOLD).child(if history{text(cx,"Recent commands","最近命令")}else{text(cx,"Favorite commands","收藏命令")}))
+            .child(div().text_size(crate::theme::text_size(theme::TITLE_SIZE)).font_weight(gpui_kit::FontWeight::SEMIBOLD).child(if history{text(cx,"Recent commands","最近命令")}else{text(cx,"Favorite commands","收藏命令")}))
             .child(div().text_color(muted).child(text(cx,"Saved on this desktop and shared across environments. This list does not run a command.","记录保存在此桌面，并在各环境间共享。这个列表不会执行命令。")))
             .child(div().flex().gap(px(theme::CONTROL_GAP))
                 .child(semantics::button(Button::new("command-state-refresh").label(text(cx,"Refresh","刷新")).ghost().on_click(cx.listener(|this,_,_,cx|this.reload(cx))),self.loading||self.saving||self.confirmation.is_some(),self.loading,cx))
@@ -425,7 +425,7 @@ impl Render for CommandState {
                                 .id(SharedString::from(format!("history:{}", row.id)))
                                 .role(gpui_kit::Role::ListItem)
                                 .aria_label(row.command.clone())
-                                .h(px(theme::ROW_HEIGHT))
+                                .h(crate::theme::text_size(theme::ROW_HEIGHT))
                                 .flex()
                                 .items_center()
                                 .gap(px(theme::SECTION_GAP))
@@ -438,12 +438,13 @@ impl Render for CommandState {
                                 .child(
                                     div()
                                         .font_family(cx.theme().mono_font_family.clone())
+                                        .text_size(cx.theme().mono_font_size)
                                         .child(format!("{} ms", row.duration_ms)),
                                 )
                                 .child(
                                     div()
                                         .text_color(muted)
-                                        .text_size(px(theme::META_SIZE))
+                                        .text_size(crate::theme::text_size(theme::META_SIZE))
                                         .child(row.executed_at.clone()),
                                 )
                                 .into_any_element()
@@ -457,7 +458,7 @@ impl Render for CommandState {
                                 .aria_label(
                                     row.display_name.as_ref().unwrap_or(&row.command).clone(),
                                 )
-                                .h(px(theme::ROW_HEIGHT))
+                                .h(crate::theme::text_size(theme::ROW_HEIGHT))
                                 .flex()
                                 .items_center()
                                 .gap(px(theme::SECTION_GAP))

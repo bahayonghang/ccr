@@ -803,13 +803,13 @@ impl Render for InsightsView {
             root = root
                 .child(
                     div()
-                        .text_size(px(theme::TITLE_SIZE))
+                        .text_size(crate::theme::text_size(theme::TITLE_SIZE))
                         .font_weight(gpui_kit::FontWeight::SEMIBOLD)
                         .child(text(cx, "Usage", "用量")),
                 )
                 .child(
                     div()
-                        .text_size(px(theme::META_SIZE))
+                        .text_size(crate::theme::text_size(theme::META_SIZE))
                         .text_color(cx.theme().muted_foreground)
                         .child(text(
                             cx,
@@ -928,7 +928,7 @@ impl Render for InsightsView {
                         div()
                             .id("insights-index-status-text")
                             .test_support()
-                            .text_size(px(theme::META_SIZE))
+                            .text_size(crate::theme::text_size(theme::META_SIZE))
                             .child(status_text),
                     ),
             );
@@ -958,7 +958,11 @@ impl Render for InsightsView {
                 filters = filters.child(
                     div()
                         .w(px(184.))
-                        .child(div().text_size(px(theme::META_SIZE)).child(label))
+                        .child(
+                            div()
+                                .text_size(crate::theme::text_size(theme::META_SIZE))
+                                .child(label),
+                        )
                         .child(
                             Input::new(&self.fields[index])
                                 .readonly(
@@ -972,13 +976,13 @@ impl Render for InsightsView {
             root = root.child(filters);
         }
         if self.page == InsightsPage::Usage {
-            root=root.child(self.usage_sections(cx)).child(div().text_size(px(theme::META_SIZE)).child(text(cx,"Source IDs: claude, codex, opencode, antigravity, kimi_code, pi, grok, zcode, deepseek_harness. Inclusive dates in selected reporting zone.","来源为九个规范 ID；日期按所选报告时区包含首尾日。")));
+            root=root.child(self.usage_sections(cx)).child(div().text_size(crate::theme::text_size(theme::META_SIZE)).child(text(cx,"Source IDs: claude, codex, opencode, antigravity, kimi_code, pi, grok, zcode, deepseek_harness. Inclusive dates in selected reporting zone.","来源为九个规范 ID；日期按所选报告时区包含首尾日。")));
         }
         if self.page == InsightsPage::Home {
-            root=root.child(div().text_size(px(theme::META_SIZE)).child(text(cx,"All-history usage and indexed sessions; seven-day windows use the local reporting date. Usage filters do not affect this join.","全历史用量与已索引会话；七日窗口按本地报告日期。用量筛选不影响此联合报告。")));
+            root=root.child(div().text_size(crate::theme::text_size(theme::META_SIZE)).child(text(cx,"All-history usage and indexed sessions; seven-day windows use the local reporting date. Usage filters do not affect this join.","全历史用量与已索引会话；七日窗口按本地报告日期。用量筛选不影响此联合报告。")));
         }
         if self.page == InsightsPage::Sessions {
-            root=root.child(div().text_size(px(theme::META_SIZE)).child(text(cx,"Archive refresh reads explicit provider roots into CCR summaries; no usage sync/import is started. Transcript plaintext stays scoped to this view; leave to clear it.","归档刷新只读指定提供方并更新 CCR 摘要，不启动用量同步或导入。正文仅在本页临时显示，不写日志，离页清除。")));
+            root=root.child(div().text_size(crate::theme::text_size(theme::META_SIZE)).child(text(cx,"Archive refresh reads explicit provider roots into CCR summaries; no usage sync/import is started. Transcript plaintext stays scoped to this view; leave to clear it.","归档刷新只读指定提供方并更新 CCR 摘要，不启动用量同步或导入。正文仅在本页临时显示，不写日志，离页清除。")));
         }
         root = root.child(
             div()
@@ -997,23 +1001,25 @@ impl Render for InsightsView {
         );
         if let Some(InsightsSnapshot::Sessions { statuses, .. }) = self.snapshot.as_deref() {
             root = root.child(
-                div().text_size(px(theme::META_SIZE)).child(
-                    statuses
-                        .iter()
-                        .map(|status| {
-                            format!(
-                                "{}: {:?}/{}",
-                                status.agent.as_str(),
-                                status.availability,
-                                status
-                                    .fidelity
-                                    .map(|f| f.as_str())
-                                    .unwrap_or("not measured")
-                            )
-                        })
-                        .collect::<Vec<_>>()
-                        .join(" · "),
-                ),
+                div()
+                    .text_size(crate::theme::text_size(theme::META_SIZE))
+                    .child(
+                        statuses
+                            .iter()
+                            .map(|status| {
+                                format!(
+                                    "{}: {:?}/{}",
+                                    status.agent.as_str(),
+                                    status.availability,
+                                    status
+                                        .fidelity
+                                        .map(|f| f.as_str())
+                                        .unwrap_or("not measured")
+                                )
+                            })
+                            .collect::<Vec<_>>()
+                            .join(" · "),
+                    ),
             );
         }
         if self.page == InsightsPage::Home
@@ -1048,7 +1054,7 @@ impl Render for InsightsView {
                                 let _ = weak.update(cx, |this, cx| this.select(index, cx));
                             })
                             .w_full()
-                            .h(px(theme::ROW_HEIGHT))
+                            .h(crate::theme::text_size(theme::ROW_HEIGHT))
                             .px(px(theme::CONTROL_GAP))
                             .flex()
                             .items_center()
@@ -1065,6 +1071,7 @@ impl Render for InsightsView {
                                 div()
                                     .min_w(px(100.))
                                     .font_family(cx.theme().mono_font_family.clone())
+                                    .text_size(cx.theme().mono_font_size)
                                     .text_right()
                                     .child(row.left),
                             )
@@ -1072,6 +1079,7 @@ impl Render for InsightsView {
                                 div()
                                     .min_w(px(100.))
                                     .font_family(cx.theme().mono_font_family.clone())
+                                    .text_size(cx.theme().mono_font_size)
                                     .text_right()
                                     .child(row.right),
                             )
@@ -1088,7 +1096,7 @@ impl Render for InsightsView {
             div()
                 .flex()
                 .gap(px(theme::SECTION_GAP))
-                .text_size(px(theme::META_SIZE))
+                .text_size(crate::theme::text_size(theme::META_SIZE))
                 .child(div().flex_1().child(headers.0.clone()))
                 .child(div().min_w(px(100.)).text_right().child(headers.1.clone()))
                 .child(div().min_w(px(100.)).text_right().child(headers.2.clone())),

@@ -247,7 +247,7 @@ fn entry_row(
         .selected(selected)
         .flex_shrink_0()
         .w_full()
-        .h(px(theme::MCP_ROW_HEIGHT))
+        .h(crate::theme::data_row_height(theme::MCP_ROW_HEIGHT, cx))
         .px(px(theme::CONTROL_GAP))
         .gap(px(theme::CONTROL_GAP + 4.))
         .justify_start()
@@ -302,7 +302,7 @@ fn name_line(index: usize, entry: &McpEntry, cx: &App) -> Div {
                 .flex_1()
                 .min_w_0()
                 .truncate()
-                .text_size(px(theme::BODY_SIZE))
+                .text_size(crate::theme::text_size(theme::BODY_SIZE))
                 .line_height(px(20.))
                 .font_weight(FontWeight::MEDIUM)
                 .tooltip(move |window, cx| Tooltip::new(tip.clone()).build(window, cx))
@@ -314,7 +314,7 @@ fn name_line(index: usize, entry: &McpEntry, cx: &App) -> Div {
                 text(cx, platform_en, platform_zh),
                 cx,
             )
-            .text_size(px(theme::META_SIZE))
+            .text_size(crate::theme::text_size(theme::META_SIZE))
             .text_color(cx.theme().muted_foreground),
         )
 }
@@ -337,7 +337,9 @@ fn meta_line(index: usize, entry: &McpEntry, cx: &App) -> Div {
         .tooltip(move |window, cx| Tooltip::new(tip.clone()).build(window, cx))
         .child(transport);
     if mono {
-        command = command.font_family(cx.theme().mono_font_family.clone());
+        command = command
+            .font_family(cx.theme().mono_font_family.clone())
+            .text_size(cx.theme().mono_font_size);
     }
     let line = div()
         .w_full()
@@ -345,7 +347,7 @@ fn meta_line(index: usize, entry: &McpEntry, cx: &App) -> Div {
         .flex()
         .items_center()
         .gap(px(theme::SELECTION_RADIUS))
-        .text_size(px(theme::META_SIZE))
+        .text_size(crate::theme::text_size(theme::META_SIZE))
         .line_height(px(theme::TAG_HEIGHT))
         .text_color(cx.theme().muted_foreground)
         .child(command)

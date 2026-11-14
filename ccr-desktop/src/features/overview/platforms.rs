@@ -59,7 +59,7 @@ fn inline_metric(id: String, label: &'static str, value: i64, cx: &App) -> gpui_
         .gap(px(theme::CONTROL_GAP))
         .child(
             div()
-                .text_size(px(theme::META_SIZE))
+                .text_size(crate::theme::text_size(theme::META_SIZE))
                 .text_color(cx.theme().muted_foreground)
                 .child(label),
         )
@@ -103,7 +103,7 @@ fn platform_cell(platform: &WorkbenchPlatform, divided: bool, cx: &App) -> gpui_
         )
         .child(
             div()
-                .text_size(px(theme::META_SIZE))
+                .text_size(crate::theme::text_size(theme::META_SIZE))
                 .text_color(cx.theme().muted_foreground)
                 .child(platform_title(&platform.id)),
         )
@@ -140,7 +140,7 @@ fn other_sources(quiet: &[&WorkbenchPlatform], divided: bool, cx: &App) -> Node 
         .flex_col()
         .gap(px(4.))
         .p(px(theme::SECTION_GAP))
-        .text_size(px(theme::META_SIZE))
+        .text_size(crate::theme::text_size(theme::META_SIZE))
         .when(divided, |cell| {
             cell.border_l_1().border_color(cx.theme().border)
         })

@@ -407,7 +407,7 @@ impl Render for JobsView {
         .h_full()
         .track_scroll(&self.log_scroll);
         div().id("native-command-workbench").test_support().flex().flex_col().size_full().p_4().gap_2().bg(cx.theme().background).text_color(cx.theme().foreground)
-            .child(div().text_size(px(20.)).child(text(cx,"Commands and jobs","命令与任务")))
+            .child(div().text_size(crate::theme::text_size(20.)).child(text(cx,"Commands and jobs","命令与任务")))
             .child(div().id("command-catalog-summary").test_support().aria_label(summary.clone()).child(summary))
             .when(self.requests.is_fixture(), |view| {
                 view.child(

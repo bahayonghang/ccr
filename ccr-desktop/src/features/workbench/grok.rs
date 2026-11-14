@@ -11,7 +11,7 @@ impl WorkbenchView {
             .gap(px(theme::CONTROL_GAP))
             .child(
                 div()
-                    .text_size(px(theme::SECTION_TITLE_SIZE))
+                    .text_size(crate::theme::text_size(theme::SECTION_TITLE_SIZE))
                     .font_weight(gpui_kit::FontWeight::SEMIBOLD)
                     .child(text(cx, "Grok configuration state", "Grok 配置状态")),
             );

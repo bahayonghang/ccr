@@ -35,6 +35,148 @@ fn wait_for_preferences(cx: &mut TestAppContext, handle: gpui_kit::AnyWindowHand
 }
 
 #[gpui_kit::test]
+async fn font_controls_select_independent_families_and_sizes_and_restore_after_restart(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
+    let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
+    let source = ConfigSource::Fixture {
+        profiles: root.path().join("profiles.toml"),
+        registry: root.path().join("config.toml"),
+        delay: Duration::ZERO,
+    };
+    let (handle, _) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        // Headless text systems have no OS directory; seed only this test App.
+        cx.set_global(ccr_gpui::theme::FontCatalog(vec![
+            "Fixture Mono".into(),
+            "Fixture UI".into(),
+        ]));
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| Shell::new(Services::new(owner.handle(), source.clone()), window, cx))
+        })
+        .unwrap_or_else(|e| panic!("window: {e}"))
+    });
+    wait_for_preferences(cx, handle);
+    cx.update_window(handle, |_, window, cx| {
+        window.click("settings-nav-typography", cx);
+        window.click("settings-ui-font", cx);
+        window.input("Fixture UI", cx);
+        window.press("enter", cx);
+    })
+    .unwrap_or_else(|e| panic!("font: {e}"));
+    cx.wait_for(handle, Duration::from_secs(5), |window, _| {
+        window.find("settings-ui-font").value() == Some("Fixture UI")
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("settings-mono-font", cx);
+        window.input("Fixture Mono", cx);
+        window.press("enter", cx);
+    })
+    .unwrap_or_else(|e| panic!("mono: {e}"));
+    cx.wait_for(handle, Duration::from_secs(5), |window, _| {
+        window.find("settings-mono-font").value() == Some("Fixture Mono")
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        for _ in 0..6 {
+            window.click("settings-ui-larger", cx);
+        }
+        for _ in 0..3 {
+            window.click("settings-mono-larger", cx);
+        }
+        assert_eq!(window.find("settings-ui-size").value(), Some("20"));
+        assert_eq!(window.find("settings-mono-size").value(), Some("15"));
+        window.click("settings-ui-larger", cx);
+        assert_eq!(
+            window.find("settings-ui-size").value(),
+            Some("20"),
+            "upper limit remains inert"
+        );
+        assert_eq!(Theme::global(cx).font_size, gpui_kit::px(20.));
+        assert_eq!(Theme::global(cx).mono_font_size, gpui_kit::px(15.));
+        window.click("settings-nav-appearance", cx);
+        window.click("theme-dark", cx);
+        assert_eq!(Theme::global(cx).font_family.as_ref(), "Fixture UI");
+        assert_eq!(Theme::global(cx).mono_font_family.as_ref(), "Fixture Mono");
+        assert_eq!(Theme::global(cx).font_size, gpui_kit::px(20.));
+    })
+    .unwrap_or_else(|e| panic!("sizes: {e}"));
+    let path = root.path().join("desktop-gpui/preferences.json");
+    cx.wait_for(handle, Duration::from_secs(10), |_, _| {
+        let value = std::fs::read(&path)
+            .ok()
+            .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok());
+        value.is_some_and(|v| {
+            v["ui_font"] == "Fixture UI"
+                && v["mono_font"] == "Fixture Mono"
+                && v["ui_font_size"] == 20
+                && v["mono_font_size"] == 15
+                && v["theme"] == "dark"
+                && v["window"].is_object()
+        })
+    })
+    .await;
+    cx.update_window(handle, |_, window, _| window.remove_window())
+        .unwrap_or_else(|e| panic!("close: {e}"));
+    let (reopened, _) = cx.update(|cx| {
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| Shell::new(Services::new(owner.handle(), source), window, cx))
+        })
+        .unwrap_or_else(|e| panic!("reopen: {e}"))
+    });
+    wait_for_preferences(cx, reopened);
+    cx.update_window(reopened, |_, window, cx| {
+        window.click("settings-nav-typography", cx);
+        assert_eq!(window.find("settings-ui-font").value(), Some("Fixture UI"));
+        assert_eq!(
+            window.find("settings-mono-font").value(),
+            Some("Fixture Mono")
+        );
+        assert_eq!(window.find("settings-ui-size").value(), Some("20"));
+        assert_eq!(window.find("settings-mono-size").value(), Some("15"));
+        window.click("settings-fonts-reset", cx);
+        assert_eq!(Theme::global(cx).font_size, gpui_kit::px(14.));
+        assert_eq!(Theme::global(cx).mono_font_size, gpui_kit::px(12.));
+        assert_eq!(Theme::global(cx).mode, ThemeMode::Dark);
+    })
+    .unwrap_or_else(|e| panic!("restored: {e}"));
+    cx.wait_for(reopened, Duration::from_secs(10), |_, _| {
+        std::fs::read(&path)
+            .ok()
+            .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
+            .is_some_and(|v| {
+                v["ui_font"].is_null()
+                    && v["mono_font"].is_null()
+                    && v["ui_font_size"] == 14
+                    && v["mono_font_size"] == 12
+            })
+    })
+    .await;
+    std::fs::write(&path, b"{broken").unwrap_or_else(|e| panic!("fixture: {e}"));
+    cx.update_window(reopened, |_, window, cx| {
+        window.click("settings-ui-larger", cx)
+    })
+    .unwrap_or_else(|e| panic!("failed save: {e}"));
+    cx.wait_for(reopened, Duration::from_secs(10), |window, _| {
+        window.try_find("preferences-status").is_some_and(|node| {
+            node.label()
+                .is_some_and(|label| label.contains("could not be saved"))
+        })
+    })
+    .await;
+    cx.update_window(reopened, |_, window, cx| {
+        assert_eq!(Theme::global(cx).font_size, gpui_kit::px(15.));
+        assert_eq!(std::fs::read(&path).unwrap_or_default(), b"{broken");
+        window.remove_window();
+    })
+    .unwrap_or_else(|e| panic!("cleanup: {e}"));
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
 fn actual_theme_controls_keep_base_component_palette_and_language_in_sync(cx: &mut TestAppContext) {
     cx.executor().allow_parking();
     let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
@@ -70,6 +212,7 @@ fn actual_theme_controls_keep_base_component_palette_and_language_in_sync(cx: &m
         window.press("f6", cx);
         assert_eq!(window.find("settings-nav-appearance").focused(), Some(true));
         window.press("tab", cx);
+        window.press("tab", cx);
         window.press("enter", cx);
         assert_eq!(window.find("settings-nav-language").checked(), Some(true));
         window.press("tab", cx);
@@ -86,11 +229,35 @@ fn actual_theme_controls_keep_base_component_palette_and_language_in_sync(cx: &m
             assert_eq!(window.find(first_option).focused(), Some(true), "{nav}");
             let option = window.find(first_option).bounds();
             assert!(
-                option.top() >= window.find("settings-nav-environment").bounds().bottom()
+                option.top() >= window.find("settings-body").bounds().top()
                     && option.bottom() <= window.find("shell-status").bounds().top(),
                 "{nav} leaves its focused option outside the settings content: {option:?}"
             );
+            assert!(
+                option.left() >= window.find("settings-nav-environment").bounds().right(),
+                "settings navigation must remain left of content"
+            );
         }
+        window.scroll(
+            "settings-body",
+            gpui_kit::ScrollDelta::Pixels(gpui_kit::point(gpui_kit::px(0.), gpui_kit::px(-10000.))),
+            cx,
+        );
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert_eq!(
+            window.find("settings-nav-environment").checked(),
+            Some(true)
+        );
+        window.scroll(
+            "settings-body",
+            gpui_kit::ScrollDelta::Pixels(gpui_kit::point(gpui_kit::px(0.), gpui_kit::px(10000.))),
+            cx,
+        );
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert_eq!(window.find("settings-nav-appearance").checked(), Some(true));
+        window.click("settings-nav-appearance", cx);
         window.click("theme-dark", cx);
         assert_eq!(Theme::global(cx).mode, ThemeMode::Dark);
         assert_eq!(
@@ -1344,11 +1511,27 @@ async fn platform_workbench_claude_partial_costs_recover_and_link_to_daily_repor
                 .is_some_and(|node| node.label().is_some_and(|s| s == "Not configured"))
     })
     .await;
-    cx.update_window(handle, |_, window, _| {
+    cx.update_window(handle, |_, window, cx| {
         let current = window.find("workbench-current-profile");
         assert!(current.label().is_some_and(|label| label.contains(profile)));
         assert!(current.bounds().right() <= window.find("platform-workbench").bounds().right());
         assert!(window.find("workbench-refresh").visible());
+        assert_eq!(
+            window.find("workbench-access-toggle").expanded(),
+            Some(false)
+        );
+        assert!(window.try_find("workbench-access-details").is_none());
+        let compact_top = window.find("claude-cost-today").bounds().top();
+        window.click("workbench-access-toggle", cx);
+        assert_eq!(
+            window.find("workbench-access-toggle").expanded(),
+            Some(true)
+        );
+        assert!(window.find("workbench-access-details").visible());
+        assert!(window.find("claude-cost-today").bounds().top() > compact_top);
+        assert!(window.find("workbench-credential").visible());
+        window.click("workbench-access-toggle", cx);
+        assert_eq!(window.find("claude-cost-today").bounds().top(), compact_top);
         assert!(
             window
                 .find("claude-cost-today")

@@ -772,7 +772,7 @@ impl Render for ResourcesView {
                 let id = row.id;
                 root = root.child(
                     div()
-                        .h(px(theme::ROW_HEIGHT))
+                        .h(crate::theme::text_size(theme::ROW_HEIGHT))
                         .flex()
                         .items_center()
                         .gap(px(theme::CONTROL_GAP))

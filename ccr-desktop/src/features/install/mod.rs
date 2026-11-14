@@ -251,7 +251,7 @@ impl Render for InstallView {
                 if event.keystroke.key == "escape" && this.decision.is_some() { this.dismiss(window, cx); cx.stop_propagation(); }
             }))
             .child(self.tools.clone())
-            .child(div().text_size(px(theme::TITLE_SIZE)).child(text(cx, "Install llmusage", "安装 llmusage")))
+            .child(div().text_size(crate::theme::text_size(theme::TITLE_SIZE)).child(text(cx, "Install llmusage", "安装 llmusage")))
             .child(text(cx, "Check the host, review a short-lived plan, then explicitly confirm installation for the current user.", "检测主机并核对短期安装计划，确认后为当前用户安装。"))
             .child(div().id("install-status").test_support().child(crate::locales::localized_line(cx, state)));
         if fixture {

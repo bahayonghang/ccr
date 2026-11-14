@@ -90,7 +90,7 @@ impl OverviewView {
         let mut section = panel("overview-data-source", cx)
             .flex_1()
             .gap(px(theme::CONTROL_GAP))
-            .text_size(px(theme::META_SIZE))
+            .text_size(crate::theme::text_size(theme::META_SIZE))
             .child(badge::section_heading(
                 text(cx, "Data source", "数据源"),
                 None,
@@ -223,7 +223,7 @@ fn action_row(
         .accessibility_label(label)
         .w_full()
         .px(px(theme::CONTROL_GAP))
-        .h(px(theme::ROW_HEIGHT))
+        .h(crate::theme::text_size(theme::ROW_HEIGHT))
         .rounded(px(theme::SELECTION_RADIUS))
         .border_2()
         .border_color(gpui_kit::transparent_black())

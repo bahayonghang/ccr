@@ -190,14 +190,14 @@ fn kpi_cell(label: &'static str, value: Node, note: String, cx: &App) -> gpui_ki
         .p(px(theme::SECTION_GAP))
         .child(
             div()
-                .text_size(px(theme::META_SIZE))
+                .text_size(crate::theme::text_size(theme::META_SIZE))
                 .text_color(cx.theme().muted_foreground)
                 .child(label),
         )
         .child(value)
         .child(
             div()
-                .text_size(px(theme::META_SIZE))
+                .text_size(crate::theme::text_size(theme::META_SIZE))
                 .text_color(cx.theme().muted_foreground)
                 .child(note),
         )
@@ -229,7 +229,7 @@ fn reading(
         .aria_value(description.clone())
         .font_features(theme::tabular_figures())
         .font_weight(weight)
-        .text_size(px(size))
+        .text_size(theme::text_size(size))
         .line_height(gpui_kit::relative(1.2))
         .child(short)
         .tooltip(move |window, cx| Tooltip::new(description.clone()).build(window, cx))

@@ -519,7 +519,7 @@ impl Render for EnvironmentView {
                 div()
                     .id("env-heading")
                     .test_support()
-                    .text_size(px(theme::TITLE_SIZE))
+                    .text_size(crate::theme::text_size(theme::TITLE_SIZE))
                     .font_weight(gpui_kit::FontWeight::SEMIBOLD)
                     .child(text(cx, "Execution environment", "执行环境")),
             )
