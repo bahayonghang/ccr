@@ -20,9 +20,9 @@ except ModuleNotFoundError:
     from scripts.common import REPO_ROOT
 
 try:
-    from scripts.ci.ci_surface_policy import SURFACE_PATHS, path_matches
+    from scripts.ci.ci_surface_policy import SURFACE_PATHS, is_readme, path_matches
 except ModuleNotFoundError:
-    from ci_surface_policy import SURFACE_PATHS, path_matches
+    from ci_surface_policy import SURFACE_PATHS, is_readme, path_matches
 
 
 WORKFLOW_DIR = REPO_ROOT / ".github" / "workflows"
@@ -50,6 +50,7 @@ NODE_TOOLCHAIN = "24.20.0"
 EXPECTED_NODE_WORKFLOW_INPUTS = {"ci.yml": 1, "release.yml": 2, "vscode-ci.yml": 1}
 EXPECTED_CI_STEPS = (
     "version-check", "fmt-check", "omp-check", "harness-check", "copilot-check",
+    "skill-pack-check",
     "lint-strict", "check-workspace", "test", "release", "audit",
     "ci-governance-check", "tauri-ci", "frontend-check", "frontend-audit",
     "frontend-coverage", "vscode-ci",
@@ -367,6 +368,7 @@ def local_gate_failures(justfile: str, vscode_justfile: str, scripts: dict[str, 
             "node --test scripts/quality/check-copilot-assets.test.mjs",
             "node scripts/quality/check-copilot-assets.mjs",
         ],
+        "skill-pack-check": ["just _skill-pack-check-{{os()}}"],
         "audit": [
             "just _ensure-cargo-audit-{{os()}}",
             "cargo audit --file Cargo.lock",
@@ -381,6 +383,10 @@ def local_gate_failures(justfile: str, vscode_justfile: str, scripts: dict[str, 
         required_commands[f"_harness-check-{platform}"] = [
             f"{python} -m unittest scripts.quality.test_check_harness_contracts",
             f"{python} scripts/quality/check_harness_contracts.py",
+        ]
+        required_commands[f"_skill-pack-check-{platform}"] = [
+            f"{python} -m unittest scripts.quality.test_check_ccr_cli_skill",
+            f"{python} scripts/quality/check_ccr_cli_skill.py",
         ]
         prerequisite = recipe_block(justfile, f"_ensure-cargo-audit-{platform}")
         if not prerequisite or "exit 1" not in prerequisite or re.search(
@@ -422,7 +428,7 @@ def hosted_gate_failures(workflows: dict[str, str], bun_version: str | None) -> 
         failures.append("root workspace-quality must install canonical Bun for OMP tests")
     if setup_node_version_inputs(root) != [[NODE_TOOLCHAIN]]:
         failures.append("root workspace-quality must install pinned Node for Copilot tests")
-    for gate in ("omp-check", "harness-check", "copilot-check"):
+    for gate in ("omp-check", "harness-check", "copilot-check", "skill-pack-check"):
         if f"run: just {gate}" not in root:
             failures.append(f"root workspace-quality is missing {gate}")
     audit = workflow_job_block(workflows.get("ci.yml", ""), "security-audit")
@@ -499,9 +505,14 @@ def check_relevance_failures(paths: dict[str, tuple[str, ...]]) -> list[str]:
             "AGENTS.md", "CLAUDE.md", ".trellis/workflow.md",
             ".github/skills/ccr-gate-recovery/SKILL.md",
             ".github/skills/ccr-ui-visual-workflow/SKILL.md",
+            "skills/ccr-cli/SKILL.md",
+            "skills/ccr-cli/README.md",
+            "skills/ccr-cli/manifest.json",
             "scripts/trellis/omp-context.test.ts",
             "scripts/quality/check_harness_contracts.py",
             "scripts/quality/test_check_harness_contracts.py",
+            "scripts/quality/check_ccr_cli_skill.py",
+            "scripts/quality/test_check_ccr_cli_skill.py",
             "scripts/quality/check-copilot-assets.mjs",
             "scripts/quality/check-copilot-assets.test.mjs",
             ".github/copilot-instructions.md", ".github/instructions/rust.instructions.md",
@@ -536,7 +547,7 @@ def check_relevance_failures(paths: dict[str, tuple[str, ...]]) -> list[str]:
         f"{surface} relevance omits check input: {path}"
         for surface, inputs in required.items()
         for path in inputs
-        if not path_matches(path, paths.get(surface, ()))
+        if is_readme(path) or not path_matches(path, paths.get(surface, ()))
     ]
 
 

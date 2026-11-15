@@ -1,0 +1,379 @@
+{
+  "ok": true,
+  "threshold": 0.34,
+  "description_concepts": [
+    "ccr_cli",
+    "profile_exchange",
+    "profile_lifecycle",
+    "profile_noun",
+    "runtime_diagnostics",
+    "supported_platform"
+  ],
+  "missing_description_concepts": [],
+  "summary": {
+    "total": 26,
+    "passed": 26,
+    "false_positive": 0,
+    "false_negative": 0,
+    "pass_rate": 1.0
+  },
+  "failures": [],
+  "results": {
+    "should_trigger": [
+      {
+        "prompt": "用 ccr 查看我当前激活的 claude 和 codex profile 状态，顺便跑一次 validate 校验",
+        "family": "default",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 1.0,
+        "matched_concepts": [
+          "ccr_cli",
+          "profile_lifecycle",
+          "profile_noun",
+          "runtime_diagnostics",
+          "supported_platform"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "帮我在 ccr 里列出 grok 平台的所有路由 profile，看看哪些被禁用了",
+        "family": "default",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.8,
+        "matched_concepts": [
+          "ccr_cli",
+          "profile_lifecycle",
+          "profile_noun",
+          "supported_platform"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "Use ccr to create a new claude profile named openrouter-prod reading the key from $OPENROUTER_KEY via stdin without switching yet",
+        "family": "default",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.8,
+        "matched_concepts": [
+          "ccr_cli",
+          "profile_lifecycle",
+          "profile_noun",
+          "supported_platform"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "在 ccr 中编辑 codex 的 deepseek-proxy 配置，把 model 改成 gpt-5-codex 并附带 expected-revision",
+        "family": "default",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.8,
+        "matched_concepts": [
+          "ccr_cli",
+          "profile_lifecycle",
+          "profile_noun",
+          "supported_platform"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "Switch the active grok profile in ccr to xai-official and verify the current profile health card",
+        "family": "default",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 1.0,
+        "matched_concepts": [
+          "ccr_cli",
+          "profile_lifecycle",
+          "profile_noun",
+          "runtime_diagnostics",
+          "supported_platform"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "用 ccr 把当前的 claude 路由配置停用（执行 profile off），恢复成官方默认订阅状态",
+        "family": "default",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 1.0,
+        "matched_concepts": [
+          "ccr_cli",
+          "profile_lifecycle",
+          "profile_noun",
+          "runtime_diagnostics",
+          "supported_platform"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "Export all codex profiles from ccr with --no-secrets to ./codex-profiles.toml",
+        "family": "default",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.8,
+        "matched_concepts": [
+          "ccr_cli",
+          "profile_exchange",
+          "profile_noun",
+          "supported_platform"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "帮我先用 dry-run 预演把 ./team-claude.export.toml 导入到 ccr 的 claude profile，汇报 6+1 桶变更计划",
+        "family": "default",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.8,
+        "matched_concepts": [
+          "ccr_cli",
+          "profile_exchange",
+          "profile_noun",
+          "supported_platform"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "Run ccr doctor and ccr validate in JSON mode to diagnose why my codex profile status shows invalid health",
+        "family": "default",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.8,
+        "matched_concepts": [
+          "ccr_cli",
+          "profile_noun",
+          "runtime_diagnostics",
+          "supported_platform"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "在 ccr 里禁用并删除已经废弃的 grok 节点 staging-relay（先确认它不是当前激活项）",
+        "family": "default",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.8,
+        "matched_concepts": [
+          "ccr_cli",
+          "profile_lifecycle",
+          "profile_noun",
+          "supported_platform"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "Check supported platforms with ccr platform list and initialize the grok profile catalog",
+        "family": "default",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 1.0,
+        "matched_concepts": [
+          "ccr_cli",
+          "profile_lifecycle",
+          "profile_noun",
+          "runtime_diagnostics",
+          "supported_platform"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "用 ccr 创建一个引用环境变量名 XAI_API_KEY 的 grok 路由配置，不要写入明文密钥",
+        "family": "default",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.8,
+        "matched_concepts": [
+          "ccr_cli",
+          "profile_lifecycle",
+          "profile_noun",
+          "supported_platform"
+        ],
+        "negative_pattern": null
+      }
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "帮我优化这个 React 组件的重渲染性能并补一个 Vitest 单元测试",
+        "family": "default",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.0,
+        "matched_concepts": [],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "Explain how PostgreSQL MVCC vacuuming prevents transaction ID wraparound",
+        "family": "default",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.0,
+        "matched_concepts": [],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "Write a Python script that converts CSV bank statements into monthly Markdown tables",
+        "family": "default",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.0,
+        "matched_concepts": [],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "帮我把这段英文产品发布说明翻译成自然流畅的中文",
+        "family": "default",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.0,
+        "matched_concepts": [],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "Debug why Nginx returns 502 Bad Gateway when proxying WebSocket upgrades to port 3000",
+        "family": "default",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.0,
+        "matched_concepts": [],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "用 git rebase -i 整理最近三个未推送的本地提交说明",
+        "family": "default",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.0,
+        "matched_concepts": [],
+        "negative_pattern": null
+      }
+    ],
+    "near_neighbor": [
+      {
+        "prompt": "帮我修复 ccr 仓库里的 just ci、harness-check 和 cargo clippy 门禁报错",
+        "family": "default",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.2,
+        "matched_concepts": [
+          "ccr_cli"
+        ],
+        "negative_pattern": "just ci"
+      },
+      {
+        "prompt": "运行 ccr codex auth save 保存我刚刚登录的 ChatGPT OAuth 账号快照",
+        "family": "default",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.4,
+        "matched_concepts": [
+          "ccr_cli",
+          "supported_platform"
+        ],
+        "negative_pattern": "auth save"
+      },
+      {
+        "prompt": "Use ccr claude auth switch to rotate between two official Anthropic subscription logins",
+        "family": "default",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.6,
+        "matched_concepts": [
+          "ccr_cli",
+          "profile_lifecycle",
+          "supported_platform"
+        ],
+        "negative_pattern": "auth switch"
+      },
+      {
+        "prompt": "帮我运行 ccr sync 通过 WebDAV 把本地配置云同步到远端服务器",
+        "family": "default",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.4,
+        "matched_concepts": [
+          "ccr_cli",
+          "profile_noun"
+        ],
+        "negative_pattern": "ccr sync"
+      },
+      {
+        "prompt": "执行 ccr claude profile open 在外部编辑器里直接打开配置文件",
+        "family": "default",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.8,
+        "matched_concepts": [
+          "ccr_cli",
+          "profile_lifecycle",
+          "profile_noun",
+          "supported_platform"
+        ],
+        "negative_pattern": "profile open"
+      },
+      {
+        "prompt": "帮我切换 gemini profile 到新的第三方代理地址并修改模型",
+        "family": "default",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.4,
+        "matched_concepts": [
+          "profile_lifecycle",
+          "profile_noun"
+        ],
+        "negative_pattern": "gemini profile"
+      },
+      {
+        "prompt": "运行 ccr update 自更新到最新版本并执行 ccr clean 清理旧备份",
+        "family": "default",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.4,
+        "matched_concepts": [
+          "ccr_cli",
+          "profile_exchange"
+        ],
+        "negative_pattern": "ccr update"
+      },
+      {
+        "prompt": "启动 ccr ui 打开桌面图形界面来查看最近的预算和会话统计",
+        "family": "default",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.4,
+        "matched_concepts": [
+          "ccr_cli",
+          "profile_lifecycle"
+        ],
+        "negative_pattern": "ccr ui"
+      }
+    ]
+  }
+}

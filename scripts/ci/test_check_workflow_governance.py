@@ -356,6 +356,9 @@ just() {{
             "python3 scripts/quality/check_harness_contracts.py",
             "node --test scripts/quality/check-copilot-assets.test.mjs",
             "node scripts/quality/check-copilot-assets.mjs",
+            "-m unittest scripts.quality.test_check_ccr_cli_skill",
+            "python scripts/quality/check_ccr_cli_skill.py",
+            "python3 scripts/quality/check_ccr_cli_skill.py",
             "cargo audit --file Cargo.lock",
             "cargo audit --file ccr-ui/src-tauri/Cargo.lock",
             "just _ensure-cargo-audit-{{os()}}",
@@ -385,7 +388,7 @@ just() {{
     def test_hosted_checks_and_runtime_prerequisites_cannot_be_omitted(self) -> None:
         self.assertEqual(hosted_gate_failures(self.workflows, "1.4.0"), [])
         required = {
-            "ci.yml": ("bun-version: 1.4.0", "node-version: 24.20.0", "run: just omp-check", "run: just harness-check", "run: just copilot-check", "cargo audit --file Cargo.lock", "cargo audit --file ccr-ui/src-tauri/Cargo.lock"),
+            "ci.yml": ("bun-version: 1.4.0", "node-version: 24.20.0", "run: just omp-check", "run: just harness-check", "run: just copilot-check", "run: just skill-pack-check", "cargo audit --file Cargo.lock", "cargo audit --file ccr-ui/src-tauri/Cargo.lock"),
             "frontend-ci.yml": ("run: just frontend-check", "run: just frontend-coverage", "run: just frontend-audit", "CCR_SKIP_ICON_GENERATION: '1'"),
             "vscode-ci.yml": ("run: just vscode-ci",),
         }
@@ -513,6 +516,14 @@ class WorkflowGovernanceParserTests(unittest.TestCase):
         self.assertTrue(is_relevant("frontend", ["docs/.vitepress/config.mjs"]))
         self.assertTrue(is_relevant("frontend", ["docs/package.json"]))
         self.assertTrue(is_relevant("root", ["docs/agents/harnesses.md"]))
+        self.assertTrue(is_relevant("root", ["skills/ccr-cli/SKILL.md"]))
+        self.assertTrue(is_relevant("root", ["skills/ccr-cli/README.md"]))
+        self.assertTrue(is_relevant("root", ["./skills/ccr-cli/README.md"]))
+        self.assertTrue(is_relevant("root", ["./.github/copilot-instructions.md"]))
+        self.assertFalse(is_relevant("root", ["./README.md"]))
+        self.assertFalse(is_relevant("root", [".skills/README.md"]))
+        self.assertFalse(is_relevant("frontend", ["skills/ccr-cli/README.md"]))
+        self.assertFalse(is_relevant("vscode", ["skills/ccr-cli/SKILL.md"]))
         self.assertTrue(is_relevant("frontend", ["ccr-ui/README.md", "ccr-ui/src/App.tsx"]))
         self.assertTrue(is_relevant("frontend", ["scripts/ci/frontend_check.py"]))
         self.assertTrue(is_relevant("frontend", ["scripts/ci/install_prebuilt_tool.sh"]))

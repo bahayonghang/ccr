@@ -45,6 +45,7 @@ SURFACE_PATHS: dict[str, tuple[str, ...]] = {
         ".github/prompts/**",
         ".github/agents/**",
         ".github/skills/**",
+        "skills/**",
         "AGENTS.md",
         "CLAUDE.md",
         ".trellis/workflow.md",
@@ -109,14 +110,24 @@ SURFACE_PATHS: dict[str, tuple[str, ...]] = {
 }
 
 
-def path_matches(path: str, patterns: Iterable[str]) -> bool:
+def _normalize_rel_path(path: str) -> str:
     normalized = path.replace("\\", "/")
+    while normalized.startswith("./"):
+        normalized = normalized.removeprefix("./")
+    return normalized
+
+
+def path_matches(path: str, patterns: Iterable[str]) -> bool:
+    normalized = _normalize_rel_path(path)
     return any(fnmatch.fnmatchcase(normalized, pattern) for pattern in patterns)
 
 
 def is_readme(path: str) -> bool:
     """README-only edits are documentation and must not select a product surface."""
-    name = path.replace("\\", "/").rsplit("/", 1)[-1].lower()
+    normalized = _normalize_rel_path(path)
+    if normalized.startswith("skills/"):
+        return False
+    name = normalized.rsplit("/", 1)[-1].lower()
     return name in {"readme.md", "readme_cn.md"}
 
 

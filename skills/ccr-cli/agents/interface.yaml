@@ -1,0 +1,53 @@
+interface:
+  display_name: "CCR CLI Profile Manager"
+  short_description: "安全调用本机 ccr CLI 管理 claude、codex、grok 路由 Profile、ExchangeV1 导入导出与运行态诊断。"
+  default_prompt: "使用 $ccr-cli 先通过零副作用探测确认本机 ccr 版本与 --json 能力，再按 L0/L1/L2 安全门禁与零接触密钥规则管理 claude、codex、grok 的路由 Profile 或执行健康诊断。"
+  examples:
+    - "用 ccr 查看我当前激活的 claude 和 codex Profile 状态并做一次配置校验"
+    - "在 ccr 里新建一个使用环境变量 $OPENROUTER_KEY 注入密钥的 claude 路由 Profile，先不要切换"
+    - "帮我预演把 ./team-codex.export.toml 导入到 codex Profile，汇报 6+1 桶变更计划"
+    - "把 grok 的当前激活 Profile 切换到 xai-prod，并检查切换后的运行态健康度"
+
+compatibility:
+  canonical_format: "agent-skills"
+  adapter_targets:
+    - "openai"
+    - "claude"
+    - "generic"
+    - "agent-skills-compatible"
+  activation:
+    mode: "explicit_or_implicit"
+    context_strategy: "progressive_disclosure"
+  execution:
+    context: "inline"
+    shell: "required"
+    network: "not_required"
+  trust:
+    source_tier: "official-first-party"
+    remote_inline_execution: "forbid"
+    secret_handling: "zero-touch-stdin-or-env-name-only"
+    rollback_contract: "Catalog mutations write 0600 backups and WriteJournal recovery receipts; CAS-capable writes pass --expected-revision from profile list --json."
+  permissions:
+    filesystem: "Read non-secret ExchangeV1 TOML only when requested; never read ~/.ccr/platforms/*/profiles.toml, ~/.ccr/platforms/*/profiles.db, *.bak backups, ~/.ccr/platforms/codex/profile_secrets.json, ~/.codex/auth.json, or secret-bearing export files."
+    shell_commands: "Execute only canonical non-interactive ccr capability probes, cross-platform read-only diagnostics, and claude/codex/grok profile actions with --json (plus specialist text-only ccr codex fix only after explicit operator confirmation)."
+    secrets: "Never solicit plaintext API keys in chat, never inline credential literals in CLI args or pipes, and never combine --stdout with secret-bearing exports."
+  degradation:
+    missing_or_outdated_ccr: "Stop before any mutation if ccr --version is below 7.x or claude profile export/switch --help fails or lacks --json; ask the user to upgrade ccr and never fall back to legacy commands."
+    interactive_tty_secret_needed: "When credentials are not already in a user environment variable or protected local file, create a disabled draft profile or instruct the user to run ccr TUI (press n) or interactive --auth-token-stdin directly."
+    excluded_subsystems: "Decline auth account snapshots, fullscreen TUI/open, sync/update/clean, repo CI tasks, and gemini/droid/qwen profile mutations with concise manual guidance."
+
+gates:
+  scaffold:
+    - "Single discoverable root SKILL.md with zero nested SKILL.md files"
+    - "Valid Agent Skills frontmatter and flat one-level references/ links"
+  production:
+    - "SKILL.md stays at or below 14,000 UTF-8 bytes"
+    - "Two-step zero-side-effect capability probe executes before mutations"
+    - "L0/L1/L2 safety ladder, zero-touch secret rules, and dual exit-code plus JSON health checks hold"
+  library:
+    - "README.md documents npx skills add installation, natural-language prompts, local validation, and Troubleshooting"
+    - "Offline lexical trigger benchmark passes across should_trigger, should_not_trigger, and near_neighbor buckets"
+  governed:
+    - "manifest.json, SKILL.md metadata, reports/skill-ir.json, and reports/creation-handoff.md share exact independent version 1.0.0"
+    - "Secret leakage scan and banned legacy CLI command scan report zero findings"
+    - "Unverified online multi-turn trigger telemetry and blind output evaluations are explicitly labeled missing evidence"

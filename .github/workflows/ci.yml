@@ -98,6 +98,8 @@ jobs:
         run: just harness-check
       - name: Copilot asset tests and checks
         run: just copilot-check
+      - name: Governed ccr-cli skill package checks
+        run: just skill-pack-check
       - name: Strict clippy
         run: just lint-strict
       - name: Parallel workspace tests

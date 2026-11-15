@@ -461,6 +461,7 @@ _ci-timed-windows:
         @{ Name = "omp-check";       Label = "OMP Check" },
         @{ Name = "harness-check";   Label = "Harness Check" },
         @{ Name = "copilot-check";   Label = "Copilot Check" },
+        @{ Name = "skill-pack-check"; Label = "Skill Pack Check" },
         @{ Name = "lint-strict";     Label = "Strict Clippy" },
         @{ Name = "check-workspace"; Label = "Workspace Check" },
         @{ Name = "test";            Label = "Test" },
@@ -526,8 +527,8 @@ _ci-timed-windows:
 _ci-timed-linux:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-check" "fmt-check" "omp-check" "harness-check" "copilot-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-ci" "frontend-check" "frontend-audit" "frontend-coverage" "vscode-ci")
-    labels=("Version Check" "Format Check" "OMP Check" "Harness Check" "Copilot Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "Tauri CI" "Frontend Check" "Frontend Audit" "Frontend Coverage" "VSCode CI")
+    steps=("version-check" "fmt-check" "omp-check" "harness-check" "copilot-check" "skill-pack-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-ci" "frontend-check" "frontend-audit" "frontend-coverage" "vscode-ci")
+    labels=("Version Check" "Format Check" "OMP Check" "Harness Check" "Copilot Check" "Skill Pack Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "Tauri CI" "Frontend Check" "Frontend Audit" "Frontend Coverage" "VSCode CI")
     PAD=20
     times=()
     statuses=()
@@ -587,8 +588,8 @@ _ci-timed-linux:
 _ci-timed-macos:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-check" "fmt-check" "omp-check" "harness-check" "copilot-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-ci" "frontend-check" "frontend-audit" "frontend-coverage" "vscode-ci")
-    labels=("Version Check" "Format Check" "OMP Check" "Harness Check" "Copilot Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "Tauri CI" "Frontend Check" "Frontend Audit" "Frontend Coverage" "VSCode CI")
+    steps=("version-check" "fmt-check" "omp-check" "harness-check" "copilot-check" "skill-pack-check" "lint-strict" "check-workspace" "test" "release" "audit" "ci-governance-check" "tauri-ci" "frontend-check" "frontend-audit" "frontend-coverage" "vscode-ci")
+    labels=("Version Check" "Format Check" "OMP Check" "Harness Check" "Copilot Check" "Skill Pack Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "CI Governance" "Tauri CI" "Frontend Check" "Frontend Audit" "Frontend Coverage" "VSCode CI")
     PAD=20
     times=()
     statuses=()
@@ -728,6 +729,25 @@ _harness-check-linux:
 _harness-check-macos:
     python3 -m unittest scripts.quality.test_check_harness_contracts
     python3 scripts/quality/check_harness_contracts.py
+
+# 🤖 顶层 skills/ccr-cli 治理级技能包自检
+skill-pack-check:
+    @just _skill-pack-check-{{os()}}
+
+[private]
+_skill-pack-check-windows:
+    python -m unittest scripts.quality.test_check_ccr_cli_skill
+    python scripts/quality/check_ccr_cli_skill.py
+
+[private]
+_skill-pack-check-linux:
+    python3 -m unittest scripts.quality.test_check_ccr_cli_skill
+    python3 scripts/quality/check_ccr_cli_skill.py
+
+[private]
+_skill-pack-check-macos:
+    python3 -m unittest scripts.quality.test_check_ccr_cli_skill
+    python3 scripts/quality/check_ccr_cli_skill.py
 
 # 🌐 前端完整检查 (类型检查 + Lint + 构建 + 文档构建)
 # 依赖只安装一次，子配方看到 CCR_FRONTEND_DEPS=1 后不再重复安装。

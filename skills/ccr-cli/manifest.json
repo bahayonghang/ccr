@@ -1,0 +1,54 @@
+{
+  "name": "ccr-cli",
+  "version": "1.0.0",
+  "owner": "bahayonghang",
+  "updated_at": "2026-11-14",
+  "status": "active",
+  "maturity_tier": "governed",
+  "lifecycle_stage": "governed",
+  "context_budget_tier": "production",
+  "license": "MIT",
+  "repository": "https://github.com/bahayonghang/ccr",
+  "skill_path": "skills/ccr-cli",
+  "review_cadence": "per-cli-surface-change",
+  "target_platforms": [
+    "openai-codex",
+    "claude-code",
+    "cursor",
+    "generic-agent",
+    "agent-skills-compatible"
+  ],
+  "release_gates": {
+    "structure_validation": true,
+    "ir_export": true,
+    "trigger_eval": true,
+    "secret_scan": true,
+    "version_decoupled_from_workspace": true,
+    "repo_skill_pack_check": true,
+    "output_eval": "missing_evidence"
+  },
+  "intent": {
+    "job_to_be_done": "通过本机已安装的 ccr CLI（>= 7.5）安全执行 claude、codex、grok 三平台路由 Profile 的只读查询、初始化、新建、编辑、切换、启用、禁用、删除、停用、ExchangeV1 导入导出以及跨平台运行态诊断。",
+    "target_users": [
+      "在本机安装了 ccr CLI 并委托 AI 编码代理管理 Claude Code、Codex 或 Grok 路由 Profile 的开发者",
+      "需要在多台机器间脱敏导出或干跑合并 ExchangeV1 Profile 配置并防止覆盖破坏的终端用户"
+    ],
+    "inputs": [
+      "自然语言形式的 claude / codex / grok Profile 读写、切换、停用、导入导出或健康诊断诉求",
+      "本机已安装的 ccr 可执行文件（>= 7.5，具备规范 profile 子命令与 --json 输出能力）",
+      "可选的本地 ExchangeV1 / 兼容 TOML 导入文件路径，以及由用户自行维护的环境变量名或受保护密钥文件路径"
+    ],
+    "outputs": [
+      "经过进程退出码与 JSON 状态字段（ok / health）双重核验的结构化执行回执",
+      "profile import --dry-run --json 的 6+1 桶变更预演清单与高风险覆盖/替换确认提示",
+      "默认脱敏（--no-secrets）的 ExchangeV1 导出结果、--expected-revision CAS 并发保护衔接与排障建议"
+    ],
+    "exclusions": [
+      "ccr 仓库自身的源码开发、构建测试与 CI 门禁修复（归属仓库内部 .github/skills/）",
+      "官方订阅 OAuth 账号快照管理（ccr <platform> auth 登录、保存、切换、删除与导入导出）",
+      "阻塞式全屏 TUI、桌面界面与外部编辑器命令（裸 ccr、裸 ccr claude/codex、ccr ui、profile open、ccr temp）",
+      "远端同步、自更新、缓存清理与扩展工作流命令（sync、update、clean、project init、skills、prompts、sessions、stats、budget、pricing、temp-token）",
+      "gemini、droid、qwen 平台的 Profile 写操作"
+    ]
+  }
+}
