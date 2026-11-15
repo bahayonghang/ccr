@@ -383,72 +383,48 @@ This keeps preview, count, and cleanup on the same explicit ownership registry w
 - Inject a real CAS conflict between independent CLI and local Tauri mutations; both fields and unknown user JSON must survive.
 - On Unix, assert auth durable files and settings replacements are owner-only. On Windows, verify inherited user-directory ACL behavior without claiming a Unix mode result.
 
-## Scenario: Retired Platform Command Discovery Boundary
+## Scenario: Converged CLI And Platform Command Surface (#191, #192)
 
 ### 1. Scope / Trigger
 
-- Trigger: changing `ccr platform`, root/platform help text, or migration
-  behavior for the retired global platform-routing commands.
-- Applies to `PlatformAction`, `dispatch_platform`, `help_config`, and command
-  integration tests.
+- Trigger: changing `ccr platform`, hidden 7.x top-level legacy commands, root/platform help text, documentation command examples, or migration helpers for retired global platform-routing commands.
+- Applies to `Commands`, `PlatformAction`, `dispatch_platform`, `commands::migration`, `help_config`, `docs/scripts/audit-docs.mjs`, and command integration tests. Replaces the earlier hidden-`PlatformAction` retention rule after [#191](https://github.com/bahayonghang/ccr/issues/191) and [#192](https://github.com/bahayonghang/ccr/issues/192).
 
 ### 2. Signatures
 
-- Supported discovery actions: `PlatformAction::{Help,List { json }}`.
-- Compatibility-only actions:
-  `PlatformAction::{Switch,Current,Info,Init,Profile}`.
-- Compatibility errors:
-  `legacy_platform_command_error(command: &str) -> CcrError` and the dedicated
-  `legacy_platform_init_error() -> CcrError`.
-- Current profile entry points: `ccr claude profile ...`,
-  `ccr codex profile ...`, and `ccr grok profile ...`.
+- Supported `ccr platform` actions: `PlatformAction::{Help, List { json }}` (retired `Switch`, `Current`, `Info`, `Init`, and `Profile` Clap variants were removed in `#191`).
+- Retained 7.x Rust library compatibility helpers (`crates/ccr-cli/src/commands/migration.rs`, removable no earlier than `8.0.0`):
+  `legacy_switch_error(profile_name: &str) -> CcrError`, `legacy_shortcut_error(profile_name: &str) -> CcrError`, `legacy_platform_command_error(command: &str) -> CcrError`, and `#[deprecated] legacy_platform_init_error() -> CcrError`.
+- Canonical entry points: `ccr status` (retaining `ccr current` and `ccr show` compatibility aliases), `ccr platform list`, and `ccr <claude|codex|grok> profile ...`.
 
 ### 3. Contracts
 
-- `ccr platform --help` and `ccr help platform` expose only `help` and `list`;
-  they must not advertise retired actions in the Commands list or examples.
-- Compatibility-only variants remain in the Clap tree with hidden help
-  metadata. A syntactically valid old invocation must still parse and reach
-  `dispatch_platform`, which returns the shared migration error.
-- Do not delete the hidden variants or restore writes to legacy
-  `current_platform` / `default_platform` state.
-- Root and platform help direct status checks to `ccr current`, registry
-  discovery to `ccr platform list`, and profile work to the explicit
-  Claude/Codex/Grok command trees.
+- `ccr platform --help` and `ccr help platform` expose only `help` and `list`; calling a removed `ccr platform <switch|current|info|init|profile>` subcommand fails Clap parsing with exit code `2` and must never touch `current_platform` / `default_platform` state or file logs.
+- Top-level `ccr switch <name>` and positional `ccr <name>` remain retired errors (`legacy_switch_error` / `legacy_shortcut_error`).
+- Ten 7.x compatibility top-level commands (`list`, `add`, `delete`, `enable`, `disable`, `init`, `clear`, `optimize`, `export`, `import`) stay `#[command(hide = true)]` with `[已弃用，将在 8.0 移除]` doc headers, skip startup logger creation and automatic catalog migration on read-only paths, and emit 8.0 removal guidance exclusively via `ColorOutput::deprecation_warning` on `stderr` (never `stdout`).
+- Non-tri-platform `ccr export --platform <gemini|droid>` and `ccr import <file> --platform <gemini|droid>` retain legacy flat-catalog compatibility with single-snapshot reads, `[settings]` secret scrubbing, `validate_regular_exchange_path` + `parse_config_from_str` validation, `stderr` confirmation prompts, and mandatory `0600` pre-write backups on `Replace`.
+- Active user/developer docs and internal hint strings must use canonical `ccr status` and `ccr <claude|codex|grok> profile ...` commands (`docs/scripts/audit-docs.mjs` enforces zero retired/hidden top-level commands and zero plaintext `--auth-token` / `--api-key` CLI examples outside historical migration comparisons).
 
 ### 4. Validation & Error Matrix
 
-- `ccr platform list [--json]` -> execute the supported registry view.
-- `ccr platform --help` or `ccr help platform` -> success with identical,
-  migration-safe help.
-- Valid retired invocation such as `ccr platform init grok` -> non-zero
-  `legacy command retired` error containing all three supported
-  `ccr <platform> profile init` replacements.
-- Retired action with malformed/missing arguments -> normal Clap argument
-  error; do not initialize or mutate platform state.
-- Unknown platform subcommand -> normal Clap unknown-subcommand error.
+- `ccr platform list [--json]` -> execute the supported registry view without creating logs or mutating catalogs.
+- `ccr platform --help` or `ccr help platform` -> success with identical help listing only `help` and `list`.
+- Removed `ccr platform <switch|current|info|init|profile>` -> Clap unknown-subcommand exit code `2`; no state writes.
+- Hidden 7.x top-level command (`ccr list`, `ccr export --stdout`, etc.) -> executes 7.x compatibility branch, writes deprecation warning to `stderr` only, keeps `stdout` pure.
+- `ccr switch <name>` or `ccr <name>` -> non-zero retired command error naming all three `ccr <claude|codex|grok> profile switch <name>` replacements.
 
 ### 5. Good/Base/Bad Cases
 
-- Good: an old script receives an actionable migration error while a new user
-  cannot discover the retired action through help.
-- Base: `ccr platform list` remains visible and unchanged.
-- Bad: removing `PlatformAction::Init` makes old calls fail as unknown commands
-  and loses the platform-specific migration guidance.
-- Bad: leaving a hidden action in custom after-help examples still recommends
-  an operation that always fails.
+- Good: root and platform help direct runtime status to `ccr status`, registry discovery to `ccr platform list`, and profile operations to `ccr <claude|codex|grok> profile ...`.
+- Base: 7.x scripts calling `ccr export --stdout` still receive pure TOML on `stdout` and a deprecation notice on `stderr`, while `ccr_cli::commands::migration::legacy_platform_*` stays linkable for 7.x library consumers.
+- Bad: advertising hidden top-level commands or plaintext `--auth-token` / `--api-key` flags in `--help`, UI/VS Code catalogs, or VitePress docs.
+- Bad: writing deprecation warnings to `stdout` or initializing `~/.ccr/logs` during read-only discovery/export commands.
 
 ### 6. Tests Required
 
-- `cargo test -p ccr --test commands -- --test-threads=1`
-  - Assert root help contains `ccr current`, `ccr platform list`, and all three
-    explicit profile help paths.
-  - Assert direct and nested platform help are equal and omit every retired
-    action from both Commands and examples.
-  - Execute `ccr platform init grok`; assert non-zero status, the legacy error,
-    and Grok profile migration guidance.
-- `cargo test -p ccr-cli --test dispatch_routing -- --test-threads=1`
-  keeps supported platform-list routing green.
+- `cargo test -p ccr --test commands -- --skip export_bindings` and `cargo test -p ccr --test public_api_compat -- --skip export_bindings`
+- `cargo test -p ccr-cli --test dispatch_routing -- --skip export_bindings`
+- `node --test docs/scripts/audit-docs.test.mjs && node docs/scripts/audit-docs.mjs`
 
 ### 7. Wrong vs Correct
 
@@ -457,24 +433,21 @@ This keeps preview, count, and cleanup on the same explicit ownership registry w
 ```rust
 pub enum PlatformAction {
     List { json: bool },
+    Switch { platform_name: String }, // re-exposes retired global routing
 }
 ```
-
-This removes the compatibility parse surface and downgrades old calls to a
-generic unknown-subcommand error.
 
 #### Correct
 
 ```rust
 pub enum PlatformAction {
-    List { json: bool },
-    #[command(hide = true)]
-    Init { platform_name: String },
+    Help,
+    List {
+        #[arg(long)]
+        json: bool,
+    },
 }
 ```
-
-The dispatcher then returns `legacy_platform_init_error()` for init and the
-shared compatibility error for the other retired actions.
 
 ## Testing
 

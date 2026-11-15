@@ -19,7 +19,7 @@
 - `CommandFlagSchema.aliases` shares canonical and short flag names between backend and UI.
 
 ### 3. Contracts
-- `command` must resolve to an executable catalog entry.
+- `command` must resolve to an executable catalog entry. Hidden or retired 7.x top-level CLI commands (`switch`, `list`, `add`, `delete`, `enable`, `disable`, `init`, `clear`, `optimize`, `export`, `import`) are excluded from the shared command catalog (`crates/ccr-app/src/jobs/policy.rs`, Tauri passthrough, and `ccr-ui` command runner); profile operations belong to typed domain services or explicit `ccr <claude|codex|grok> profile ...` CLI workflows (#191).
 - `args` is tokenized input; backend validates positional arity, allowed flags, and flag values.
 - `confirmation_token` is required only when `requires_confirmation = true`.
 - Background jobs must use the same validator as synchronous execution.
@@ -38,8 +38,8 @@
 ### 5. Good/Base/Bad Cases
 - Good: `status --json`
 - Base: `history -l 20`
-- Bad: `delete old` without confirmation token
-- Good: `delete old --force` with `desktop-confirm:delete`
+- Bad: `clean --force` without confirmation token, or retired top-level `delete old`
+- Good: `clean --force` with `desktop-confirm:clean`
 - Bad: `history --limit` or `status --delete-everything`
 - Bad: a job path that accepts input rejected by sync validation
 

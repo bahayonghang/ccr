@@ -1799,3 +1799,47 @@ Topics: [.trellis/research/gpui-density-typography-plan.md](../../research/gpui-
 ### Status
 
 [OK] **Completed**
+
+
+## Session 176: 完成 #167 规划地图全系切片落地与全仓终验（#188～#194）
+<!-- trellis-session: v=2 fp=24f1b9a6ee26dec8 -->
+
+**Date**: 2026-11-15
+**Task**: 完成 #167 规划地图全系切片落地与全仓终验（#188～#194）
+**Branch**: `dev`
+
+### Summary
+
+按拓扑顺序完成 #189/#190/#193/#191/#192/#194 六大实施单元并收口 #188，全量通过 just ci（17 步）与 GPUI 门禁，沉淀 profile_create、ExchangeV1 导入导出、命令面收敛与 skills/ccr-cli 离线自检契约。
+Topics: [.trellis/spec/ccr-cli/backend/profile-application-lifecycle.md](../../spec/ccr-cli/backend/profile-application-lifecycle.md), [.trellis/spec/ccr-cli/backend/cli-output-presentation.md](../../spec/ccr-cli/backend/cli-output-presentation.md), [.trellis/spec/ccr-cli/backend/backend-guidelines.md](../../spec/ccr-cli/backend/backend-guidelines.md), [.trellis/spec/ccr-cli/backend/ccr-cli-skill-pack.md](../../spec/ccr-cli/backend/ccr-cli-skill-pack.md), [.trellis/spec/ccr-config/backend/profile-repository.md](../../spec/ccr-config/backend/profile-repository.md), [.trellis/spec/ccr-tui/backend/profile-workbench.md](../../spec/ccr-tui/backend/profile-workbench.md), [.trellis/spec/ccr/backend/desktop-command-policy.md](../../spec/ccr/backend/desktop-command-policy.md), [.trellis/spec/ccr-vscode/frontend/extension-surface-contracts.md](../../spec/ccr-vscode/frontend/extension-surface-contracts.md)
+
+### Main Changes
+
+- 下沉三平台共享 profile_create 应用入口，支持 *-stdin 密钥输入、stderr 弃用告警、--json 结构化输出及 TUI EditorMode::Create 新建向导与 CAS 草稿恢复（#189, #193）
+- 落地三平台 profile export/import（ExchangeV1 默认脱敏、6+1 桶合并冲突去重预览、单次 0600 预写备份与 CAS 事务）（#190）
+- 收敛 CLI 命令面：移除 PlatformAction 五个退休变体，隐藏 10 个 7.x 顶层旧命令并同步迁移 ccr-vscode、桌面命令目录、全仓提示文本、VitePress 文档与 audit-docs.mjs（#191, #192, #188）
+- 创建顶层治理级技能包 skills/ccr-cli（独立 1.0.0 manifest，未接入 version-sync，未触发外部发布）与离线门禁 just skill-pack-check（#194）
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e736c615ddbeb252db650602d7d20e18405b5a4c` | feat(CLI): ✨ 下沉 profile_create 并补齐密钥输入与 JSON 缺口 |
+| `6cea9c60dd1bdf55b0eb3cfc82fe19f5f65eac53` | feat(CLI): ✨ 落地三平台 profile export/import 与 ExchangeV1 事务 |
+| `9345acaaf2d8c9c4b7c2e4fe3de19304754c8c69` | feat(TUI): ✨ 实现三平台 Profile 新建向导与 CAS 草稿恢复 |
+| `0c46bff9721a6c12fa2698578b425b9683a2d0a4` | feat(CLI): ✨ 收拢隐藏顶层旧命令并同步迁移 VS Code 与桌面命令目录 |
+| `bfd141705632afb9ca3f61c701d423fa62320c92` | docs(CLI与文档): 📝 迁移全仓内部提示文本、命令参考页与文档审计门禁 |
+| `84e4386e2436590409ce2663ae4166aeaf39b627` | feat(技能包): ✨ 新增 skills/ccr-cli 治理级技能包与 CI 门禁 |
+
+### Testing
+
+- [OK] just ci 全量 17 步全绿（含 version-check, fmt-check, omp-check, harness-check, copilot-check, skill-pack-check, lint-strict, check-workspace, test, release, audit, ci-governance-check, tauri-ci, frontend-check, frontend-audit, frontend-coverage, vscode-ci）
+- [OK] GPUI 门禁全绿：just gpui-fmt-check, just gpui-check, just gpui-lint, python ccr-desktop/scripts/desktop.py cargo test jobs（7 passed）
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 待用户确认后将本地 dev 分支推送至 origin/dev

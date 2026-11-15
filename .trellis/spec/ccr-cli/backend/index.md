@@ -18,6 +18,7 @@
 | [Auth Off Official Logout](./auth-off.md) | Shared Claude/Codex/Grok `auth off` official-runtime logout, `needs_auth_off`, file vs native spawn, and backup deletion | Complete |
 | [Clean Storage](./clean-storage.md) | `ccr clean storage` deletion set, root order, confirmation, and keeper paths | Complete |
 | [Install Lifecycle](./install-lifecycle.md) | Canonical llmusage plans, bounded probes, redaction, attempt cleanup and native consumers | Complete |
+| [CCR CLI Skill Pack](./ccr-cli-skill-pack.md) | Governed `skills/ccr-cli` boundary, secret-stdin/redacted-export safety, independent manifest version, and `just skill-pack-check` CI gate | Complete |
 
 ## Pre-Development Checklist
 
@@ -33,3 +34,4 @@
 - Read [Auth Off Official Logout](./auth-off.md) before changing `auth off`, `needs_auth_off`, TUI Auth logout, or Tauri `*_auth_off`.
 - Read [Clean Storage](./clean-storage.md) before changing `ccr clean storage` or the paths it deletes.
 - Read [Install Lifecycle](./install-lifecycle.md) before changing llmusage install detection, planning, execution, logs or desktop consumers.
+- Read [CCR CLI Skill Pack](./ccr-cli-skill-pack.md) before changing `skills/ccr-cli/**`, `scripts/quality/check_ccr_cli_skill.py`, or CLI subcommands/flags documented for external agents.
