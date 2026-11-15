@@ -56,6 +56,6 @@ Root changes can affect downstream users even when behavior looks unchanged. For
 
 - `just fmt-check`
 - `just lint-strict`
-- `cargo test -p ccr -- --test-threads=1`
+- `cargo test -p ccr`
 
 Run `just test` or `just ci` for cross-crate re-export, feature, or release changes.
