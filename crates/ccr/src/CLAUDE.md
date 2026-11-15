@@ -40,7 +40,7 @@ crates/ccr/src/
 
 ## 代码风格
 
-- **Edition**: 2024（需要 Rust 1.88+）
+- **Edition**: 2024（`rust-version = "1.95"`，工具链见 `rust-toolchain.toml`）
 - **格式化**: `cargo fmt`
 - **检查**: `cargo clippy --workspace --all-targets --all-features -- -D warnings -W clippy::unwrap_used`
 - **错误处理**: 生产路径不要新增 `unwrap` / `expect`
@@ -58,7 +58,7 @@ cargo test -p ccr --test commands
 cargo test -p ccr --test public_api_compat
 ```
 
-直接跑 `cargo test` 时带 `-- --test-threads=1`（现有 flake 规避，不是新的串行恢复引擎）。
+直接跑 `cargo test` 使用默认并行并带 `-- --skip export_bindings`；共享环境状态在所属 fixture 内隔离（见根 `CLAUDE.md`）。
 
 ---
 
