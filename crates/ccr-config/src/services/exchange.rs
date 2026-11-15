@@ -496,10 +496,32 @@ pub fn scrub_section_secrets(
 pub fn scrub_catalog_toml_table(root: &mut toml::Table, warnings: &mut Vec<String>) {
     let keys: Vec<String> = root.keys().cloned().collect();
     for key in keys {
-        if matches!(
-            key.as_str(),
-            "current_config" | "default_config" | "settings"
-        ) {
+        if matches!(key.as_str(), "current_config" | "default_config") {
+            continue;
+        }
+        if key == "settings" {
+            if let Some(mut settings_value) = root.remove("settings") {
+                match &mut settings_value {
+                    toml::Value::Table(settings_table) => {
+                        let was_empty = settings_table.is_empty();
+                        scrub_raw_toml_table(settings_table, "settings", &[], warnings);
+                        if was_empty || !settings_table.is_empty() {
+                            root.insert("settings".into(), settings_value);
+                        }
+                    }
+                    _ => {
+                        if scrub_toml_value(
+                            "settings",
+                            &mut settings_value,
+                            "settings",
+                            &[],
+                            warnings,
+                        ) {
+                            root.insert("settings".into(), settings_value);
+                        }
+                    }
+                }
+            }
             continue;
         }
         let Some(mut value) = root.remove(&key) else {
@@ -794,7 +816,7 @@ fn byte_offset_to_line_col(source: &str, offset: usize) -> (usize, usize) {
     (line, col)
 }
 
-pub(crate) fn safe_canonical_toml_parse_error(source: &str, err: &toml::de::Error) -> CcrError {
+pub fn safe_canonical_toml_parse_error(source: &str, err: &toml::de::Error) -> CcrError {
     if let Some(span) = err.span() {
         let (line, col) = byte_offset_to_line_col(source, span.start);
         CcrError::ConfigError(format!("解析规范配置失败（第 {line} 行，第 {col} 列）"))
@@ -1478,5 +1500,29 @@ foo = "bar"
         let text = mapped.to_string();
         assert!(!text.contains(secret), "leaked secret: {text}");
         assert!(text.contains("第 2 行"), "expected line number: {text}");
+    }
+
+    #[test]
+    fn scrub_catalog_toml_table_scrubs_secrets_inside_settings_table() {
+        let secret = "sk-settings-secret-8899";
+        let raw = format!(
+            "default_config = \"work\"\ncurrent_config = \"work\"\n\n[settings]\nskip_confirmation = true\ntui_theme = \"ocean\"\napi_key = \"{secret}\"\n\n[work]\nbase_url = \"https://api.example.com\"\nauth_token = \"sk-work-secret\"\n"
+        );
+        let mut table: toml::Table = toml::from_str(&raw).unwrap();
+        let mut warnings = Vec::new();
+        scrub_catalog_toml_table(&mut table, &mut warnings);
+
+        let rendered = toml::to_string(&table).unwrap();
+        assert!(
+            !rendered.contains(secret),
+            "settings secret leaked: {rendered}"
+        );
+        assert!(!rendered.contains("sk-work-secret"));
+        assert_eq!(table["settings"]["skip_confirmation"].as_bool(), Some(true));
+        assert_eq!(table["settings"]["tui_theme"].as_str(), Some("ocean"));
+        assert!(
+            warnings.iter().any(|w| w.contains("settings.api_key")),
+            "expected settings redaction warning: {warnings:?}"
+        );
     }
 }

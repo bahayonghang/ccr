@@ -29,7 +29,7 @@ fn platform_display_name(platform: Platform) -> &'static str {
     }
 }
 
-fn is_interactive_tty() -> bool {
+pub(crate) fn is_interactive_tty() -> bool {
     io::stdin().is_terminal() && io::stdout().is_terminal() && io::stderr().is_terminal()
 }
 
@@ -47,7 +47,7 @@ fn emit_stderr_warning(msg: &str) {
     eprintln!("{formatted}");
 }
 
-fn confirm_on_stderr(prompt: &str) -> Result<bool> {
+pub(crate) fn confirm_on_stderr(prompt: &str) -> Result<bool> {
     eprint!("? {prompt} [y/N]: ");
     io::stderr()
         .flush()
@@ -71,7 +71,7 @@ fn is_symlink_or_reparse_point(meta: &fs::Metadata) -> bool {
     is_link
 }
 
-fn validate_regular_exchange_path(path: &Path) -> Result<(PathBuf, bool)> {
+pub(crate) fn validate_regular_exchange_path(path: &Path) -> Result<(PathBuf, bool)> {
     let mut raw_prefix = PathBuf::new();
     for comp in path.components() {
         raw_prefix.push(comp);
@@ -141,7 +141,7 @@ fn validate_regular_exchange_path(path: &Path) -> Result<(PathBuf, bool)> {
     }
 }
 
-fn read_regular_import_file(path: &Path) -> Result<String> {
+pub(crate) fn read_regular_import_file(path: &Path) -> Result<String> {
     let (abs_path, exists) = validate_regular_exchange_path(path)?;
     if !exists {
         return Err(CcrError::FileIoError(format!(
@@ -168,7 +168,7 @@ fn read_regular_import_file(path: &Path) -> Result<String> {
     Ok(buf)
 }
 
-fn write_secret_export_file(target_path: &Path, content: &[u8]) -> Result<()> {
+pub(crate) fn write_secret_export_file(target_path: &Path, content: &[u8]) -> Result<()> {
     let (abs_target, _) = validate_regular_exchange_path(target_path)?;
     AtomicWriter::new(&abs_target)
         .secret(true)

@@ -3,11 +3,13 @@
 
 #![allow(clippy::unused_async)]
 
+use crate::application::profile_export::export_legacy_flat_catalog;
+use crate::commands::platform::profile_exchange_cmd::write_secret_export_file;
+use crate::models::Platform;
 use crate::services::ConfigService;
 use ccr_core::core::error::{CcrError, Result};
-use ccr_core::core::logging::ColorOutput;
-use std::fs;
-use std::io::Write;
+use ccr_core::core::logging::{ColorOutput, OutputStatus};
+use std::io::{IsTerminal, Write};
 use std::path::{Path, PathBuf};
 
 /// 📤 导出配置到文件
@@ -27,9 +29,25 @@ pub async fn export_command(
     platform: &str,
     stdout: bool,
 ) -> Result<()> {
-    let config_service = ConfigService::for_platform(platform)?;
+    let parsed_platform = platform
+        .parse::<Platform>()
+        .ok()
+        .filter(|p| p.supports_auth_profile());
+
     if stdout {
-        let mut content = config_service.export_config(include_secrets)?;
+        let (mut content, _, warnings) = if let Some(p) = parsed_platform {
+            export_legacy_flat_catalog(p, include_secrets)?
+        } else {
+            ConfigService::for_platform(platform)?.export_config_with_warnings(include_secrets)?
+        };
+        for warning in &warnings {
+            let formatted = ColorOutput::format_status(
+                OutputStatus::Warning,
+                warning,
+                std::io::stderr().is_terminal(),
+            );
+            eprintln!("{formatted}");
+        }
         if !content.ends_with('\n') {
             content.push('\n');
         }
@@ -44,8 +62,15 @@ pub async fn export_command(
 
     // 加载当前配置
     ColorOutput::step("步骤 1/3: 读取配置");
-    let config = config_service.load_config()?;
-    ColorOutput::success(&format!("已加载配置,共 {} 个配置节", config.sections.len()));
+    let (content, section_count, warnings) = if let Some(p) = parsed_platform {
+        export_legacy_flat_catalog(p, include_secrets)?
+    } else {
+        ConfigService::for_platform(platform)?.export_config_with_warnings(include_secrets)?
+    };
+    ColorOutput::success(&format!("已加载配置,共 {} 个配置节", section_count));
+    for warning in &warnings {
+        ColorOutput::warning(warning);
+    }
     println!();
 
     // 确定输出路径
@@ -56,7 +81,7 @@ pub async fn export_command(
 
     // 导出配置
     ColorOutput::step("步骤 3/3: 写入文件");
-    export_to_file(&config_service, &output_path, include_secrets)?;
+    export_to_file(&content, &output_path)?;
 
     println!();
     ColorOutput::separator();
@@ -89,17 +114,13 @@ fn determine_output_path(output: Option<String>) -> Result<PathBuf> {
     }
 }
 
-/// 导出到文件
-fn export_to_file(
-    config_service: &ConfigService,
-    output_path: &Path,
-    include_secrets: bool,
-) -> Result<()> {
-    let content = config_service.export_config(include_secrets)?;
-
-    fs::write(output_path, content)
-        .map_err(|e| CcrError::FileIoError(format!("写入文件失败: {}", e)))?;
-
+/// 导出到文件（符号链接检查 + 0600 原子写入）
+fn export_to_file(content: &str, output_path: &Path) -> Result<()> {
+    let mut normalized = content.to_string();
+    if !normalized.ends_with('\n') {
+        normalized.push('\n');
+    }
+    write_secret_export_file(output_path, normalized.as_bytes())?;
     ColorOutput::success(&format!("已导出到: {}", output_path.display()));
     Ok(())
 }

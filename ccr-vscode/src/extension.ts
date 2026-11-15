@@ -11,7 +11,7 @@ import { StatusBarProvider } from "./providers/statusBarProvider";
 import { CcrWatcher } from "./services/ccrWatcher";
 import {
   checkCcrAvailability,
-  execCcr,
+  execCatalogImport,
   execClaudeProfileSwitch,
   execCodexAuthDelete,
   execCodexAuthSwitch,
@@ -84,13 +84,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (!available) {
         return;
       }
-      const result = await execCcr([
-        "import",
-        document.uri.fsPath,
-        "--platform",
-        platformName,
-        "--force",
-      ]);
+      const result = await execCatalogImport(platformName, document.uri.fsPath);
       if (result.success) {
         vscode.window.showInformationMessage(`Saved ${platformName} profiles.`);
         refreshAll({ invalidateRuntime: true });
@@ -352,7 +346,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           return;
         }
         const editPath = catalogEditPath(platformName);
-        await fs.promises.writeFile(editPath, toml, { mode: 0o600 });
+        await fs.promises.writeFile(editPath, toml, { encoding: "utf-8", mode: 0o600 });
         catalogEdits.set(editPath, platformName);
         const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(editPath));
         await vscode.window.showTextDocument(doc);

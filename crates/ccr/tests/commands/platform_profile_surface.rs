@@ -137,17 +137,58 @@ fn claude_and_codex_profile_crud_surfaces_accept_supported_platforms() {
 }
 
 #[test]
-fn legacy_platform_profile_gemini_reports_migration_instead_of_mutating() {
+fn removed_platform_profile_subcommand_is_rejected_by_clap() {
     let fixture = PlatformProfileSurfaceFixture::new();
 
     let output = fixture.run_output(&["platform", "profile", "create", "gemini", "team"]);
     let stderr = String::from_utf8_lossy(&output.stderr);
 
     assert!(!output.status.success(), "{stderr}");
-    assert!(stderr.contains("legacy"), "{stderr}");
-    assert!(stderr.contains("current_platform"), "{stderr}");
-    assert!(stderr.contains("ccr claude profile"), "{stderr}");
-    assert!(stderr.contains("ccr codex profile"), "{stderr}");
+    assert!(
+        stderr.contains("unrecognized subcommand") && stderr.contains("profile"),
+        "{stderr}"
+    );
+
+    for platform in ["claude", "codex", "grok"] {
+        let help_out = fixture.run_output(&[platform, "profile", "--help"]);
+        assert_success(&help_out);
+        let help_stdout = String::from_utf8_lossy(&help_out.stdout);
+        assert!(
+            !help_stdout
+                .lines()
+                .any(|line| line.trim_start().starts_with("set-field")),
+            "{platform} profile --help must hide set-field:\n{help_stdout}"
+        );
+    }
+
+    // Hidden set-field remains functional with pure JSON stdout for ccr-vscode compatibility.
+    let (_, create_json) = fixture.run_json(&[
+        "claude",
+        "profile",
+        "create",
+        "compat",
+        "--base-url",
+        "https://anthropic-proxy.example.com",
+        "--auth-token",
+        "sk-compat",
+        "--model",
+        "claude-sonnet-4-20250514",
+        "--json",
+    ]);
+    assert_eq!(create_json["ok"], true);
+    let (set_out, set_json) = fixture.run_json(&[
+        "claude",
+        "profile",
+        "set-field",
+        "compat",
+        "description",
+        "--value",
+        "Updated via hidden set-field",
+        "--json",
+    ]);
+    assert_success(&set_out);
+    assert_eq!(set_json["ok"], true);
+    assert_eq!(set_json["name"], "compat");
 }
 
 fn contains_long_flag(help: &str, flag: &str) -> bool {

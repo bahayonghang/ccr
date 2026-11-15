@@ -124,6 +124,7 @@ pub enum GrokProfileAction {
     Create(Box<GrokProfileCreateActionArgs>),
 
     /// Update one Grok profile field
+    #[command(hide = true)]
     SetField(ProfileSetFieldActionArgs),
 
     /// 一次修改多个字段、改名或替换密钥

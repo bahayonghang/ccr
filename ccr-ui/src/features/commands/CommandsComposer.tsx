@@ -1,6 +1,6 @@
 import { memo, useCallback, type ChangeEvent } from 'react'
 import { useForm } from 'react-hook-form'
-import { Checkbox, SIcon, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui'
+import { Checkbox, SIcon } from '@/ui'
 import type { useCommandsPage } from './useCommandsPage'
 
 type Page = ReturnType<typeof useCommandsPage>
@@ -40,12 +40,10 @@ function ComposerActions({
 
 function ArgsAndDanger({
   page,
-  onSelectConfig,
   onArgsInput,
   onDanger,
 }: {
   page: Page
-  onSelectConfig: (value: string) => void
   onArgsInput: (event: ChangeEvent<HTMLInputElement>) => void
   onDanger: (value: boolean | 'indeterminate') => void
 }) {
@@ -54,18 +52,7 @@ function ArgsAndDanger({
     <div className="commands-form-grid">
       <label className="commands-field">
         <span>{page.t('commands.args')}</span>
-        {page.selectedCommand === 'switch' ? (
-          <Select value={page.args} onValueChange={onSelectConfig} disabled={!page.canEditArgs}>
-            <SelectTrigger><SelectValue placeholder={page.t('commands.selectConfig')} /></SelectTrigger>
-            <SelectContent>
-              {page.configs.map((config) => (
-                <SelectItem key={config.name} value={config.name}>{config.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <input key={page.selectedCommand} type="text" defaultValue={page.args} disabled={!page.canEditArgs} placeholder={placeholder} onChange={onArgsInput} />
-        )}
+        <input key={page.selectedCommand} type="text" defaultValue={page.args} disabled={!page.canEditArgs} placeholder={placeholder} onChange={onArgsInput} />
       </label>
       {page.selectedCommandInfo?.dangerous ? (
         <label className="commands-danger-confirm">
@@ -116,9 +103,6 @@ export const CommandsComposer = memo(function CommandsComposer({ page }: { page:
   const onArgsInput = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     handleArgs(event.currentTarget.value)
   }, [handleArgs])
-  const onSelectConfig = useCallback((value: string) => {
-    handleArgs(value)
-  }, [handleArgs])
   const onDanger = useCallback((value: boolean | 'indeterminate') => {
     page.setDangerAccepted(value === true)
   }, [page])
@@ -153,7 +137,7 @@ export const CommandsComposer = memo(function CommandsComposer({ page }: { page:
           {page.args.trim() ? <span className="command-strip__args">{page.args}</span> : null}
         </div>
       </div>
-      <ArgsAndDanger page={page} onSelectConfig={onSelectConfig} onArgsInput={onArgsInput} onDanger={onDanger} />
+      <ArgsAndDanger page={page} onArgsInput={onArgsInput} onDanger={onDanger} />
     </section>
   )
 })

@@ -528,7 +528,20 @@ mod tests {
         let adapter = serde_json::to_value(command_catalog()).expect("wire");
         let owner = serde_json::to_value(policy::command_catalog()).expect("owner");
         assert_eq!(adapter, owner);
-        for name in ["delete", "import", "restore", "add", "platform"] {
+        for name in [
+            "delete",
+            "import",
+            "restore",
+            "add",
+            "platform",
+            "switch",
+            "list",
+            "export",
+            "backup",
+            "diff",
+            "rename",
+            "duplicate",
+        ] {
             assert!(
                 validate_command_request(&CommandExecutionRequest::background(
                     name.into(),

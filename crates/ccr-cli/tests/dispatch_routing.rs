@@ -468,3 +468,41 @@ async fn platform_list_json_routes_and_runs_in_isolated_env() {
     let result = CommandDispatcher::dispatch(&cli, None).await;
     assert!(result.is_ok(), "platform list --json 应返回 Ok: {result:?}");
 }
+
+#[test]
+#[allow(deprecated)]
+fn legacy_migration_error_symbols_stay_public_in_7x() {
+    let cmd_err = ccr_cli::commands::migration::legacy_platform_command_error("switch codex");
+    assert!(cmd_err.to_string().contains("ccr platform switch codex"));
+
+    let init_err = ccr_cli::commands::migration::legacy_platform_init_error();
+    assert!(init_err.to_string().contains("ccr claude profile init"));
+
+    let switch_err = ccr_cli::commands::migration::legacy_switch_error("work");
+    assert!(switch_err.to_string().contains("ccr switch work"));
+
+    let shortcut_err = ccr_cli::commands::migration::legacy_shortcut_error("work");
+    assert!(shortcut_err.to_string().contains("ccr work"));
+}
+
+#[test]
+fn readonly_commands_skip_logger_initialization() {
+    for args in [
+        &["ccr", "list"][..],
+        &["ccr", "export", "-o", "out.toml"][..],
+        &["ccr", "current", "--json"][..],
+        &["ccr", "version"][..],
+        &["ccr", "help"][..],
+        &["ccr", "platform", "list", "--json"][..],
+        &["ccr", "platform", "help"][..],
+        &["ccr", "claude", "profile", "list", "--json"][..],
+        &["ccr", "codex", "profile", "current", "--json"][..],
+        &["ccr", "grok", "profile", "help"][..],
+    ] {
+        let cli = parse(args);
+        assert!(
+            CommandDispatcher::skips_logger_init(&cli),
+            "expected skips_logger_init == true for {args:?}"
+        );
+    }
+}

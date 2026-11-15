@@ -18,7 +18,7 @@ mod list;
 mod profile;
 mod profile_card;
 mod profile_edit_cmd;
-mod profile_exchange_cmd;
+pub(crate) mod profile_exchange_cmd;
 mod profile_init;
 pub(crate) mod profile_open;
 mod switch;

@@ -3,6 +3,8 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { Link, MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CommandsView } from '@/features/commands/CommandsView'
+import { fallbackCommandRegistry } from '@/features/commands/commands-model'
+import { LIST_CONFIGS_COMMAND, SWITCH_CONFIG_COMMAND } from '@/features/claude/home/homeModel'
 import { useCommandsStreamStore } from '@/features/commands/stores'
 import { useTauriEventBridge } from '@/shell/eventBridge'
 import type { CommandJobSnapshot } from '@/types'
@@ -106,6 +108,19 @@ const startPage = async (initial = snapshot()) => {
 }
 
 describe('command workbench lifecycle', () => {
+  it('exposes only the 6 healthy cross-platform executable commands in fallback registry and canonical Claude home hints', () => {
+    expect(fallbackCommandRegistry.ccr.map((cmd) => cmd.name)).toEqual([
+      'status',
+      'show',
+      'validate',
+      'history',
+      'version',
+      'help',
+    ])
+    expect(SWITCH_CONFIG_COMMAND).toBe('ccr claude profile switch <name>')
+    expect(LIST_CONFIGS_COMMAND).toBe('ccr claude profile list')
+  })
+
   it('restores the running job and output after a real route unmount, then cancels the same job', async () => {
     mount()
     await waitFor(() => expect(runButton().disabled).toBe(false))

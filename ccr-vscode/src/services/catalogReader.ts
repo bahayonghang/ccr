@@ -5,12 +5,14 @@
  * pre-migration file. SQLite bytes are never parsed as TOML.
  */
 
-import { execFile } from "child_process"
 import * as fs from "fs"
 import * as os from "os"
 import * as path from "path"
 import * as TOML from "smol-toml"
-import { getProfilesDbPath, getProfilesPath } from "./ccrPaths"
+import { isProfileExchangePlatform } from "../models/types"
+import { buildCatalogExportArgs } from "./ccrCliArgs"
+import { detectCcrCapabilities, execRawCommand } from "./ccrCliCore"
+import { getProfilesDbPath, getProfilesPath, getRegistryPath } from "./ccrPaths"
 
 interface SqlStatement {
   all: () => unknown[]
@@ -45,6 +47,41 @@ FROM profiles
 ORDER BY sort_order ASC, name ASC
 `
 
+export function parseExportedCatalogDocument(
+  tomlText: string,
+  fallbackCurrentConfig = "",
+): Record<string, unknown> {
+  const raw = TOML.parse(tomlText) as Record<string, unknown>
+  if (isExchangeV1Document(raw)) {
+    const profiles = raw.profiles as Record<string, unknown>
+    const document: Record<string, unknown> = {
+      current_config: typeof raw.current_config === "string"
+        ? raw.current_config
+        : fallbackCurrentConfig,
+    }
+    for (const [name, section] of Object.entries(profiles)) {
+      if (typeof section === "object" && section !== null && !Array.isArray(section)) {
+        document[name] = { ...(section as Record<string, unknown>) }
+      }
+    }
+    return document
+  }
+
+  const normalized: Record<string, unknown> = {
+    ...(typeof raw.current_config !== "string" && fallbackCurrentConfig
+      ? { current_config: fallbackCurrentConfig }
+      : {}),
+  }
+  for (const [key, value] of Object.entries(raw)) {
+    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+      normalized[key] = { ...(value as Record<string, unknown>) }
+    } else {
+      normalized[key] = value
+    }
+  }
+  return normalized
+}
+
 export async function readProfileDocument(
   platformName: string,
 ): Promise<Record<string, unknown> | null> {
@@ -56,7 +93,8 @@ export async function readProfileDocument(
     }
     const exported = await exportCanonicalToml(platformName)
     if (exported) {
-      return TOML.parse(exported) as Record<string, unknown>
+      const currentProfile = await readCurrentProfileFromRegistry(platformName)
+      return parseExportedCatalogDocument(exported, currentProfile)
     }
     console.error(`Failed to read profile catalog for ${platformName}: ${dbPath}`)
     return null
@@ -74,21 +112,32 @@ export async function readProfileDocument(
   }
 }
 
-export function exportCanonicalToml(platformName: string): Promise<string | null> {
-  return new Promise((resolve) => {
-    execFile(
-      "ccr",
-      ["export", "--platform", platformName, "--stdout"],
-      { timeout: 30_000 },
-      (error, stdout) => {
-        if (error || !stdout.trim()) {
-          resolve(null)
-          return
-        }
-        resolve(stdout)
-      },
+export async function exportCanonicalToml(platformName: string): Promise<string | null> {
+  const capabilities = await detectCcrCapabilities()
+  const binary = capabilities.binaryPath ?? "ccr"
+  const useProfileExchange =
+    isProfileExchangePlatform(platformName) && capabilities.supportsProfileExchange
+  const primaryArgs = buildCatalogExportArgs(
+    platformName,
+    capabilities.supportsProfileExchange,
+  )
+  const primaryResult = await execRawCommand(binary, primaryArgs, 30_000)
+  if (primaryResult.success && primaryResult.stdout.trim()) {
+    return primaryResult.stdout
+  }
+
+  if (useProfileExchange && !primaryResult.success) {
+    const fallbackResult = await execRawCommand(
+      binary,
+      buildCatalogExportArgs(platformName, false),
+      30_000,
     )
-  })
+    if (fallbackResult.success && fallbackResult.stdout.trim()) {
+      return fallbackResult.stdout
+    }
+  }
+
+  return null
 }
 
 export function catalogEditPath(platformName: string): string {
@@ -96,6 +145,32 @@ export function catalogEditPath(platformName: string): string {
     os.tmpdir(),
     `ccr-${platformName}-catalog-${process.pid}-${Date.now()}.toml`,
   )
+}
+
+function isExchangeV1Document(raw: Record<string, unknown>): boolean {
+  return (
+    "schema_version" in raw &&
+    typeof raw.profiles === "object" &&
+    raw.profiles !== null &&
+    !Array.isArray(raw.profiles)
+  )
+}
+
+async function readCurrentProfileFromRegistry(platformName: string): Promise<string> {
+  try {
+    const content = await fs.promises.readFile(getRegistryPath(), "utf-8")
+    const parsed = TOML.parse(content) as Record<string, unknown>
+    const entry = parsed[platformName]
+    if (typeof entry === "object" && entry !== null && !Array.isArray(entry)) {
+      const current = (entry as { current_profile?: unknown }).current_profile
+      if (typeof current === "string") {
+        return current
+      }
+    }
+  } catch {
+    // Missing or unreadable registry falls back to empty current_config.
+  }
+  return ""
 }
 
 async function readSqliteDocument(dbPath: string): Promise<Record<string, unknown> | null> {

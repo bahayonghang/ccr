@@ -6,30 +6,30 @@ use clap::{Args, Parser, Subcommand};
 
 pub const DEFAULT_CLEAN_BACKUP_DAYS: u64 = 7;
 
-/// 🎯 Claude Code Configuration Switcher - 配置管理工具
+/// 🎯 CCR 多平台 AI CLI 配置与账号管理工具
 #[derive(Parser)]
 #[command(name = "ccr")]
 #[command(
-    about = "Claude Code 配置管理工具 - 快速切换和管理多套配置",
+    about = "多平台 AI CLI 配置与账号管理工具 - 管理 Claude、Codex 与 Grok 配置",
     long_about = "\
-🎯 Claude Code Configuration Switcher (Rust Version)
+🎯 CCR - Multi-Platform AI CLI Configuration Manager
 
-一个强大的 Claude Code 配置管理工具,支持：
-    • 多套配置快速切换
-    • 完整的操作审计追踪
-    • 自动备份和恢复
-    • 配置导入导出
-    • Web 可视化界面
+统一管理 Claude Code、Codex 与 Grok CLI 配置与账号：
+    • 显式多平台 Profile 创建、切换与导入导出
+    • 多账号认证保存与切换
+    • 完整的操作审计追踪与自动备份恢复
+    • 跨平台运行态诊断与桌面/Web 可视化界面
 
 🚀 快速开始:
-    ccr init              # 初始化配置文件
-    ccr list              # 查看所有配置
-    ccr switch <名称>      # 切换配置
-    ccr anthropic         # 快捷切换(省略 switch)
+    ccr claude profile init           # 初始化平台配置目录
+    ccr claude profile list           # 查看平台所有配置
+    ccr claude profile switch <名称>   # 切换平台激活配置
+    ccr current                       # 查看跨平台当前状态
+    ccr validate                      # 跨平台只读诊断配置完整性
 
 📖 获取帮助:
-    ccr --help            # 显示此帮助
-    ccr <命令> --help      # 显示特定命令的帮助"
+    ccr --help                        # 显示此帮助
+    ccr <命令> --help                  # 显示特定命令的帮助"
 )]
 #[command(version)]
 #[command(
@@ -40,7 +40,7 @@ pub const DEFAULT_CLEAN_BACKUP_DAYS: u64 = 7;
 {usage-heading} {usage}
 
 {all-args}{after-help}",
-    override_usage = "ccr [选项] [配置名称] [命令]",
+    override_usage = "ccr [选项] [命令]",
     disable_help_subcommand = true
 )]
 pub struct Cli {
@@ -58,6 +58,7 @@ pub struct Cli {
     /// 直接切换到指定配置(快捷方式,无需输入 switch 子命令)
     ///
     /// 示例：ccr anthropic  等同于  ccr switch anthropic
+    #[arg(hide = true)]
     pub config_name: Option<String>,
 }
 
@@ -100,7 +101,7 @@ pub enum Commands {
     ///
     /// 显示配置文件中定义的所有配置方案,包括配置名称、环境变量设置等信息
     /// 别名: ls
-    #[command(alias = "ls")]
+    #[command(alias = "ls", hide = true)]
     List,
 
     /// 显示当前 Claude/Codex 运行状态总览
@@ -115,6 +116,7 @@ pub enum Commands {
     ///
     /// 将 Claude Code 的配置切换到指定方案,自动备份当前配置并应用新配置
     /// 示例: ccr switch anthropic
+    #[command(hide = true)]
     Switch {
         /// 要切换到的配置方案名称(必须在配置文件中已定义)
         config_name: String,
@@ -124,12 +126,14 @@ pub enum Commands {
     ///
     /// 交互式地添加新配置,按照提示输入配置信息
     /// 示例: ccr add
+    #[command(hide = true)]
     Add,
 
     /// 删除指定的配置方案
     ///
     /// 删除配置文件中的指定配置节
     /// 示例: ccr delete my_config
+    #[command(hide = true)]
     Delete {
         /// 要删除的配置方案名称
         config_name: String,
@@ -143,6 +147,7 @@ pub enum Commands {
     ///
     /// 将配置标记为启用状态，使其可以正常使用
     /// 示例: ccr enable my_config
+    #[command(hide = true)]
     Enable {
         /// 要启用的配置方案名称
         config_name: String,
@@ -152,6 +157,7 @@ pub enum Commands {
     ///
     /// 将配置标记为禁用状态，暂时不可使用（不会删除）
     /// 示例: ccr disable old_config
+    #[command(hide = true)]
     Disable {
         /// 要禁用的配置方案名称
         config_name: String,
@@ -161,9 +167,7 @@ pub enum Commands {
         force: bool,
     },
 
-    /// 验证配置文件和设置的完整性
-    ///
-    /// 检查配置文件格式是否正确,以及 Claude Code 设置文件是否有效
+    /// 跨平台只读诊断全局注册表及 Claude/Codex/Grok 配置与运行态完整性
     Validate {
         /// 以 JSON 格式输出验证报告
         #[arg(long)]
@@ -219,6 +223,7 @@ pub enum Commands {
     ///
     /// 在 ~/.ccs_config.toml 创建配置文件模板,包含示例配置方案
     /// 示例: ccr init --force  # 强制覆盖现有配置
+    #[command(hide = true)]
     Init {
         /// 强制覆盖已存在的配置文件(危险操作,会丢失当前配置)
         #[arg(short, long)]
@@ -229,6 +234,7 @@ pub enum Commands {
     ///
     /// 将当前配置导出为 TOML 文件,方便备份或分享
     /// 示例: ccr export -o my_config.toml --no-secrets
+    #[command(hide = true)]
     Export {
         /// 指定导出文件路径
         ///
@@ -253,6 +259,7 @@ pub enum Commands {
     ///
     /// 从 TOML 文件导入配置方案,支持替换或合并模式
     /// 示例: ccr import config.toml --merge
+    #[command(hide = true)]
     Import {
         /// 要导入的配置文件路径
         input: String,
@@ -292,6 +299,7 @@ pub enum Commands {
     /// 执行后 Claude Code 将无法正常工作,直到重新执行 switch 切换配置
     /// 示例: ccr clear
     ///       ccr clear --force  # 跳过确认
+    #[command(hide = true)]
     Clear {
         /// 跳过确认提示，直接清理（危险操作）
         #[arg(short, long)]
@@ -302,6 +310,7 @@ pub enum Commands {
     ///
     /// 按照配置节名称的字母顺序重新排列配置文件,提升可读性
     /// 示例: ccr optimize
+    #[command(hide = true)]
     Optimize,
 
     /// 显示详细的版本信息
@@ -368,10 +377,9 @@ pub enum Commands {
 
     /// 多平台管理
     ///
-    /// 管理和切换不同的 AI CLI 平台 (Claude, Codex, Gemini 等)
+    /// 列出 CCR 可识别的 AI CLI 平台
     /// 示例: ccr platform list
-    ///       ccr platform switch codex
-    ///       ccr platform current
+    ///       ccr platform list --json
     Platform {
         #[command(subcommand)]
         action: super::subcommands::platform::PlatformAction,

@@ -66,6 +66,12 @@ export interface ProfileCreateRequest {
 export const PROFILE_CREATION_PLATFORMS = ["claude", "codex"] as const;
 export type ProfileCreationPlatform = typeof PROFILE_CREATION_PLATFORMS[number];
 
+export const PROFILE_EXCHANGE_PLATFORMS = ["claude", "codex", "grok"] as const;
+export type ProfileExchangePlatform = typeof PROFILE_EXCHANGE_PLATFORMS[number];
+
+export const CCR_UNINITIALIZED_HINT =
+  "CCR is not initialized. Run 'ccr claude profile init' (or codex/grok) to get started.";
+
 /** Global settings in profiles.toml (optional) */
 export interface GlobalSettings {
   [key: string]: unknown;
@@ -191,6 +197,7 @@ export interface CcrCapabilitySnapshot {
   binaryPath?: string;
   supportsCodexAuthCurrentJson: boolean;
   supportsCodexQuotaJson: boolean;
+  supportsProfileExchange: boolean;
   checkedAt: number;
 }
 
@@ -273,4 +280,8 @@ export function getEditableProfileFields(platformName: string): string[] {
 
 export function isProfileCreationPlatform(platformName: string): platformName is ProfileCreationPlatform {
   return PROFILE_CREATION_PLATFORMS.includes(platformName as ProfileCreationPlatform);
+}
+
+export function isProfileExchangePlatform(platformName: string): platformName is ProfileExchangePlatform {
+  return PROFILE_EXCHANGE_PLATFORMS.includes(platformName as ProfileExchangePlatform);
 }

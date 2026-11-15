@@ -3,12 +3,21 @@
 
 #![allow(clippy::unused_async)]
 
+use crate::application::profile_import::{
+    ConflictStrategy, ImportModeKind, ImportProfilesRequest, commit_import_with_backup,
+    preview_import,
+};
+use crate::commands::migration::canonical_profile_command_hint;
+use crate::commands::platform::profile_exchange_cmd::{
+    confirm_on_stderr, is_interactive_tty, read_regular_import_file, validate_regular_exchange_path,
+};
 use crate::managers::config::CcsConfig;
+use crate::models::Platform;
 use crate::services::ConfigService;
 use ccr_core::core::error::{CcrError, Result};
-use ccr_core::core::logging::ColorOutput;
-use std::fs;
-use std::path::PathBuf;
+use ccr_core::core::logging::{ColorOutput, OutputStatus};
+use std::io::IsTerminal;
+use std::path::Path;
 
 /// 📋 导入模式
 #[derive(Debug, Clone, Copy)]
@@ -40,6 +49,14 @@ pub async fn import_command(
     force: bool,
     platform: &str,
 ) -> Result<()> {
+    let parsed_platform = platform
+        .parse::<Platform>()
+        .ok()
+        .filter(|p| p.supports_auth_profile());
+    if let Some(p) = parsed_platform {
+        return import_tri_platform_legacy(&input, mode, backup, force, p);
+    }
+
     ColorOutput::title("导入配置");
     println!();
 
@@ -57,127 +74,166 @@ pub async fn import_command(
         ColorOutput::info("自动确认模式已启用，将跳过确认");
     }
 
-    // 🚨 Replace 模式需要确认
-    if matches!(mode, ImportMode::Replace) && !skip_confirmation {
-        println!();
-        ColorOutput::warning("Replace 模式将完全覆盖现有配置！");
-        ColorOutput::info("建议: 使用 --merge 参数保留现有配置");
-        println!();
-
-        let confirmed = tokio::task::spawn_blocking(|| -> std::io::Result<bool> {
-            use std::io::{self, Write};
-            print!("确认执行 Replace 操作? (y/N): ");
-            io::stdout().flush()?;
-
-            let mut input = String::new();
-            io::stdin().read_line(&mut input)?;
-            Ok(input.trim().eq_ignore_ascii_case("y"))
-        })
-        .await
-        .map_err(|e| CcrError::FileIoError(format!("读取确认输入失败: {}", e)))??;
-
-        if !confirmed {
-            ColorOutput::info("已取消导入操作");
-            return Ok(());
-        }
-        println!();
+    // 验证输入文件（拒绝符号链接/重解析点与非常规文件）
+    ColorOutput::step("步骤 1/3: 验证输入文件");
+    let input_path = Path::new(&input);
+    let (_, exists) = validate_regular_exchange_path(input_path)?;
+    if !exists {
+        return Err(CcrError::ConfigMissing(input));
     }
-
-    // 验证输入文件
-    ColorOutput::step("步骤 1/4: 验证输入文件");
-    let input_path = PathBuf::from(&input);
-    if !input_path.exists() {
-        return Err(CcrError::ConfigMissing(input.clone()));
-    }
+    let content = read_regular_import_file(input_path)?;
     ColorOutput::success(&format!("找到配置文件: {}", input_path.display()));
     println!();
 
-    // 读取并解析导入文件
-    ColorOutput::step("步骤 2/4: 解析配置文件");
-    let import_config = parse_import_file(&input_path)?;
+    // 使用不回显原始源码与内联密钥的安全解析器预校验
+    ColorOutput::step("步骤 2/3: 解析配置文件");
+    let import_config = ccr_config::platforms::base::parse_config_from_str(&content)?;
     ColorOutput::success(&format!(
         "成功解析,包含 {} 个配置节",
         import_config.sections.len()
     ));
     println!();
 
-    // 备份现有配置(如果需要)
-    if backup {
-        ColorOutput::step("步骤 3/4: 备份当前配置");
-        match backup_current_config(&config_service) {
-            Ok(()) => {}
-            Err(CcrError::ConfigMissing(_)) => {
-                ColorOutput::info("当前无配置文件,跳过备份");
-            }
-            Err(error) => return Err(error),
+    // 🚨 Replace 模式需要确认（仅在三流均为 TTY 时在 stderr 提示，非交互环境直接拒绝）
+    if matches!(mode, ImportMode::Replace) && !skip_confirmation {
+        if !is_interactive_tty() {
+            return Err(CcrError::ValidationError(
+                "Replace 模式属于破坏性覆盖操作，非交互环境必须显式传入 --force 或 -y/--yes（或改用 --merge 合并导入）".into(),
+            ));
+        }
+
+        let formatted = ColorOutput::format_status(
+            OutputStatus::Warning,
+            "Replace 模式将完全覆盖现有配置！（建议使用 --merge 保留现有配置）",
+            std::io::stderr().is_terminal(),
+        );
+        eprintln!("{formatted}");
+        if !confirm_on_stderr("确认执行 Replace 操作?")? {
+            ColorOutput::info("已取消导入操作");
+            return Ok(());
         }
         println!();
     }
 
-    // 执行导入
-    let step_msg = if backup {
-        if skip_confirmation {
-            "步骤 4/4: 执行导入 (⚡ 自动确认模式)"
-        } else {
-            "步骤 4/4: 执行导入"
-        }
-    } else if skip_confirmation {
+    // 执行导入（在配置锁内完成覆盖前备份与保存，避免二次序列化）
+    let step_msg = if skip_confirmation {
         "步骤 3/3: 执行导入 (⚡ 自动确认模式)"
     } else {
         "步骤 3/3: 执行导入"
     };
     ColorOutput::step(step_msg);
-    let result = import_config_with_mode(import_config, mode, platform)?;
+    let service_mode = match mode {
+        ImportMode::Merge => crate::services::config_service::ImportMode::Merge,
+        ImportMode::Replace => crate::services::config_service::ImportMode::Replace,
+    };
+    let should_backup = backup || matches!(mode, ImportMode::Replace);
+    let raw_result = config_service.import_config(&content, service_mode, should_backup)?;
+    let result = ImportResult {
+        added: raw_result.added,
+        updated: raw_result.updated,
+        skipped: raw_result.skipped,
+    };
 
     println!();
     ColorOutput::separator();
     println!();
     ColorOutput::success("配置导入成功");
-    print_import_summary(&result);
+    print_import_summary(&result, platform);
 
     Ok(())
 }
 
-/// 解析导入文件
-fn parse_import_file(path: &PathBuf) -> Result<CcsConfig> {
-    let content = fs::read_to_string(path)
-        .map_err(|e| CcrError::FileIoError(format!("读取文件失败: {}", e)))?;
-
-    let config: CcsConfig = toml::from_str(&content)
-        .map_err(|e| CcrError::ConfigFormatInvalid(format!("解析 TOML 失败: {}", e)))?;
-
-    Ok(config)
-}
-
-/// 备份当前配置
-fn backup_current_config(config_service: &ConfigService) -> Result<()> {
-    let backup_path = config_service.backup_config(Some("import_backup"))?;
-    ColorOutput::success(&format!("已备份到: {}", backup_path.display()));
-    Ok(())
-}
-
-/// 根据模式导入配置
-fn import_config_with_mode(
-    import_config: CcsConfig,
+fn import_tri_platform_legacy(
+    input: &str,
     mode: ImportMode,
-    platform: &str,
-) -> Result<ImportResult> {
-    let service = ConfigService::for_platform(platform)?;
-    let content = toml::to_string_pretty(&import_config)
-        .map_err(|e| CcrError::ConfigError(format!("序列化配置失败: {}", e)))?;
+    backup: bool,
+    force: bool,
+    platform: Platform,
+) -> Result<()> {
+    ColorOutput::title("导入配置");
+    println!();
 
-    let service_mode = match mode {
-        ImportMode::Merge => crate::services::config_service::ImportMode::Merge,
-        ImportMode::Replace => crate::services::config_service::ImportMode::Replace,
+    ColorOutput::step("步骤 1/3: 验证输入文件");
+    let input_path = Path::new(input);
+    let (_, exists) = validate_regular_exchange_path(input_path)?;
+    if !exists {
+        return Err(CcrError::ConfigMissing(input.to_string()));
+    }
+    let content = read_regular_import_file(input_path)?;
+    ColorOutput::success(&format!("找到配置文件: {}", input_path.display()));
+    println!();
+
+    let (mode_kind, on_conflict) = match mode {
+        ImportMode::Replace => (ImportModeKind::Replace, ConflictStrategy::Skip),
+        ImportMode::Merge => (ImportModeKind::Merge, ConflictStrategy::Overwrite),
+    };
+    let request = ImportProfilesRequest {
+        platform,
+        content,
+        mode: mode_kind,
+        on_conflict,
+        dedup: false,
+        dry_run: false,
+        no_apply: false,
+        expected_revision: None,
     };
 
-    let result = service.import_config(&content, service_mode, false)?;
+    ColorOutput::step("步骤 2/3: 校验导入内容");
+    let preview = preview_import(&request)?;
+    ColorOutput::success(&format!(
+        "成功解析,包含 {} 个配置节",
+        preview.counts.total_incoming
+    ));
+    println!();
 
-    Ok(ImportResult {
-        added: result.added,
-        updated: result.updated,
-        skipped: result.skipped,
-    })
+    if matches!(mode, ImportMode::Replace) && !force {
+        if !is_interactive_tty() {
+            return Err(CcrError::ValidationError(
+                "Replace 模式属于破坏性覆盖操作，非交互环境必须显式传入 --force 或 -y/--yes（或改用 --merge 合并导入）".into(),
+            ));
+        }
+
+        let formatted = ColorOutput::format_status(
+            OutputStatus::Warning,
+            &format!(
+                "Replace 模式将以导入文件为准覆盖本地 {} 配置目录（将移除 {} 个本地条目）",
+                platform.short_name(),
+                preview.counts.removed
+            ),
+            std::io::stderr().is_terminal(),
+        );
+        eprintln!("{formatted}");
+        if !confirm_on_stderr("确认执行 Replace 操作?")? {
+            ColorOutput::info("已取消导入操作");
+            return Ok(());
+        }
+        println!();
+    }
+
+    ColorOutput::step("步骤 3/3: 执行导入");
+    let report = commit_import_with_backup(request, backup)?;
+    if let Some(ref backup_path) = report.backup_path {
+        ColorOutput::success(&format!("已备份到: {backup_path}"));
+    }
+
+    println!();
+    ColorOutput::separator();
+    println!();
+    ColorOutput::success("配置导入成功");
+    let summary = ImportResult {
+        added: report.counts.added,
+        updated: report.counts.updated,
+        skipped: report.counts.skipped + report.counts.unchanged,
+    };
+    print_import_summary(&summary, platform.short_name());
+    if report.counts.removed > 0 {
+        ColorOutput::key_value("移除配置", &report.counts.removed.to_string(), 2);
+    }
+    for warning in &report.warnings {
+        ColorOutput::warning(warning);
+    }
+
+    Ok(())
 }
 
 /// 合并配置（仅测试使用）
@@ -215,7 +271,7 @@ struct ImportResult {
 }
 
 /// 打印导入摘要
-fn print_import_summary(result: &ImportResult) {
+fn print_import_summary(result: &ImportResult, platform: &str) {
     println!();
     ColorOutput::info("导入摘要:");
     if result.added > 0 {
@@ -227,7 +283,8 @@ fn print_import_summary(result: &ImportResult) {
     if result.skipped > 0 {
         ColorOutput::key_value("跳过配置", &result.skipped.to_string(), 2);
     }
-    crate::commands::common::print_next_steps(&[("查看配置", "ccr list")]);
+    let next_cmd = canonical_profile_command_hint(platform, "list", "ccr current");
+    crate::commands::common::print_next_steps(&[("查看配置", next_cmd.as_str())]);
 }
 
 #[cfg(test)]

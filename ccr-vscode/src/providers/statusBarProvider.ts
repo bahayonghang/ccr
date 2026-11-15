@@ -5,7 +5,7 @@
  */
 
 import * as vscode from "vscode";
-import type { PlatformInfo } from "../models/types";
+import { CCR_UNINITIALIZED_HINT, type PlatformInfo } from "../models/types";
 import { ccrRootExists } from "../services/ccrPaths";
 import { readRegistry, readProfiles } from "../services/tomlReader";
 import {
@@ -120,7 +120,7 @@ export class StatusBarProvider implements vscode.Disposable {
     }
 
     if (!ccrRootExists()) {
-      this.showFallback("$(gear) CCR: Not configured", "CCR is not initialized. Run 'ccr init' to get started.");
+      this.showFallback("$(gear) CCR: Not configured", CCR_UNINITIALIZED_HINT);
       return;
     }
 

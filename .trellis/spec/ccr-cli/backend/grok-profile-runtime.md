@@ -246,8 +246,9 @@ Correct: return `UpdatedApplyFailed` with the saved name, and delete the source 
 
 ### 3. Contracts
 
-- The supported command path is `ccr grok profile ...`; retired
-  `ccr platform switch/profile` commands continue to return migration errors.
+- The supported command path is `ccr grok profile ...`; the deprecated
+  `ccr platform switch/current/info/init/profile` subcommands have been removed
+  from the Clap parser tree (returning Clap unknown-subcommand errors).
 - `api_backend` persists as a lowercase string, `api_key` as one non-empty
   string, `env_key` as one environment-variable-name string, `context_window`
   as a positive integer (integer JSON, whole-number JSON floats from the Tauri

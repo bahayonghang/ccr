@@ -21,14 +21,15 @@ import {
   getCachedCodexRuntimeSnapshot,
   getCodexRuntimeError,
 } from "../services/codexRuntimeReader";
-import type {
-  CodexAuthInfo,
-  CodexAuthQuotaInfo,
-  CodexRuntimeSnapshot,
-  PlatformInfo,
-  ProfileInfo,
-  TreeSectionInfo,
-  TreeSectionKind,
+import {
+  CCR_UNINITIALIZED_HINT,
+  type CodexAuthInfo,
+  type CodexAuthQuotaInfo,
+  type CodexRuntimeSnapshot,
+  type PlatformInfo,
+  type ProfileInfo,
+  type TreeSectionInfo,
+  type TreeSectionKind,
 } from "../models/types";
 import {
   buildCodexAuthDetailDescriptors,
@@ -392,7 +393,7 @@ export class ProfileTreeProvider implements vscode.TreeDataProvider<TreeNode> {
   async getChildren(element?: TreeNode): Promise<TreeNode[]> {
     if (!ccrRootExists()) {
       if (!element) {
-        return [new MessageNode("CCR is not initialized. Run 'ccr init' to get started.")];
+        return [new MessageNode(CCR_UNINITIALIZED_HINT)];
       }
       return [];
     }

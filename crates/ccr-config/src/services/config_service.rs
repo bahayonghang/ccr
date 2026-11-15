@@ -357,14 +357,25 @@ impl ConfigService {
     ///
     /// 返回配置的 TOML 字符串
     pub fn export_config(&self, include_secrets: bool) -> Result<String> {
+        self.export_config_with_warnings(include_secrets)
+            .map(|(toml_content, _, _)| toml_content)
+    }
+
+    /// 📤 导出配置并返回配置节数量与脱敏告警（单次原子读取规范目录）
+    pub fn export_config_with_warnings(
+        &self,
+        include_secrets: bool,
+    ) -> Result<(String, usize, Vec<String>)> {
         let Some((canonical, _revision)) = self.config_manager.canonical_toml()? else {
             return Err(CcrError::ConfigMissing(
                 self.config_manager.config_path().display().to_string(),
             ));
         };
+        let parsed = crate::platforms::base::parse_config_from_str(&canonical)?;
+        let section_count = parsed.sections.len();
 
         if include_secrets {
-            return Ok(canonical);
+            return Ok((canonical, section_count, Vec::new()));
         }
 
         let mut table: toml::Table = toml::from_str(&canonical).map_err(|err| {
@@ -373,7 +384,9 @@ impl ConfigService {
         let mut warnings = Vec::new();
         crate::services::exchange::scrub_catalog_toml_table(&mut table, &mut warnings);
 
-        toml::to_string_pretty(&table).map_err(|_| CcrError::ConfigError("序列化配置失败".into()))
+        let rendered = toml::to_string_pretty(&table)
+            .map_err(|_| CcrError::ConfigError("序列化配置失败".into()))?;
+        Ok((rendered, section_count, warnings))
     }
 
     /// 📥 导入配置

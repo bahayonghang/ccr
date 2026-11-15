@@ -48,6 +48,10 @@ capability of the stream that will receive the text.
 | Skipped check | `- 跳过: <message>` | `跳过: <message>` | selected by caller |
 | Information, count, cancellation, normal empty state | Original text without a status prefix | Same text | stdout |
 
+- `ColorOutput::deprecation_warning` always writes to `stderr` with independent
+  `stderr` terminal detection (respecting `NO_COLOR`); CLI command and flag
+  deprecation warnings never initialize file logs (`~/.ccr/logs`) or write to
+  `stdout`.
 - Pass plain message text to shared status functions. Remove an embedded
   duplicate status marker or whole-message color from the migrated message.
 - Style only the shared status marker and field name. Keep the message body

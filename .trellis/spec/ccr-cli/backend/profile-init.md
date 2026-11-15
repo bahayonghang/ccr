@@ -49,8 +49,8 @@
   do not save or back up the registry.
 - Lock or filesystem failure -> propagate the shared error and do not report
   successful initialization.
-- Retired `ccr platform init` -> dedicated migration error naming all three
-  supported replacement commands.
+- Removed `ccr platform init` -> Clap unknown-subcommand parse error; `ccr platform --help`
+  points to `ccr <claude|codex|grok> profile init`.
 
 ## 5. Tests Required
 

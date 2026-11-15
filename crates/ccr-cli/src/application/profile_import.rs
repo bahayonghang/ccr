@@ -180,9 +180,26 @@ pub fn commit_import(request: ImportProfilesRequest) -> Result<ProfileImportRepo
     commit_import_with_context(&context, request)
 }
 
+pub(crate) fn commit_import_with_backup(
+    request: ImportProfilesRequest,
+    backup: bool,
+) -> Result<ProfileImportReport> {
+    ensure_supported_platform(request.platform)?;
+    let context = ProfileLifecycleContext::new(request.platform)?;
+    commit_import_with_context_and_backup(&context, request, backup)
+}
+
 pub fn commit_import_with_context(
     context: &ProfileLifecycleContext,
     request: ImportProfilesRequest,
+) -> Result<ProfileImportReport> {
+    commit_import_with_context_and_backup(context, request, true)
+}
+
+fn commit_import_with_context_and_backup(
+    context: &ProfileLifecycleContext,
+    request: ImportProfilesRequest,
+    backup: bool,
 ) -> Result<ProfileImportReport> {
     ensure_supported_platform(request.platform)?;
     validate_import_request_flags(context, &request)?;
@@ -209,7 +226,8 @@ pub fn commit_import_with_context(
             let journal = WriteJournal::begin(&journal_paths)?;
 
             let catalog_existed = !plan.report.revision.is_empty();
-            let backup_file_path = if catalog_existed {
+            let should_backup = backup || request.mode == ImportModeKind::Replace;
+            let backup_file_path = if should_backup && catalog_existed {
                 Some(manager.backup(Some("import"))?)
             } else {
                 None
@@ -1613,5 +1631,48 @@ mod tests {
         assert_eq!(loaded.default_config, "beta");
         assert!(loaded.settings.skip_confirmation);
         assert_eq!(loaded.settings.tui_theme.as_deref(), Some("ocean"));
+    }
+
+    #[test]
+    fn replace_mode_enforces_pre_write_backup_even_when_backup_flag_is_false() {
+        let temp = tempfile::tempdir().unwrap();
+        let ctx = test_context(temp.path(), Platform::Claude);
+
+        let mut existing = CcsConfig {
+            default_config: "alpha".into(),
+            current_config: String::new(),
+            settings: GlobalSettings::default(),
+            sections: IndexMap::new(),
+        };
+        existing.sections.insert(
+            "alpha".into(),
+            ConfigSection {
+                model: Some("claude-sonnet-4-5".into()),
+                ..Default::default()
+            },
+        );
+        ctx.manager().save(&existing).unwrap();
+
+        let doc = "schema_version = 1\nplatform = \"claude\"\n[profiles.beta]\nauth_mode = \"subscription\"\n";
+        let report = commit_import_with_context_and_backup(
+            &ctx,
+            ImportProfilesRequest {
+                platform: Platform::Claude,
+                content: doc.into(),
+                mode: ImportModeKind::Replace,
+                on_conflict: ConflictStrategy::Skip,
+                dedup: false,
+                dry_run: false,
+                no_apply: false,
+                expected_revision: None,
+            },
+            false,
+        )
+        .unwrap();
+
+        let backup_path = report
+            .backup_path
+            .expect("destructive Replace must always create a pre-write backup");
+        assert!(std::path::Path::new(&backup_path).is_file());
     }
 }

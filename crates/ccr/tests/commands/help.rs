@@ -111,29 +111,90 @@ fn help_subcommand_supports_platform_path() {
 }
 
 #[test]
-fn legacy_platform_init_grok_remains_parseable_and_returns_migration_error() {
+fn removed_platform_subcommands_return_clap_unknown_subcommand_error() {
     let temp_dir = tempfile::tempdir().unwrap();
     let lock_dir = temp_dir.path().join("locks");
     std::fs::create_dir_all(&lock_dir).unwrap();
 
-    let output = Command::new(env!("CARGO_BIN_EXE_ccr"))
-        .args(["platform", "init", "grok"])
-        .env("HOME", temp_dir.path())
-        .env("USERPROFILE", temp_dir.path())
-        .env("CCR_ROOT", temp_dir.path())
-        .env("CCR_LOCK_DIR", lock_dir)
-        .env("NO_COLOR", "1")
-        .env("CLICOLOR", "0")
-        .output()
-        .unwrap();
+    for args in [
+        &["platform", "init", "grok"][..],
+        &["platform", "switch", "codex"][..],
+        &["platform", "current"][..],
+        &["platform", "info", "claude"][..],
+        &["platform", "profile", "list"][..],
+    ] {
+        let output = Command::new(env!("CARGO_BIN_EXE_ccr"))
+            .args(args)
+            .env("HOME", temp_dir.path())
+            .env("USERPROFILE", temp_dir.path())
+            .env("CCR_ROOT", temp_dir.path())
+            .env("CCR_LOCK_DIR", &lock_dir)
+            .env("NO_COLOR", "1")
+            .env("CLICOLOR", "0")
+            .output()
+            .unwrap();
 
-    assert!(!output.status.success());
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("legacy command retired"), "{stderr}");
-    assert!(stderr.contains("`ccr platform init`"), "{stderr}");
-    assert!(stderr.contains("`ccr claude profile init`"), "{stderr}");
-    assert!(stderr.contains("`ccr codex profile init`"), "{stderr}");
-    assert!(stderr.contains("`ccr grok profile init`"), "{stderr}");
+        assert!(!output.status.success(), "expected failure for {args:?}");
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(
+            stderr.contains("unrecognized subcommand"),
+            "expected Clap unknown-subcommand error for {args:?}, got:\n{stderr}"
+        );
+    }
+}
+
+#[test]
+fn root_and_profile_help_hide_deprecated_commands_and_keep_validate_current_visible() {
+    for flag in ["--help", "-h"] {
+        let stdout = run_help(&[flag]);
+        assert!(
+            stdout.contains("ccr [选项] [命令]"),
+            "missing updated usage in `ccr {flag}`:\n{stdout}"
+        );
+        assert!(
+            !stdout.contains("[配置名称]"),
+            "`ccr {flag}` must hide [配置名称]:\n{stdout}"
+        );
+
+        for visible in ["validate", "current"] {
+            assert!(
+                stdout.lines().any(|line| {
+                    line.trim_start()
+                        .strip_prefix(visible)
+                        .is_some_and(|rest| rest.starts_with(char::is_whitespace))
+                }),
+                "`ccr {flag}` must keep `{visible}` visible:\n{stdout}"
+            );
+        }
+
+        for hidden in [
+            "list", "switch", "add", "delete", "enable", "disable", "init", "export", "import",
+            "clear", "optimize",
+        ] {
+            assert!(
+                !stdout.lines().any(|line| {
+                    line.trim_start()
+                        .strip_prefix(hidden)
+                        .is_some_and(|rest| rest.starts_with(char::is_whitespace))
+                }),
+                "`ccr {flag}` must hide `{hidden}`:\n{stdout}"
+            );
+        }
+    }
+
+    for platform in ["claude", "codex", "grok"] {
+        for flag in ["--help", "-h"] {
+            let stdout = run_help(&[platform, "profile", flag]);
+            assert!(
+                !stdout.lines().any(|line| {
+                    line.trim_start()
+                        .strip_prefix("set-field")
+                        .is_some_and(|rest| rest.starts_with(char::is_whitespace))
+                }),
+                "`ccr {platform} profile {flag}` must hide `set-field`:\n{stdout}"
+            );
+        }
+    }
 }
 
 #[test]

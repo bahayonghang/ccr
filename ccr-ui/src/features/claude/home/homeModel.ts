@@ -1,8 +1,8 @@
 import { t } from '@/features/claude/locale'
 
 export const CURRENT_CONFIG_COMMAND = 'ccr current'
-export const SWITCH_CONFIG_COMMAND = 'ccr switch'
-export const LIST_CONFIGS_COMMAND = 'ccr list'
+export const SWITCH_CONFIG_COMMAND = 'ccr claude profile switch <name>'
+export const LIST_CONFIGS_COMMAND = 'ccr claude profile list'
 
 export function heroChips(): string[] {
   return [

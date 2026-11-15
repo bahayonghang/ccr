@@ -30,18 +30,12 @@ export const CLI_CLIENTS: CommandClient[] = [
 
 export const fallbackCommandRegistry: Record<CliClient, CommandInfo[]> = {
   ccr: [
-    { name: 'status', description: 'Inspect current CCR status.', usage: 'ccr status', examples: ['ccr status'], category: 'read', risk: 'safe', executable: true },
-    {
-      name: 'switch',
-      description: 'Switch to a saved CCR configuration.',
-      usage: 'ccr switch <name>',
-      examples: ['ccr switch default'],
-      category: 'write',
-      risk: 'writes_config',
-      executable: true,
-      args: [{ name: 'config_name', label: 'Configuration', type: 'select', required: true, source: 'configs', description: 'Configuration name from the CCR config list.' }],
-    },
+    { name: 'status', description: 'Inspect current CCR status.', usage: 'ccr status', examples: ['ccr status', 'ccr status --json'], category: 'read', risk: 'safe', executable: true },
+    { name: 'show', description: 'Compatibility alias for the current status view.', usage: 'ccr show', examples: ['ccr show', 'ccr show --json'], category: 'read', risk: 'safe', executable: true },
+    { name: 'validate', description: 'Validate global registry and Claude, Codex, and Grok configurations and runtime settings.', usage: 'ccr validate', examples: ['ccr validate', 'ccr validate --json'], category: 'diagnostic', risk: 'safe', executable: true },
+    { name: 'history', description: 'Inspect recent CCR configuration operations.', usage: 'ccr history -l 20', examples: ['ccr history', 'ccr history -l 50 -t switch'], category: 'diagnostic', risk: 'safe', executable: true },
     { name: 'version', description: 'Inspect the installed CCR version.', usage: 'ccr version', examples: ['ccr version'], category: 'read', risk: 'safe', executable: true },
+    { name: 'help', description: 'Show CCR help for a command path.', usage: 'ccr help <command>', examples: ['ccr help', 'ccr help validate'], category: 'read', risk: 'safe', executable: true },
   ],
   claude: [
     { name: 'help', description: 'Preview only. Claude Code execution is not wired to the CCR whitelist.', usage: 'claude --help', examples: ['claude --help'], category: 'blocked' },

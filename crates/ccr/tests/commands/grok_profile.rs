@@ -482,8 +482,10 @@ fn grok_profile_rejects_array_env_key_and_legacy_platform_switch() {
     let legacy = fixture.run_output(&["platform", "switch", "grok"]);
     assert!(!legacy.status.success());
     let stderr = String::from_utf8_lossy(&legacy.stderr);
-    assert!(stderr.contains("legacy"));
-    assert!(stderr.contains("ccr grok profile"));
+    assert!(
+        stderr.contains("unrecognized subcommand") && stderr.contains("switch"),
+        "{stderr}"
+    );
 }
 
 #[test]

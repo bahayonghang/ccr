@@ -1,4 +1,8 @@
-import type { ProfileCreateRequest, ProfileCreationPlatform } from "../models/types";
+import {
+  isProfileExchangePlatform,
+  type ProfileCreateRequest,
+  type ProfileCreationPlatform,
+} from "../models/types";
 
 export interface PlatformProfileMutationData {
   ok: boolean;
@@ -143,4 +147,25 @@ export function buildCodexAuthUpdateArgs(name: string, description: string | und
     args.push("--description", description);
   }
   return args;
+}
+
+export function buildCatalogExportArgs(
+  platformName: string,
+  supportsProfileExchange: boolean,
+): string[] {
+  if (isProfileExchangePlatform(platformName) && supportsProfileExchange) {
+    return [platformName, "profile", "export", "--stdout"];
+  }
+  return ["export", "--platform", platformName, "--stdout"];
+}
+
+export function buildCatalogImportArgs(
+  platformName: string,
+  filePath: string,
+  supportsProfileExchange: boolean,
+): string[] {
+  if (isProfileExchangePlatform(platformName) && supportsProfileExchange) {
+    return [platformName, "profile", "import", filePath, "--replace", "--yes"];
+  }
+  return ["import", filePath, "--platform", platformName, "--force"];
 }

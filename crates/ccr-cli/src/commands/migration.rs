@@ -18,9 +18,28 @@ pub fn legacy_platform_command_error(command: &str) -> CcrError {
     ))
 }
 
+#[deprecated(
+    since = "7.5.2",
+    note = "Retired in 7.x; removal is no earlier than 8.0.0"
+)]
 pub fn legacy_platform_init_error() -> CcrError {
     CcrError::ConfigError(
         "legacy command retired: `ccr platform init` has moved to explicit profile commands. Use `ccr claude profile init`, `ccr codex profile init`, or `ccr grok profile init`."
             .to_string(),
     )
+}
+
+pub(crate) fn canonical_profile_command_hint(
+    platform: &str,
+    action: &str,
+    fallback: &str,
+) -> String {
+    match platform
+        .parse::<crate::models::Platform>()
+        .ok()
+        .filter(|parsed| parsed.supports_auth_profile())
+    {
+        Some(supported) => format!("ccr {} profile {action}", supported.short_name()),
+        None => fallback.to_string(),
+    }
 }

@@ -134,6 +134,7 @@ fn command_skips_catalog_migration(cli: &Cli) -> bool {
                     action: Some(GrokAuthAction::Help),
                 }),
         }) => true,
+        Some(Commands::List | Commands::Export { .. }) => true,
         _ => false,
     }
 }
@@ -142,9 +143,49 @@ fn command_skips_catalog_migration(cli: &Cli) -> bool {
 pub struct CommandDispatcher;
 
 impl CommandDispatcher {
-    /// 只读交换命令跳过启动日志初始化，保证缺失/只读目录零磁盘副作用与纯净 stdout。
+    /// 只读命令跳过启动日志初始化，保证缺失/只读目录零磁盘副作用与纯净 stdout。
     pub fn skips_logger_init(cli: &Cli) -> bool {
-        command_is_readonly_profile_exchange(cli)
+        use crate::cli::subcommands::{
+            ClaudeAction, ClaudeProfileAction, CodexAction, CodexProfileAction, GrokAction,
+            GrokProfileAction, PlatformAction,
+        };
+
+        if command_skips_catalog_migration(cli) {
+            return true;
+        }
+
+        match &cli.command {
+            Some(Commands::Current(_)) => true,
+            Some(Commands::Platform {
+                action: PlatformAction::List { .. } | PlatformAction::Help,
+            }) => true,
+            Some(Commands::Claude {
+                action: Some(ClaudeAction::Profile { action }),
+            }) => matches!(
+                action.as_ref(),
+                ClaudeProfileAction::List { .. }
+                    | ClaudeProfileAction::Current { .. }
+                    | ClaudeProfileAction::Help
+            ),
+            Some(Commands::Codex {
+                action:
+                    Some(CodexAction::Profile {
+                        action:
+                            CodexProfileAction::List { .. }
+                            | CodexProfileAction::Current { .. }
+                            | CodexProfileAction::Help,
+                    }),
+            }) => true,
+            Some(Commands::Grok {
+                action: Some(GrokAction::Profile { action }),
+            }) => matches!(
+                action.as_ref(),
+                GrokProfileAction::List { .. }
+                    | GrokProfileAction::Current { .. }
+                    | GrokProfileAction::Help
+            ),
+            _ => false,
+        }
     }
 
     /// 写入型 `profile import --json` 仅使用文件日志，避免运行时重应用 INFO 日志污染 stdout JSON。
@@ -191,15 +232,30 @@ impl CommandDispatcher {
 
         match &cli.command {
             // 简单命令（无参数）
-            Some(Commands::List) => crate::commands::list_command().await,
+            Some(Commands::List) => {
+                ccr_core::core::ColorOutput::deprecation_warning(
+                    "`ccr list` 已弃用并隐藏，将在 8.0 移除；请改用 `ccr claude profile list`（或跨平台概览 `ccr current`）。",
+                );
+                crate::commands::list_command().await
+            }
             Some(Commands::Current(args)) => {
                 crate::commands::current_command(args.verbose, args.json).await
             }
-            Some(Commands::Add) => crate::commands::add_command().await,
+            Some(Commands::Add) => {
+                ccr_core::core::ColorOutput::deprecation_warning(
+                    "`ccr add` 已弃用并隐藏，将在 8.0 移除；请改用 `ccr claude profile create <name>` 或交互式 TUI `ccr`。",
+                );
+                crate::commands::add_command().await
+            }
             Some(Commands::Validate { json }) => {
                 crate::commands::validate_command_with_options(*json).await
             }
-            Some(Commands::Optimize) => crate::commands::optimize_command().await,
+            Some(Commands::Optimize) => {
+                ccr_core::core::ColorOutput::deprecation_warning(
+                    "`ccr optimize` 已弃用并隐藏，将在 8.0 移除；SQLite `profiles.db` 已自动维护规范顺序（如需手动查看编辑可执行 `ccr claude profile open`）。",
+                );
+                crate::commands::optimize_command().await
+            }
             Some(Commands::Version) => {
                 Self::show_version();
                 Ok(())
@@ -211,12 +267,21 @@ impl CommandDispatcher {
                 crate::commands::switch_command(config_name).await
             }
             Some(Commands::Delete { config_name, force }) => {
+                ccr_core::core::ColorOutput::deprecation_warning(
+                    "`ccr delete` 已弃用并隐藏，将在 8.0 移除；请改用 `ccr claude profile delete <name>`。",
+                );
                 crate::commands::delete_command(config_name, auto_yes || *force).await
             }
             Some(Commands::Enable { config_name }) => {
+                ccr_core::core::ColorOutput::deprecation_warning(
+                    "`ccr enable` 已弃用并隐藏，将在 8.0 移除；请改用 `ccr claude profile enable <name>`。",
+                );
                 crate::commands::enable_command(config_name).await
             }
             Some(Commands::Disable { config_name, force }) => {
+                ccr_core::core::ColorOutput::deprecation_warning(
+                    "`ccr disable` 已弃用并隐藏，将在 8.0 移除；请改用 `ccr claude profile disable <name>`。",
+                );
                 crate::commands::disable_command(config_name, auto_yes || *force).await
             }
             Some(Commands::History { limit, filter_type }) => {
@@ -231,6 +296,9 @@ impl CommandDispatcher {
                 }
             },
             Some(Commands::Init { force }) => {
+                ccr_core::core::ColorOutput::deprecation_warning(
+                    "`ccr init` 已弃用并隐藏，将在 8.0 移除；请改用 `ccr claude profile init`（或 `ccr codex profile init` / `ccr grok profile init`）。",
+                );
                 crate::commands::init_command(auto_yes || *force).await
             }
             Some(Commands::Export {
@@ -239,6 +307,14 @@ impl CommandDispatcher {
                 platform,
                 stdout,
             }) => {
+                let target_hint = crate::commands::migration::canonical_profile_command_hint(
+                    platform,
+                    "export",
+                    "ccr <claude|codex|grok> profile export",
+                );
+                ccr_core::core::ColorOutput::deprecation_warning(&format!(
+                    "`ccr export` 已弃用并隐藏，将在 8.0 移除；请改用 `{target_hint}`。"
+                ));
                 crate::commands::export_command(output.clone(), !*no_secrets, platform, *stdout)
                     .await
             }
@@ -249,6 +325,14 @@ impl CommandDispatcher {
                 force,
                 platform,
             }) => {
+                let target_hint = crate::commands::migration::canonical_profile_command_hint(
+                    platform,
+                    "import",
+                    "ccr <claude|codex|grok> profile import",
+                );
+                ccr_core::core::ColorOutput::deprecation_warning(&format!(
+                    "`ccr import` 已弃用并隐藏，将在 8.0 移除；请改用 `{target_hint}`。"
+                ));
                 let mode = if *merge {
                     crate::commands::ImportMode::Merge
                 } else {
@@ -303,6 +387,9 @@ impl CommandDispatcher {
                 }
             },
             Some(Commands::Clear { force }) => {
+                ccr_core::core::ColorOutput::deprecation_warning(
+                    "`ccr clear` 已弃用并隐藏，将在 8.0 移除；请改用 `ccr claude profile off`。",
+                );
                 crate::commands::clear_command(auto_yes || *force).await
             }
 
@@ -520,21 +607,6 @@ impl CommandDispatcher {
                 Ok(())
             }
             PlatformAction::List { json } => crate::commands::platform_list_command(*json).await,
-            PlatformAction::Switch { .. } => Err(
-                crate::commands::migration::legacy_platform_command_error("switch"),
-            ),
-            PlatformAction::Current { .. } => Err(
-                crate::commands::migration::legacy_platform_command_error("current"),
-            ),
-            PlatformAction::Info { .. } => Err(
-                crate::commands::migration::legacy_platform_command_error("info"),
-            ),
-            PlatformAction::Init { .. } => {
-                Err(crate::commands::migration::legacy_platform_init_error())
-            }
-            PlatformAction::Profile { .. } => Err(
-                crate::commands::migration::legacy_platform_command_error("profile"),
-            ),
         }
     }
 
@@ -1028,7 +1100,7 @@ impl CommandDispatcher {
         println!();
 
         ColorOutput::info("核心任务:");
-        println!("  平台切换: ccr platform list -> ccr platform switch <platform>");
+        println!("  配置切换: ccr <claude|codex|grok> profile switch <name>");
         println!("  Codex 账号: ccr codex auth current -> ccr codex auth switch <name>");
         println!("  官方登出: ccr claude auth off / ccr codex auth off / ccr grok auth off");
         println!();

@@ -149,7 +149,7 @@ const PLATFORM_AFTER_LONG_HELP: &str = "\
     ccr grok profile --help
 
 边界:
-  旧的平台路由入口已退休；现有脚本仍会收到明确的迁移错误。";
+  旧版平台级切换、状态、初始化及 `platform` 下的 `profile` 子命令已移除；请分别使用 `ccr <claude|codex|grok> profile ...`、`ccr current` 与 `ccr platform list`。";
 
 const CODEX_LONG_ABOUT: &str = "\
 管理 Codex CLI 的账号、配额和历史同步。";
@@ -273,7 +273,7 @@ const CLEAN_AFTER_LONG_HELP: &str = "\
 pub fn build_cli_command() -> Command {
     Cli::command()
         .help_template(ROOT_HELP_TEMPLATE)
-        .override_usage("ccr [选项] [配置名称] [命令]")
+        .override_usage("ccr [选项] [命令]")
         .disable_help_subcommand(true)
         .long_about(ROOT_LONG_ABOUT)
         .after_long_help(ROOT_AFTER_LONG_HELP)

@@ -203,6 +203,7 @@ pub enum CodexProfileAction {
     Create(Box<ProfileCreateActionArgs>),
 
     /// Update one Codex profile field
+    #[command(hide = true)]
     SetField(ProfileSetFieldActionArgs),
 
     /// 一次修改多个字段、改名或替换密钥

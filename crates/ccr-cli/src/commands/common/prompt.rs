@@ -1,7 +1,7 @@
 // 🎯 交互式提示工具
 // 统一处理用户输入和确认逻辑
 
-use ccr_core::core::error::Result;
+use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
 use colored::Colorize;
 use std::io::{self, Write};
@@ -20,7 +20,12 @@ pub fn prompt_required(field_name: &str, hint: &str) -> Result<String> {
         io::stdout().flush()?;
 
         let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
+        let bytes_read = io::stdin().read_line(&mut input)?;
+        if bytes_read == 0 {
+            return Err(CcrError::ValidationError(format!(
+                "未提供必填项 '{field_name}'（输入流已结束）"
+            )));
+        }
         let input = input.trim().to_string();
 
         if input.is_empty() {

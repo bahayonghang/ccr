@@ -13,8 +13,8 @@ use ccr_config::managers::ConfigSection;
 use ccr_config::managers::config_validator::ConfigValidator;
 use ccr_config::platforms::base::section_to_profile;
 use ccr_config::{
-    EXCHANGE_SCHEMA_VERSION, ExchangeSecretsMode, render_exchange_v1, scrub_section_secrets,
-    section_contains_inline_secrets,
+    EXCHANGE_SCHEMA_VERSION, ExchangeSecretsMode, render_exchange_v1, scrub_catalog_toml_table,
+    scrub_section_secrets, section_contains_inline_secrets, section_to_exchange_table,
 };
 use ccr_core::Secret;
 use ccr_core::core::error::{CcrError, Result};
@@ -199,6 +199,69 @@ pub fn export_profiles_with_context(
         warnings,
         toml_content,
     })
+}
+
+pub(crate) fn export_legacy_flat_catalog(
+    platform: Platform,
+    include_secrets: bool,
+) -> Result<(String, usize, Vec<String>)> {
+    ensure_supported_platform(platform)?;
+    let context = ProfileLifecycleContext::new(platform)?;
+    let manager = context.manager();
+    let Some((canonical, _revision)) = manager.canonical_toml()? else {
+        return Err(CcrError::ConfigMissing(
+            manager.config_path().display().to_string(),
+        ));
+    };
+
+    let mut root_table: toml::Table = toml::from_str(&canonical).map_err(|err| {
+        ccr_config::services::exchange::safe_canonical_toml_parse_error(&canonical, &err)
+    })?;
+    let catalog = ccr_config::platforms::base::parse_config_from_str(&canonical)?;
+    let section_count = catalog.sections.len();
+
+    let codex_secrets = if platform == Platform::Codex {
+        Some(
+            context
+                .codex_platform()?
+                .runtime_service()
+                .load_secret_store()?,
+        )
+    } else {
+        None
+    };
+
+    // Strip profile section keys before scrubbing root_table so top-level extras and
+    // `[settings]` are scrubbed once without duplicating profile section warnings.
+    for name in catalog.sections.keys() {
+        root_table.remove(name);
+    }
+
+    let whitelist = platform_safe_extension_keys(platform);
+    let mut warnings = Vec::new();
+    if !include_secrets {
+        scrub_catalog_toml_table(&mut root_table, &mut warnings);
+    }
+
+    for (name, mut section) in catalog.sections {
+        let original_usage_count = section.usage_count;
+        overlay_codex_secret_section(&name, &mut section, codex_secrets.as_ref());
+        materialize_explicit_auth_mode(platform, &mut section);
+
+        if !include_secrets {
+            scrub_section_secrets(&mut section, &name, whitelist, &mut warnings);
+        }
+
+        let mut sec_tbl = section_to_exchange_table(&section);
+        if let Some(count) = original_usage_count {
+            sec_tbl.insert("usage_count".into(), toml::Value::Integer(i64::from(count)));
+        }
+        root_table.insert(name, toml::Value::Table(sec_tbl));
+    }
+
+    let rendered =
+        toml::to_string(&root_table).map_err(|_| CcrError::ConfigError("序列化配置失败".into()))?;
+    Ok((rendered, section_count, warnings))
 }
 
 pub(crate) fn ensure_supported_platform(platform: Platform) -> Result<()> {

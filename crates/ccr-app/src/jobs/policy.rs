@@ -1,22 +1,7 @@
 //! Shared existing desktop command catalog and request policy; Tauri wire types remain in its adapter.
 use serde::Serialize;
 
-pub const ALLOWED_COMMANDS: &[&str] = &[
-    "list",
-    "switch",
-    "add",
-    "rename",
-    "duplicate",
-    "show",
-    "validate",
-    "export",
-    "history",
-    "version",
-    "help",
-    "backup",
-    "diff",
-    "status",
-];
+pub const ALLOWED_COMMANDS: &[&str] = &["status", "show", "validate", "history", "version", "help"];
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -324,7 +309,7 @@ pub fn command_catalog() -> Vec<CommandInfo> {
             name: "status",
             path: vec!["status"],
             title: "Status overview",
-            description: "Inspect the current Claude/Codex runtime status without changing configuration.",
+            description: "Inspect the current Claude, Codex, and Grok runtime status without changing configuration.",
             usage: "ccr status --json",
             examples: vec!["ccr status", "ccr status --json"],
             category: "read",
@@ -351,12 +336,16 @@ pub fn command_catalog() -> Vec<CommandInfo> {
             name: "list",
             path: vec!["list"],
             title: "List configurations",
-            description: "List saved CCR configurations.",
-            usage: "ccr list",
-            examples: vec!["ccr list"],
-            category: "read",
-            risk: "safe",
-            executable: true,
+            description: "Top-level list is deprecated. Use platform-scoped profile list commands or the configurations view.",
+            usage: "ccr <claude|codex|grok> profile list",
+            examples: vec![
+                "ccr claude profile list",
+                "ccr codex profile list",
+                "ccr grok profile list",
+            ],
+            category: "preview",
+            risk: "preview_only",
+            executable: false,
             requires_confirmation: false,
             args: vec![],
             flags: vec![],
@@ -367,15 +356,19 @@ pub fn command_catalog() -> Vec<CommandInfo> {
             name: "validate",
             path: vec!["validate"],
             title: "Validate configuration",
-            description: "Validate CCR configuration and managed settings files.",
+            description: "Validate global registry and Claude, Codex, and Grok configurations and runtime settings.",
             usage: "ccr validate",
-            examples: vec!["ccr validate"],
+            examples: vec!["ccr validate", "ccr validate --json"],
             category: "diagnostic",
             risk: "safe",
             executable: true,
             requires_confirmation: false,
             args: vec![],
-            flags: vec![],
+            flags: vec![bool_flag(
+                "--json",
+                "JSON output",
+                "Return a machine-readable validation report.",
+            )],
             aliases: vec![],
             related_route: None,
         },
@@ -434,7 +427,7 @@ pub fn command_catalog() -> Vec<CommandInfo> {
             title: "Command help",
             description: "Show CCR help for a command path.",
             usage: "ccr help <command>",
-            examples: vec!["ccr help", "ccr help switch"],
+            examples: vec!["ccr help", "ccr help status", "ccr help validate"],
             category: "read",
             risk: "safe",
             executable: true,
@@ -443,7 +436,7 @@ pub fn command_catalog() -> Vec<CommandInfo> {
                 "path",
                 "Command path",
                 false,
-                Some("switch"),
+                Some("validate"),
                 None,
                 "Optional command path to inspect.",
             )],
@@ -472,48 +465,18 @@ pub fn command_catalog() -> Vec<CommandInfo> {
             related_route: None,
         },
         CommandInfo {
-            name: "diff",
-            path: vec!["diff"],
-            title: "Compare configurations",
-            description: "Compare two saved configurations.",
-            usage: "ccr diff <left> <right>",
-            examples: vec!["ccr diff default work"],
-            category: "diagnostic",
-            risk: "safe",
-            executable: true,
-            requires_confirmation: false,
-            args: vec![
-                text_arg(
-                    "left",
-                    "Left config",
-                    true,
-                    Some("default"),
-                    Some("configs"),
-                    "First configuration name.",
-                ),
-                text_arg(
-                    "right",
-                    "Right config",
-                    true,
-                    Some("work"),
-                    Some("configs"),
-                    "Second configuration name.",
-                ),
-            ],
-            flags: vec![],
-            aliases: vec![],
-            related_route: Some("/configs"),
-        },
-        CommandInfo {
             name: "export",
             path: vec!["export"],
             title: "Export configuration",
-            description: "Export CCR configuration to a file.",
-            usage: "ccr export --no-secrets",
-            examples: vec!["ccr export", "ccr export -o ccr-config.toml --no-secrets"],
-            category: "read",
-            risk: "safe",
-            executable: true,
+            description: "Top-level export is deprecated. Use platform-scoped profile export commands or the configurations view.",
+            usage: "ccr <claude|codex|grok> profile export",
+            examples: vec![
+                "ccr claude profile export --no-secrets",
+                "ccr codex profile export -o codex-profiles.toml",
+            ],
+            category: "preview",
+            risk: "preview_only",
+            executable: false,
             requires_confirmation: false,
             args: vec![],
             flags: vec![
@@ -538,12 +501,15 @@ pub fn command_catalog() -> Vec<CommandInfo> {
             name: "switch",
             path: vec!["switch"],
             title: "Switch configuration",
-            description: "Switch Claude/Codex settings to a saved CCR configuration.",
-            usage: "ccr switch <config>",
-            examples: vec!["ccr switch default"],
-            category: "write",
-            risk: "writes_config",
-            executable: true,
+            description: "Top-level switch is retired. Switch profiles from platform pages or explicit platform CLI commands.",
+            usage: "ccr <claude|codex|grok> profile switch <name>",
+            examples: vec![
+                "ccr claude profile switch default",
+                "ccr codex profile switch work",
+            ],
+            category: "preview",
+            risk: "typed_only",
+            executable: false,
             requires_confirmation: false,
             args: vec![text_arg(
                 "config_name",
@@ -556,88 +522,6 @@ pub fn command_catalog() -> Vec<CommandInfo> {
             flags: vec![],
             aliases: vec![],
             related_route: Some("/configs"),
-        },
-        CommandInfo {
-            name: "rename",
-            path: vec!["rename"],
-            title: "Rename configuration",
-            description: "Rename a saved CCR configuration.",
-            usage: "ccr rename <old> <new>",
-            examples: vec!["ccr rename default work"],
-            category: "write",
-            risk: "writes_config",
-            executable: true,
-            requires_confirmation: false,
-            args: vec![
-                text_arg(
-                    "old_name",
-                    "Current name",
-                    true,
-                    Some("default"),
-                    Some("configs"),
-                    "Existing configuration name.",
-                ),
-                text_arg(
-                    "new_name",
-                    "New name",
-                    true,
-                    Some("work"),
-                    None,
-                    "New configuration name.",
-                ),
-            ],
-            flags: vec![],
-            aliases: vec![],
-            related_route: Some("/configs"),
-        },
-        CommandInfo {
-            name: "duplicate",
-            path: vec!["duplicate"],
-            title: "Duplicate configuration",
-            description: "Copy an existing CCR configuration to a new name.",
-            usage: "ccr duplicate <source> <target>",
-            examples: vec!["ccr duplicate default sandbox"],
-            category: "write",
-            risk: "writes_config",
-            executable: true,
-            requires_confirmation: false,
-            args: vec![
-                text_arg(
-                    "source",
-                    "Source",
-                    true,
-                    Some("default"),
-                    Some("configs"),
-                    "Configuration to copy.",
-                ),
-                text_arg(
-                    "target",
-                    "Target",
-                    true,
-                    Some("sandbox"),
-                    None,
-                    "New configuration name.",
-                ),
-            ],
-            flags: vec![],
-            aliases: vec![],
-            related_route: Some("/configs"),
-        },
-        CommandInfo {
-            name: "backup",
-            path: vec!["backup"],
-            title: "Create backup",
-            description: "Create a backup of managed CCR configuration files.",
-            usage: "ccr backup",
-            examples: vec!["ccr backup"],
-            category: "write",
-            risk: "writes_config",
-            executable: true,
-            requires_confirmation: false,
-            args: vec![],
-            flags: vec![],
-            aliases: vec![],
-            related_route: None,
         },
         CommandInfo {
             name: "delete",
@@ -735,9 +619,9 @@ pub fn command_catalog() -> Vec<CommandInfo> {
             name: "add",
             path: vec!["add"],
             title: "Add configuration",
-            description: "Interactive CLI flow. Use the configuration page until a non-interactive schema is available.",
-            usage: "ccr add",
-            examples: vec!["ccr add"],
+            description: "Top-level add is deprecated. Create profiles from platform pages or explicit platform CLI commands.",
+            usage: "ccr <claude|codex|grok> profile create <name>",
+            examples: vec!["ccr claude profile create work"],
             category: "preview",
             risk: "interactive",
             executable: false,
@@ -771,8 +655,8 @@ pub fn command_catalog() -> Vec<CommandInfo> {
             path: vec!["platform"],
             title: "Platform management",
             description: "Preview-only shortcut to platform management surfaces.",
-            usage: "ccr platform <action>",
-            examples: vec!["ccr platform list", "ccr platform current"],
+            usage: "ccr platform list",
+            examples: vec!["ccr platform list", "ccr platform list --json"],
             category: "preview",
             risk: "preview_only",
             executable: false,
@@ -1109,6 +993,20 @@ mod tests {
         assert!(!platform.executable);
         assert_eq!(platform.related_route, Some("/settings"));
 
+        let executable_names = catalog
+            .iter()
+            .filter(|command| command.executable)
+            .map(|command| command.name)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            ALLOWED_COMMANDS,
+            &["status", "show", "validate", "history", "version", "help"]
+        );
+        assert_eq!(
+            executable_names,
+            vec!["status", "validate", "history", "version", "help", "show"]
+        );
+
         for command in catalog.iter().filter(|command| command.executable) {
             assert!(
                 ALLOWED_COMMANDS.contains(&command.name),
@@ -1117,11 +1015,45 @@ mod tests {
             );
         }
 
-        for command_name in ["delete", "import", "restore"] {
+        for dead_command in ["backup", "diff", "rename", "duplicate"] {
+            assert!(
+                catalog.iter().all(|entry| entry.name != dead_command),
+                "{dead_command} must be removed from command_catalog"
+            );
+            assert!(
+                validate_command_request(&CommandExecutionRequest::foreground(
+                    dead_command.to_string(),
+                    None,
+                    None,
+                ))
+                .is_err()
+            );
+        }
+
+        for preview_command in ["list", "export"] {
+            let entry = catalog
+                .iter()
+                .find(|item| item.name == preview_command)
+                .expect("deprecated preview entry exists");
+            assert!(!entry.executable);
+            assert_eq!(entry.category, "preview");
+            assert_eq!(entry.risk, "preview_only");
+            assert_eq!(entry.related_route, Some("/configs"));
+            assert!(
+                validate_command_request(&CommandExecutionRequest::foreground(
+                    preview_command.to_string(),
+                    None,
+                    None,
+                ))
+                .is_err()
+            );
+        }
+
+        for command_name in ["switch", "delete", "import", "restore"] {
             let command = catalog
                 .iter()
                 .find(|entry| entry.name == command_name)
-                .expect("destructive command metadata exists");
+                .expect("typed-only command metadata exists");
             assert_eq!(command.risk, "typed_only");
             assert!(
                 !command.executable,
