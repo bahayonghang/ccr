@@ -12,7 +12,7 @@ CCR UI 是基于 **Tauri v2** 的原生桌面应用，为多个 AI CLI 工具提
 
 **核心组成**:
 1. **Tauri Backend** (`src-tauri/`) - Rust 原生后端；IPC 子模块见 `src-tauri/src/commands/mod.rs`，命令清单见生成文档 `docs/reference/tauri-command-inventory.md`（英：`docs/en/reference/tauri-command-inventory.md`）
-2. **Frontend** (`src/`) - React 19 + TanStack Query 单页应用（视觉规则见本目录 `AGENTS.md` 与 `DESIGN.md` 行情终端）
+2. **Frontend** (`src/`) - React 19 + TanStack Query 单页应用（视觉规则见本目录 `AGENTS.md` 与 `DESIGN.md` 轻盈玻璃工作台）
 3. **ccr-db** (`../crates/ccr-db/`) - 独立 workspace crate，提供 SQLite 数据库、CheckIn、加密等服务
 
 **支持平台**:
@@ -36,6 +36,7 @@ ccr-ui/
 │   │   └── platform/              # 执行环境抽象层
 │   │       ├── mod.rs             # ExecutionEnvironment trait + EnvironmentRegistry
 │   │       ├── local.rs           # 本地环境 (委托 ccr 核心库)
+│   │       ├── ssh.rs             # SSH 环境
 │   │       └── wsl.rs             # WSL 环境 (Windows only)
 │   ├── Cargo.toml                 # Tauri 依赖
 │   └── tauri.conf.json            # Tauri 配置
@@ -64,7 +65,7 @@ ccr-ui/
 
 ## Design Context
 
-视觉、品牌与审美以本目录 `AGENTS.md` 与 `DESIGN.md`（行情终端 / market terminal）为准。本文件不重定义色板、token 或设计原则。若下文与这两份文件冲突，以 `AGENTS.md` 和 `DESIGN.md` 为准。浏览器或 UI 工具可用不等于已授权操作界面。
+视觉、品牌与审美以本目录 `AGENTS.md` 与 `DESIGN.md`（轻盈玻璃工作台 / airy-glass workbench）为准。本文件不重定义色板、token 或设计原则。若下文与这两份文件冲突，以 `AGENTS.md` 和 `DESIGN.md` 为准。浏览器或 UI 工具可用不等于已授权操作界面。
 
 导航见 `./code_map.md`（`src/shell`、`src/features`、`src/api`、generated types）。
 
@@ -87,15 +88,17 @@ ccr-ui/
 
 | 类别 | 技术 | 版本 | 用途 |
 |------|------|------|------|
-| **框架** | React | 19.2.8 | UI 框架 |
-| **构建** | Vite | 8.2.2 | 构建工具 |
-| **路由** | React Router | 8.3.1 | 路由管理 |
-| **状态** | Zustand | 5.0.15 | 客户端状态 |
-| **查询** | TanStack React Query | 5.102.8 | 服务端状态 |
-| **组件** | Radix UI | 见 package.json `@radix-ui/*` | 无样式原语 |
-| **样式** | Tailwind CSS | 4.3.3 | CSS 框架 |
-| **IPC** | @tauri-apps/api | 2.11.1 | Tauri invoke() 通信 |
-| **类型** | TypeScript | ^6.0.3 | 类型安全 |
+| **框架** | React | 19 | UI 框架 |
+| **构建** | Vite | 8 | 构建工具 |
+| **路由** | React Router | 8 | 路由管理 |
+| **状态** | Zustand | 5 | 客户端状态 |
+| **查询** | TanStack React Query | 5 | 服务端状态 |
+| **组件** | Radix UI | `@radix-ui/*` | 无样式原语 |
+| **样式** | Tailwind CSS | 4 | CSS 框架 |
+| **IPC** | @tauri-apps/api | 2 | Tauri invoke() 通信 |
+| **类型** | TypeScript | 6 | 类型安全 |
+
+精确版本以 `package.json` 为准。
 
 ---
 
@@ -135,17 +138,7 @@ const unlisten = await listen<LogMessage>('app-log', (event) => { ... })
 
 ### 执行环境抽象
 
-```rust
-// platform/mod.rs
-pub trait ExecutionEnvironment: Send + Sync {
-    fn name(&self) -> &str;
-    fn env_type(&self) -> &str;  // "local" | "wsl" | "ssh"
-    fn list_platforms(&self) -> Result<Vec<String>>;
-    fn read_config(&self, platform: &str, path: &str) -> Result<String>;
-    fn write_config(&self, platform: &str, path: &str, content: &str) -> Result<()>;
-    fn detect_cli_status(&self) -> Result<Vec<CliStatus>>;
-}
-```
+`src-tauri/src/platform/mod.rs` 定义 async `ExecutionEnvironment` trait（`env_type` / `display_name` / `env_id` / `list_platforms` / `read_config` / `write_config` / `detect_cli_status` 等，错误类型 `EnvError`），由 `local.rs`、`wsl.rs`、`ssh.rs` 实现。签名以源码为准。
 
 ---
 
@@ -153,8 +146,8 @@ pub trait ExecutionEnvironment: Send + Sync {
 
 ### 环境要求
 
-- **Rust**: 1.88+ (Edition 2024)
-- **Node.js**: 18.x+
+- **Rust**: 1.95+ (Edition 2024，见 `rust-toolchain.toml`)
+- **Node.js**: 20.19+ 或 22.12+（Vite 8 要求）
 - **Tauri CLI**: `cargo install tauri-cli`
 
 ### 开发命令
@@ -210,12 +203,5 @@ bun run tauri:check
 - 样式: 遵循 `DESIGN.md` / `src/styles/tokens.css`；不要在本文件重定义视觉 token
 - 注释: 中文注释
 
----
-
-## 文档目录
-
-- **模块文档**: `/ccr-ui/CLAUDE.md` (本文件)
-- **前端文档**: `/ccr-ui/CLAUDE.md`（本文件）
-- **根文档**: `/CLAUDE.md` (项目总览)
 
 ---
