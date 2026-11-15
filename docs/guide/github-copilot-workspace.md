@@ -24,7 +24,7 @@ CCR 现在在仓库内补齐了 GitHub Copilot for VS Code 的官方工作区资
 ### Codex CLI
 
 - 运行时配置位于用户目录 `~/.codex/`
-- CCR 的 Unified profile 位于 `~/.ccr/platforms/codex/profiles.toml`
+- CCR 的 Unified profile 配置库位于 `~/.ccr/platforms/codex/profiles.db`
 - 与 GitHub Copilot 工作区资产不是同一套机制
 
 ## 共享规则与本地安装

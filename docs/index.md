@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "CCR"
   text: "统一管理 AI CLI 配置与运行时状态"
-  tagline: "CLI 主线，显式 Claude Runtime / Codex Runtime，配套 TUI 与 CCR UI"
+  tagline: "CLI 主线，显式 Claude / Codex / Grok 运行时与 SQLite 配置库，配套 TUI 与 CCR UI"
   image:
     src: /logo.svg
     alt: CCR
@@ -25,13 +25,13 @@ const choosePaths = [
   {
     icon: '⚡',
     title: 'CLI 为主线',
-    details: '围绕 ccr current、ccr claude profile、ccr codex profile 组织日常运行时管理。',
+    details: '围绕 ccr current 与 ccr <claude|codex|grok> profile 组织日常运行时管理。',
     link: '/guide/cli-workflows'
   },
   {
     icon: '🖥️',
     title: 'CCR UI 为图形入口',
-    details: 'Vue 3 + Tauri 图形界面，共享同一套 registry、profiles、history 与 backups。',
+    details: 'Tauri 图形界面，共享同一套注册表、profiles.db 配置库、历史记录与备份。',
     link: '/guide/ui-overview'
   }
 ]
@@ -39,14 +39,14 @@ const choosePaths = [
 const capabilityCards = [
   {
     icon: '🔀',
-    title: '显式双 Runtime',
-    details: 'Claude 与 Codex 并列展示；不再依赖全局 current_platform 心智模型。',
+    title: '显式多 Runtime 状态',
+    details: '通过 ccr current 直观查看运行时路由；不再依赖隐式的全局当前平台开关。',
     link: '/reference/commands/current'
   },
   {
     icon: '🔐',
-    title: '平台级 Profile 命令',
-    details: '使用 ccr claude profile ... 与 ccr codex profile ... 管理运行时路由。',
+    title: '平台级 Profile 与 Auth 命令',
+    details: '使用 ccr <claude|codex|grok> profile ... 与 auth ... 管理配置库与官方登录态。',
     link: '/reference/commands/'
   },
   {
@@ -57,20 +57,20 @@ const capabilityCards = [
   },
   {
     icon: '📚',
-    title: 'Sessions / Provider / Skills',
-    details: '会话索引、Provider 健康检查、技能与提示词共用一套 CLI 入口。',
-    link: '/reference/commands/'
+    title: 'Doctor / Sessions / Skills',
+    details: '统一只读体检、会话索引、Provider 健康检查、技能与提示词共用一套 CLI 入口。',
+    link: '/reference/commands/doctor'
   },
   {
     icon: '🛡️',
-    title: '安全写入',
-    details: '文件锁、原子写入、备份与审计链路共同保护配置切换。',
+    title: 'SQLite 配置库与安全写入',
+    details: '以 profiles.db 为权威活目录，配合 ExchangeV1 导入导出、文件锁、原子写入与备份。',
     link: '/guide/configuration'
   },
   {
     icon: '🏗️',
     title: '架构与迁移参考',
-    details: 'workspace 分层、运行时流程和迁移映射集中在参考文档。',
+    details: 'Workspace 分层、运行时流程与 7.x 命令/存储迁移映射集中在参考文档。',
     link: '/reference/migration'
   }
 ]
@@ -82,11 +82,13 @@ const capabilityCards = [
 ## 5 分钟起步
 
 ```bash
-ccr init
-ccr current
-ccr add
+ccr claude profile init
+printf '%s' "$ANTHROPIC_AUTH_TOKEN" | ccr claude profile create work \
+  --base-url https://api.example.com \
+  --auth-token-stdin
 ccr claude profile list
-ccr claude profile switch <name>
+ccr claude profile switch work
+ccr current
 ccr validate
 ```
 
@@ -94,17 +96,19 @@ ccr validate
 
 | 平台 | 状态 | 说明 |
 |------|------|------|
-| Claude Code | ✅ Implemented | official auth + profile runtime 双路径 |
-| Codex | ✅ Implemented | auth、profile、sync-history 均已实现 |
-| Antigravity CLI | ✅ Implemented | 内部 key 保持 `gemini`；旧 Gemini session import 保留兼容 |
-| Factory Droid | ✅ Implemented | 保留在 broader platform domain 中 |
-| Qwen CLI | 🚧 Reserved / Partial | 保留平台键与部分数据域支持 |
+| Claude Code (`claude`) | ✅ 已实现 | `auth` + `profile` 双路径，权威存储 `profiles.db` |
+| Codex (`codex`) | ✅ 已实现 | `auth`、`profile`、`fix`、`sync-history` 均已实现，权威存储 `profiles.db` |
+| Grok (`grok`) | ✅ 已实现 | `auth` + `profile` 完整 CLI/TUI/UI 支持，权威存储 `profiles.db` |
+| Antigravity CLI (`gemini`) | 🔄 兼容适配器 | `legacy_adapter`（无 CLI `profile`/`auth` 子命令）；支持 `doctor`、周边工具与 `/antigravity` UI |
+| Factory Droid (`droid`) | 🔄 兼容适配器 | `legacy_adapter`（无 CLI `profile`/`auth` 子命令）；支持 `doctor` 与周边工具 |
+| Qwen CLI (`qwen`) | 🚧 预留 / Stub | 保留平台键与部分数据域支持 |
 
 ## 常用入口
 
 ```bash
 ccr current --verbose
 ccr codex auth current
-ccr codex profile list
+ccr grok profile list
+ccr doctor
 ccr ui -p 15173 --backend-port 38081
 ```

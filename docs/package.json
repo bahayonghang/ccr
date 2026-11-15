@@ -8,7 +8,7 @@
     "dev": "vitepress dev",
     "build": "vitepress build",
     "preview": "vitepress preview",
-    "audit": "node ./scripts/audit-docs.mjs"
+    "audit": "node --test ./scripts/audit-docs.test.mjs && node ./scripts/audit-docs.mjs"
   },
   "keywords": [
     "ccr",

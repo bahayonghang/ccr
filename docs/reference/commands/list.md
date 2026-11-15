@@ -1,135 +1,33 @@
-# list - 列出所有配置
+# `list` - 已弃用的顶层配置列表命令
 
-以精美的表格形式列出所有可用配置，一目了然地对比不同配置的关键信息。
+> [!WARNING]
+> **已弃用并已隐藏（7.x 兼容）**：顶层 `ccr list`（及别名 `ccr ls`）在 CCR `7.x` 中**已弃用**且在 `--help` 中**已隐藏**。调用时会向 `stderr` 输出弃用警告（不污染 `stdout`），计划于 `8.0` 移除。
 
-## 用法
+## 规范替代命令
 
-```bash
-ccr list
-# 或使用别名
-ccr ls
-```
-
-## 输出信息
-
-以表格形式展示所有配置的关键信息：
-
-- **状态** - 当前/默认配置标记
-- **配置名称** - 配置标识
-- **提供商** - 服务提供商（带图标）
-- **Base URL** - API 端点地址
-- **模型** - 主模型和快速小模型
-- **账号/标签** - 账号标识和标签分类
-- **验证** - 配置完整性状态
-
-## 示例输出
-
-```
-可用配置列表
-═══════════════════════════════════════════════════════════════
-
-ℹ 配置文件: /home/user/.ccs_config.toml
-ℹ 默认配置: anthropic
-ℹ 当前配置: anthropic
-
-╔═══════╤════════════════╤══════════════╤═══════════════════════════╤════════════════╤═══════════╤══════╗
-║ 状态  │ 配置名称       │ 提供商       │ Base URL                  │ 模型           │ 账号/标签 │ 验证 ║
-╠═══════╪════════════════╪══════════════╪═══════════════════════════╪════════════════╪═══════════╪══════╣
-║▶ 当前 │ anthropic      │ 🔄 anthropic │ https://api.anthropic.com │ claude-3-5-... │ -         │  ✓   ║
-║       │ anyrouter_main │ 🔄 anyrouter │ https://api.anyrouter...  │ claude-3-5-... │👤 github..│  ✓   ║
-║⭐ 默认│ glm_api        │ 🤖 glm       │ https://open.bigmodel.cn  │ glm-4-plus     │🏷️  free   │  ✓   ║
-╚═══════╧════════════════╧══════════════╧═══════════════════════════╧════════════════╧═══════════╧══════╝
-
-✓ 共找到 3 个配置
-
-提示:
-  • 使用 'ccr switch <名称>' 切换配置
-  • 使用 'ccr current' 查看当前配置详情
-  • 🔄 = 官方中转  🤖 = 第三方模型
-```
-
-## 输出说明
-
-### 表格列说明
-
-| 列名 | 说明 | 示例 |
-|------|------|------|
-| 状态 | `▶ 当前` 绿色加粗 / `⭐ 默认` 黄色 | 快速识别当前配置 |
-| 配置名称 | 配置标识符 | `anthropic`, `anyrouter_main` |
-| 提供商 | 服务商（带类型图标） | `🔄 anyrouter` (官方中转)<br>`🤖 glm` (第三方模型) |
-| Base URL | API 端点（超长自动截断） | `https://api.anthropic.com` |
-| 模型 | 主模型和小模型 | `claude-3-5-sonnet...`<br>`(small: haiku)` |
-| 账号/标签 | 账号标识或标签 | `👤 github_5953`<br>`🏷️  free, stable` |
-| 验证 | 配置完整性 | `✓` 绿色 / `✗` 红色 |
-
-### 配置标记
-
-- **▶ 当前** (绿色加粗) - 正在使用的配置
-- **⭐ 默认** (黄色) - 默认配置
-- **空白** - 其他可用配置
-
-### 提供商类型图标
-
-- **🔄 官方中转** - 提供官方 Claude 模型的中转服务
-- **🤖 第三方模型** - 提供自己的模型服务（如 GLM、Kimi）
-
-### 验证状态
-
-- **✓** (绿色) - 配置完整，包含所有必需字段
-- **✗** (红色) - 配置不完整，缺少必需字段
-
-### 智能截断
-
-为了表格美观，长文本会自动截断：
-- Base URL > 35 字符：显示前 32 字符 + `...`
-- 模型名 > 25 字符：显示前 22 字符 + `...`
-
-## 使用场景
-
-### 快速对比配置
-
-表格格式让配置对比一目了然：
+| 场景 | 规范替代命令 |
+|---|---|
+| 查看 Claude Profile 列表 | `ccr claude profile list [--json]` |
+| 查看 Codex Profile 列表 | `ccr codex profile list [--json]` |
+| 查看 Grok Profile 列表 | `ccr grok profile list [--json]` |
+| 查看跨平台运行态摘要 | `ccr current [--verbose \| --json]`（别名 `ccr status`） |
+| 查看已注册平台与激活指针 | `ccr platform list [--json]` |
 
 ```bash
-ccr list
-# 快速对比不同配置的 Base URL、模型、账号等关键信息
+ccr claude profile list
+ccr codex profile list --json
+ccr grok profile list
 ```
 
-### 检查配置状态
+## 关键行为差异
 
-快速查看所有配置的验证状态：
+- **显式平台作用域**：旧 `ccr list` 仅固定读取历史 Claude Profile 作用域；规范命令 `ccr <claude|codex|grok> profile list` 按平台独立列出对应 `profiles.db` 目录。
+- **结构化 JSON 与乐观并发版本**：各平台 `profile list --json` 稳定返回 `{ "current_profile": "..." | null, "revision": "..." | null, "profiles": [...] }`，其中顶层 `revision` 可配合 `--expected-revision` 用于并发安全写入。
 
-```bash
-ccr list
-# 在"验证"列查看 ✓ 或 ✗ 标记
-```
+## 相关页面
 
-### 识别提供商类型
-
-通过图标快速识别提供商类型：
-
-```bash
-ccr list
-# 🔄 = 官方中转服务（如 Anyrouter）
-# 🤖 = 第三方模型（如 GLM、Kimi）
-```
-
-### 管理多账号配置
-
-通过账号/标签列快速识别不同账号：
-
-```bash
-ccr list
-# 查看"账号/标签"列，例如：
-# 👤 github_5953 - GitHub 账号
-# 👤 work_account - 工作账号
-# 🏷️  free, test - 免费测试配置
-```
-
-## 相关命令
-
-- [current](./current) - 显示当前配置详情
-- [add](./add) - 添加新配置
-- [delete](./delete) - 删除配置
-- [validate](./validate) - 验证所有配置
-- [switch](./switch) - 切换到其他配置
+- [`claude`](./claude)
+- [`codex`](./codex)
+- [`grok`](./grok)
+- [`current`](./current)
+- [`platform`](./platform)

@@ -1,6 +1,6 @@
 # temp - Quick Temporary Configuration
 
-Interactively set up temporary configuration without relying on existing TOML config files. Directly input base_url, token, and model, then immediately write to settings.json.
+Interactively apply a temporary Claude runtime configuration without creating or modifying entries in the persistent profile catalog (`profiles.db`). Enter `base_url`, `token`, and an optional `model` to write directly to `~/.claude/settings.json`.
 
 ## Usage
 
@@ -8,157 +8,100 @@ Interactively set up temporary configuration without relying on existing TOML co
 ccr temp
 ```
 
-After execution, you'll be prompted to enter:
-1. **Base URL** (required) - API endpoint address
-2. **Auth Token** (required) - Authentication token
-3. **Model** (optional) - Model name with smart parsing support
+The interactive prompt asks for:
+1. **Base URL** (required) — API endpoint URL
+2. **Auth Token** (required) — authentication token
+3. **Model** (optional) — model identifier, with short-alias resolution
 
-## Difference from temp-token
+## Difference from `temp-token`
 
 | Feature | `ccr temp` | `ccr temp-token` |
 |---------|------------|------------------|
-| Input method | Interactive prompts | Command-line arguments |
-| Config dependency | None required | Based on existing TOML config |
-| Use case | Quick test new providers | Temporarily override existing config |
-| Model parsing | Smart parsing supported | Uses input value directly |
+| Input method | Interactive prompts | Command-line flags |
+| Config dependency | None required | Overrides currently active settings |
+| Use case | Manually testing a new provider | Scripted or flag-driven temporary overrides |
+| Model parsing | Supports short aliases | Uses passed value verbatim |
 
 ## Smart Model Parsing
 
-`ccr temp` supports smart model name parsing, allowing you to use short aliases instead of full model names:
+`ccr temp` resolves common short model aliases automatically:
 
 ### Claude Models
 
-| Input | Parsed to |
-|-------|-----------|
+| Input | Resolved to |
+|-------|-------------|
 | `sonnet` / `claude-sonnet` | `claude-sonnet-4-20250514` |
 | `opus` / `claude-opus` | `claude-opus-4-20250514` |
 | `haiku` / `claude-haiku` | `claude-3-5-haiku-20241022` |
 
 ### GPT Models
 
-| Input | Parsed to |
-|-------|-----------|
+| Input | Resolved to |
+|-------|-------------|
 | `gpt4` / `gpt-4` / `gpt4o` | `gpt-4o` |
 | `gpt4-mini` / `gpt-4o-mini` | `gpt-4o-mini` |
 
 ### Gemini Models
 
-| Input | Parsed to |
-|-------|-----------|
+| Input | Resolved to |
+|-------|-------------|
 | `gemini` / `gemini-pro` | `gemini-2.0-flash` |
 
-> 💡 If you enter a complete model name (e.g., `claude-3-5-sonnet-20241022`), it will be used as-is without conversion.
+> 💡 Full model identifiers (such as `claude-sonnet-4-5-20250929`) are written verbatim without alias conversion.
 
 ## Use Cases
 
-### Case 1: Quick Test a New API Provider
+### Case 1: Quickly Test a New API Provider
 
-When you want to quickly test a new API provider without creating a permanent config:
+When you want to verify a provider endpoint without adding a permanent entry to `profiles.db`:
 
-```bash
+```text
 $ ccr temp
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Quick Temporary Configuration
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📝 Let me help you set up a temporary configuration!
-   This will be written directly to settings.json
-   Next 'ccr switch' will restore values from TOML config
-
-────────────────────────────────────────
-
-1️⃣ Enter Base URL (API endpoint)
-   Example: https://api.anthropic.com
-            https://api.example.com/v1
-
-* Base URL: https://api.newprovider.com/v1
-
-2️⃣ Enter Auth Token (authentication token)
-   Example: sk-ant-api03-xxxxx
-            sk-xxxxx
-
-* Auth Token: sk-test-xxxxx
-
-3️⃣ Enter Model (model name, optional)
-   Example: claude-sonnet-4-20250514
-            claude-3-5-sonnet-20241022
-            gpt-4o
-   Tip: Press Enter to skip and use provider's default model
-
-  Model: sonnet
-   🧠 Smart parse: sonnet → claude-sonnet-4-20250514
-
-────────────────────────────────────────
-
-Step 1/2: Configuration Preview
-
-╔════════════════╤═══════════════════════════════════════════╗
-║ Field          │ Value                                     ║
-╠════════════════╪═══════════════════════════════════════════╣
-║ Base URL       │ https://api.newprovider.com/v1            ║
-║ Auth Token     │ sk-t...xxxxx                              ║
-║ Model          │ claude-sonnet-4-20250514                  ║
-╚════════════════╧═══════════════════════════════════════════╝
+1) Base URL: https://api.newprovider.com/v1
+2) Auth Token: sk-test-xxxxx
+3) Model: sonnet
+   Smart parse: sonnet -> claude-sonnet-4-20250514
 
 Apply this temporary configuration? (Y/n): y
+✓ Temporary configuration applied to settings.json
 
-────────────────────────────────────────
-
-Step 2/2: Applying temporary configuration
-✅ Temporary configuration applied to settings.json
-
-💡 Tips:
-   • Configuration is now active
-   • Run 'ccr switch <config>' to restore TOML config
-   • Run 'ccr current' to view current status
+Next steps:
+  • Run 'ccr claude profile switch <name>' to restore a saved profile
+  • Run 'ccr current' to inspect current runtime status
 ```
 
-### Case 2: Using Short Model Aliases
+### Case 2: Skip Model Selection
+
+Press `Enter` on the model prompt to leave the model unset and use the provider's default model.
+
+## Restoring Saved Profiles
+
+Temporary settings modify `~/.claude/settings.json` directly. When finished, switch back to any saved Claude profile (or exit profile mode):
 
 ```bash
-$ ccr temp
-...
-  Model: opus
-   🧠 Smart parse: opus → claude-opus-4-20250514
-```
+# Restore a saved profile from profiles.db
+ccr claude profile switch <name>
 
-### Case 3: Skip Model Setting
-
-To use the provider's default model:
-
-```bash
-$ ccr temp
-...
-  Model: [Press Enter]
-   ℹ️  Skipped, will use provider's default model
-```
-
-## Restoring Configuration
-
-Temporary configuration directly modifies `~/.claude/settings.json`. To restore TOML config values:
-
-```bash
-# Switch to any config to restore
-ccr switch <config_name>
+# Or exit profile mode back to official login
+ccr claude profile off
 ```
 
 ## Notes
 
-1. **No config file created**: This command does not create or modify TOML config files
-2. **Immediate effect**: Configuration is written to settings.json immediately
-3. **One-time use**: Will be overwritten on next `ccr switch`
-4. **Token masking**: Tokens are automatically masked when displayed
-5. **URL validation**: Base URL must start with `http://` or `https://`
-
-## Related Commands
-
-- [`ccr temp-token`](./temp-token.md) - Temporary override based on existing config
-- [`ccr switch`](./switch.md) - Switch configuration (restores TOML config)
-- [`ccr current`](./current.md) - View current configuration status
-- [`ccr add`](./add.md) - Interactively add permanent configuration
+1. **Catalog untouched**: Does not add or modify records in `~/.ccr/platforms/claude/profiles.db`.
+2. **Immediate effect**: Writes directly to `~/.claude/settings.json` upon confirmation.
+3. **One-time override**: Overwritten the next time you run `ccr claude profile switch <name>` or `ccr claude profile off`.
+4. **Token masking**: Automatically masks tokens in preview output.
+5. **URL validation**: Base URL must start with `http://` or `https://`.
 
 ## File Locations
 
-- Temporary config written to: `~/.claude/settings.json`
-- Permanent config file: `~/.ccs_config.toml` or `~/.ccr/platforms/<platform>/profiles.toml`
+- Temporary target: `~/.claude/settings.json`
+- Persistent Claude profile catalog: `~/.ccr/platforms/claude/profiles.db` (or `~/.ccs_config.toml` in Legacy Mode)
+
+## Related Commands
+
+- [`temp-token`](./temp-token.md) - command-line temporary override
+- [`claude`](./claude.md) - manage persistent Claude profiles (`create` / `switch` / `off`)
+- [`current`](./current.md) - inspect current runtime status

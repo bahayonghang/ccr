@@ -1,6 +1,6 @@
 # Codex 配置示例
 # 适用于 Unified 模式下的平台配置
-# 路径: ~/.ccr/platforms/codex/profiles.toml
+# 初始化目录库: ccr codex profile init（存储于 ~/.ccr/platforms/codex/profiles.db，可通过 ccr codex profile open 编辑）
 
 # ⚠️ 注意：CCR 使用兼容 CCS 的 profiles.toml 格式（包含 default_config/current_config/settings）
 default_config = "default"

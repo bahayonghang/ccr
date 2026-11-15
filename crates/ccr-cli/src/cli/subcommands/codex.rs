@@ -162,14 +162,13 @@ pub enum CodexProfileAction {
     /// 显示 Codex Profile 命令帮助
     Help,
 
-    /// Open the Codex profiles.toml in your editor.
-    /// Creates the file from the example template if it does not exist.
+    /// 通过编辑器打开并修改 Codex Profile 目录配置（不存在时从内置模板初始化）
     Open {
         #[arg(long)]
         json: bool,
     },
 
-    /// Initialize the Codex profile directory and example template
+    /// 初始化 Codex Profile 配置库（profiles.db）并注册平台
     Init {
         /// 以 JSON 格式输出
         #[arg(long)]

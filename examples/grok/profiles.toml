@@ -1,6 +1,6 @@
-# CCR Grok profiles
-# Initialize this file with: ccr grok profile init
-# Target path: ~/.ccr/platforms/grok/profiles.toml
+# CCR Grok profiles (embedded template)
+# Initialize catalog with: ccr grok profile init
+# Catalog storage: ~/.ccr/platforms/grok/profiles.db (edit via: ccr grok profile open)
 
 default_config = "official"
 current_config = ""
@@ -31,5 +31,5 @@ reasoning_effort = "high"
 enabled = true
 
 # `env_key` remains available when the value is an environment variable name.
-# To create an inline-key profile explicitly, use:
-# ccr grok profile create <name> --base-url <url> --model <model> --api-key <key> --reasoning-effort high
+# To create an inline-key profile explicitly, pass the key via stdin:
+# printf '%s' "$GROK_API_KEY" | ccr grok profile create <name> --base-url <url> --model <model> --api-key-stdin --reasoning-effort high

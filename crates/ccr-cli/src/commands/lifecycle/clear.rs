@@ -144,7 +144,7 @@ pub async fn clear_command(force: bool) -> Result<()> {
     );
 
     ColorOutput::key_value("恢复备份", &backup_path.display().to_string(), 2);
-    crate::commands::common::print_next_steps(&[("查看可用配置", "ccr list")]);
+    crate::commands::common::print_next_steps(&[("查看可用配置", "ccr claude profile list")]);
 
     Ok(())
 }

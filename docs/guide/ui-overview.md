@@ -36,7 +36,7 @@ bun run dev:web -- --host 127.0.0.1 --strictPort
 - 数据与运营：usage、monitoring、budget、pricing、check-in。
 - 工具与环境：commands、converter、WebDAV sync、WSL、SSH。
 
-Factory Droid 已在 CLI platform domain 实现，Qwen 保留为部分支持/stub；当前路由没有为它们提供独立平台主页。平台支持状态以 [平台支持](/reference/platforms/) 为准，UI 页面以 [UI 模块地图](./ui-modules) 为准。
+Factory Droid 在 CLI 中作为保留兼容适配器（`legacy_adapter`）存在，Qwen 保留为部分支持/stub；当前路由没有为它们提供独立平台主页。平台支持状态以 [平台支持](/reference/platforms/) 为准，UI 页面以 [UI 模块地图](./ui-modules) 为准。
 
 ## 数据边界
 

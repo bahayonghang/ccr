@@ -1,5 +1,5 @@
 # CCR 统一平台注册表示例
-# 复制到: ~/.ccr/config.toml
+# 由 `ccr <claude|codex|grok> profile init` 自动生成与维护（路径: ~/.ccr/config.toml）
 
 default_platform = "claude"
 current_platform = "claude"
@@ -14,8 +14,12 @@ enabled = true
 current_profile = "duckcoding"
 description = "Codex CLI"
 
+[grok]
+enabled = true
+current_profile = "official"
+description = "Grok Build"
+
 [gemini]
 enabled = true
-current_profile = "google"
-description = "Antigravity CLI (legacy key: gemini)"
+description = "Antigravity CLI (legacy compatibility adapter, key: gemini)"
 

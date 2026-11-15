@@ -673,7 +673,7 @@ pub async fn sync_pull_command(force: bool) -> Result<()> {
     ColorOutput::key_value("远程路径", &sync_config.remote_path, 2);
     ColorOutput::key_value("服务器", &sync_config.webdav_url, 2);
     println!();
-    crate::commands::common::print_next_steps(&[("查看配置", "ccr list")]);
+    crate::commands::common::print_next_steps(&[("查看当前状态", "ccr current")]);
     println!();
 
     Ok(())

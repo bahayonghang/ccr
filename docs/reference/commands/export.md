@@ -1,246 +1,37 @@
-# export - 导出配置
+# `export` - 已弃用的顶层配置导出命令
 
-将当前配置导出到文件,用于备份或迁移。
+> [!WARNING]
+> **已弃用并已隐藏（7.x 兼容）**：顶层 `ccr export` 在 CCR `7.x` 中**已弃用**且在 `--help` 中**已隐藏**。调用时会向 `stderr` 输出弃用警告（不污染 `stdout`），计划于 `8.0` 移除。
 
-## 用法
+## 规范替代命令
 
-```bash
-ccr export [OPTIONS]
-```
-
-## 选项
-
-- `-o, --output <FILE>`: 指定输出文件(默认：自动生成带时间戳的文件名)
-- `--no-secrets`: 导出时脱敏 API 密钥
-
-## 功能特性
-
-- 自动生成带时间戳的文件名
-- 默认包含完整 API 密钥(便于迁移)
-- 可选的敏感信息脱敏
-- TOML 格式便于编辑
-- 适合备份和迁移场景
-
-## 示例
+| 场景 | 规范替代命令 |
+|---|---|
+| 导出 Claude Profiles（全部、按名称或按标签） | `ccr claude profile export [NAME]... [-t\|--tag <TAG>] [-o <FILE>] [--stdout] [--no-secrets] [-y\|--yes] [--json]` |
+| 导出 Codex Profiles | `ccr codex profile export [NAME]... [-t\|--tag <TAG>] [-o <FILE>] [--stdout] [--no-secrets] [-y\|--yes] [--json]` |
+| 导出 Grok Profiles | `ccr grok profile export [NAME]... [-t\|--tag <TAG>] [-o <FILE>] [--stdout] [--no-secrets] [-y\|--yes] [--json]` |
 
 ```bash
-# 导出包含完整 API 密钥(默认)
-ccr export
+# 脱敏导出（可安全分享或提交版本库）
+ccr claude profile export --no-secrets -o claude-team.toml
 
-# 导出时脱敏敏感信息
-ccr export --no-secrets
-
-# 导出到指定文件
-ccr export -o my-config.toml
+# 含密钥私有备份（默认包含内联密钥，通过 -o 以 0600 仅属主可读写权限原子落盘）
+ccr codex profile export relay -o codex-relay.toml
+ccr grok profile export -t work --json
 ```
 
-## 示例输出
+> [!IMPORTANT]
+> `profile export` 默认包含内联密钥（`secrets_mode = "included"`），落盘文件自动收紧为 `0600` 权限，仅适用于本机私有备份；切勿将未脱敏的 `--stdout` 直接通过 Shell `>` 重定向到普通文件（会退回默认 `umask` 权限），分享或提交到版本库前必须传入 `--no-secrets`。
 
-### 默认导出
+## 关键行为差异
 
-```bash
-$ ccr export
-Exporting configuration...
-✓ Configuration exported to: ccr_config_20250110_120530.toml
-```
+- **版本化 `ExchangeV1` 信封头**：旧 `ccr export`（未传 `--platform` 时隐式默认 `claude`）输出不含平台元数据的旧式目录 TOML；规范命令 `ccr <platform> profile export` 输出带 `schema_version = 1`、`platform = "<claude|codex|grok>"`、`secrets_mode = "included" | "redacted"` 与 `[profiles.<name>]` 的 `ExchangeV1` 格式，导入时可严格阻止跨平台误导。
+- **彻底剥离密钥而非局部打码**：旧 `--no-secrets` 可能残留掩码字符串；规范 `profile export --no-secrets` 彻底移除内联密钥、敏感扩展字段与 URL userinfo，同时显式保留 `auth_mode`。
+- **纯只读、子集筛选与覆盖保护**：规范导出对 `profiles.db` 零锁零写入副作用，支持按 `[NAME]...` 或 `-t/--tag` 子集导出，默认含密钥私有备份通过 `-o` / 默认路径收紧为 `0600` 仅属主权限（外发共享请加 `--no-secrets`），且在非交互终端或 `--json` 下覆盖已有 `-o` 文件必须显式传 `-y/--yes`（否则返回退出码 `64`）。
 
-### 指定文件
+## 相关页面
 
-```bash
-$ ccr export -o backup.toml
-Exporting configuration...
-✓ Configuration exported to: backup.toml
-```
-
-## 导出内容
-
-### 完整导出(默认)
-
-包含所有配置和完整的 API 密钥：
-
-```toml
-default_config = "anthropic"
-current_config = "anthropic"
-
-[anthropic]
-description = "Anthropic Official API"
-base_url = "https://api.anthropic.com"
-auth_token = "sk-ant-api03-abc123def456ghi789jkl012mno345pqr678"
-model = "claude-sonnet-4-5-20250929"
-small_fast_model = "claude-3-5-haiku-20241022"
-
-[anyrouter]
-description = "AnyRouter Proxy Service"
-base_url = "https://api.anyrouter.ai/v1"
-auth_token = "your-anyrouter-token-full"
-model = "claude-sonnet-4-5-20250929"
-```
-
-### 脱敏导出(--no-secrets)
-
-敏感信息被脱敏处理：
-
-```toml
-default_config = "anthropic"
-current_config = "anthropic"
-
-[anthropic]
-description = "Anthropic Official API"
-base_url = "https://api.anthropic.com"
-auth_token = "sk-a...r678"  # 脱敏
-model = "claude-sonnet-4-5-20250929"
-small_fast_model = "claude-3-5-haiku-20241022"
-
-[anyrouter]
-description = "AnyRouter Proxy Service"
-base_url = "https://api.anyrouter.ai/v1"
-auth_token = "you...full"  # 脱敏
-model = "claude-sonnet-4-5-20250929"
-```
-
-## 使用场景
-
-### 1. 定期备份
-
-定期备份配置以防意外丢失：
-
-```bash
-# 手动备份
-ccr export -o ~/backups/ccr-backup.toml
-
-# 使用 crontab 自动备份(每天)
-0 0 * * * ccr export -o ~/backups/ccr-$(date +\%Y\%m\%d).toml
-```
-
-### 2. 迁移配置
-
-迁移配置到新机器：
-
-```bash
-# 在旧机器上
-ccr export -o ccr-config.toml
-
-# 复制到新机器
-scp ccr-config.toml user@new-machine:~
-
-# 在新机器上导入
-ccr import ccr-config.toml
-```
-
-### 3. 分享配置模板
-
-分享配置模板给团队(不含密钥)：
-
-```bash
-# 导出脱敏版本
-ccr export --no-secrets -o team-template.toml
-
-# 团队成员导入并添加自己的密钥
-ccr import team-template.toml --merge
-```
-
-### 4. 版本控制
-
-将配置纳入版本控制(脱敏)：
-
-```bash
-# 导出脱敏配置
-ccr export --no-secrets -o config.toml
-
-# 添加到 git(不会泄露密钥)
-git add config.toml
-git commit -m "Update CCR configuration template"
-```
-
-### 5. 配置审查
-
-导出配置供审查或文档化：
-
-```bash
-ccr export --no-secrets -o review.toml
-```
-
-## 文件名规则
-
-### 默认文件名
-
-格式：`ccr_config_<timestamp>.toml`
-
-示例：
-- `ccr_config_20250110_120530.toml`
-- `ccr_config_20250110_143022.toml`
-
-### 自定义文件名
-
-```bash
-# 使用日期
-ccr export -o "ccr-$(date +%Y%m%d).toml"
-
-# 使用描述性名称
-ccr export -o production-backup.toml
-
-# 使用版本号
-ccr export -o ccr-config-v1.0.toml
-```
-
-## 导出后操作
-
-### 验证导出
-
-```bash
-# 导出后验证文件
-ccr export -o backup.toml
-cat backup.toml
-
-# 或使用 toml 验证工具
-toml-verify backup.toml
-```
-
-### 安全存储
-
-```bash
-# 加密存储(包含密钥的导出)
-ccr export -o config.toml
-gpg -c config.toml  # 加密
-rm config.toml      # 删除明文
-```
-
-### 远程备份
-
-```bash
-# 备份到云存储
-ccr export -o ccr-backup.toml
-rclone copy ccr-backup.toml remote:backups/
-```
-
-## 与配置文件的区别
-
-| 项目 | 导出文件 | 配置文件 |
-|------|---------|----------|
-| 位置 | 用户指定 | `~/.ccs_config.toml` |
-| 用途 | 备份/迁移 | 日常使用 |
-| 修改 | 不影响运行 | 立即生效 |
-| 密钥 | 可选脱敏 | 完整密钥 |
-
-## 注意事项
-
-::: warning 安全提示
-- 默认导出包含完整 API 密钥,请妥善保管
-- 使用 `--no-secrets` 导出用于分享的配置
-- 不要将包含密钥的导出文件提交到公开仓库
-:::
-
-::: tip 最佳实践
-- 定期备份配置
-- 备份文件使用加密存储
-- 分享配置时使用 `--no-secrets` 选项
-- 重要备份保存多个副本
-:::
-
-## 相关命令
-
-- [import](./import) - 导入配置
-- [init](./init) - 初始化配置
-- [add](./add) - 添加新配置
-- [delete](./delete) - 删除配置
-- [validate](./validate) - 验证导出的配置
+- [`claude`](./claude)
+- [`codex`](./codex)
+- [`grok`](./grok)
+- [`import`](./import)

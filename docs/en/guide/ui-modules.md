@@ -11,7 +11,7 @@ This page groups the pages currently exposed by `ccr-ui/src/shell/routeCatalog.t
 | Antigravity CLI | `/antigravity` | MCP, agents, slash commands, plugins; old `/gemini-cli` paths redirect |
 | OpenCode | `/opencode` | providers, MCP, agents, commands, plugins, settings; skills join the shared skills page |
 
-Factory Droid and Qwen remain CLI platform-domain concepts. CLI support must not be interpreted as a dedicated UI platform home page.
+Factory Droid (`legacy_adapter` compatibility adapter) and Qwen (reserved stub) remain CLI platform-registry concepts. CLI recognition must not be interpreted as a dedicated UI platform home page.
 
 ## Configuration And Extensions
 

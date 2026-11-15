@@ -1,5 +1,5 @@
 # Claude Code Profiles 示例（Unified）
-# 复制到: ~/.ccr/platforms/claude/profiles.toml
+# 初始化目录库: ccr claude profile init（存储于 ~/.ccr/platforms/claude/profiles.db，可通过 ccr claude profile open 编辑）
 
 default_config = "anthropic"
 current_config = ""

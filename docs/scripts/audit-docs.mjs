@@ -119,7 +119,8 @@ function checkInternalLinks() {
   const linkPattern = /!?\[[^\]]*\]\(([^)]+)\)/g
   for (const file of publishedMarkdownFiles()) {
     const content = fs.readFileSync(file, 'utf8')
-    for (const match of content.matchAll(linkPattern)) {
+    const prose = content.replace(/```[\s\S]*?```/g, '')
+    for (const match of prose.matchAll(linkPattern)) {
       const resolved = resolveDocTarget(file, match[1])
       if (!resolved) continue
       assert(resolved.exists, `Broken local link in ${relFromDocs(file)}: ${resolved.target}`)
@@ -146,29 +147,12 @@ function checkPlaceholderTranslations() {
     /please refer to the \[Chinese version\]/i
   ]
 
-  const coreFiles = [
-    'docs/en/index.md',
-    'docs/en/guide/quick-start.md',
-    'docs/en/guide/configuration.md',
-    'docs/en/guide/cli-workflows.md',
-    'docs/en/guide/entrypoints.md',
-    'docs/en/guide/ui-overview.md',
-    'docs/en/guide/ui-modules.md',
-    'docs/en/reference/architecture.md',
-    'docs/en/reference/migration.md',
-    'docs/en/reference/internals/crate-map.md',
-    'docs/en/reference/internals/runtime-flows.md',
-    'docs/en/reference/commands/index.md',
-    'docs/en/reference/commands/ui.md',
-    'docs/en/reference/commands/tui.md'
-  ]
-
-  for (const file of coreFiles) {
-    const full = path.join(repoRoot, file)
-    if (!fs.existsSync(full)) continue
+  const enFiles = publishedMarkdownFiles().filter(file => relFromDocs(file).startsWith('en/'))
+  for (const full of enFiles) {
     const content = fs.readFileSync(full, 'utf8')
+    const rel = `docs/${relFromDocs(full)}`
     for (const pattern of placeholderPatterns) {
-      assert(!pattern.test(content), `Placeholder translation marker found in ${file}`)
+      assert(!pattern.test(content), `Placeholder translation marker found in ${rel}`)
     }
   }
 }
@@ -206,60 +190,149 @@ function pascalToKebab(value) {
   return value.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()
 }
 
-function extractTopLevelCommands() {
-  const lines = cliDefinitions.split(/\r?\n/)
+export function extractTopLevelCommands(sourceText = cliDefinitions) {
+  const lines = sourceText.split(/\r?\n/)
   const commands = []
   let insideCommands = false
+  let braceDepth = 0
+  let collectingCommandAttr = false
+  let attrBuffer = ''
   let explicitName = null
+  let hidden = false
+
+  function consumeCommandAttr(attrText) {
+    const nameMatch = attrText.match(/\bname\s*=\s*"([^"]+)"/)
+    if (nameMatch) explicitName = nameMatch[1]
+    if (/(?:^|[(,\s])hide(?:\s*=\s*true(?=$|[),\s])|(?=\s*(?:$|[),])))/.test(attrText)) {
+      hidden = true
+    }
+  }
 
   for (const line of lines) {
+    const codeLine = line.replace(/\/\/.*$/, '')
+    const trimmed = codeLine.trim()
+    if (!trimmed) continue
+
     if (!insideCommands) {
-      if (line.trim() === 'pub enum Commands {') insideCommands = true
-      continue
-    }
-    if (line === '}') break
-
-    const nameOverride = line.match(/^    #\[command\(name\s*=\s*"([^"]+)"\)\]$/)
-    if (nameOverride) {
-      explicitName = nameOverride[1]
+      if (trimmed === 'pub enum Commands {') {
+        insideCommands = true
+        braceDepth = 1
+      }
       continue
     }
 
-    const variant = line.match(/^    ([A-Z][A-Za-z0-9]*)(?:\s*\{|\(|,)/)
-    if (!variant) continue
-    commands.push(explicitName ?? pascalToKebab(variant[1]))
-    explicitName = null
+    if (braceDepth === 1) {
+      if (collectingCommandAttr) {
+        attrBuffer += ` ${trimmed}`
+        if (trimmed.endsWith(')]')) {
+          consumeCommandAttr(attrBuffer)
+          collectingCommandAttr = false
+          attrBuffer = ''
+        }
+        continue
+      }
+
+      if (trimmed.startsWith('#[command(')) {
+        if (trimmed.endsWith(')]')) {
+          consumeCommandAttr(trimmed)
+        } else {
+          collectingCommandAttr = true
+          attrBuffer = trimmed
+        }
+        continue
+      }
+
+      const variant = codeLine.match(/^\s+([A-Z][A-Za-z0-9]*)\s*(?:\{|\(|,)/)
+      if (variant) {
+        commands.push({
+          name: explicitName ?? pascalToKebab(variant[1]),
+          hidden
+        })
+        explicitName = null
+        hidden = false
+      }
+    }
+
+    for (const ch of codeLine) {
+      if (ch === '{') braceDepth += 1
+      else if (ch === '}') braceDepth -= 1
+    }
+    if (braceDepth <= 0) break
   }
 
   return commands
 }
 
-function checkCommandCoverage() {
-  const excludedPages = new Set(['help'])
-  const allowedExtraPages = new Set(['tui'])
-  const commandPageOverrides = new Map([['project', 'project-init']])
-  const commands = extractTopLevelCommands()
-  const expectedPages = new Set(
-    commands
-      .filter(command => !excludedPages.has(command))
-      .map(command => commandPageOverrides.get(command) ?? command)
-  )
+const excludedCommandPages = new Set(['help'])
+const commandPageOverrides = new Map([['project', 'project-init']])
 
-  for (const command of expectedPages) {
-    assert(
-      fs.existsSync(path.join(docsRoot, 'reference', 'commands', `${command}.md`)),
-      `Missing Chinese command page for: ${command}`
+const deprecatedCommandPages = new Set(
+  extractTopLevelCommands()
+    .filter(command => command.hidden && !excludedCommandPages.has(command.name))
+    .map(command => commandPageOverrides.get(command.name) ?? command.name)
+    .flatMap(page => [
+      `reference/commands/${page}.md`,
+      `en/reference/commands/${page}.md`
+    ])
+)
+
+export const zhDeprecationMarkerPattern = /(?:已弃用|已隐藏|已退休)/
+export const enDeprecationMarkerPattern = /\b(?:deprecated|hidden|retired)\b/i
+
+export function auditHiddenCommandPageContent(page, zhContent, enContent) {
+  const issues = []
+  if (zhContent !== null && !zhDeprecationMarkerPattern.test(zhContent)) {
+    issues.push(
+      `Hidden Chinese command page must include deprecation/retirement marker (已弃用/已隐藏/已退休): reference/commands/${page}.md`
     )
-    assert(
-      fs.existsSync(path.join(docsRoot, 'en', 'reference', 'commands', `${command}.md`)),
-      `Missing English command page for: ${command}`
+  }
+  if (enContent !== null && !enDeprecationMarkerPattern.test(enContent)) {
+    issues.push(
+      `Hidden English command page must include deprecation/retirement marker (Deprecated/Hidden/Retired): en/reference/commands/${page}.md`
     )
+  }
+  return issues
+}
+
+function checkCommandCoverage() {
+  const allowedExtraPages = new Set(['tui'])
+  const commands = extractTopLevelCommands()
+    .filter(command => !excludedCommandPages.has(command.name))
+    .map(command => ({
+      page: commandPageOverrides.get(command.name) ?? command.name,
+      hidden: command.hidden
+    }))
+
+  const allKnownPages = new Set(commands.map(command => command.page))
+
+  for (const { page, hidden } of commands) {
+    const zhPath = path.join(docsRoot, 'reference', 'commands', `${page}.md`)
+    const enPath = path.join(docsRoot, 'en', 'reference', 'commands', `${page}.md`)
+
+    if (!hidden) {
+      assert(fs.existsSync(zhPath), `Missing Chinese command page for: ${page}`)
+      assert(fs.existsSync(enPath), `Missing English command page for: ${page}`)
+      continue
+    }
+
+    const zhExists = fs.existsSync(zhPath)
+    const enExists = fs.existsSync(enPath)
+    assert(
+      zhExists === enExists,
+      `Hidden command page locale mismatch for ${page}: zh=${zhExists}, en=${enExists}`
+    )
+
+    const zhContent = zhExists ? fs.readFileSync(zhPath, 'utf8') : null
+    const enContent = enExists ? fs.readFileSync(enPath, 'utf8') : null
+    for (const issue of auditHiddenCommandPageContent(page, zhContent, enContent)) {
+      failures.add(issue)
+    }
   }
 
   const actualPages = fs.readdirSync(path.join(docsRoot, 'reference', 'commands'))
     .filter(file => file.endsWith('.md') && file !== 'index.md')
     .map(file => file.slice(0, -3))
-  const unexpectedPages = actualPages.filter(page => !expectedPages.has(page) && !allowedExtraPages.has(page))
+  const unexpectedPages = actualPages.filter(page => !allKnownPages.has(page) && !allowedExtraPages.has(page))
   assert(unexpectedPages.length === 0, `Unexpected command pages: ${unexpectedPages.join(', ')}`)
 
   const zhOverview = read('docs', 'reference', 'commands', 'index.md')
@@ -297,14 +370,70 @@ function checkUiModuleCoverage() {
   }
 }
 
-function extractUiDefaults() {
-  const uiPort = cliDefinitions.match(/Ui \{[\s\S]*?default_value_t = (\d+)\)\s*\n\s*port: u16/)
-  const backendPort = cliDefinitions.match(/Ui \{[\s\S]*?default_value_t = (\d+)\)\s*\n\s*backend_port: u16/)
+export function extractUiDefaults(sourceText = cliDefinitions) {
+  const uiPort = sourceText.match(/Ui \{[\s\S]*?default_value_t = (\d+)\)\]\s*\r?\n\s*port: u16/)
+  const backendPort = sourceText.match(/Ui \{[\s\S]*?default_value_t = (\d+)\)\]\s*\r?\n\s*backend_port: u16/)
   return { uiPort: uiPort?.[1], backendPort: backendPort?.[1] }
+}
+
+const alwaysBannedPatterns = [
+  { pattern: /\bplatform migrate\b/i, label: 'nonexistent platform migrate command' },
+  { pattern: /\bccr restore\b/i, label: 'nonexistent ccr restore command' },
+  { pattern: /\bccr backup(?:s)?\b/i, label: 'nonexistent ccr backup command' },
+  { pattern: /\/reference\/api\b/i, label: 'removed API reference route' },
+  { pattern: /\/en\/reference\/api\b/i, label: 'removed English API reference route' },
+  { pattern: /\/reference\/commands\/web\b/i, label: 'removed web command route' },
+  { pattern: /\/en\/reference\/commands\/web\b/i, label: 'removed English web command route' },
+  { pattern: /web 特性/, label: 'stale zh web-feature wording' },
+  { pattern: /web feature/i, label: 'stale en web-feature wording' }
+]
+
+const historicalCommandPatterns = [
+  { pattern: /\bccr web\b/i, label: 'removed ccr web command' },
+  { pattern: /\bccr migrate\b/i, label: 'removed ccr migrate command' }
+]
+
+const activeOnlyBannedPatterns = [
+  {
+    pattern: /\bccr platform (?:switch|current|info|init|profile)\b/i,
+    label: 'retired ccr platform subcommand'
+  },
+  { pattern: /\bccr switch\b/i, label: 'retired ccr switch command' },
+  {
+    pattern: /\bccr\s+(?:-(?:y|-yes)\s+)?(?:list|ls|add|delete|enable|disable|init|clear|optimize|export|import)\b/i,
+    label: 'deprecated top-level ccr command'
+  },
+  {
+    pattern: /--(?:auth-token|api-key)(?!-stdin)(?:\s+|=)/i,
+    label: 'plaintext CLI secret flag'
+  },
+  { pattern: /\bprofile set-field\b/i, label: 'hidden profile set-field command' }
+]
+
+export function auditDocBannedPatterns(rel, content) {
+  const issues = []
+  for (const { pattern, label } of alwaysBannedPatterns) {
+    if (pattern.test(content)) issues.push(`Detected ${label} in ${rel}`)
+  }
+  if (!allowedHistoricalMentions.has(rel)) {
+    for (const { pattern, label } of historicalCommandPatterns) {
+      if (pattern.test(content)) issues.push(`Detected ${label} in ${rel}`)
+    }
+    if (!deprecatedCommandPages.has(rel)) {
+      for (const { pattern, label } of activeOnlyBannedPatterns) {
+        if (pattern.test(content)) issues.push(`Detected ${label} in ${rel}`)
+      }
+    }
+  }
+  return issues
 }
 
 function checkFactSync() {
   const defaults = extractUiDefaults()
+  assert(
+    Boolean(defaults.uiPort && defaults.backendPort),
+    'Failed to extract ccr ui default ports from definitions.rs'
+  )
   const zhDocs = collectDocText('')
   const enDocs = collectDocText('en/')
 
@@ -313,42 +442,31 @@ function checkFactSync() {
     assert(enDocs.includes(String(fact)), `English docs missing ccr ui fact: ${fact}`)
   }
 
-  const bannedPatterns = [
-    { pattern: /\bccr web\b/i, label: 'removed ccr web command' },
-    { pattern: /\bccr migrate\b/i, label: 'removed ccr migrate command' },
-    { pattern: /\bplatform migrate\b/i, label: 'nonexistent platform migrate command' },
-    { pattern: /\bccr restore\b/i, label: 'nonexistent ccr restore command' },
-    { pattern: /\bccr backup(?:s)?\b/i, label: 'nonexistent ccr backup command' },
-    { pattern: /\/reference\/api\b/i, label: 'removed API reference route' },
-    { pattern: /\/en\/reference\/api\b/i, label: 'removed English API reference route' },
-    { pattern: /\/reference\/commands\/web\b/i, label: 'removed web command route' },
-    { pattern: /\/en\/reference\/commands\/web\b/i, label: 'removed English web command route' },
-    { pattern: /web 特性/, label: 'stale zh web-feature wording' },
-    { pattern: /web feature/i, label: 'stale en web-feature wording' }
-  ]
-
   for (const file of activeMarkdownFiles()) {
     const rel = relFromDocs(file)
     const content = fs.readFileSync(file, 'utf8')
-    if (allowedHistoricalMentions.has(rel)) continue
-    for (const { pattern, label } of bannedPatterns) {
-      assert(!pattern.test(content), `Detected ${label} in ${rel}`)
+    for (const issue of auditDocBannedPatterns(rel, content)) {
+      failures.add(issue)
     }
   }
 }
 
-checkInternalLinks()
-checkLocaleParity()
-checkPlaceholderTranslations()
-checkRemovedAndRequiredPages()
-checkCommandCoverage()
-checkWorkspaceCoverage()
-checkUiModuleCoverage()
-checkFactSync()
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 
-if (failures.size > 0) {
-  process.stderr.write(`docs audit failed:\n${[...failures].map(failure => `- ${failure}`).join('\n')}\n`)
-  process.exit(1)
+if (isMain) {
+  checkInternalLinks()
+  checkLocaleParity()
+  checkPlaceholderTranslations()
+  checkRemovedAndRequiredPages()
+  checkCommandCoverage()
+  checkWorkspaceCoverage()
+  checkUiModuleCoverage()
+  checkFactSync()
+
+  if (failures.size > 0) {
+    process.stderr.write(`docs audit failed:\n${[...failures].map(failure => `- ${failure}`).join('\n')}\n`)
+    process.exit(1)
+  }
+
+  process.stdout.write('docs audit passed\n')
 }
-
-process.stdout.write('docs audit passed\n')

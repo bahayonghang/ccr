@@ -34,7 +34,7 @@ pub async fn enable_command(config_name: &str) -> Result<()> {
     println!();
     ColorOutput::success(&format!("配置 '{}' 已启用", config_name));
     // 显示后续操作提示
-    crate::commands::common::print_next_steps(&[("查看配置", "ccr list")]);
+    crate::commands::common::print_next_steps(&[("查看配置", "ccr claude profile list")]);
 
     Ok(())
 }

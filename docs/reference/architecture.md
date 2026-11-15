@@ -72,7 +72,7 @@ UI 与 CLI 共享 `~/.ccr/` 数据和平台配置。UI 是同一系统的图形�
 
 ## 数据所有权
 
-- `ccr-config` 持有 profile/settings 序列化与转换契约。
+- `ccr-config` 持有各平台 SQLite 配置库（`profiles.db`）、`ExchangeV1` TOML 交换契约与宿主 settings 转换规则。
 - `ccr-store` 持有 CLI history 和 session 索引查询。
 - `ccr-db` 持有桌面数据库、repository 和日志等服务。
 - `ccr-usage` 只读适配 llmusage 数据，不拥有写入或迁移上游数据库的权限。
@@ -82,10 +82,10 @@ UI 与 CLI 共享 `~/.ccr/` 数据和平台配置。UI 是同一系统的图形�
 
 ### Profile 操作
 
-1. Clap 将参数解析为 `Commands` 或平台子命令。
-2. `ccr-cli` 分发到 Claude/Codex/平台处理器。
-3. domain crate 加载并验证 profile。
-4. 写入路径使用锁、备份和原子写。
+1. Clap 将参数解析为 `Commands` 或 `claude` / `codex` / `grok` 平台子命令。
+2. `ccr-cli` 与 `ccr-app` 分发到对应平台 `profile` 处理器。
+3. `ccr-config` 从 `~/.ccr/platforms/<platform>/profiles.db` 加载并验证 Profile（旧版 `profiles.toml` 在首次访问时自动迁移并备份）。
+4. 写入路径使用文件锁、备份和原子写更新宿主运行时文件与注册表 `current_profile` 指针。
 5. history 记录脱敏后的操作结果。
 
 ### `ccr ui`

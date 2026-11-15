@@ -59,39 +59,31 @@ const zhTheme = {
               { text: 'platform', link: '/reference/commands/platform' },
               { text: 'claude', link: '/reference/commands/claude' },
               { text: 'codex', link: '/reference/commands/codex' },
-              { text: 'init', link: '/reference/commands/init' }
+              { text: 'grok', link: '/reference/commands/grok' },
+              { text: 'project-init', link: '/reference/commands/project-init' }
             ]
           },
           {
-            text: 'Profile 与临时覆盖',
+            text: '状态、诊断与临时覆盖',
             collapsed: true,
             items: [
-              { text: 'add', link: '/reference/commands/add' },
-              { text: 'delete', link: '/reference/commands/delete' },
-              { text: 'list', link: '/reference/commands/list' },
               { text: 'current', link: '/reference/commands/current' },
-              { text: 'switch', link: '/reference/commands/switch' },
-              { text: 'temp', link: '/reference/commands/temp' },
-              { text: 'temp-token', link: '/reference/commands/temp-token' },
               { text: 'validate', link: '/reference/commands/validate' },
-              { text: 'enable', link: '/reference/commands/enable' },
-              { text: 'disable', link: '/reference/commands/disable' },
-              { text: 'clear', link: '/reference/commands/clear' },
-              { text: 'optimize', link: '/reference/commands/optimize' }
+              { text: 'doctor', link: '/reference/commands/doctor' },
+              { text: 'check', link: '/reference/commands/check' },
+              { text: 'temp', link: '/reference/commands/temp' },
+              { text: 'temp-token', link: '/reference/commands/temp-token' }
             ]
           },
           {
-            text: '数据、同步与诊断',
+            text: '数据、同步与会话',
             collapsed: true,
             items: [
               { text: 'history', link: '/reference/commands/history' },
-              { text: 'export', link: '/reference/commands/export' },
-              { text: 'import', link: '/reference/commands/import' },
               { text: 'clean', link: '/reference/commands/clean' },
               { text: 'sync', link: '/reference/commands/sync' },
               { text: 'sessions', link: '/reference/commands/sessions' },
-              { text: 'provider', link: '/reference/commands/provider' },
-              { text: 'check', link: '/reference/commands/check' }
+              { text: 'provider', link: '/reference/commands/provider' }
             ]
           },
           {
@@ -107,6 +99,23 @@ const zhTheme = {
               { text: 'prompts', link: '/reference/commands/prompts' },
               { text: 'update', link: '/reference/commands/update' },
               { text: 'version', link: '/reference/commands/version' }
+            ]
+          },
+          {
+            text: '已弃用与退休入口（7.x 兼容）',
+            collapsed: true,
+            items: [
+              { text: 'switch', link: '/reference/commands/switch' },
+              { text: 'init', link: '/reference/commands/init' },
+              { text: 'list', link: '/reference/commands/list' },
+              { text: 'add', link: '/reference/commands/add' },
+              { text: 'delete', link: '/reference/commands/delete' },
+              { text: 'enable', link: '/reference/commands/enable' },
+              { text: 'disable', link: '/reference/commands/disable' },
+              { text: 'clear', link: '/reference/commands/clear' },
+              { text: 'optimize', link: '/reference/commands/optimize' },
+              { text: 'export', link: '/reference/commands/export' },
+              { text: 'import', link: '/reference/commands/import' }
             ]
           }
         ]
@@ -228,49 +237,41 @@ const enTheme = {
         items: [
           { text: 'Command Overview', link: '/en/reference/commands/' },
           {
-            text: 'Platform and Init',
+            text: 'Platforms & Init',
             collapsed: true,
             items: [
               { text: 'platform', link: '/en/reference/commands/platform' },
               { text: 'claude', link: '/en/reference/commands/claude' },
               { text: 'codex', link: '/en/reference/commands/codex' },
-              { text: 'init', link: '/en/reference/commands/init' }
+              { text: 'grok', link: '/en/reference/commands/grok' },
+              { text: 'project-init', link: '/en/reference/commands/project-init' }
             ]
           },
           {
-            text: 'Profiles and Overrides',
+            text: 'Status, Diagnostics & Overrides',
             collapsed: true,
             items: [
-              { text: 'add', link: '/en/reference/commands/add' },
-              { text: 'delete', link: '/en/reference/commands/delete' },
-              { text: 'list', link: '/en/reference/commands/list' },
               { text: 'current', link: '/en/reference/commands/current' },
-              { text: 'switch', link: '/en/reference/commands/switch' },
-              { text: 'temp', link: '/en/reference/commands/temp' },
-              { text: 'temp-token', link: '/en/reference/commands/temp-token' },
               { text: 'validate', link: '/en/reference/commands/validate' },
-              { text: 'enable', link: '/en/reference/commands/enable' },
-              { text: 'disable', link: '/en/reference/commands/disable' },
-              { text: 'clear', link: '/en/reference/commands/clear' },
-              { text: 'optimize', link: '/en/reference/commands/optimize' }
+              { text: 'doctor', link: '/en/reference/commands/doctor' },
+              { text: 'check', link: '/en/reference/commands/check' },
+              { text: 'temp', link: '/en/reference/commands/temp' },
+              { text: 'temp-token', link: '/en/reference/commands/temp-token' }
             ]
           },
           {
-            text: 'Data, Sync, and Diagnostics',
+            text: 'Data, Sync & Sessions',
             collapsed: true,
             items: [
               { text: 'history', link: '/en/reference/commands/history' },
-              { text: 'export', link: '/en/reference/commands/export' },
-              { text: 'import', link: '/en/reference/commands/import' },
               { text: 'clean', link: '/en/reference/commands/clean' },
               { text: 'sync', link: '/en/reference/commands/sync' },
               { text: 'sessions', link: '/en/reference/commands/sessions' },
-              { text: 'provider', link: '/en/reference/commands/provider' },
-              { text: 'check', link: '/en/reference/commands/check' }
+              { text: 'provider', link: '/en/reference/commands/provider' }
             ]
           },
           {
-            text: 'Interfaces, Cost, and Maintenance',
+            text: 'UI, Cost & Maintenance',
             collapsed: true,
             items: [
               { text: 'ui', link: '/en/reference/commands/ui' },
@@ -282,6 +283,23 @@ const enTheme = {
               { text: 'prompts', link: '/en/reference/commands/prompts' },
               { text: 'update', link: '/en/reference/commands/update' },
               { text: 'version', link: '/en/reference/commands/version' }
+            ]
+          },
+          {
+            text: 'Deprecated & Retired (7.x)',
+            collapsed: true,
+            items: [
+              { text: 'switch', link: '/en/reference/commands/switch' },
+              { text: 'init', link: '/en/reference/commands/init' },
+              { text: 'list', link: '/en/reference/commands/list' },
+              { text: 'add', link: '/en/reference/commands/add' },
+              { text: 'delete', link: '/en/reference/commands/delete' },
+              { text: 'enable', link: '/en/reference/commands/enable' },
+              { text: 'disable', link: '/en/reference/commands/disable' },
+              { text: 'clear', link: '/en/reference/commands/clear' },
+              { text: 'optimize', link: '/en/reference/commands/optimize' },
+              { text: 'export', link: '/en/reference/commands/export' },
+              { text: 'import', link: '/en/reference/commands/import' }
             ]
           }
         ]

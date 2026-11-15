@@ -65,8 +65,8 @@ ccr grok auth
 
 ## See Also
 
+- [`claude`](./claude.md)
+- [`codex`](./codex.md)
 - [`grok`](./grok.md)
-- [`list`](./list.md)
-- [`switch`](./switch.md)
 - [`current`](./current.md)
 - [Entrypoints](/en/guide/entrypoints)

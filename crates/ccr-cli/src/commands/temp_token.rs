@@ -82,8 +82,8 @@ pub async fn temp_token_set(
     display_temp_override(&temp_override);
 
     // 提示信息
-    ColorOutput::info("临时配置已应用到 settings.json；toml 配置文件保持原值");
-    ColorOutput::info("下次 switch 时将使用配置文件中的原始 token");
+    ColorOutput::info("临时配置已应用到 settings.json；Profile 配置目录保持原值");
+    ColorOutput::info("下次执行 'ccr claude profile switch <name>' 时将恢复原始 token");
     crate::commands::common::print_next_steps(&[("查看临时覆盖状态", "ccr temp-token show")]);
 
     Ok(())
@@ -133,7 +133,7 @@ pub async fn temp_token_clear() -> Result<()> {
     manager.clear_async().await?;
     ColorOutput::success("临时配置已清除");
     println!();
-    ColorOutput::info("现在将使用 toml 配置文件中的设置");
+    ColorOutput::info("现在将使用 Profile 配置目录中的设置");
 
     Ok(())
 }

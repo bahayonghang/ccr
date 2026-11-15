@@ -70,7 +70,7 @@ pub async fn disable_command(config_name: &str, force: bool) -> Result<()> {
     if is_current {
         ColorOutput::warning("当前配置已禁用，需要选择其他配置并重新应用");
     }
-    crate::commands::common::print_next_steps(&[("查看可用配置", "ccr list")]);
+    crate::commands::common::print_next_steps(&[("查看可用配置", "ccr claude profile list")]);
 
     Ok(())
 }

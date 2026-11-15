@@ -1,12 +1,9 @@
-# Droid 平台示例配置
+# Droid 平台历史 TOML 结构参考（保留兼容适配器）
 #
-# Factory Droid CLI 配置管理
-# 配置将写入 ~/.factory/settings.json 的 customModels 数组
-#
-# 使用方法:
-# 1. 复制此文件到 ~/.ccr/platforms/droid/profiles.toml
-# 2. 根据需要修改配置
-# 3. 使用 `ccr switch -p droid <profile-name>` 切换配置
+# ⚠️ 说明：Factory Droid（droid）当前为保留兼容适配器（legacy_adapter），
+# 不提供 CLI/TUI 的 `profile` 或 `auth` 子命令（不支持切换或初始化命令）。
+# Droid 宿主配置文件位于 ~/.factory/settings.json（customModels 数组），
+# 可使用 `ccr platform list` 与 `ccr doctor --platform droid` 进行只读检查。
 
 # 当前使用的配置名称
 default_config = "anthropic-api"

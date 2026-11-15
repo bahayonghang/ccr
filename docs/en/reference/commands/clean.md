@@ -120,6 +120,7 @@ Cleanup previews and empty results use neutral text. Completed deletion uses `âœ
 
 ## See Also
 
+- [`claude`](./claude) / [`codex`](./codex) / [`grok`](./grok) - platform profile switching and `profile export` / `import` snapshots (`profile export` includes inline secrets at `0600` by default for private backups; pass `--no-secrets` when sharing or committing)
+- [`doctor`](./doctor) - unified environment diagnostics
+- [`history`](./history) - masked audit history
 - [Command Reference](./index)
-- [Quick Start](/en/guide/quick-start)
-- [Configuration Guide](/en/guide/configuration)

@@ -1069,7 +1069,7 @@ pub fn get_ccr_sync_path() -> Result<PathBuf> {
 
     // 不再支持 Legacy ~/.ccs_config.toml 作为同步根
     Err(CcrError::ConfigError(
-        "未找到 CCR 根目录，请先运行 'ccr init' 创建 ~/.ccr".into(),
+        "未找到 CCR 根目录，请先运行 'ccr <claude|codex|grok> profile init' 创建 ~/.ccr".into(),
     ))
 }
 

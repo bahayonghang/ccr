@@ -72,5 +72,6 @@ ccr --version
 
 - [update](./update)
 - [platform](./platform)
+- [claude](./claude)
 - [codex](./codex)
 - [grok](./grok)

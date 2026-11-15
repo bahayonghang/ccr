@@ -1100,6 +1100,7 @@ impl CommandDispatcher {
         println!();
 
         ColorOutput::info("核心任务:");
+        println!("  配置列表: ccr <claude|codex|grok> profile list");
         println!("  配置切换: ccr <claude|codex|grok> profile switch <name>");
         println!("  Codex 账号: ccr codex auth current -> ccr codex auth switch <name>");
         println!("  官方登出: ccr claude auth off / ccr codex auth off / ccr grok auth off");

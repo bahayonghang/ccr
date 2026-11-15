@@ -270,7 +270,7 @@ impl CcrError {
         match self {
             CcrError::ConfigMissing(path) => {
                 format!(
-                    "配置文件不存在: {}\n建议: 请运行安装脚本创建配置文件,或检查配置文件路径是否正确",
+                    "配置文件不存在: {}\n建议: 请运行 'ccr <claude|codex|grok> profile init' 初始化平台配置库,或检查配置文件路径是否正确",
                     path
                 )
             }
@@ -278,10 +278,10 @@ impl CcrError {
                 format!(
                     "配置节 '{}' 不存在\n\
                     建议:\n\
-                    • 运行 'ccr list' 查看可用配置\n\
-                    • 运行 'ccr add <配置名>' 添加新配置\n\
-                    • Unified模式: 编辑 ~/.ccr/platforms/<platform>/profiles.toml\n\
-                    • Legacy模式: 编辑 ~/.ccs_config.toml",
+                    • 运行 'ccr <claude|codex|grok> profile list' 查看可用配置\n\
+                    • 运行 'ccr <claude|codex|grok> profile create <name>' 添加新配置\n\
+                    • 通过编辑器检查或修改配置目录: 'ccr <claude|codex|grok> profile open'\n\
+                    • 查看支持平台: 'ccr platform list'",
                     name
                 )
             }
@@ -309,26 +309,27 @@ impl CcrError {
                     可用平台:\n\
                     • claude  - Claude Code (✅ 已实现)\n\
                     • codex   - Codex CLI (✅ 已实现)\n\
-                    • gemini  - Antigravity CLI (key: gemini, ✅ 已实现)\n\
-                    • qwen    - Alibaba Qwen CLI (🚧 计划中)\n\n\
+                    • grok    - Grok Build (✅ 已实现)\n\
+                    • gemini  - Antigravity CLI (key: gemini, 兼容适配器)\n\
+                    • droid   - Factory Droid (兼容适配器)\n\n\
                     建议:\n\
                     • 运行 'ccr platform list' 查看所有平台\n\
-                    • 运行 'ccr claude profile init'、'ccr codex profile init' 或 'ccr grok profile init' 初始化平台\n\
-                    • 查看文档: https://github.com/bahayonghang/ccr/blob/main/docs/platforms/",
+                    • 运行 'ccr claude profile init'、'ccr codex profile init' 或 'ccr grok profile init' 初始化平台",
                     name
                 )
             }
             CcrError::PlatformNotSupported(name) => {
                 format!(
-                    "平台 '{}' 尚未实现\n\n\
-                    当前已实现的平台:\n\
+                    "平台 '{}' 当前不支持该操作\n\n\
+                    支持完整 Profile / Auth 管理的平台:\n\
                     • claude  - Claude Code\n\
                     • codex   - Codex CLI\n\
-                    • gemini  - Antigravity CLI (key: gemini)\n\n\
-                    计划中的平台:\n\
-                    • qwen    - Alibaba Qwen CLI\n\n\
+                    • grok    - Grok Build\n\n\
+                    保留兼容适配器（不支持 CLI/TUI Profile 管理）:\n\
+                    • gemini  - Antigravity CLI (key: gemini)\n\
+                    • droid   - Factory Droid\n\n\
                     建议:\n\
-                    • 使用已实现的平台: 'ccr platform switch claude'\n\
+                    • 初始化受支持的平台: 'ccr <claude|codex|grok> profile init'\n\
                     • 查看平台列表: 'ccr platform list'\n\
                     • 查看开发路线图: https://github.com/bahayonghang/ccr/issues",
                     name
@@ -338,12 +339,12 @@ impl CcrError {
                 format!(
                     "配置 profile '{}' 未找到\n\n\
                     建议:\n\
-                    • 查看当前平台的所有 profiles: 'ccr list'\n\
+                    • 查看指定平台的所有 profiles: 'ccr <claude|codex|grok> profile list'\n\
                     • 查看所有平台: 'ccr platform list'\n\
-                    • 添加新 profile: 'ccr add'\n\
-                    • 切换到正确的平台: 'ccr platform switch <平台名>'\n\n\
+                    • 添加新 profile: 'ccr <claude|codex|grok> profile create <name>'\n\
+                    • 通过编辑器检查配置目录: 'ccr <claude|codex|grok> profile open'\n\n\
                     💡 提示: 不同平台有各自的 profiles，\n\
-                       请确保已切换到正确的平台",
+                       请按平台显式执行 profile 子命令",
                     name
                 )
             }
@@ -400,6 +401,34 @@ mod tests {
         let msg = err.user_message();
         assert!(msg.contains("test_config"));
         assert!(msg.contains("建议"));
+        assert!(msg.contains("profile list"));
+        assert!(msg.contains("profile create"));
+        assert!(msg.contains("profile open"));
+        for err in [
+            CcrError::ConfigMissing("/tmp/missing".into()),
+            CcrError::ConfigSectionNotFound("work".into()),
+            CcrError::PlatformNotFound("unknown".into()),
+            CcrError::PlatformNotSupported("qwen".into()),
+            CcrError::ProfileNotFound("work".into()),
+        ] {
+            let user_msg = err.user_message();
+            for retired in [
+                "ccr list",
+                "ccr add",
+                "ccr init",
+                "ccr switch",
+                "ccr platform switch",
+                "ccr platform init",
+                ".ccs_config.toml",
+                "profiles.toml",
+                "docs/platforms/",
+            ] {
+                assert!(
+                    !user_msg.contains(retired),
+                    "error user_message contains retired `{retired}`:\n{user_msg}"
+                );
+            }
+        }
     }
 
     #[test]

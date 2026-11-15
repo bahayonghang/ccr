@@ -124,7 +124,10 @@ async fn cmd_test(name: &str, verbose: bool) -> Result<()> {
         }
         None => {
             ColorOutput::error(&format!("未找到配置: {}", name));
-            crate::commands::common::print_next_steps(&[("查看可用配置", "ccr list")]);
+            crate::commands::common::print_next_steps(&[(
+                "查看可用配置",
+                "ccr claude profile list",
+            )]);
         }
     }
 

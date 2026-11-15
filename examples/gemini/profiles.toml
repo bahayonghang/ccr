@@ -1,6 +1,6 @@
-# Gemini CLI 配置示例
-# 适用于 Unified 模式下的平台配置
-# 路径: ~/.ccr/platforms/gemini/profiles.toml
+# Gemini / Antigravity CLI 历史 TOML 结构参考（保留兼容适配器）
+# ⚠️ 说明：gemini（Antigravity CLI）当前为保留兼容适配器（legacy_adapter），不提供 CLI/TUI `profile` 子命令。
+# 宿主设置文件位于 ~/.gemini/antigravity-cli/settings.json，可通过 `ccr doctor --platform gemini` 或 `ccr ui`（/antigravity）管理。
 
 # ⚠️ 注意：CCR 使用兼容 CCS 的 profiles.toml 格式（包含 default_config/current_config/settings）
 default_config = "google"

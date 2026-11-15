@@ -1,8 +1,13 @@
 # Antigravity CLI Platform Guide
 
+> [!IMPORTANT]
+> **Retained Compatibility Adapter (`legacy_adapter`)**
+> In CCR 7.x, `gemini` (displayed as **Antigravity CLI**; recognized input aliases: `gemini-cli`, `antigravity`, `antigravity-cli`, `agy`) is a **retained compatibility adapter (`legacy_adapter`)**.
+> `Platform::auth_profile_supported()` includes only `claude`, `codex`, and `grok` — **`gemini` has no `ccr gemini profile ...` or `ccr gemini auth ...` CLI/TUI subcommands**, and `ccr validate` checks only the registry plus `claude`, `codex`, and `grok`.
+
 ## Overview
 
-CCR keeps the persisted platform key as `gemini`, but the user-facing Google CLI integration now targets **Antigravity CLI**. This preserves existing CCR profiles, history, usage aggregation, sync folders, and UI bookmarks while following Google's Gemini CLI -> Antigravity CLI migration path.
+CCR keeps the persisted platform key as `gemini` while targeting **Antigravity CLI** (`agy`) for user-facing Google CLI integration, preserving existing sync folders, historical session indexing, skill directories, and desktop UI workspace routes across Google's Gemini CLI -> Antigravity CLI transition.
 
 Official migration references:
 
@@ -14,90 +19,99 @@ Official migration references:
 
 | Item | Value |
 |------|-------|
-| CCR platform key | `gemini` |
+| Persisted CCR platform key | `gemini` |
+| Recognized input aliases | `gemini-cli`, `antigravity`, `antigravity-cli`, `agy` |
 | Display name | Antigravity CLI |
-| Recommended binary | `agy` |
-| Profile catalog | `~/.ccr/platforms/gemini/profiles.db` |
-| Antigravity settings | `~/.gemini/antigravity-cli/settings.json` |
-| Antigravity MCP config | `~/.gemini/antigravity-cli/mcp_config.json` |
-| Global skills | `~/.gemini/antigravity-cli/skills` |
+| CLI capability tier | `legacy_adapter` (no CLI/TUI `profile` or `auth` subcommands) |
+| Recommended host binary | `agy` |
+| Host settings file | `~/.gemini/antigravity-cli/settings.json` |
+| Host MCP config | `~/.gemini/antigravity-cli/mcp_config.json` |
+| Global skills directory | `~/.gemini/antigravity-cli/skills` |
 | Legacy/shared Gemini skills | `~/.gemini/skills` |
-| Workspace MCP | `.agents/mcp_config.json` |
-| Workspace skills | `.agents/skills` |
+| Workspace MCP config | `.agents/mcp_config.json` |
+| Workspace skills directory | `.agents/skills` |
 
-The old `/gemini-cli` UI route and `gemini` platform key remain compatibility aliases. New documentation and visible UI should prefer Antigravity CLI and `/antigravity` routes.
+Legacy `/gemini-cli` UI routes redirect to `/antigravity`; the persisted platform key remains `gemini`.
 
-## Prerequisites
+## Supported CCR Capabilities
 
-- Antigravity CLI installed when using the local CLI runtime (`agy --help`, `agy --version`).
-- A Google API key or enterprise/standard/cloud/API-key access path appropriate for your account.
-- Existing CCR `gemini` profiles can be reused; do **not** rename the platform key to `antigravity`.
+### 1. Platform Registry Recognition
 
-## Quick Start
+`ccr platform list` and `ccr platform list --json` surface the `gemini` registry entry and its status:
 
 ```bash
-# Example TOML is the exchange format. The live catalog is ~/.ccr/platforms/gemini/profiles.db.
-# Do not copy the example onto profiles.toml. A restored backup TOML is not read.
-ccr import examples/gemini/profiles.toml --platform gemini --merge --backup
-
-# Switch to the Google/Antigravity profile namespace
-ccr platform switch gemini
-
-# Add or edit a profile
-ccr add
-
-# Verify the local Antigravity CLI binary outside CCR
-agy --version
+ccr platform list
+ccr platform list --json
 ```
 
-Antigravity's own migration command preview:
+### 2. Read-Only Health Inspection (`ccr doctor`)
+
+Run `ccr doctor` for side-effect-free local checks against `~/.gemini/antigravity-cli/settings.json` and `GEMINI_API_KEY`:
 
 ```bash
-agy plugin import gemini
+ccr doctor --platform gemini
+ccr doctor --platform gemini --verbose
+ccr doctor --all-platforms
 ```
 
-## Profile Configuration
+### 3. Ecosystem Tooling
 
-The live CCR catalog is `~/.ccr/platforms/gemini/profiles.db`. The block below is exchange TOML:
+The `gemini` platform key is supported across CCR's shared ecosystem commands:
 
-```toml
-[google-official]
-description = "Google Antigravity / Gemini API"
-base_url = "https://generativelanguage.googleapis.com/v1beta"
-auth_token = "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-model = "gemini-2.0-flash-exp"
-small_fast_model = "gemini-1.5-flash"
+```bash
+# Session indexing and search (import-compatible with legacy ~/.gemini/tmp/*/chats/session-*.json logs)
+ccr sessions list --platform gemini
+ccr sessions search "keyword" --platform gemini
+
+# Skills management
+ccr skills list --platform gemini
+ccr skills install <skill-name> --platform gemini
+
+# Prompt presets (writes target files under ~/.gemini/)
+ccr prompts list --platform gemini
+ccr prompts current gemini --platform gemini
+
+# WebDAV folder sync registration
+ccr sync folder list
 ```
 
-When a profile is active, CCR writes Antigravity settings to `~/.gemini/antigravity-cli/settings.json`:
+> Note: Legacy Gemini CLI session logs remain import-compatible; native Antigravity session import is deferred until upstream local log formats stabilize.
+
+### 4. Graphical Workspace (`ccr ui` -> `/antigravity`)
+
+Launch `ccr ui` and open the `/antigravity` module to manage local Antigravity settings, MCP servers (`mcp_config.json`), slash commands, custom agents, and plugins visually:
+
+```bash
+ccr ui -p 15173 --backend-port 38081
+```
+
+## Host Configuration File Reference
+
+### `~/.gemini/antigravity-cli/settings.json`
+
+`ccr doctor --platform gemini` inspects the `google` object inside `~/.gemini/antigravity-cli/settings.json` read-only via the `GeminiSettings` schema, ignoring unrelated top-level JSON fields during inspection (`GeminiSettings` itself does not flatten extra top-level fields; `ccr ui` `/antigravity` preserves unrelated top-level fields via raw JSON editing):
 
 ```json
 {
-  "env": {
-    "GOOGLE_API_BASE_URL": "https://generativelanguage.googleapis.com/v1beta",
-    "GOOGLE_API_KEY": "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    "GEMINI_MODEL": "gemini-2.0-flash-exp",
-    "GEMINI_SMALL_FAST_MODEL": "gemini-1.5-flash"
+  "google": {
+    "api_key": "AIzaSyExampleKeyWithAtLeast30Chars",
+    "project_id": "my-project",
+    "region": "us-central1",
+    "api_version": "v1"
   }
 }
 ```
 
-| TOML field | Environment variable | Description |
-|------------|----------------------|-------------|
-| `base_url` | `GOOGLE_API_BASE_URL` | API endpoint |
-| `auth_token` | `GOOGLE_API_KEY` | Google API key, masked in normal output |
-| `model` | `GEMINI_MODEL` | Default model |
-| `small_fast_model` | `GEMINI_SMALL_FAST_MODEL` | Optional fast model |
+Validation and credential rules:
 
-## MCP, Skills, and Workspace Paths
+- `google.api_key`: **required** in `GeminiSettings` (`GoogleConfig::api_key: String`); must start with `AIza` and be at least `30` characters long.
+- `google.project_id`, `google.region`, `google.api_version`: optional Google Cloud / Vertex metadata fields.
+- Environment variable fallback: `ccr doctor --platform gemini` also inspects the optional `GEMINI_API_KEY` environment variable.
+- Keep strict file permissions (for example `chmod 600`) on `~/.gemini/antigravity-cli/settings.json` whenever it contains a plaintext key, and never commit it to version control.
 
-Antigravity MCP servers are stored separately from settings:
+### MCP and Skills Paths
 
-```text
-~/.gemini/antigravity-cli/mcp_config.json
-```
-
-CCR writes remote MCP servers with `serverUrl` and reads legacy `url` / `httpUrl` fields for compatibility:
+Antigravity MCP servers are stored separately from `settings.json` at `~/.gemini/antigravity-cli/mcp_config.json` (workspace-level config: `.agents/mcp_config.json`). CCR writes remote MCP servers with `serverUrl` while reading legacy `url` and `httpUrl` fields for compatibility:
 
 ```json
 {
@@ -114,75 +128,14 @@ Skills lookup order includes:
 
 1. Workspace `.agents/skills`
 2. Antigravity global `~/.gemini/antigravity-cli/skills`
-3. Legacy/shared Gemini `~/.gemini/skills`
+3. Legacy/shared `~/.gemini/skills`
 
-Workspace MCP should use `.agents/mcp_config.json` when a project-specific Antigravity configuration is needed.
-
-## Sessions and Usage Import
-
-CCR keeps historical Gemini session and usage data under the internal `gemini` platform key. Legacy Gemini CLI logs under `~/.gemini/tmp/*/chats/session-*.json` remain import-compatible.
-
-Antigravity session/log import is intentionally marked as pending until its local log format is confirmed. Do not claim Antigravity session import support from the Gemini legacy parser alone.
-
-## Troubleshooting
-
-### Settings file did not change
-
-Check the Antigravity path, not the old Gemini root settings file:
-
-```bash
-ls -la ~/.gemini/antigravity-cli/settings.json
-chmod 600 ~/.gemini/antigravity-cli/settings.json
-```
-
-Then verify CCR profile state:
-
-```bash
-ccr platform switch gemini
-ccr current
-ccr validate
-```
-
-### MCP server is missing
-
-Check `mcp_config.json`:
-
-```bash
-cat ~/.gemini/antigravity-cli/mcp_config.json
-```
-
-Remote servers should prefer `serverUrl`; older `url` and `httpUrl` are read for compatibility.
-
-### Old Gemini paths still appear
-
-Some old paths are intentionally retained as legacy/import-compatible sources:
-
-- `~/.gemini/skills` for shared legacy skills
-- `~/.gemini/commands` and project `.gemini/commands` for legacy slash-command files
-- `~/.gemini/tmp/*/chats/session-*.json` for legacy session import
-
-They should not be documented as the primary Antigravity settings or MCP paths.
-
-## Security Notes
-
-- API keys in `~/.ccr/platforms/gemini/profiles.db` are plaintext; keep file permissions strict. Exchange TOML is plaintext too.
-- CCR masks API keys in normal output and history, but backups can still contain secrets.
-- Prefer `ccr export --no-secrets` when sharing profile examples.
-
-## Related Commands
-
-```bash
-# Profile creation creates the directory automatically; manual copying also works
-ccr platform switch gemini
-ccr list
-ccr switch <profile>
-ccr validate
-ccr history --platform gemini
-```
+Legacy paths (`~/.gemini/skills`, `~/.gemini/commands`, `.gemini/commands`, and `~/.gemini/tmp/*/chats/session-*.json`) remain compatibility sources only and should not be treated as primary Antigravity settings or MCP locations.
 
 ## See Also
 
-- [Platform Overview](./index)
-- [Claude Code Platform](./claude)
-- [Codex Platform](./codex)
-- [Multi-Platform Setup](/en/examples/multi-platform-setup)
+- [Platform Support](./index)
+- [`doctor` unified diagnostics](/en/reference/commands/doctor)
+- [UI Module Map](/en/guide/ui-modules)
+- [Claude Platform Guide](./claude)
+- [Codex Platform Guide](./codex)

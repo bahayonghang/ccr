@@ -271,7 +271,7 @@ impl DoctorService {
                     )
                     .with_detail(error.to_string())
                     .with_recommendation(
-                        "Check your home directory environment and rerun `ccr init` if needed.",
+                        "Check your home directory environment and run `ccr <claude|codex|grok> profile init` if needed.",
                     ),
                 );
                 self.collect_conflict_check(report);
@@ -294,7 +294,9 @@ impl DoctorService {
                 report.push(
                     DoctorCheck::fail("global.ccr_root", "CCR root directory is missing.")
                         .with_path(root.display().to_string())
-                        .with_recommendation("Run `ccr init` to create the CCR workspace."),
+                        .with_recommendation(
+                            "Run `ccr <claude|codex|grok> profile init` to create the CCR workspace.",
+                        ),
                 );
             }
             None => {
@@ -304,7 +306,7 @@ impl DoctorService {
                         "Unable to derive the CCR root directory from config.toml.",
                     )
                     .with_recommendation(
-                        "Check the CCR_ROOT environment variable or rerun `ccr init`.",
+                        "Check the CCR_ROOT environment variable or run `ccr <claude|codex|grok> profile init`.",
                     ),
                 );
             }
@@ -315,7 +317,9 @@ impl DoctorService {
             report.push(
                 DoctorCheck::fail("global.registry", "CCR registry file is missing.")
                     .with_path(registry_path.display().to_string())
-                    .with_recommendation("Run `ccr init` to create ~/.ccr/config.toml."),
+                    .with_recommendation(
+                        "Run `ccr <claude|codex|grok> profile init` to create ~/.ccr/config.toml.",
+                    ),
             );
         } else {
             match platform_manager.load() {
@@ -335,7 +339,7 @@ impl DoctorService {
                         .with_path(registry_path.display().to_string())
                         .with_detail(Self::safe_error_detail(&error))
                         .with_recommendation(
-                            "Fix ~/.ccr/config.toml or regenerate it with `ccr init`.",
+                            "Fix ~/.ccr/config.toml or reinitialize a platform via `ccr <claude|codex|grok> profile init`.",
                         ),
                     );
                 }
@@ -369,7 +373,7 @@ impl DoctorService {
                     "No configured platforms were detected.",
                 )
                 .with_recommendation(
-                    "Create a platform profile or run `ccr init` before rerunning doctor.",
+                    "Run `ccr <claude|codex|grok> profile init` before rerunning doctor.",
                 ),
             );
         } else if unknown_registry_platforms.is_empty() {

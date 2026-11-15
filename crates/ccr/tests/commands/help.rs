@@ -366,10 +366,39 @@ fn help_subcommand_supports_project_init_path() {
 fn legacy_init_help_remains_user_configuration_command() {
     let stdout = run_help(&["init", "--help"]);
 
+    assert!(stdout.contains("[已弃用，将在 8.0 移除]"));
     assert!(stdout.contains("初始化配置文件"));
+    assert!(stdout.contains("ccr <claude|codex|grok> profile init"));
     assert!(stdout.contains("--force"));
+    assert!(!stdout.contains(".ccs_config.toml"));
     assert!(!stdout.contains("trellis init"));
     assert!(!stdout.contains("mini-trellis"));
+}
+
+#[test]
+fn hidden_legacy_and_retired_subcommand_help_shows_status_and_canonical_replacements() {
+    let switch_help = run_help(&["switch", "--help"]);
+    assert!(switch_help.contains("[已退休]"), "{switch_help}");
+    assert!(
+        switch_help.contains("ccr <claude|codex|grok> profile switch <name>"),
+        "{switch_help}"
+    );
+    assert!(!switch_help.contains("示例: ccr switch"), "{switch_help}");
+
+    for deprecated in [
+        "list", "add", "delete", "enable", "disable", "init", "export", "import", "clear",
+        "optimize",
+    ] {
+        let stdout = run_help(&[deprecated, "--help"]);
+        assert!(
+            stdout.contains("[已弃用，将在 8.0 移除]"),
+            "`ccr {deprecated} --help` missing deprecation marker:\n{stdout}"
+        );
+        assert!(
+            stdout.contains("ccr <claude|codex|grok> profile"),
+            "`ccr {deprecated} --help` missing canonical replacement:\n{stdout}"
+        );
+    }
 }
 
 #[test]
@@ -403,6 +432,64 @@ fn version_subcommand_omits_opencode_entry() {
 
     assert!(!stdout.contains("opencode"));
     assert!(stdout.contains("ccr grok auth"));
+    assert!(stdout.contains("ccr <claude|codex|grok> profile list"));
+    assert!(stdout.contains("ccr <claude|codex|grok> profile switch <name>"));
+    assert!(!stdout.contains("ccr platform switch"));
+}
+
+#[test]
+fn public_help_surfaces_never_recommend_hidden_or_retired_commands() {
+    let surfaces: &[&[&str]] = &[
+        &["--help"],
+        &["-h"],
+        &["version"],
+        &["platform", "--help"],
+        &["claude", "--help"],
+        &["codex", "--help"],
+        &["grok", "--help"],
+        &["claude", "profile", "--help"],
+        &["codex", "profile", "--help"],
+        &["grok", "profile", "--help"],
+        &["claude", "profile", "create", "--help"],
+        &["codex", "profile", "create", "--help"],
+        &["grok", "profile", "create", "--help"],
+    ];
+
+    for args in surfaces {
+        let stdout = run_help(args);
+        for banned in [
+            "ccr list",
+            "ccr add",
+            "ccr delete",
+            "ccr -y delete",
+            "ccr --yes delete",
+            "ccr switch",
+            "ccr init",
+            "ccr platform switch",
+            "ccr platform current",
+            "ccr platform info",
+            "ccr platform init",
+            "ccr platform profile",
+            "set-field",
+            "profiles.toml",
+            "--auth-token <",
+            "--api-key <",
+        ] {
+            assert!(
+                !stdout.contains(banned),
+                "`ccr {}` contains banned recommendation `{banned}`:\n{stdout}",
+                args.join(" ")
+            );
+        }
+    }
+
+    for platform in ["claude", "codex", "grok"] {
+        let platform_help = run_help(&[platform, "--help"]);
+        assert!(
+            platform_help.contains(&format!("ccr {platform} profile --help")),
+            "`ccr {platform} --help` must guide users to `profile --help`:\n{platform_help}"
+        );
+    }
 }
 
 #[test]

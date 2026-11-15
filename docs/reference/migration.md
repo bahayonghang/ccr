@@ -1,39 +1,57 @@
 # 迁移指南
 
-本页说明从旧的全局平台 / profile 路由模型迁移到显式 Claude Runtime / Codex Runtime 模型。
+本页汇总 CCR 7.x 的三项核心迁移说明：平台级显式命令面迁移、`profiles.toml -> profiles.db` 存储模型升级，以及 `ccr-ui` 用量统计向外部 `llmusage` 运行时的迁移。
 
-## 命令迁移速查表
+> CCR 不提供 `ccr migrate` 命令；配置库迁移在首次运行规范命令时自动完成。
 
-| 旧命令 | 当前做法 | 说明 |
+## 命令迁移速查表（7.x）
+
+| 旧命令（已移除 / 已退休 / 7.x 隐藏） | 当前规范命令 | 说明 |
 |---|---|---|
-| `ccr switch <name>` | `ccr claude profile switch <name>` / `ccr codex profile switch <name>` | 不再隐式推断平台 |
-| `ccr <name>` | 同上 | 快捷入口已退休 |
-| `ccr platform switch <platform>` | 不再作为 auth/profile 主路径 | 改用显式 profile/auth 命令 |
-| `ccr platform current` | `ccr current` | 查看双 runtime |
-| `ccr platform profile ...` | `ccr claude profile ...` / `ccr codex profile ...` | 平台级 profile 命令已显式分离 |
+| `ccr switch <name>` | `ccr <claude\|codex\|grok> profile switch <name>` | 已退休；目标平台在命令路径中显式指定 |
+| `ccr <name>` | `ccr <claude\|codex\|grok> profile switch <name>` | 快捷入口已退休 |
+| `ccr platform switch <platform>` | `ccr <claude\|codex\|grok> profile switch <name>` / `auth ...` | 子命令已从 Clap 移除；不再依赖全局当前平台 |
+| `ccr platform current` | `ccr current`（别名 `ccr status`、`ccr show`） | 查看跨平台运行时状态总览 |
+| `ccr platform info <platform>` | `ccr platform list [--json]` / `ccr doctor --platform <name>` | 子命令已移除；改查注册表或体检报告 |
+| `ccr platform init <platform>` | `ccr <claude\|codex\|grok> profile init` | 子命令已移除；从内置模板初始化 `profiles.db` |
+| `ccr platform profile ...` | `ccr <claude\|codex\|grok> profile <动作>` | 子命令已移除；统一使用三平台 `profile` 命令组 |
+| `ccr init` | `ccr <claude\|codex\|grok> profile init`（仓库工作流用 `ccr project init`） | 7.x 隐藏并弃用（计划于 8.0 移除） |
+| `ccr list` | `ccr <claude\|codex\|grok> profile list` | 7.x 隐藏并弃用 |
+| `ccr add` | `ccr <claude\|codex\|grok> profile create <name> ...` 或 `profile open` | 密钥请用 `--auth-token-stdin` / `--api-key-stdin` / `--env-key` |
+| `ccr delete` / `enable` / `disable` | `ccr <claude\|codex\|grok> profile delete\|enable\|disable <name>` | 7.x 隐藏并弃用 |
+| `ccr clear` / `ccr optimize` | `ccr <claude\|codex\|grok> profile off` / `profile open` | 退出 Profile 模式或在 `$EDITOR` 中编辑投影 |
+| `ccr export` | `ccr <claude\|codex\|grok> profile export [--no-secrets] [-o file.toml]` | 导出 `ExchangeV1` TOML |
+| `ccr import` | `ccr <claude\|codex\|grok> profile import <file.toml> [--dry-run] [--on-conflict skip\|overwrite\|rename] [--replace -y]` | 默认增量合并（旧 `ccr import` 默认整库替换） |
 
-## registry 迁移
+## Profile 存储与注册表迁移
 
-- 旧文件可继续包含 `default_platform` / `current_platform`
-- 读取时仍兼容这些字段
-- 但当前路由真相已经变为各平台条目的 `current_profile`
+### `profiles.toml` -> SQLite `profiles.db`
+
+- Claude、Codex、Grok 在 7.x 中的权威活体配置库是 `~/.ccr/platforms/<platform>/profiles.db`（SQLite）。
+- 首次访问旧版 `~/.ccr/platforms/<platform>/profiles.toml` 时，CCR 会自动将其迁移至 `profiles.db`，并将原 TOML 文件备份到 `backups/<platform>/`。
+- TOML 格式现在仅用于 `ccr <claude|codex|grok> profile open` 的编辑器临时投影，以及 `profile export` / `profile import` 的 `ExchangeV1` 交换包；手工将备份 TOML 放回活路径不会被 7.x 二进制重新读取。
+
+### 注册表字段兼容
+
+- 旧版 `~/.ccr/config.toml` 可继续保留 `default_platform` / `current_platform` 字段，读取时保持兼容。
+- 当前真实的路由指针是每个平台条目独立的 `current_profile` 字段。
 
 ## 用户心智迁移
 
 旧心智：
 
-- 先选一个“当前平台”
-- 再用通用 `switch` 切 profile
+- 先选一个“全局当前平台”
+- 再用通用顶层子命令操作单个 `profiles.toml`
 
 新心智：
 
-- `ccr current` 先看 Claude / Codex 双 runtime 状态
-- 直接进入 `ccr claude profile ...` 或 `ccr codex profile ...`
-- official auth 与 profile routing 分开表达
+- 用 `ccr current` 查看跨平台运行时状态总览
+- 直接进入 `ccr <claude|codex|grok> profile ...` 或 `ccr <claude|codex|grok> auth ...`
+- 官方登录账号（`auth`）与运行时配置库路由（`profile`）显式分离
 
 ## ccr-ui 使用统计迁移到 llmusage
 
-ccr-ui 的 Usage Dashboard 已从 `ccr-db` 内置用量导入器迁移到外部 `llmusage` 运行时：导入/同步只调用已安装的 `llmusage` CLI，页面渲染只读 `llmusage` SQLite 数据库，不再链接上游 `llmusage` Rust crate。这个迁移只影响桌面端使用统计链路，不改变 Claude / Codex profile、SessionIndexer 或预算/Stats 页面。旧的 `ccr-db` usage schema 会保留以兼容历史数据，但不再作为 Usage Dashboard 的新数据源。
+ccr-ui 的 Usage Dashboard 已从 `ccr-db` 内置用量导入器迁移到外部 `llmusage` 运行时：导入/同步只调用已安装的 `llmusage` CLI，页面渲染只读 `llmusage` SQLite 数据库，不再链接上游 `llmusage` Rust crate。这个迁移只影响桌面端使用统计链路，不改变 Claude / Codex / Grok Profile、`SessionIndexer` 或预算/Stats 页面。旧的 `ccr-db` usage schema 会保留以兼容历史数据，但不再作为 Usage Dashboard 的新数据源。
 
 ### 数据位置
 

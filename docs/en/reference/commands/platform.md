@@ -1,43 +1,53 @@
-# platform - Registry Compatibility View
+# `platform` - Platform Registry View and Migration Map
 
-`ccr platform` now acts as a registry-facing compatibility surface rather than the main auth/profile routing path.
+`ccr platform` provides only a read-only registry listing and help entrypoint. Platform switching, catalog initialization, and profile CRUD/exchange live exclusively under explicit per-platform command groups.
 
-## Recommended current usage
+## Supported Subcommands
 
 ```bash
 ccr platform list
-ccr current
+ccr platform list --json
+ccr platform help
 ```
 
-- `ccr platform list`: inspect registry entries, enabled state, and each platform's `current_profile`
-- `ccr current`: inspect real Claude Runtime / Codex Runtime state
+- `ccr platform list [--json]`: list recognized AI CLI platforms, their registry enabled status, and each platform's recorded `current_profile` (supports `--json` for scripts and integrations).
+- `ccr platform help` (or `ccr platform --help`): display help for `ccr platform`.
 
-## Retired subcommands
+## Removed Subcommands
 
-These subcommands now return migration guidance instead of acting as the main path:
+The former `switch`, `current`, `info`, `init`, and `profile` subcommands under `platform` have been removed from the Clap parser altogether. Invoking any of those removed subcommands now produces a standard Clap unknown-subcommand parse error (with a non-zero exit code) rather than custom runtime migration guidance.
 
-- `ccr platform switch <platform>`
-- `ccr platform current`
-- `ccr platform info <platform>`
-- `ccr platform init <platform>`
-- `ccr platform profile ...`
+## Complete Migration Map (All 13 `profile` Actions)
 
-## Migration map
+Use the explicit platform-scoped commands on `claude`, `codex`, or `grok` instead:
 
-| Legacy path | Current path |
+| Removed `platform` subcommand form | Canonical replacement |
 |---|---|
-| `ccr platform switch claude` | `ccr claude profile switch <name>` or `ccr claude auth ...` |
-| `ccr platform switch codex` | `ccr codex profile switch <name>` or `ccr codex auth ...` |
-| `ccr platform switch grok` | `ccr grok profile switch <name>` |
-| `ccr platform current` | `ccr current` |
-| `ccr platform init claude` | `ccr claude profile init` |
-| `ccr platform init codex` | `ccr codex profile init` |
-| `ccr platform init grok` | `ccr grok profile init` |
-| `ccr platform profile create claude ...` | `ccr claude profile create ...` |
-| `ccr platform profile create codex ...` | `ccr codex profile create ...` |
-| `ccr platform profile create grok ...` | `ccr grok profile create ...` |
+| Removed `platform` subcommand `info <platform>` | `ccr platform list [--json]` or `ccr <claude\|codex\|grok> profile current [--json]` |
+| Removed `platform` subcommand `current` | `ccr current [--verbose \| --json]` (aliases `ccr status` / `ccr show`) |
+| Removed `platform` subcommand `switch <platform>` | `ccr <claude\|codex\|grok> profile switch <name> [--json]` or `ccr <claude\|codex\|grok> auth switch <name>` |
+| Removed `platform` subcommand `init <platform>` | `ccr <claude\|codex\|grok> profile init [--json]` |
+| Removed `platform` subcommand `profile open <platform>` | `ccr <claude\|codex\|grok> profile open [--json]` |
+| Removed `platform` subcommand `profile current <platform>` | `ccr <claude\|codex\|grok> profile current [--json]` |
+| Removed `platform` subcommand `profile list <platform>` | `ccr <claude\|codex\|grok> profile list [--json]` |
+| Removed `platform` subcommand `profile switch <platform> <name>` | `ccr <claude\|codex\|grok> profile switch <name> [--json]` |
+| Removed `platform` subcommand `profile create <platform> <name> ...` | `ccr <claude\|codex\|grok> profile create <name> [...] [--json]` |
+| Removed `platform` subcommand `profile edit <platform> <name> ...` | `ccr <claude\|codex\|grok> profile edit <name> [...] [--json]` |
+| Removed `platform` subcommand `profile enable <platform> <name>` | `ccr <claude\|codex\|grok> profile enable <name> [--json]` |
+| Removed `platform` subcommand `profile disable <platform> <name>` | `ccr <claude\|codex\|grok> profile disable <name> [--force] [--json]` |
+| Removed `platform` subcommand `profile delete <platform> <name>` | `ccr <claude\|codex\|grok> profile delete <name> [--force] [--json]` |
+| Removed `platform` subcommand `profile off <platform>` | `ccr <claude\|codex\|grok> profile off [--json]` |
+| Removed `platform` subcommand `profile export <platform> ...` | `ccr <claude\|codex\|grok> profile export [NAME]... [...] [--json]` |
+| Removed `platform` subcommand `profile import <platform> ...` | `ccr <claude\|codex\|grok> profile import [<FILE>\|-] [...] [--json]` |
 
-## Notes
+## Registry Compatibility Notes
 
-- old `default_platform` / `current_platform` fields can still be read from older registries
-- the routing truth is now each platform's own `current_profile`
+- Legacy `default_platform` and `current_platform` keys in older `~/.ccr/config.toml` files remain readable for backward compatibility.
+- Authoritative auth and profile routing truth lives in each platform's own `profiles.db` catalog and host runtime configuration.
+
+## Related Pages
+
+- [`claude`](./claude) / [`codex`](./codex) / [`grok`](./grok)
+- [`current`](./current)
+- [CLI Workflows](/en/guide/cli-workflows)
+- [Migration Guide](/en/reference/migration)

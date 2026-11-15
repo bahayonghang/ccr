@@ -1,43 +1,51 @@
 # 平台支持
 
-本页描述 CLI platform domain 的当前状态。CLI 支持与 CCR UI 路由是不同契约。
+本页描述 CCR CLI 平台域的当前能力矩阵。CLI 平台状态与 CCR UI 路由注册是相互独立的契约。
 
 ## 支持矩阵
 
-| 平台 | 状态 | Profile 目录 | 设置目标 |
+| 平台 | 状态与能力层级 | Profile 权威存储 | 宿主设置目标 |
 |---|---|---|---|
-| Claude Code | 已实现 | `~/.ccr/platforms/claude/profiles.db` | `~/.claude/settings.json` |
-| Codex | 已实现 | `~/.ccr/platforms/codex/profiles.db` | `~/.codex/config.toml` |
-| Antigravity CLI | 已实现 | `~/.ccr/platforms/gemini/profiles.db` | `~/.gemini/antigravity-cli/settings.json` |
-| Factory Droid | 已实现 | `~/.ccr/platforms/droid/profiles.db` | `~/.factory/settings.json` |
-| Qwen CLI | Stub / 未实现 | 预留平台目录 | 平台操作返回未支持 |
+| [Claude Code](./claude) (`claude`) | 已实现（完整 CLI/TUI/UI `profile` + `auth`） | `~/.ccr/platforms/claude/profiles.db` | `~/.claude/settings.json`、`~/.claude.json` |
+| [Codex](./codex) (`codex`) | 已实现（完整 CLI/TUI/UI `profile` + `auth`） | `~/.ccr/platforms/codex/profiles.db` | `~/.codex/config.toml`、`~/.codex/auth.json` |
+| [Grok](/reference/commands/grok) (`grok`) | 已实现（完整 CLI/TUI/UI `profile` + `auth`） | `~/.ccr/platforms/grok/profiles.db` | `~/.grok/config.toml`、`~/.grok/user-settings.json` |
+| [Antigravity CLI](./gemini) (`gemini`) | 保留兼容适配器（`legacy_adapter`，无 CLI/TUI `profile` 或 `auth` 子命令） | 无 CLI 配置库切换表面 | `~/.gemini/antigravity-cli/settings.json` |
+| [Factory Droid](./droid) (`droid`) | 保留兼容适配器（`legacy_adapter`，无 CLI/TUI `profile` 或 `auth` 子命令） | 无 CLI 配置库切换表面 | `~/.factory/settings.json` |
+| Qwen CLI (`qwen`) | Stub / 未实现 | 预留平台键，不预建配置库 | 平台操作返回未支持 |
 
-Antigravity 的持久化 key 仍是 `gemini`，`agy` 与 `antigravity` 是输入别名。
-
-Claude、Codex、Gemini、Grok、Droid 的活目录是 `profiles.db`。`profiles.toml` 是 import、export 和 `profile open` 的交换格式，示例文件仍是模板。把备份 TOML 放回活路径后，新二进制不会读它。回退要停用新二进制，从 `backups/<platform>/` 放回 TOML，并删除 `profiles.db` 及其 `-wal`、`-shm`。迁移之后的切换次数只在库里。Qwen 不预建目录库。
+- Antigravity CLI 的持久化平台键保持为 `gemini`，同时识别输入别名 `gemini-cli`、`antigravity`、`antigravity-cli` 与 `agy`。
+- Factory Droid 的持久化平台键为 `droid`，识别输入别名 `droid` 与 `factory`。
+- Claude、Codex、Grok 的活体配置库是 SQLite `profiles.db`（旧版 `profiles.toml` 在首次访问时自动迁移并备份至 `backups/<platform>/`）。`profiles.toml` 现作为 `profile export` / `import` 的 `ExchangeV1` 交换格式以及 `profile open` 的编辑器投影使用；手工把备份 TOML 放回活路径不会被 7.x 二进制读取。
 
 ## 当前命令边界
 
 ```bash
+# 查看平台注册表
 ccr platform list
 ccr platform list --json
 
+# 三大一等平台的显式 Profile 管理
 ccr claude profile list
 ccr codex profile list
+ccr grok profile list
+
+# 跨平台运行时总览与统一体检
 ccr current
+ccr doctor --all-platforms
 ```
 
-`platform switch`、`current`、`info`、`init` 和 `profile` 仍可被 Clap 解析，用于提供明确迁移错误；它们不是当前推荐执行路径。Claude/Codex 使用显式命令，其他平台状态通过 `platform list`、配置文件和当前实现确认。
+`ccr platform` 子命令树当前仅保留 `list` 与 `help`；所有 `profile` 与 `auth` 路由操作均通过 `ccr <claude|codex|grok> profile ...` 与 `ccr <claude|codex|grok> auth ...` 显式执行。旧版平台子命令的替代方式见 [平台命令迁移](./migration)。
 
-## 平台指南
+## 平台指南与命令参考
 
-- [Claude Code](./claude)
-- [Codex](./codex)
-- [Antigravity CLI](./gemini)
-- [Factory Droid](./droid)
+- [Claude Code 平台指南](./claude)（命令参考：[`claude`](/reference/commands/claude)）
+- [Codex 平台指南](./codex)（命令参考：[`codex`](/reference/commands/codex)）
+- [Grok 命令与配置参考](/reference/commands/grok)
+- [Antigravity CLI 平台说明](./gemini)
+- [Factory Droid 平台说明](./droid)
 - [平台命令迁移](./migration)
 
-Qwen 只有预留 key 和部分数据路径，不应描述为可切换 runtime。当前 UI 只有 Claude、Codex 和 Antigravity 的平台工作区；OpenCode 使用独立工具入口。
+Qwen 仅有预留平台键与部分周边数据路径，不应视为可切换运行时。当前 CCR UI 为 Claude、Codex、Antigravity 提供平台工作区（Grok 支持 CLI/TUI 与桌面命令集成，OpenCode 使用独立工作区入口）。
 
 ## 相关页面
 

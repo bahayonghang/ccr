@@ -24,7 +24,7 @@ CCR now ships the official GitHub Copilot for VS Code workspace assets in-repo a
 ### Codex CLI
 
 - keeps runtime configuration under `~/.codex/`
-- is managed by CCR profiles under `~/.ccr/platforms/codex/profiles.toml`
+- is managed by CCR profiles under `~/.ccr/platforms/codex/profiles.db`
 - is not the same customization surface as GitHub Copilot workspace assets
 
 ## Shared Rules and Local Installation

@@ -88,14 +88,13 @@ pub enum GrokProfileAction {
     /// Show Grok profile command help
     Help,
 
-    /// Open the Grok profiles.toml in your editor.
-    /// Creates the file from the example template if it does not exist.
+    /// 通过编辑器打开并修改 Grok Profile 目录配置（不存在时从内置模板初始化）
     Open {
         #[arg(long)]
         json: bool,
     },
 
-    /// Initialize the Grok profile directory and example template
+    /// 初始化 Grok Profile 配置库（profiles.db）并注册平台
     Init {
         #[arg(long)]
         json: bool,

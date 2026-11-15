@@ -1,105 +1,109 @@
-# Platform Migration Guide
+# Platform Command Migration Guide
 
-This page describes the migration patterns still supported by the current CCR command surface.
+This page explains how to migrate from legacy global platform switches and top-level single-file commands to CCR 7.x explicit platform commands and SQLite `profiles.db` catalogs.
 
-## Current Rules
+## Core Rules
 
-- there is no documented `ccr migrate`
-- there is no `ccr platform migrate`
-- the retired `ccr platform init` command is replaced by each platform's `profile init`; see the [platform migration map](../commands/platform)
-- Gemini and Droid templates are copied manually until those platforms expose their own init command
+- There is **no** standalone `ccr migrate` subcommand; legacy catalogs upgrade automatically on first canonical command access.
+- Removed `ccr platform switch|current|info|init|profile` subcommands are no longer parsed by Clap; use the canonical commands in the table below (see also the [`platform` command reference](../commands/platform)).
+- Top-level `ccr init|list|add|delete|enable|disable|clear|optimize|export|import` commands are hidden and deprecated in 7.x (printing a deprecation warning on `stderr` and scheduled for removal in 8.0).
+- `Platform::auth_profile_supported()` includes only `claude`, `codex`, and `grok`. `gemini` (Antigravity CLI) and `droid` (Factory Droid) are retained compatibility adapters (`legacy_adapter`) with no CLI `profile` or `auth` subcommands.
 
-## Pattern 1: Keep platforms side by side
+## Legacy-to-7.x Command Replacement Map
 
-This is the safest path for most users.
+| Legacy Command (Removed / Retired / Hidden in 7.x) | Canonical 7.x Replacement | Notes |
+|---|---|---|
+| `ccr platform init <platform>` | `ccr <claude\|codex\|grok> profile init` | Initializes `~/.ccr/platforms/<platform>/profiles.db` from embedded template |
+| `ccr platform switch <platform>` | `ccr <claude\|codex\|grok> profile switch <name>` | Target platform is explicit in the command prefix |
+| `ccr platform current` | `ccr current` (aliases: `status`, `show`) | Side-by-side runtime overview |
+| `ccr platform info <platform>` | `ccr platform list [--json]` / `ccr doctor --platform <name>` | Inspect registry entries or deep platform health |
+| `ccr platform profile ...` | `ccr <claude\|codex\|grok> profile <action>` | Consolidated under per-platform `profile` commands |
+| `ccr switch <name>` / `ccr <name>` | `ccr <claude\|codex\|grok> profile switch <name>` | Retired; returns explicit migration guidance |
+| `ccr init` | `ccr <claude\|codex\|grok> profile init` (`ccr project init` for repo workflows) | Hidden 7.x compatibility alias |
+| `ccr list` | `ccr <claude\|codex\|grok> profile list` | Hidden 7.x compatibility alias |
+| `ccr add` | `ccr <claude\|codex\|grok> profile create <name> ...` or `profile open` | Pipe secrets via `--auth-token-stdin` / `--api-key-stdin` / `--env-key` |
+| `ccr delete` / `enable` / `disable` | `ccr <claude\|codex\|grok> profile delete\|enable\|disable <name>` | Hidden 7.x compatibility aliases |
+| `ccr clear` / `ccr optimize` | `ccr <claude\|codex\|grok> profile off` / `profile open` | Exit profile mode or edit catalog projection in `$EDITOR` |
+| `ccr export` | `ccr <claude\|codex\|grok> profile export [--no-secrets] [-o file.toml]` | Exports `ExchangeV1` TOML |
+| `ccr import` | `ccr <claude\|codex\|grok> profile import <file.toml> [--dry-run] [--on-conflict skip\|overwrite\|rename] [--replace -y]` | Merges incrementally by default (unlike legacy `ccr import`, which replaced by default) |
+
+## Pattern 1: Initialize and manage platforms side by side
 
 ```bash
+# Initialize SQLite profile catalogs (profiles.db) for supported platforms
 ccr claude profile init
 ccr codex profile init
 ccr grok profile init
 
-# Example TOML is the exchange format. The live catalog is ~/.ccr/platforms/gemini/profiles.db.
-ccr import examples/gemini/profiles.toml --platform gemini --merge --backup
-
-ccr platform switch claude
-ccr platform switch codex
-ccr platform switch gemini
+# Switch and inspect each platform directly with no global platform switch
+ccr claude profile switch <claude-profile>
+ccr codex profile switch <codex-profile>
+ccr grok profile switch <grok-profile>
+ccr current
 ```
 
-Use this when you want separate profile sets per platform with fast switching and easy rollback.
+> For `gemini` (Antigravity CLI) and `droid` (Factory Droid), manage their host settings files directly (or use the `/antigravity` module in `ccr ui`) and run read-only checks with `ccr doctor --platform gemini|droid`.
 
-## Pattern 2: Move profiles between platforms
+## Pattern 2: Export, share, and migrate via `ExchangeV1`
 
-Use export/import for structure, then update platform-specific credentials manually.
+Export sanitized or full bundles with `profile export`, then preview and import them with `profile import`:
 
 ```bash
-# Export from the source platform
-ccr platform switch claude
-ccr export -o claude-profiles.toml --platform claude --no-secrets
+# Export sanitized ExchangeV1 TOML without plaintext secrets
+ccr claude profile export --no-secrets -o claude-profiles.toml
 
-# The example TOML is exchange input. The live Gemini catalog is profiles.db.
-ccr platform switch gemini
-ccr import examples/gemini/profiles.toml --platform gemini --merge --backup
+# Preview the import, then merge incrementally into the target profiles.db
+ccr claude profile import claude-profiles.toml --dry-run
+ccr claude profile import claude-profiles.toml --on-conflict skip
 
-# Import the structure
-ccr import claude-profiles.toml --platform gemini --merge --backup
-
-# Then replace model names and API keys manually
+# Populate real credentials safely via stdin and validate
+printf '%s' "$ANTHROPIC_AUTH_TOKEN" | ccr claude profile edit work --auth-token-stdin
 ccr validate
 ```
 
 Notes:
+- `ccr <platform> profile import` performs an **incremental merge** by default, controlled by `--on-conflict skip|overwrite|rename`; pass `--replace -y` only when replacing the entire catalog.
+- Review model identifiers, endpoints, and credential fields whenever adapting profiles across platforms.
 
-- `ccr import` and `ccr export` write the catalog named by `--platform`. The default is `claude`. `ccr platform switch` does not change that target.
-- profile names and descriptions can move across platforms
-- tokens, model names, and platform-specific fields must be reviewed manually
-- use `--no-secrets` for transfer files you want to inspect or share
+## Pattern 3: Upgrade from legacy `profiles.toml` or `~/.ccs_config.toml`
 
-## Pattern 3: Legacy single-file config to the current layout
-
-If you still keep `~/.ccs_config.toml`, use it as reference input instead of expecting a dedicated migration command.
-
-Recommended order:
+- **Unified `~/.ccr/platforms/<platform>/profiles.toml`**: automatically migrated into `profiles.db` on first 7.x access, with the original TOML backed up under `backups/<platform>/`.
+- **Legacy single-file `~/.ccs_config.toml`**: treat it as reference input, initialize the target catalog, and recreate profiles via `profile create` or `profile open`:
 
 ```bash
-ccr init
 ccr claude profile init
-ccr platform switch claude
-ccr add
-ccr list
+printf '%s' "$ANTHROPIC_AUTH_TOKEN" | ccr claude profile create work \
+  --base-url https://api.example.com \
+  --auth-token-stdin
+ccr claude profile list
 ```
 
-If you already have an exportable bundle, prefer `ccr import <file> --merge --backup`.
-
-## Verification Checklist
-
-After any migration step:
+## Post-Migration Verification Checklist
 
 ```bash
-ccr platform current
-ccr list
-ccr current
+ccr current --verbose
+ccr claude profile list
+ccr codex profile list
+ccr grok profile list
 ccr validate
+ccr doctor --all-platforms
 ```
 
-Check these points:
+Verify that:
+- `profiles.db` is initialized and lists expected profiles;
+- switching writes the expected host runtime files;
+- `ccr validate` and `ccr doctor` report no configuration or credential errors.
 
-- the target platform is initialized
-- imported or recreated profiles show up in `ccr list`
-- settings write to the expected target file for that platform
-- credentials and model names were updated to platform-native values
+## Rollback Primitives
 
-## Rollback
-
-The current rollback primitives are:
-
-- switch back to the original platform with `ccr platform switch`
-- re-import a known-good export file with `ccr import`
-- rely on the automatically created backup from `ccr import --backup` or destructive settings writes
+- Switch to another profile on the same platform: `ccr <claude|codex|grok> profile switch <previous-name>`
+- Leave CCR profile mode and return to official login: `ccr <claude|codex|grok> profile off`
+- Restore a known-good `ExchangeV1` snapshot across the whole catalog: `ccr <claude|codex|grok> profile import snapshot.toml --replace -y`
 
 ## See Also
 
 - [Platform Support](./index)
-- [Claude Platform](./claude.md)
-- [Gemini Platform](./gemini.md)
+- [Claude Platform](./claude)
+- [Codex Platform](./codex)
+- [Antigravity CLI Platform](./gemini)
 - [Architecture](/en/reference/architecture)

@@ -1,6 +1,6 @@
 # `project init` - Initialize A Project Workflow
 
-`ccr project init` runs a four-stage terminal wizard in the current working directory to prepare a Git repository, a project workflow engine (`mini-trellis` or `trellis`), an ignored local `ref/` directory, and the seven fixed Agent `.gitignore` rules, finishing with a structured status summary card and next-step commands. It does not modify user-level CCR configuration; [`ccr init`](./init) continues to own user-level configuration.
+`ccr project init` runs a four-stage terminal wizard in the current working directory to prepare a Git repository, a project workflow engine (`mini-trellis` or `trellis`), an ignored local `ref/` directory, and the seven fixed Agent `.gitignore` rules, finishing with a structured status summary card and next-step commands. It does not modify user-level CCR configuration; user-level platform catalogs are initialized with `ccr <claude|codex|grok> profile init` (see [`claude`](./claude), [`codex`](./codex), and [`grok`](./grok)).
 
 ## Usage
 
@@ -141,5 +141,5 @@ Fix the reported cause and rerun `ccr project init` with the same workflow engin
 
 ## See Also
 
-- [`init`](./init) - initialize user-level CCR configuration
+- [`claude`](./claude) / [`codex`](./codex) / [`grok`](./grok) - initialize and manage user-level platform profile catalogs (`profile init`)
 - [Command Reference](./index) - browse all commands

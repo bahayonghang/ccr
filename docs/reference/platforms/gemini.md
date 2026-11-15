@@ -1,8 +1,13 @@
 # Antigravity CLI 平台指南
 
+> [!IMPORTANT]
+> **保留兼容适配器（`legacy_adapter`）说明**
+> 在 CCR 7.x 中，`gemini`（面向用户的显示名称为 **Antigravity CLI**，同时识别输入别名 `gemini-cli`、`antigravity`、`antigravity-cli` 与 `agy`）属于**保留兼容适配器（`legacy_adapter`）**。
+> `Platform::auth_profile_supported()` 仅包含 `claude`、`codex` 与 `grok`——**`gemini` 不提供 `ccr gemini profile ...` 或 `ccr gemini auth ...` 等 CLI/TUI 子命令**，也不属于 `ccr validate` 的校验范围（`ccr validate` 仅检查注册表与 `claude` / `codex` / `grok`）。
+
 ## 概览
 
-CCR 继续把持久化平台 key 保持为 `gemini`，但面向用户的 Google CLI 集成现在指向 **Antigravity CLI**。这样可以保留既有 CCR profiles、历史记录、用量聚合、同步目录和 UI 书签，同时跟随 Google 从 Gemini CLI 迁移到 Antigravity CLI 的路径。
+CCR 继续把持久化平台键保持为 `gemini`，同时将面向用户的 Google CLI 集成指向 **Antigravity CLI**（推荐二进制 `agy`），以便在跟随 Google 从 Gemini CLI 迁移到 Antigravity CLI 的过程中保留既有同步目录、历史会话索引、技能路径与桌面 UI 工作区。
 
 官方迁移参考：
 
@@ -14,90 +19,99 @@ CCR 继续把持久化平台 key 保持为 `gemini`，但面向用户的 Google 
 
 | 项目 | 值 |
 |------|----|
-| CCR platform key | `gemini` |
+| CCR 持久化平台键 | `gemini` |
+| 识别输入别名 | `gemini-cli`、`antigravity`、`antigravity-cli`、`agy` |
 | 显示名称 | Antigravity CLI |
-| 推荐二进制 | `agy` |
-| Profiles 目录 | `~/.ccr/platforms/gemini/profiles.db` |
-| Antigravity settings | `~/.gemini/antigravity-cli/settings.json` |
-| Antigravity MCP 配置 | `~/.gemini/antigravity-cli/mcp_config.json` |
-| 全局 skills | `~/.gemini/antigravity-cli/skills` |
-| Gemini legacy/shared skills | `~/.gemini/skills` |
-| Workspace MCP | `.agents/mcp_config.json` |
-| Workspace skills | `.agents/skills` |
+| CLI 能力层级 | `legacy_adapter`（无 CLI/TUI `profile` 或 `auth` 子命令） |
+| 推荐宿主二进制 | `agy` |
+| 宿主设置文件 | `~/.gemini/antigravity-cli/settings.json` |
+| 宿主 MCP 配置 | `~/.gemini/antigravity-cli/mcp_config.json` |
+| 全局技能目录 | `~/.gemini/antigravity-cli/skills` |
+| 旧版/共享 Gemini 技能目录 | `~/.gemini/skills` |
+| 工作区 MCP 配置 | `.agents/mcp_config.json` |
+| 工作区技能目录 | `.agents/skills` |
 
-旧 `/gemini-cli` UI 路由和 `gemini` platform key 会继续作为兼容入口保留。新文档和可见 UI 应优先使用 Antigravity CLI 与 `/antigravity` 路由。
+旧 `/gemini-cli` UI 路由会重定向到 `/antigravity`；内部平台键继续保持为 `gemini`。
 
-## 前置条件
+## 当前真实受支持的 CCR 能力
 
-- 使用本地 CLI runtime 时，需要已安装 Antigravity CLI（`agy --help`、`agy --version`）。
-- 账号侧应具备合适的 Google API key、Enterprise / Standard / Google Cloud 或 paid API key 访问路径。
-- 既有 CCR `gemini` profiles 可以继续复用；不要把平台 key 重命名为 `antigravity`。
+### 1. 平台注册表识别
 
-## 快速开始
+`ccr platform list` 与 `ccr platform list --json` 会列出 `gemini` 平台的启用状态与描述信息：
 
 ```bash
-# 示例 TOML 是交换格式。活目录是 ~/.ccr/platforms/gemini/profiles.db。
-# 不要把示例复制成 profiles.toml；放回备份 TOML 后，新二进制不会读它。
-ccr import examples/gemini/profiles.toml --platform gemini --merge --backup
-
-# 切换到 Google / Antigravity profile 命名空间
-ccr platform switch gemini
-
-# 添加或编辑 profile
-ccr add
-
-# 在 CCR 外验证本地 Antigravity CLI 二进制
-agy --version
+ccr platform list
+ccr platform list --json
 ```
 
-Antigravity 官方迁移命令预览：
+### 2. 只读健康体检（`ccr doctor`）
+
+使用 `ccr doctor` 对本地 `~/.gemini/antigravity-cli/settings.json` 结构与 `GEMINI_API_KEY` 环境变量执行无副作用的只读检查：
 
 ```bash
-agy plugin import gemini
+ccr doctor --platform gemini
+ccr doctor --platform gemini --verbose
+ccr doctor --all-platforms
 ```
 
-## Profile 配置
+### 3. 周边生态命令支持
 
-CCR profiles 的活目录是 `~/.ccr/platforms/gemini/profiles.db`。下面是交换用 TOML：
+`gemini` 平台键可用于以下跨平台工具面：
 
-```toml
-[google-official]
-description = "Google Antigravity / Gemini API"
-base_url = "https://generativelanguage.googleapis.com/v1beta"
-auth_token = "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-model = "gemini-2.0-flash-exp"
-small_fast_model = "gemini-1.5-flash"
+```bash
+# 会话索引与检索（兼容历史 ~/.gemini/tmp/*/chats/session-*.json 日志）
+ccr sessions list --platform gemini
+ccr sessions search "keyword" --platform gemini
+
+# 技能安装与列表
+ccr skills list --platform gemini
+ccr skills install <skill-name> --platform gemini
+
+# 提示词预设管理（写入 ~/.gemini/ 下的目标文件）
+ccr prompts list --platform gemini
+ccr prompts current gemini --platform gemini
+
+# WebDAV 目录注册同步
+ccr sync folder list
 ```
 
-profile 生效后，CCR 会把 Antigravity settings 写入 `~/.gemini/antigravity-cli/settings.json`：
+> 注：历史 Gemini CLI 会话日志保持导入兼容；Antigravity CLI 本地会话格式在确认稳定前不单独声明原生导入支持。
+
+### 4. 图形界面工作区（`ccr ui` -> `/antigravity`）
+
+通过 `ccr ui` 进入 `/antigravity` 模块，可以可视化管理本地 Antigravity 设置、MCP 服务器（`mcp_config.json`）、斜杠命令、自定义 Agents 与插件：
+
+```bash
+ccr ui -p 15173 --backend-port 38081
+```
+
+## 宿主配置文件参考
+
+### `~/.gemini/antigravity-cli/settings.json`
+
+`ccr doctor --platform gemini` 通过 `GeminiSettings` 结构只读检查 `~/.gemini/antigravity-cli/settings.json` 中的 `google` 对象，在体检读取时忽略无关的顶层 JSON 字段（`GeminiSettings` 本身不展开额外顶层字段；`ccr ui` 的 `/antigravity` 模块则通过原始 JSON 编辑保留无关顶层字段）：
 
 ```json
 {
-  "env": {
-    "GOOGLE_API_BASE_URL": "https://generativelanguage.googleapis.com/v1beta",
-    "GOOGLE_API_KEY": "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-    "GEMINI_MODEL": "gemini-2.0-flash-exp",
-    "GEMINI_SMALL_FAST_MODEL": "gemini-1.5-flash"
+  "google": {
+    "api_key": "AIzaSyExampleKeyWithAtLeast30Chars",
+    "project_id": "my-project",
+    "region": "us-central1",
+    "api_version": "v1"
   }
 }
 ```
 
-| TOML 字段 | 环境变量 | 说明 |
-|-----------|----------|------|
-| `base_url` | `GOOGLE_API_BASE_URL` | API endpoint |
-| `auth_token` | `GOOGLE_API_KEY` | Google API key，正常输出中会被掩码 |
-| `model` | `GEMINI_MODEL` | 默认模型 |
-| `small_fast_model` | `GEMINI_SMALL_FAST_MODEL` | 可选快速模型 |
+校验与凭据规则：
 
-## MCP、Skills 与 Workspace 路径
+- `google.api_key`：`GeminiSettings` 中的**必填**字段（`GoogleConfig::api_key: String`），需以 `AIza` 开头且长度不少于 `30` 个字符。
+- `google.project_id`、`google.region`、`google.api_version`：可选的 Google Cloud / Vertex 关联元数据字段。
+- 环境变量补充：`ccr doctor --platform gemini` 同时识别当前环境中的可选 `GEMINI_API_KEY`。
+- 请为含明文密钥的 `~/.gemini/antigravity-cli/settings.json` 保持严格权限（例如 `chmod 600`），切勿提交至版本库。
 
-Antigravity MCP servers 与 settings 分文件存储：
+### MCP 与技能路径说明
 
-```text
-~/.gemini/antigravity-cli/mcp_config.json
-```
-
-CCR 写入远程 MCP servers 时使用 `serverUrl`，读取时继续兼容 legacy `url` / `httpUrl` 字段：
+Antigravity MCP 服务器与主 `settings.json` 分文件存储在 `~/.gemini/antigravity-cli/mcp_config.json`（工作区级配置位于 `.agents/mcp_config.json`）。CCR 写入远程 MCP 服务器时优先使用 `serverUrl` 字段，读取时兼容旧版 `url` / `httpUrl`：
 
 ```json
 {
@@ -110,72 +124,18 @@ CCR 写入远程 MCP servers 时使用 `serverUrl`，读取时继续兼容 legac
 }
 ```
 
-Skills 查找顺序包括：
+技能查找顺序包括：
 
-1. Workspace `.agents/skills`
+1. 工作区 `.agents/skills`
 2. Antigravity 全局 `~/.gemini/antigravity-cli/skills`
-3. Gemini legacy/shared `~/.gemini/skills`
+3. 旧版/共享 `~/.gemini/skills`
 
-需要项目级 Antigravity MCP 配置时，workspace MCP 应使用 `.agents/mcp_config.json`。
+旧版路径（`~/.gemini/skills`、`~/.gemini/commands`、`.gemini/commands` 以及 `~/.gemini/tmp/*/chats/session-*.json`）仅作为兼容来源保留，不应作为当前 Antigravity 设置或 MCP 的主配置路径。
 
-## Sessions 与用量导入
+## 相关页面
 
-CCR 会继续把历史 Gemini session 和用量数据聚合到内部 `gemini` platform key 下。旧 Gemini CLI logs（`~/.gemini/tmp/*/chats/session-*.json`）保持 import-compatible。
-
-Antigravity session/log import 会在上游本地日志格式确认后再声明支持。不要仅凭 Gemini legacy parser 声称已经支持 Antigravity session import。
-
-## 故障排查
-
-### Settings 文件没有变化
-
-检查 Antigravity 路径，而不是旧 Gemini 根目录 settings 文件：
-
-```bash
-ls -la ~/.gemini/antigravity-cli/settings.json
-chmod 600 ~/.gemini/antigravity-cli/settings.json
-```
-
-然后确认 CCR profile 状态：
-
-```bash
-ccr platform switch gemini
-ccr current
-ccr validate
-```
-
-### MCP server 缺失
-
-检查 `mcp_config.json`：
-
-```bash
-cat ~/.gemini/antigravity-cli/mcp_config.json
-```
-
-远程 servers 应优先使用 `serverUrl`；旧 `url` 和 `httpUrl` 只作为读取兼容字段保留。
-
-### 旧 Gemini 路径仍然出现
-
-部分旧路径会有意保留为 legacy/import-compatible 来源：
-
-- `~/.gemini/skills`：共享 legacy skills
-- `~/.gemini/commands` 与项目 `.gemini/commands`：legacy slash-command 文件
-- `~/.gemini/tmp/*/chats/session-*.json`：legacy session import
-
-它们不应再被文档为 Antigravity settings 或 MCP 的主路径。
-
-## 安全说明
-
-- `~/.ccr/platforms/gemini/profiles.db` 中的 API keys 是明文；请保持严格文件权限。交换 TOML 同样是明文。
-- CCR 会在正常输出与历史记录中掩码 API keys，但 backups 仍可能包含 secrets。
-- 分享 profile 示例时优先使用 `ccr export --no-secrets`。
-
-## 相关命令
-
-```bash
-# profile create 流程会自动创建目录，也可按上文手工复制示例
-ccr platform switch gemini
-ccr list
-ccr switch <profile>
-ccr validate
-ccr history --platform gemini
-```
+- [平台支持概览](./index)
+- [`doctor` 统一体检](/reference/commands/doctor)
+- [UI 模块地图](/guide/ui-modules)
+- [Claude 平台指南](./claude)
+- [Codex 平台指南](./codex)

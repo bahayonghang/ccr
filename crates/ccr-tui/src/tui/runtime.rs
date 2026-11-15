@@ -113,8 +113,8 @@ impl TerminalSessionMode {
         if !stdin_is_tty || !stdout_is_tty {
             return Err(CcrError::UiError(
                 crate::tui_text!(
-                    "The TUI requires an interactive terminal.\nRun `ccr` directly in a terminal, or use `ccr list` / `ccr current` instead.",
-                    "TUI 需要交互式终端。\n建议：直接在终端中运行 `ccr`，或改用 `ccr list` / `ccr current`。"
+                    "The TUI requires an interactive terminal.\nRun `ccr` directly in a terminal, or use `ccr current` or `ccr <claude|codex|grok> profile list` instead.",
+                    "TUI 需要交互式终端。\n建议：直接在终端中运行 `ccr`，或改用 `ccr current` 或 `ccr <claude|codex|grok> profile list`。"
                 )
                 .to_string(),
             ));
@@ -124,8 +124,8 @@ impl TerminalSessionMode {
         if term.eq_ignore_ascii_case("dumb") {
             return Err(CcrError::UiError(
                 crate::tui_text!(
-                    "The current terminal lacks the capabilities required by the TUI (TERM=dumb).\nUse a terminal with ANSI and cursor control support, or use `ccr list` / `ccr current` instead.",
-                    "当前终端能力不足（TERM=dumb），无法启动 TUI。\n建议：使用支持 ANSI 和光标控制的终端，或改用 `ccr list` / `ccr current`。"
+                    "The current terminal lacks the capabilities required by the TUI (TERM=dumb).\nUse a terminal with ANSI and cursor control support, or use `ccr current` or `ccr <claude|codex|grok> profile list` instead.",
+                    "当前终端能力不足（TERM=dumb），无法启动 TUI。\n建议：使用支持 ANSI 和光标控制的终端，或改用 `ccr current` 或 `ccr <claude|codex|grok> profile list`。"
                 )
                 .to_string(),
             ));
@@ -549,9 +549,25 @@ mod tests {
         crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::SimplifiedChinese);
 
         let err = TerminalSessionMode::from_env(Some("dumb"), None, None, true, true).unwrap_err();
-        assert!(err.to_string().contains("当前终端能力不足"));
+        let zh_msg = err.to_string();
+        assert!(zh_msg.contains("当前终端能力不足"));
+        assert!(zh_msg.contains("ccr current"));
+        assert!(zh_msg.contains("profile list"));
+        assert!(!zh_msg.contains("ccr list"), "{zh_msg}");
+
+        let non_tty_zh =
+            TerminalSessionMode::from_env(Some("xterm-256color"), None, None, false, true)
+                .unwrap_err()
+                .to_string();
+        assert!(!non_tty_zh.contains("ccr list"), "{non_tty_zh}");
 
         crate::tui::i18n::set_language(ccr_cli::managers::TuiLanguage::English);
+        let en_msg = TerminalSessionMode::from_env(Some("dumb"), None, None, true, true)
+            .unwrap_err()
+            .to_string();
+        assert!(en_msg.contains("ccr current"));
+        assert!(en_msg.contains("profile list"));
+        assert!(!en_msg.contains("ccr list"), "{en_msg}");
     }
 
     #[test]

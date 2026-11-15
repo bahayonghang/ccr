@@ -81,6 +81,7 @@ ccr --version
 ## 相关命令
 
 - [update](./update) - 更新 CCR
-- [platform](./platform) - 管理平台
-- [codex](./codex) - 管理 Codex 多账号
-- [grok](./grok) - 管理 Grok Build profile 与官方会话登出
+- [platform](./platform) - 查看平台注册表
+- [claude](./claude) - 管理 Claude Code 配置与账号
+- [codex](./codex) - 管理 Codex 配置与多账号
+- [grok](./grok) - 管理 Grok 配置与官方会话登出

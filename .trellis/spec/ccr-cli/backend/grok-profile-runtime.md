@@ -18,7 +18,7 @@
 - `GrokPlatform::safe_base_url_for_display(&str) -> String`
 - Cross-process operation lock resource: `grok_profile_operation`
 - Runtime path: `$GROK_HOME/config.toml`, default `~/.grok/config.toml`
-- CCR profile path: `<CCR_ROOT>/platforms/grok/profiles.toml`
+- CCR profile catalog path: `<CCR_ROOT>/platforms/grok/profiles.db` (legacy migration path: `<CCR_ROOT>/platforms/grok/profiles.toml`)
 
 ## 3. Contracts
 
@@ -236,9 +236,9 @@ Correct: return `UpdatedApplyFailed` with the saved name, and delete the source 
 ### 2. Signatures
 
 - `Commands::Grok { action: Option<GrokAction> }`
-- `GrokProfileAction::{Current,List,Switch,Create,SetField,Enable,Disable,Delete,Off}`
-- Create-only fields: `api_backend: Option<String>`, `api_key: Option<String>`,
-  `env_key: Option<String>`, `context_window: Option<u64>`, and
+- `GrokProfileAction::{Help,Open,Init,Current,List,Switch,Create,SetField,Edit,Export,Import,Enable,Disable,Delete,Off}` (`SetField` is `hide = true`; the 13 public actions match Claude and Codex)
+- Create fields: `api_backend: Option<String>`, `api_key_stdin: bool` (visible alias `auth-token-stdin`), hidden legacy `api_key: Option<String>` (hidden alias `auth-token`),
+  `env_key: Option<String>`, `context_window: Option<u64>`,
   `supports_backend_search: Option<bool>`, and
   `reasoning_effort: Option<String>`.
 - Editable platform-data fields: `api_backend`, `api_key`, `env_key`,

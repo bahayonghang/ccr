@@ -11,7 +11,7 @@
 | Antigravity CLI | `/antigravity` | MCP、agents、slash commands、plugins；旧 `/gemini-cli` 路径重定向 |
 | OpenCode | `/opencode` | providers、MCP、agents、commands、plugins、settings；skills 汇入统一 skills 页 |
 
-Factory Droid 与 Qwen 仍属于 CLI platform domain，不应从 CLI 支持状态推断出不存在的 UI 平台主页。
+Factory Droid（`legacy_adapter` 兼容适配器）与 Qwen（预留 stub）仅属于 CLI 平台注册表概念，不应从 CLI 状态推断出不存在的 UI 平台主页。
 
 ## 配置与扩展
 

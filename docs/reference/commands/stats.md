@@ -109,4 +109,3 @@ ccr stats clear --before 2025-01-01 --force
 - [`budget`](./budget.md) - 预算管理
 - [`pricing`](./pricing.md) - 模型定价
 - [`history`](./history.md) - 操作历史
-- [`export`](./export.md) / [`import`](./import.md) - 配置数据导入导出

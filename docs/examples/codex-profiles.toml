@@ -1,5 +1,5 @@
 # Codex Profiles 示例（Unified）
-# 复制到: ~/.ccr/platforms/codex/profiles.toml
+# 初始化目录库: ccr codex profile init（存储于 ~/.ccr/platforms/codex/profiles.db，或通过 ccr codex profile import 导入）
 
 default_config = "duckcoding"
 current_config = "duckcoding"

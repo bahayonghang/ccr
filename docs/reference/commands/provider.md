@@ -58,4 +58,4 @@ ccr provider verify work
 ## 注意
 
 - 这是 CLI 诊断命令，不对应单独的 `provider-health` Web API。
-- 如果需要浏览器式总览，请使用 `ccr ui` 中的 Provider Health 页面；其事实源仍然是同一套后端能力。
+- 如需图形界面状态总览，请使用 `ccr ui` 中的平台工作区与监控视图；其底层复用的仍是同一套领域能力。

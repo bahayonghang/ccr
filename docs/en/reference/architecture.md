@@ -72,7 +72,7 @@ The UI and CLI share `~/.ccr/` data and platform configuration. The UI is a grap
 
 ## Data Ownership
 
-- `ccr-config` owns profile/settings serialization and conversion contracts.
+- `ccr-config` owns per-platform SQLite profile catalogs (`profiles.db`), `ExchangeV1` TOML exchange contracts, and host settings conversions.
 - `ccr-store` owns CLI history and session-index queries.
 - `ccr-db` owns the desktop database, repositories, and services such as logs.
 - `ccr-usage` reads supported llmusage projections; it does not own upstream database writes or migrations.
@@ -82,10 +82,10 @@ The UI and CLI share `~/.ccr/` data and platform configuration. The UI is a grap
 
 ### Profile operations
 
-1. Clap parses arguments into `Commands` or platform subcommands.
-2. `ccr-cli` dispatches to Claude, Codex, or platform handlers.
-3. Domain crates load and validate profiles.
-4. Write paths preserve locks, backups, and atomic-write behavior.
+1. Clap parses arguments into `Commands` or `claude` / `codex` / `grok` platform subcommands.
+2. `ccr-cli` and `ccr-app` dispatch to the target platform's `profile` handler.
+3. `ccr-config` loads and validates profiles from `~/.ccr/platforms/<platform>/profiles.db` (migrating and backing up legacy `profiles.toml` automatically on first access).
+4. Write paths preserve file locks, backups, and atomic writes when updating host runtime files and the registry `current_profile` pointer.
 5. History records a masked result.
 
 ### `ccr ui`

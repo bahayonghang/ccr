@@ -36,7 +36,7 @@ Use `bun run tauri:dev` when native windows and Tauri invokes are required. Plai
 - Data and operations: usage, monitoring, budget, pricing, and check-in.
 - Tools and environments: commands, converter, WebDAV sync, WSL, and SSH.
 
-Factory Droid is implemented in the CLI platform domain and Qwen remains partial/stub support; the current router does not provide dedicated platform home pages for them. Use [Platform Support](/en/reference/platforms/) for platform status and the [UI Module Map](./ui-modules) for actual UI pages.
+Factory Droid is retained in the CLI as a compatibility adapter (`legacy_adapter`) and Qwen remains partial/stub support; the current router does not provide dedicated platform home pages for them. Use [Platform Support](/en/reference/platforms/) for platform status and the [UI Module Map](./ui-modules) for actual UI pages.
 
 ## Data Boundary
 

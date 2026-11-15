@@ -51,7 +51,11 @@ capability of the stream that will receive the text.
 - `ColorOutput::deprecation_warning` always writes to `stderr` with independent
   `stderr` terminal detection (respecting `NO_COLOR`); CLI command and flag
   deprecation warnings never initialize file logs (`~/.ccr/logs`) or write to
-  `stdout`.
+  `stdout`. All 10 hidden 7.x top-level legacy commands (`list`, `add`, `delete`,
+  `enable`, `disable`, `init`, `clear`, `optimize`, `export`, `import`) and
+  hidden plaintext secret flags (`profile create --auth-token` / `--api-key`)
+  emit their 8.0 removal guidance through `deprecation_warning` on `stderr` only,
+  preserving pure `stdout` for `--json` and `--stdout` pipelines.
 - Pass plain message text to shared status functions. Remove an embedded
   duplicate status marker or whole-message color from the migrated message.
 - Style only the shared status marker and field name. Keep the message body

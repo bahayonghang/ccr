@@ -1,429 +1,153 @@
-# 🔧 CCR 多平台配置故障排除指南
+# 故障排除指南
 
-## 常见问题和解决方案
+> 本页汇总 CCR 7.x 多平台配置库（`profiles.db`）、运行时路由与宿主权限的常见排查路径。首次上手请先阅读 [快速开始](/guide/quick-start)。
 
-### 1. 平台切换失败
+## 常见问题与解决方案
 
-#### 问题: `平台 'xxx' 未找到`
+### 1. 配置库未初始化或提示 Profile 未找到
+
+**现象**：切换或查看 Profile 时提示配置库不存在或目标名称未找到。
+
+**解决方案**：
+
 ```bash
-$ ccr platform switch unknown
-Error: 平台 'unknown' 未找到
-```
-
-**原因**: 指定的平台名称不在支持列表中
-
-**解决方案**:
-```bash
-# 查看所有支持的平台
-ccr platform list
-
-# 支持的平台: claude, codex, gemini, qwen, droid
-ccr platform switch claude
-```
-
----
-
-#### 问题: 切换平台后配置未生效
-```bash
-$ ccr platform switch codex
-✓ 已切换到平台 'codex'
-
-$ ccr current
-# 但仍显示 Claude 配置
-```
-
-**原因**: 平台虽然切换了，但该平台尚未配置 profile
-
-**解决方案**:
-```bash
-# 1. 确认当前平台
-ccr platform current
-
-# 2. 查看该平台是否有 profiles
-ccr platform info codex
-
-# 3. 如果没有 profiles，需要添加
-# (需要等待平台特定命令实现，或手动创建 profiles.toml)
-```
-
----
-
-### 2. 目录和文件权限问题
-
-#### 问题: `创建目录失败: Permission denied`
-```bash
-$ ccr claude profile init
-Error: 创建目录失败 "/home/user/.ccr/platforms/claude": Permission denied
-```
-
-**原因**: 没有权限在 `~/.ccr/` 目录创建子目录
-
-**解决方案**:
-```bash
-# 检查并修复权限
-chmod 755 ~/.ccr
-chmod 755 ~/.ccr/platforms
-
-# 或删除后重新创建
-rm -rf ~/.ccr
+# 1. 初始化对应平台的 SQLite 配置库（如尚未初始化）
 ccr claude profile init
+ccr codex profile init
+ccr grok profile init
+
+# 2. 查看目标平台下已存在的 Profile 列表
+ccr claude profile list
+ccr codex profile list
+ccr grok profile list
+
+# 3. 通过 stdin 安全创建缺失的 Profile
+printf '%s' "$ANTHROPIC_AUTH_TOKEN" | ccr claude profile create work \
+  --base-url https://api.example.com \
+  --auth-token-stdin
 ```
 
 ---
 
-#### 问题: `读取配置文件失败`
+### 2. 手工修改或复制 `profiles.toml` 后未生效
+
+**原因**：CCR 7.x 的权威活体存储已迁移至 `~/.ccr/platforms/<platform>/profiles.db`（SQLite）。手工创建或把备份 `profiles.toml` 复制回平台目录不会被 7.x 二进制读取。
+
+**解决方案**：
+
 ```bash
-$ ccr platform list
-Error: 读取配置文件失败: Permission denied
-```
+# 方案 A：通过编辑器投影直接修改活体配置库
+ccr claude profile open
 
-**原因**: config.toml 文件权限不正确
+# 方案 B：将外部 ExchangeV1 TOML 导入配置库（先 --dry-run 预演）
+ccr claude profile import ./my-profiles.toml --dry-run
+ccr claude profile import ./my-profiles.toml --on-conflict overwrite
 
-**解决方案**:
-```bash
-# 修复配置文件权限
-chmod 644 ~/.ccr/config.toml
-
-# 如果文件损坏，可以删除重建
-rm ~/.ccr/config.toml
-ccr platform list  # 会自动创建默认配置
-```
-
----
-
-### 3. 配置文件格式错误
-
-#### 问题: `TOML 解析失败`
-```bash
-$ ccr platform list
-Error: 配置格式错误: TOML 解析失败: expected = , but found...
-```
-
-**原因**: config.toml 或 profiles.toml 文件语法错误
-
-**解决方案**:
-```bash
-# 1. 备份当前文件
-cp ~/.ccr/config.toml ~/.ccr/config.toml.backup
-
-# 2. 使用示例文件作为模板
-cat docs/examples/config.toml > ~/.ccr/config.toml
-
-# 3. 或使用 TOML 验证工具检查
-# 在线工具: https://www.toml-lint.com/
-
-# 4. 检查常见错误:
-#    - 缺少引号: key = value  ❌ 应为 key = "value" ✓
-#    - 重复的键: [claude] 出现两次
-#    - 注释语法: # 开头而不是 //
+# 修改后重新应用并校验
+ccr claude profile switch <name>
+ccr validate
 ```
 
 ---
 
-### 4. Legacy 和 Unified 模式冲突
+### 3. 运行时状态不一致或残留 Codex `app-server` 进程
 
-#### 问题: `配置模式不一致`
+**现象**：切换 Profile 后宿主 CLI 仍读取旧路由、环境变量覆盖了宿主设置，或 Codex 后台残留旧 `app-server`。
+
+**解决方案**：
+
 ```bash
-$ ccr list
-# 显示 Legacy 模式配置
+# 1. 查看运行时总览与统一诊断报告
+ccr current --verbose
+ccr validate
+ccr doctor --verbose
 
-$ ccr platform list
-# 显示 Unified 模式配置
+# 2. 检查当前 Shell 是否残留覆盖宿主设置的环境变量
+env | grep -E 'ANTHROPIC_|OPENAI_|XAI_|CODEX_'
 
-# 两者内容不一致
-```
+# 3. 针对 Codex：清理残留 app-server 并按需重放当前保存的 Profile
+ccr codex fix
+ccr codex fix --repair-runtime
 
-**原因**: 同时存在 `~/.ccs_config.toml` (Legacy) 和 `~/.ccr/config.toml` (Unified)
-
-**解决方案**:
-```bash
-# 方案 1: 以当前布局为准
-ccr init
-ccr platform list
-
-# 方案 2: 继续使用 Legacy 模式
-mv ~/.ccr ~/.ccr.disabled  # 暂时移走 Unified 配置
-# 继续使用 ccr list / ccr switch 等命令
-
-# 方案 3: 统一迁移后再逐个平台重建或导入 profile
-ccr import <file> --merge --backup
+# 4. 如需退出 Profile 模式回到官方登录态
+ccr claude profile off
+ccr codex profile off
+ccr grok profile off
 ```
 
 ---
 
-### 5. Profile 配置问题
+### 4. API 连通性失败或密钥失效
 
-#### 问题: `Profile 'xxx' 未找到`
+**现象**：宿主 CLI 报错连接超时、`401 Unauthorized` 或 `INVALID_API_KEY`。
+
+**解决方案**：
+
 ```bash
-$ ccr switch my-profile
-Error: 配置 'my-profile' 未找到
+# 1. 对当前激活 Profile 执行在线探活或定向测试
+ccr doctor --online
+ccr provider test <name> --verbose
+
+# 2. 通过标准输入安全轮换密钥并重新应用
+printf '%s' "$NEW_AUTH_TOKEN" | ccr claude profile edit <name> --auth-token-stdin
+ccr claude profile switch <name>
 ```
 
-**原因**: 指定的 profile 名称不存在
+> Grok 平台更新密钥时，请使用 `printf '%s' "$NEW_KEY" | ccr grok profile edit <name> --api-key-stdin` 或 `--set env_key=XAI_API_KEY`。
 
-**解决方案**:
+---
+
+### 5. 目录权限错误或残留文件锁超时
+
+**现象**：提示 `Permission denied` 或等待文件锁超时。
+
+**解决方案**：
+
 ```bash
-# 1. 查看所有可用 profiles
-ccr list
+# 1. 修复配置目录与宿主设置文件权限
+chmod 755 ~/.ccr ~/.ccr/platforms
+chmod 600 ~/.claude/settings.json
 
-# 2. 确认 profile 是否在当前平台
-ccr platform current
-
-# 3. 如果在不同平台，需要先切换
-ccr platform switch codex
-ccr list  # 查看 Codex 平台的 profiles
+# 2. 确认无正在运行的 CCR 进程后，清理陈旧锁文件
+ls -la ~/.claude/.locks/
+rm -rf ~/.claude/.locks/*
 ```
 
 ---
 
-#### 问题: `Profile 验证失败: 缺少必需字段`
+### 6. 跨设备或跨用户迁移配置
+
+**原因**：CCR 默认使用当前用户主目录下的 `~/.ccr/`。不同机器或系统用户之间建议使用 `ExchangeV1` 导出/导入或 WebDAV 同步，而非手工拷贝数据库文件。
+
+**解决方案**：
+
 ```bash
-$ ccr add test
-Error: Profile 验证失败: 缺少必需字段 'base_url'
+# 在源环境导出（分享给他人时务必加 --no-secrets）
+ccr claude profile export --no-secrets -o /tmp/claude-profiles.toml
+
+# 在目标环境预演并导入
+ccr claude profile import /tmp/claude-profiles.toml --dry-run
+ccr claude profile import /tmp/claude-profiles.toml --on-conflict skip
 ```
 
-**原因**: Profile 配置缺少必需字段
+## 调试日志与问题反馈
 
-**解决方案**:
-```toml
-# 确保 profile 包含所有必需字段:
-[my-profile]
-description = "My Custom Profile"  # 可选
-base_url = "https://api.example.com"  # 必需
-auth_token = "your-token-here"  # 必需
-model = "model-name"  # 必需
-small_fast_model = "fast-model"  # 可选
-```
-
----
-
-### 6. API 连接问题
-
-#### 问题: `连接超时 / 连接被拒绝`
 ```bash
-$ ccr switch my-profile
-# 切换成功
+# 单次开启 debug 级别日志执行诊断
+CCR_LOG_LEVEL=debug ccr doctor --all-platforms --verbose
 
-$ claude-code
-Error: Failed to connect to API: Connection timeout
-```
-
-**原因**: API 端点不可访问或配置错误
-
-**解决方案**:
-```bash
-# 1. 检查当前 profile 配置
-ccr current
-
-# 2. 验证 base_url 是否正确
-curl -I https://api.anthropic.com  # 应返回 200
-
-# 3. 检查 auth_token 是否有效
-# Claude: https://console.anthropic.com/settings/keys
-# Codex: https://github.com/settings/tokens
-# Gemini: https://makersuite.google.com/app/apikey
-
-# 4. 检查网络代理设置
-echo $HTTP_PROXY
-echo $HTTPS_PROXY
-
-# 5. 测试不同的 profile
-ccr switch official-profile
-```
-
----
-
-### 7. 环境变量冲突
-
-#### 问题: `环境变量被覆盖`
-```bash
-$ echo $ANTHROPIC_BASE_URL
-https://api.custom-proxy.com
-
-$ ccr switch official
-# 切换后环境变量没变
-```
-
-**原因**: CCR 修改的是 `~/.claude/settings.json`，需要重启终端或重新加载环境变量
-
-**解决方案**:
-```bash
-# 方案 1: 重启终端或新开窗口
-
-# 方案 2: 重新加载 Claude Code 配置
-# (具体方法取决于 Claude Code 的实现)
-```
-
----
-
-### 8. 历史记录和备份问题
-
-#### 问题: `历史文件损坏`
-```bash
-$ ccr history
-Error: 读取历史文件失败: invalid JSON
-```
-
-**原因**: `~/.ccr/history/<platform>.json` 文件格式错误
-
-**解决方案**:
-```bash
-# 1. 备份损坏的文件
-mv ~/.ccr/history/claude.json ~/.ccr/history/claude.json.corrupted
-
-# 2. 创建新的空历史文件
-echo "[]" > ~/.ccr/history/claude.json
-
-# 3. 或删除后自动重建
-rm ~/.ccr/history/claude.json
-ccr switch any-profile  # 会自动创建新历史
-```
-
----
-
-### 9. 多用户环境问题
-
-#### 问题: `配置在不同用户之间不同步`
-```bash
-# user1
-$ ccr platform switch codex
-
-# user2
-$ ccr platform current
-# 仍显示 claude
-```
-
-**原因**: CCR 配置存储在用户主目录 `~/.ccr/`，每个用户独立
-
-**解决方案**:
-```bash
-# 方案 1: 使用共享配置目录
-export CCR_ROOT=/shared/ccr
-ccr claude profile init
-
-# 方案 2: 导出/导入配置
-# user1
-ccr export -o /tmp/ccr-config.toml
-
-# user2
-ccr import /tmp/ccr-config.toml
-```
-
----
-
-### 10. 升级和迁移问题
-
-#### 问题: `升级后配置丢失`
-```bash
-$ cargo install --git https://github.com/bahayonghang/ccr ccr
-# 升级后
-
-$ ccr list
-Error: 配置文件未找到
-```
-
-**原因**: 配置文件路径或格式可能在新版本中变更
-
-**解决方案**:
-```bash
-# 1. 检查备份
-ls ~/.claude/backups/
-
-# 2. 恢复配置
-cp ~/.claude/backups/settings_*.json ~/.claude/settings.json
-
-# 3. 或重新初始化
-ccr init
-ccr add  # 重新添加配置
-```
-
----
-
-## 调试技巧
-
-### 启用调试日志
-```bash
-# 设置日志级别
-export CCR_LOG_LEVEL=debug
-
-# 运行命令查看详细日志
-ccr platform switch codex
-
-# 或一次性运行
-CCR_LOG_LEVEL=debug ccr platform list
-
-# 查看日志文件（UTC 按天轮转，保留14天）
-tail -f ~/.ccr/logs/ccr.log.$(date -u +%Y-%m-%d)
-
-# 查看所有日志文件
+# 查看按 UTC 日期轮转的日志文件（默认保留 14 天）
 ls -lh ~/.ccr/logs/
-```
 
-### 检查配置文件
-```bash
-# 查看统一配置
-cat ~/.ccr/config.toml
-
-# 查看平台 profiles
-cat ~/.ccr/platforms/claude/profiles.toml
-cat ~/.ccr/platforms/codex/profiles.toml
-cat ~/.ccr/platforms/gemini/profiles.toml
-
-# 查看历史记录
-cat ~/.ccr/history/claude.json
-
-# 检查备份
-ls -lh ~/.ccr/backups/
-```
-
-### 验证目录结构
-```bash
-# 查看完整目录树
-tree ~/.ccr -L 3
-
-# 或使用 find
-find ~/.ccr -type f -o -type d | sort
-```
-
-### 手动清理
-```bash
-# 完全重置（谨慎操作！）
-rm -rf ~/.ccr
-rm ~/.claude/settings.json
-
-# 重新初始化
-ccr init
-ccr claude profile init
-ccr add official
-```
-
----
-
-## 获取帮助
-
-### 内置帮助
-```bash
-# 查看所有命令
-ccr --help
-
-# 查看特定命令帮助
-ccr platform --help
-ccr switch --help
-
-# 查看版本信息
-ccr version
+# 收集版本摘要供 Issue 反馈（请勿附上含明文密钥的宿主设置或备份文件）
 ccr --version
+ccr version
 ```
 
-### 社区支持
-- GitHub Issues: https://github.com/bahayonghang/ccr/issues
-- 文档: https://ccr-docs.example.com (如果有)
-- 示例配置: `docs/examples/`
+## 相关文档
 
-### 报告问题
-提交 Issue 时请包含:
-1. CCR 版本: `ccr --version`（如需详细安装摘要，再补 `ccr version`）
-2. 操作系统: `uname -a`
-3. 配置文件 (去除敏感信息): `cat ~/.ccr/config.toml`
-4. 错误日志: `CCR_LOG_LEVEL=debug ccr <command> 2>&1`
-5. 重现步骤
+- [配置示例索引](./index)
+- [多平台配置指南](./multi-platform-setup)
+- [快速开始](/guide/quick-start)
+- [配置模型](/guide/configuration)
+- [平台支持](/reference/platforms/)

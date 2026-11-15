@@ -101,7 +101,7 @@ pub async fn add_command() -> Result<()> {
     let service = ConfigService::with_default()?;
     if service.load_config()?.sections.contains_key(&name) {
         ColorOutput::error(&format!("配置 '{}' 已存在", name));
-        crate::commands::common::print_next_steps(&[("查看已有配置", "ccr list")]);
+        crate::commands::common::print_next_steps(&[("查看已有配置", "ccr claude profile list")]);
         return Ok(());
     }
 
@@ -194,7 +194,7 @@ pub async fn add_command() -> Result<()> {
     ColorOutput::step("保存配置");
     service.add_config(name.clone(), section)?;
     ColorOutput::success(&format!("配置 '{}' 添加成功", name));
-    crate::commands::common::print_next_steps(&[("查看配置", "ccr list")]);
+    crate::commands::common::print_next_steps(&[("查看配置", "ccr claude profile list")]);
 
     Ok(())
 }

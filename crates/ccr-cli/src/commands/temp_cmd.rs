@@ -35,8 +35,10 @@ pub async fn temp_command() -> Result<()> {
     println!();
 
     ColorOutput::info("设置临时配置");
-    ColorOutput::info("   此配置将直接写入 settings.json，无需创建 TOML 配置");
-    ColorOutput::info("   下次执行 'ccr switch' 时将恢复为 TOML 配置中的值");
+    ColorOutput::info("   此配置将直接写入 settings.json，无需修改 Profile 配置目录");
+    ColorOutput::info(
+        "   下次执行 'ccr claude profile switch <name>' 时将恢复为已保存 Profile 中的值",
+    );
     println!();
     ColorOutput::separator();
     println!();
@@ -86,7 +88,7 @@ pub async fn temp_command() -> Result<()> {
 
     ColorOutput::success("临时配置已应用到 settings.json");
     // 提示信息
-    ColorOutput::info("重新应用配置时会恢复 TOML 配置中的值");
+    ColorOutput::info("重新应用配置时会恢复 Profile 配置目录中的值");
     crate::commands::common::print_next_steps(&[("查看当前配置状态", "ccr current")]);
 
     Ok(())

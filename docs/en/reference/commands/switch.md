@@ -1,24 +1,35 @@
-# switch - Retired Legacy Profile Switch Entrypoint
+# `switch` - Retired Legacy Profile Switch Entrypoint
 
-`ccr switch <config_name>` used to infer a target platform from global `current_platform` state. That entrypoint is now retired.
+> [!WARNING]
+> **Retired & Hidden (7.x Compatibility Guard)**: Top-level `ccr switch <config_name>` and the bare positional shortcut `ccr <config_name>` are **Retired** and **Hidden** from `--help` in CCR `7.x`. Invoking either returns a migration error with a non-zero exit code without modifying any platform runtime, and both are scheduled for removal in `8.0`.
 
-## Current behavior
+## Canonical Replacements
 
-```bash
-ccr switch <config_name>
-```
-
-now returns a migration error that points to explicit platform-scoped commands.
-
-## Use these instead
+Specify the target platform (`claude`, `codex`, or `grok`) explicitly:
 
 ```bash
-ccr claude profile switch <config_name>
-ccr codex profile switch <config_name>
+ccr claude profile switch <name> [--json]
+ccr codex profile switch <name> [--json]
+ccr grok profile switch <name> [--json]
 ```
 
-## Why it was retired
+| Retired entrypoint | Canonical replacement |
+|---|---|
+| `ccr switch <name>` (Claude profile) | `ccr claude profile switch <name> [--json]` |
+| `ccr switch <name>` (Codex profile) | `ccr codex profile switch <name> [--json]` |
+| `ccr switch <name>` (Grok profile) | `ccr grok profile switch <name> [--json]` |
+| Bare positional `ccr <name>` | `ccr <claude\|codex\|grok> profile switch <name>` |
 
-- the global `current_platform` / `default_platform` model was misleading
-- Claude and Codex now need explicit runtime state
-- VS Code, doctor, validate, and `ccr current` already moved to per-platform state
+## Key Behavioral Differences
+
+- **No implicit global platform inference**: The retired entrypoint guessed the target CLI from legacy global `current_platform` state, which was error-prone when running Claude Code, Codex, and Grok Build side by side.
+- **Atomic per-platform runtime & JSON receipt**: `ccr <claude|codex|grok> profile switch <name>` updates only that platform's `profiles.db` pointer and host runtime files, and supports `--json` single-line structured receipts.
+
+## Related Pages
+
+- [`claude`](./claude)
+- [`codex`](./codex)
+- [`grok`](./grok)
+- [`current`](./current)
+- [`platform`](./platform)
+- [Migration Guide](/en/reference/migration)

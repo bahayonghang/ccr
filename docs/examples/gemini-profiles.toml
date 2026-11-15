@@ -1,5 +1,5 @@
-# Gemini Profiles 示例（Unified）
-# 复制到: ~/.ccr/platforms/gemini/profiles.toml
+# Gemini / Antigravity CLI 历史 TOML 结构参考（保留兼容适配器）
+# 说明：gemini 当前不提供 CLI/TUI `profile` 子命令；宿主设置位于 ~/.gemini/antigravity-cli/settings.json。
 
 default_config = "google"
 current_config = "google"

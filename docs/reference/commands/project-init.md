@@ -1,6 +1,6 @@
 # `project init` - 初始化项目工作流
 
-`ccr project init` 以四段式终端向导在当前工作目录中依次准备 Git 仓库、项目工作流引擎（`mini-trellis` 或 `trellis`）、被忽略的本地 `ref/` 目录以及固定 7 条 Agent `.gitignore` 规则，并在收尾展示结构化状态摘要卡与后续命令引导。它不会修改 CCR 的用户级配置；用户级配置仍由 [`ccr init`](./init) 管理。
+`ccr project init` 以四段式终端向导在当前工作目录中依次准备 Git 仓库、项目工作流引擎（`mini-trellis` 或 `trellis`）、被忽略的本地 `ref/` 目录以及固定 7 条 Agent `.gitignore` 规则，并在收尾展示结构化状态摘要卡与后续命令引导。它不会修改 CCR 的用户级配置；用户级平台配置库由 `ccr <claude|codex|grok> profile init`（见 [`claude`](./claude)、[`codex`](./codex)、[`grok`](./grok)）管理。
 
 ## 用法
 
@@ -141,5 +141,5 @@ ref/
 
 ## 相关命令
 
-- [`init`](./init) - 初始化用户级 CCR 配置
+- [`claude`](./claude) / [`codex`](./codex) / [`grok`](./grok) - 初始化与管理用户级平台 Profile 配置库（`profile init`）
 - [`commands`](./index) - 查看完整命令索引

@@ -151,15 +151,36 @@ const PLATFORM_AFTER_LONG_HELP: &str = "\
 边界:
   旧版平台级切换、状态、初始化及 `platform` 下的 `profile` 子命令已移除；请分别使用 `ccr <claude|codex|grok> profile ...`、`ccr current` 与 `ccr platform list`。";
 
+const CLAUDE_LONG_ABOUT: &str = "\
+管理 Claude Code 的 Profile 配置目录与官方订阅账号快照。";
+
+const CLAUDE_AFTER_LONG_HELP: &str = "\
+常用入口:
+  Profile 管理: ccr claude profile --help
+  官方订阅账号: ccr claude auth --help
+  查看运行状态: ccr claude profile current
+  切换激活配置: ccr claude profile switch <name>";
+
 const CODEX_LONG_ABOUT: &str = "\
-管理 Codex CLI 的账号、配额和历史同步。";
+管理 Codex CLI 的 Profile 配置、多账号登录状态、配额和历史同步。";
 
 const CODEX_AFTER_LONG_HELP: &str = "\
 常用入口:
+  Profile 管理: ccr codex profile --help
   多账号切换: ccr codex auth --help
   查看配额: ccr codex quota --help
   导出当前 profile 环境: ccr codex env
   打开 Codex 账号界面: ccr codex";
+
+const GROK_LONG_ABOUT: &str = "\
+管理 Grok Build 的 Profile 路由配置与官方 OAuth 会话快照。";
+
+const GROK_AFTER_LONG_HELP: &str = "\
+常用入口:
+  Profile 管理: ccr grok profile --help
+  官方会话切换: ccr grok auth --help
+  查看运行状态: ccr grok profile current
+  切换激活配置: ccr grok profile switch <name>";
 
 const CODEX_AUTH_LONG_ABOUT: &str = "\
 管理 Codex 的多账号登录状态。";
@@ -322,6 +343,8 @@ impl ProfileHelpPlatform {
 
 fn configure_claude_command(cmd: Command) -> Command {
     cmd.help_template(SUBCOMMAND_HELP_TEMPLATE)
+        .long_about(CLAUDE_LONG_ABOUT)
+        .after_long_help(CLAUDE_AFTER_LONG_HELP)
         .mut_subcommand("profile", |sub| {
             configure_platform_profile_command(sub, ProfileHelpPlatform::Claude)
         })
@@ -468,6 +491,8 @@ fn configure_codex_auth_command(cmd: Command) -> Command {
 
 fn configure_grok_command(cmd: Command) -> Command {
     cmd.help_template(SUBCOMMAND_HELP_TEMPLATE)
+        .long_about(GROK_LONG_ABOUT)
+        .after_long_help(GROK_AFTER_LONG_HELP)
         .mut_subcommand("auth", configure_grok_auth_command)
         .mut_subcommand("profile", |sub| {
             configure_platform_profile_command(sub, ProfileHelpPlatform::Grok)

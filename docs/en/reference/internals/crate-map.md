@@ -13,7 +13,7 @@ This page lists every workspace member in the root `Cargo.toml`. The documentati
 ### `crates/ccr-cli`
 
 - `src/cli/definitions.rs`: top-level Clap `Commands`.
-- `src/cli/subcommands/`: nested Claude, Codex, OpenCode, platform, and sync commands.
+- `src/cli/subcommands/`: nested Claude, Codex, Grok, OpenCode, platform, and sync commands.
 - `src/cli/dispatch.rs`: routing, TUI launchers, and legacy-path handling.
 - `src/commands/`: user-visible handlers; `services/`, `managers/`, and `platforms/` own CLI-specific orchestration.
 
@@ -43,8 +43,8 @@ This page lists every workspace member in the root `Cargo.toml`. The documentati
 
 ### `crates/ccr-config`
 
-- Platform enum, profile/settings contracts, registry, and format conversions.
-- Unified configuration boundary for Claude, Codex, Antigravity, Droid, and the Qwen stub.
+- Platform enum, SQLite profile catalogs (`profiles.db`), `ExchangeV1` TOML exchange contracts, registry, and host format conversions.
+- Unified configuration boundary for first-class Claude, Codex, and Grok runtimes plus Antigravity (`gemini`) and Droid compatibility adapters and the Qwen stub.
 
 ### `crates/ccr-store`
 

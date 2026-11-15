@@ -30,7 +30,7 @@ ccr doctor --platform codex
 
 > `--platform` 与 `--all-platforms` 互斥。平台取值从共享 `Platform` 枚举派生，包括 `grok`。
 
-Claude/Codex/Grok 支持 auth/profile 命令。Gemini/Droid 保留已有只读兼容检查，报告 `legacy_adapter`，没有新增 writer 调用或 auth/profile 命令。Qwen 报告未实现。Grok 配置检查覆盖 TOML 和受管路由一致性；官方会话真实性仍由 Grok 负责。
+Claude/Codex/Grok 支持 auth/profile 命令。Gemini/Droid 保留已有只读兼容检查，报告 `legacy_adapter`，没有新增 writer 调用或 auth/profile 命令。Qwen 报告未实现。Grok 配置检查覆盖 `profiles.db` 配置库、`~/.grok/config.toml` 与受管路由一致性；官方会话真实性仍由 Grok 负责。
 
 ## 检查范围
 

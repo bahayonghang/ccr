@@ -65,8 +65,8 @@ ccr grok auth
 
 ## 相关页面
 
+- [`claude`](./claude.md)
+- [`codex`](./codex.md)
 - [`grok`](./grok.md)
-- [`list`](./list.md)
-- [`switch`](./switch.md)
 - [`current`](./current.md)
 - [`入口选择`](/guide/entrypoints)

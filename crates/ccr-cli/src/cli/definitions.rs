@@ -48,16 +48,14 @@ pub struct Cli {
     ///
     /// 等同于配置文件中的 skip_confirmation = true
     /// 所有需要确认的操作将自动执行，无需手动输入 'y'
-    /// 示例：ccr --yes delete test  或  ccr -y delete test
+    /// 示例：ccr -y clean planfiles  或  ccr --yes claude profile export --no-secrets -o claude.toml
     #[arg(short = 'y', long = "yes", global = true)]
     pub auto_yes: bool,
 
     #[command(subcommand)]
     pub command: Option<Commands>,
 
-    /// 直接切换到指定配置(快捷方式,无需输入 switch 子命令)
-    ///
-    /// 示例：ccr anthropic  等同于  ccr switch anthropic
+    /// [已退休] 旧版位置参数快捷切换（请改用 ccr <claude|codex|grok> profile switch <name>）
     #[arg(hide = true)]
     pub config_name: Option<String>,
 }
@@ -97,10 +95,10 @@ pub enum Commands {
         path: Vec<String>,
     },
 
-    /// 列出所有可用的配置方案
+    /// [已弃用，将在 8.0 移除] 列出所有可用的配置方案
     ///
-    /// 显示配置文件中定义的所有配置方案,包括配置名称、环境变量设置等信息
-    /// 别名: ls
+    /// 7.x 兼容保留入口（仅读取 Claude 配置库）。
+    /// 请改用: ccr <claude|codex|grok> profile list
     #[command(alias = "ls", hide = true)]
     List,
 
@@ -112,27 +110,27 @@ pub enum Commands {
     #[command(alias = "show")]
     Current(CurrentArgs),
 
-    /// 切换到指定的配置方案
+    /// [已退休] 切换到指定的配置方案
     ///
-    /// 将 Claude Code 的配置切换到指定方案,自动备份当前配置并应用新配置
-    /// 示例: ccr switch anthropic
+    /// 顶层 `ccr switch` 在 7.x 中已退休，不再隐式切换平台配置。
+    /// 请改用: ccr <claude|codex|grok> profile switch <name>
     #[command(hide = true)]
     Switch {
-        /// 要切换到的配置方案名称(必须在配置文件中已定义)
+        /// 要切换到的配置方案名称
         config_name: String,
     },
 
-    /// 添加新的配置方案
+    /// [已弃用，将在 8.0 移除] 添加新的配置方案
     ///
-    /// 交互式地添加新配置,按照提示输入配置信息
-    /// 示例: ccr add
+    /// 7.x 兼容保留入口（交互式向导）。
+    /// 请改用: ccr <claude|codex|grok> profile create <name> 或 ccr <claude|codex|grok> profile open
     #[command(hide = true)]
     Add,
 
-    /// 删除指定的配置方案
+    /// [已弃用，将在 8.0 移除] 删除指定的配置方案
     ///
-    /// 删除配置文件中的指定配置节
-    /// 示例: ccr delete my_config
+    /// 7.x 兼容保留入口。
+    /// 请改用: ccr <claude|codex|grok> profile delete <name>
     #[command(hide = true)]
     Delete {
         /// 要删除的配置方案名称
@@ -143,20 +141,20 @@ pub enum Commands {
         force: bool,
     },
 
-    /// 启用指定的配置方案
+    /// [已弃用，将在 8.0 移除] 启用指定的配置方案
     ///
-    /// 将配置标记为启用状态，使其可以正常使用
-    /// 示例: ccr enable my_config
+    /// 7.x 兼容保留入口。
+    /// 请改用: ccr <claude|codex|grok> profile enable <name>
     #[command(hide = true)]
     Enable {
         /// 要启用的配置方案名称
         config_name: String,
     },
 
-    /// 禁用指定的配置方案
+    /// [已弃用，将在 8.0 移除] 禁用指定的配置方案
     ///
-    /// 将配置标记为禁用状态，暂时不可使用（不会删除）
-    /// 示例: ccr disable old_config
+    /// 7.x 兼容保留入口。
+    /// 请改用: ccr <claude|codex|grok> profile disable <name>
     #[command(hide = true)]
     Disable {
         /// 要禁用的配置方案名称
@@ -219,10 +217,10 @@ pub enum Commands {
         action: super::subcommands::ProjectAction,
     },
 
-    /// 初始化配置文件
+    /// [已弃用，将在 8.0 移除] 初始化配置文件
     ///
-    /// 在 ~/.ccs_config.toml 创建配置文件模板,包含示例配置方案
-    /// 示例: ccr init --force  # 强制覆盖现有配置
+    /// 7.x 兼容保留入口。
+    /// 请改用: ccr <claude|codex|grok> profile init（仓库工作流初始化请用 ccr project init）
     #[command(hide = true)]
     Init {
         /// 强制覆盖已存在的配置文件(危险操作,会丢失当前配置)
@@ -230,10 +228,10 @@ pub enum Commands {
         force: bool,
     },
 
-    /// 导出配置到文件
+    /// [已弃用，将在 8.0 移除] 导出配置到文件
     ///
-    /// 将当前配置导出为 TOML 文件,方便备份或分享
-    /// 示例: ccr export -o my_config.toml --no-secrets
+    /// 7.x 兼容保留入口（默认平台 claude）。
+    /// 请改用: ccr <claude|codex|grok> profile export [--no-secrets] [-o <file.toml>]
     #[command(hide = true)]
     Export {
         /// 指定导出文件路径
@@ -255,10 +253,10 @@ pub enum Commands {
         stdout: bool,
     },
 
-    /// 从文件导入配置
+    /// [已弃用，将在 8.0 移除] 从文件导入配置
     ///
-    /// 从 TOML 文件导入配置方案,支持替换或合并模式
-    /// 示例: ccr import config.toml --merge
+    /// 7.x 兼容保留入口（默认平台 claude）。
+    /// 请改用: ccr <claude|codex|grok> profile import <file.toml> [--dry-run]
     #[command(hide = true)]
     Import {
         /// 要导入的配置文件路径
@@ -293,12 +291,10 @@ pub enum Commands {
     ///       ccr clean storage --dry-run
     Clean(CleanArgs),
 
-    /// 清理 CCR 写入的配置
+    /// [已弃用，将在 8.0 移除] 清理 CCR 写入的配置
     ///
-    /// 清空 settings.json 中的 ANTHROPIC_* 环境变量,使其恢复默认状态
-    /// 执行后 Claude Code 将无法正常工作,直到重新执行 switch 切换配置
-    /// 示例: ccr clear
-    ///       ccr clear --force  # 跳过确认
+    /// 7.x 兼容保留入口（清空 Claude settings.json 中的受管环境变量）。
+    /// 请改用: ccr <claude|codex|grok> profile off
     #[command(hide = true)]
     Clear {
         /// 跳过确认提示，直接清理（危险操作）
@@ -306,10 +302,10 @@ pub enum Commands {
         force: bool,
     },
 
-    /// 优化配置文件结构
+    /// [已弃用，将在 8.0 移除] 优化配置文件结构
     ///
-    /// 按照配置节名称的字母顺序重新排列配置文件,提升可读性
-    /// 示例: ccr optimize
+    /// 7.x 兼容保留入口（SQLite 配置库已自动保持规范化结构）。
+    /// 请改用: ccr <claude|codex|grok> profile open 或 ccr <claude|codex|grok> profile export
     #[command(hide = true)]
     Optimize,
 
@@ -358,7 +354,7 @@ pub enum Commands {
 
     /// 临时Token管理
     ///
-    /// 管理临时配置覆盖,不修改永久配置文件
+    /// 管理临时配置覆盖,不修改永久 Profile 配置目录
     /// 示例: ccr temp-token set sk-xxx
     ///       ccr temp-token show
     ///       ccr temp-token clear
@@ -370,7 +366,7 @@ pub enum Commands {
 
     /// 临时配置快速设置（交互式）
     ///
-    /// 无需依赖现有 TOML 配置，直接交互式输入 base_url、token、model
+    /// 无需依赖现有 Profile 配置，直接交互式输入 base_url、token、model
     /// 并立即写入 settings.json。支持模型名称智能解析。
     /// 示例: ccr temp
     Temp,
@@ -443,11 +439,11 @@ pub enum Commands {
     ///       ccr doctor --all-platforms --verbose
     Doctor(crate::commands::doctor_cmd::DoctorArgs),
 
-    /// 🔐 Codex 多账号管理
+    /// 🔐 Codex Profile 与多账号管理
     ///
-    /// 管理 Codex CLI 的多账号登录状态
-    /// 示例: ccr codex auth list
-    ///       ccr codex auth save my-account
+    /// 管理 Codex CLI 的 Profile 配置、多账号登录状态与配额
+    /// 示例: ccr codex profile list
+    ///       ccr codex auth list
     ///       ccr codex auth switch work
     /// 提示: 直接运行 `ccr codex` 可启动 TUI 界面
     Codex {
@@ -455,21 +451,23 @@ pub enum Commands {
         action: Option<super::subcommands::codex::CodexAction>,
     },
 
-    /// 🔐 Claude 官方订阅账号管理
+    /// 🔐 Claude Profile 与官方订阅账号管理
     ///
-    /// 管理 Claude Code 官方订阅凭据快照
-    /// 示例: ccr claude auth list
-    ///       ccr claude auth save work
+    /// 管理 Claude Code 的 Profile 配置与官方订阅凭据快照
+    /// 示例: ccr claude profile list
+    ///       ccr claude auth list
     ///       ccr claude auth switch personal
     Claude {
         #[command(subcommand)]
         action: Option<super::subcommands::claude::ClaudeAction>,
     },
 
-    /// Grok Build profile routing
+    /// 🔐 Grok Build Profile 与官方会话管理
     ///
-    /// Examples: ccr grok profile list
-    ///           ccr grok profile switch relay
+    /// 管理 Grok Build 的 Profile 路由与官方会话快照
+    /// 示例: ccr grok profile list
+    ///       ccr grok profile switch relay
+    ///       ccr grok auth current
     Grok {
         #[command(subcommand)]
         action: Option<super::subcommands::grok::GrokAction>,

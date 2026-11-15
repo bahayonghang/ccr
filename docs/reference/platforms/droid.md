@@ -1,343 +1,118 @@
-# Factory Droid Platform Guide
+# Factory Droid 平台指南
 
-## Overview
+> [!IMPORTANT]
+> **保留兼容适配器（`legacy_adapter`）说明**
+> 在 CCR 7.x 中，`droid`（显示名称为 **Factory Droid**，识别输入别名 `droid` 与 `factory`）属于**保留兼容适配器（`legacy_adapter`）**。
+> `Platform::auth_profile_supported()` 仅包含 `claude`、`codex` 与 `grok`——**`droid` 不提供 `ccr droid profile ...` 或 `ccr droid auth ...` 等 CLI/TUI 子命令**，没有独立的 CCR UI 平台工作区，也不属于 `ccr validate` 的校验范围（`ccr validate` 仅检查注册表与 `claude` / `codex` / `grok`）。
 
-Factory Droid is an AI-powered CLI assistant developed by Factory AI. CCR provides comprehensive support for managing Droid configurations, custom models, and profiles.
+## 概览
 
-## Platform Information
+Factory Droid 是 Factory AI 提供的终端编码助手。CCR 在平台枚举与诊断域中保留了 `droid` 兼容适配器，用于支持注册表状态展示、宿主配置文件只读健康检查以及跨平台周边工具。
 
-- **Platform Name**: `droid`
-- **Display Name**: Factory Droid
-- **Icon**: 🏭
-- **Status**: ✅ Fully Implemented
-- **Settings Path**: `~/.factory/settings.json`
-- **Profiles Path**: `~/.ccr/platforms/droid/profiles.db` (`profiles.toml` is the exchange format)
-
-## Prerequisites
-
-- Factory Droid CLI installed
-- API key from your chosen provider (Anthropic, OpenAI, or compatible services)
-
-## Installation
-
-### Windows
+上游安装方式：
 
 ```powershell
+# Windows
 irm https://app.factory.ai/cli/windows | iex
 ```
 
-### macOS/Linux
-
 ```bash
+# macOS / Linux
 curl -fsSL https://app.factory.ai/cli/install | bash
 ```
 
-## Token Formats
+## 平台信息
 
-Droid supports multiple providers with different token formats:
+| 项目 | 值 |
+|------|----|
+| CCR 持久化平台键 | `droid` |
+| 识别输入别名 | `droid`、`factory` |
+| 显示名称 | Factory Droid |
+| CLI 能力层级 | `legacy_adapter`（无 CLI/TUI `profile` 或 `auth` 子命令） |
+| 宿主设置文件 | `~/.factory/settings.json` |
 
-### Anthropic
+## 当前真实受支持的 CCR 能力
 
-```
-sk-ant-api03-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-```
+### 1. 平台注册表识别
 
-**How to Obtain:**
-1. Go to [Anthropic Console](https://console.anthropic.com/)
-2. Navigate to API Keys section
-3. Click "Create API Key"
-4. Copy and store securely
-
-### OpenAI
-
-```
-sk-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-```
-
-**How to Obtain:**
-1. Go to [OpenAI Platform](https://platform.openai.com/api-keys)
-2. Create new secret key
-3. Copy and store securely
-
-### Generic Chat Completion API
-
-Supports OpenRouter, Ollama, vLLM, and other OpenAI-compatible services.
-
-## Quick Start
-
-### Prepare the Droid Profiles File
+通过 `ccr platform list` 查看 `droid` 在统一注册表中的状态：
 
 ```bash
-# Example TOML is the exchange format. The live catalog is ~/.ccr/platforms/droid/profiles.db.
-# Do not copy the example onto profiles.toml. A restored backup TOML is not read.
-ccr import examples/droid/profiles.toml --platform droid --merge --backup
+ccr platform list
+ccr platform list --json
 ```
 
-### Switch to Droid Platform
+### 2. 只读健康体检（`ccr doctor`）
+
+使用 `ccr doctor` 对本地 `~/.factory/settings.json` 执行无副作用的只读结构与字段检查：
 
 ```bash
-# Switch from another platform to Droid
-ccr platform switch droid
-
-# Verify current platform
-ccr platform current
+ccr doctor --platform droid
+ccr doctor --platform droid --verbose
+ccr doctor --all-platforms
 ```
 
-### Add Droid Profile
+### 3. 周边生态命令支持
+
+`droid` 平台键可用于受支持的跨平台工具命令（例如会话过滤、提示词预设与自定义目录同步）：
 
 ```bash
-# Interactive profile creation
-ccr add -p droid
+# 按 droid 平台过滤会话列表
+ccr sessions list --platform droid
 
-# Follow the prompts to enter:
-# - Profile name
-# - Description
-# - Base URL
-# - API token
-# - Model name
-# - Provider type
+# 注册或查看 WebDAV 同步目录（如按需同步 ~/.factory）
+ccr sync folder list
 ```
 
-## Configuration Examples
+> 仓库中的 `examples/droid/profiles.toml` 仅作为历史字段结构参考保留，不对应现行 CLI 导入或切换入口。
 
-### Example 1: Anthropic API
+## 宿主配置文件参考（`~/.factory/settings.json`）
 
-```toml
-[anthropic-api]
-description = "Anthropic 官方 API"
-base_url = "https://api.anthropic.com/v1"
-auth_token = "sk-ant-api03-your-token-here"
-model = "claude-sonnet-4-5-20250929"
-provider = "anthropic"
-max_output_tokens = 8192
-tags = ["official", "anthropic"]
-enabled = true
+Factory Droid 直接读取 `~/.factory/settings.json`。CCR 的 `DroidPlatform` 只读检查器按 `DroidSettings` 结构解析其中的 `customModels` 数组（文件中其他顶层字段会原样保留）：
+
+```json
+{
+  "customModels": [
+    {
+      "model": "claude-sonnet-4-5-20250929",
+      "displayName": "Anthropic Sonnet",
+      "baseUrl": "https://api.anthropic.com/v1",
+      "apiKey": "sk-ant-...",
+      "provider": "anthropic",
+      "maxOutputTokens": 8192
+    },
+    {
+      "model": "gpt-4o",
+      "displayName": "OpenAI GPT-4o",
+      "baseUrl": "https://api.openai.com/v1",
+      "apiKey": "sk-...",
+      "provider": "openai",
+      "maxOutputTokens": 4096
+    }
+  ]
+}
 ```
 
-### Example 2: OpenAI Compatible
+### `customModels` 条目字段说明
 
-```toml
-[openai-compatible]
-description = "OpenAI 兼容 API"
-base_url = "https://api.openai.com/v1"
-auth_token = "sk-your-openai-key"
-model = "gpt-4o"
-provider = "openai"
-max_output_tokens = 4096
-tags = ["openai", "gpt"]
-enabled = true
-```
+| JSON 字段 | 必填 | 说明 |
+|-----------|------|------|
+| `model` | ✅ | 上游模型标识符 |
+| `displayName` | ❌ | Factory Droid 界面中的可读显示名称 |
+| `baseUrl` | ✅ | 服务商 API 端点（以 `http://` 或 `https://` 开头） |
+| `apiKey` | ✅ | 服务商 API 凭据 |
+| `provider` | ✅ | 服务商协议类型：`anthropic`、`openai` 或 `generic-chat-completion-api` |
+| `maxOutputTokens` | ❌ | 单次响应最大输出 Token 数限制 |
 
-### Example 3: OpenRouter
+### 安全建议
 
-```toml
-[openrouter]
-description = "OpenRouter 聚合 API"
-base_url = "https://openrouter.ai/api/v1"
-auth_token = "sk-or-v1-your-openrouter-key"
-model = "anthropic/claude-3.5-sonnet"
-provider = "generic-chat-completion-api"
-max_output_tokens = 4096
-tags = ["openrouter", "aggregator"]
-enabled = true
-```
+- `~/.factory/settings.json` 中的 `apiKey` 以明文存储，建议设置严格文件权限（如 `chmod 600 ~/.factory/settings.json`）。
+- 切勿将包含真实密钥的 `settings.json` 提交到 Git 仓库或附加到公开 Issue。
 
-### Example 4: Local Ollama
+## 相关文档
 
-```toml
-[ollama-local]
-description = "Ollama 本地部署"
-base_url = "http://localhost:11434/v1"
-auth_token = "ollama"
-model = "qwen3:14b"
-provider = "generic-chat-completion-api"
-tags = ["local", "ollama"]
-enabled = true
-```
-
-## Profile Management
-
-### List All Droid Profiles
-
-```bash
-# Make sure you're on Droid platform
-ccr platform switch droid
-
-# List all profiles
-ccr list
-```
-
-### Switch Between Profiles
-
-```bash
-# Switch to specific profile
-ccr switch anthropic-api
-
-# Or use -p flag from any platform
-ccr switch -p droid openrouter
-```
-
-### View Current Profile
-
-```bash
-# Show current active profile with details
-ccr current
-```
-
-### Delete Profile
-
-```bash
-# Delete a profile (with confirmation)
-ccr delete old-profile
-
-# Force delete without confirmation
-ccr delete old-profile --force
-```
-
-## Provider Types
-
-Droid supports three provider types:
-
-| Provider | Description |
-|----------|-------------|
-| `anthropic` | Anthropic API (Claude models) |
-| `openai` | OpenAI API (GPT models) |
-| `generic-chat-completion-api` | OpenAI-compatible services (OpenRouter, Ollama, vLLM, etc.) |
-
-## Configuration Fields
-
-| Field | Required | Description |
-|-------|----------|-------------|
-| `description` | ❌ | Human-readable profile description |
-| `base_url` | ✅ | API endpoint URL |
-| `auth_token` | ✅ | API key / authentication token |
-| `model` | ❌ | Model identifier |
-| `provider` | ✅ | Provider type |
-| `max_output_tokens` | ❌ | Maximum output tokens (Droid-specific) |
-| `tags` | ❌ | Organization tags |
-| `enabled` | ❌ | Profile enabled status |
-
-## Common Workflows
-
-### Workflow 1: Testing Different Providers
-
-```bash
-# Test Anthropic API
-ccr switch -p droid anthropic-api
-
-# Test OpenRouter
-ccr switch -p droid openrouter
-
-# Test local Ollama
-ccr switch -p droid ollama-local
-```
-
-### Workflow 2: Development vs Production
-
-```bash
-# Development with free tier
-ccr switch -p droid ollama-local
-
-# Production with official API
-ccr switch -p droid anthropic-api
-```
-
-## Troubleshooting
-
-### Issue 1: Profile Not Found
-
-**Error:**
-```
-✗ Profile not found: anthropic-api
-```
-
-**Solution:**
-```bash
-# Check current platform
-ccr platform current
-
-# Switch to Droid platform
-ccr platform switch droid
-
-# Verify profile exists
-ccr list
-```
-
-### Issue 2: Configuration Not Applied
-
-**Error:**
-Settings file not updated after switching.
-
-**Solution:**
-```bash
-# Check settings file
-cat ~/.factory/settings.json
-
-# Verify current config
-ccr current
-
-# Re-apply profile
-ccr switch anthropic-api
-```
-
-### Issue 3: API Key Invalid
-
-**Error:**
-API calls fail with authentication error.
-
-**Solution:**
-- Verify token format matches provider
-- Check token is complete (no truncation)
-- Ensure base_url matches provider
-
-## Best Practices
-
-### 1. Organize by Environment
-
-```toml
-# Production
-[prod-anthropic]
-tags = ["production", "anthropic"]
-
-# Development
-[dev-ollama]
-tags = ["development", "local"]
-
-# Testing
-[test-openrouter]
-tags = ["testing", "aggregator"]
-```
-
-### 2. Use Descriptive Names
-
-```toml
-# Good naming
-[anthropic-claude-sonnet]
-[openrouter-claude-haiku]
-[ollama-qwen-local]
-
-# Avoid generic names
-[config1]
-[test]
-```
-
-### 3. Set Appropriate Token Limits
-
-```toml
-[openai-gpt4]
-max_output_tokens = 4096  # GPT-4 limit
-
-[anthropic-claude]
-max_output_tokens = 8192  # Claude limit
-```
-
-## Related Resources
-
-- [Claude Platform](claude.md) - Anthropic Claude Code CLI
-- [Codex Platform](codex.md) - Codex CLI
-- [Antigravity Platform](gemini.md) - Google Antigravity CLI (`gemini` key)
-- [Migration Guide](migration.md) - Cross-platform migration
-
----
-
-*For platform-specific API documentation, visit [Factory AI Documentation](https://factory.ai/docs).*
+- [平台支持概览](./index)
+- [`doctor` 统一体检](/reference/commands/doctor)
+- [Claude 平台指南](./claude)
+- [Codex 平台指南](./codex)
+- [Antigravity CLI 平台指南](./gemini)

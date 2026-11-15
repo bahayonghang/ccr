@@ -13,7 +13,7 @@
 ### `crates/ccr-cli`
 
 - `src/cli/definitions.rs`：顶层 Clap `Commands`。
-- `src/cli/subcommands/`：Claude、Codex、OpenCode、platform、sync 等嵌套命令。
+- `src/cli/subcommands/`：Claude、Codex、Grok、OpenCode、platform、sync 等嵌套命令。
 - `src/cli/dispatch.rs`：命令路由、TUI launcher 与 legacy 路径处理。
 - `src/commands/`：用户可见处理器；`services/`、`managers/`、`platforms/` 负责 CLI 专属编排。
 
@@ -43,8 +43,8 @@
 
 ### `crates/ccr-config`
 
-- 平台枚举、profile/settings 契约、平台注册表和格式转换。
-- Claude、Codex、Antigravity、Droid 与 Qwen stub 的统一配置边界。
+- 平台枚举、SQLite 配置库（`profiles.db`）、`ExchangeV1` TOML 交换契约、平台注册表与宿主格式转换。
+- Claude、Codex、Grok 一等平台以及 Antigravity（`gemini`）、Droid 保留兼容适配器与 Qwen stub 的统一配置边界。
 
 ### `crates/ccr-store`
 

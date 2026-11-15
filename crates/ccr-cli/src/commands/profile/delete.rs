@@ -59,7 +59,7 @@ pub async fn delete_command(config_name: &str, force: bool) -> Result<()> {
     if is_default {
         ColorOutput::warning(&format!("配置 '{}' 是默认配置", config_name));
         println!();
-        ColorOutput::info("删除后，请记得编辑 ~/.ccs_config.toml 设置新的 default_config");
+        ColorOutput::info("删除后，请运行 'ccr claude profile open' 检查或更新 default_config");
         println!();
     }
 
@@ -127,7 +127,7 @@ pub async fn delete_command(config_name: &str, force: bool) -> Result<()> {
     if is_current {
         ColorOutput::warning("已删除当前配置，需要选择其他配置并重新应用");
     }
-    crate::commands::common::print_next_steps(&[("查看剩余配置", "ccr list")]);
+    crate::commands::common::print_next_steps(&[("查看剩余配置", "ccr claude profile list")]);
 
     Ok(())
 }

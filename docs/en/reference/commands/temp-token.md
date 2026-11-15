@@ -1,6 +1,6 @@
 # temp-token - Command-Line Temporary Override
 
-`ccr temp-token` applies temporary command-line overrides for the currently active settings: token, base URL, and model.
+`ccr temp-token` applies temporary command-line overrides for the active Claude host settings (`~/.claude/settings.json`): token, base URL, and model.
 
 ## Usage
 
@@ -16,21 +16,21 @@ ccr temp-token clear
 | Subcommand | Purpose |
 |------------|---------|
 | `help` | Show command help |
-| `set` | Immediately apply a temporary token / base URL / model |
-| `show` | Show the current temporary override state |
-| `clear` | Clear the current temporary override state |
+| `set` | Immediately apply a temporary token / base URL / model override |
+| `show` | Inspect the current temporary override state (tokens masked) |
+| `clear` | Clear the active temporary override |
 
 ## Use Cases
 
-- short-lived tests against a different token or relay endpoint
-- overriding the active settings without editing a permanent TOML profile
-- automation scripts that need explicit temporary parameters
+- short-lived tests against a different relay endpoint or temporary credential
+- overriding active host settings without modifying the persistent `profiles.db` catalog
+- local debugging scripts that apply and clear temporary parameters
 
 ## Examples
 
 ```bash
-ccr switch work
-ccr temp-token set sk-temp-xxx --base-url https://api.example.com --model claude-sonnet-4-5
+ccr claude profile switch work
+ccr temp-token set "$TEMP_TOKEN" --base-url https://api.example.com --model claude-sonnet-4-5
 ccr temp-token show
 ccr temp-token clear
 ```
@@ -39,11 +39,16 @@ ccr temp-token clear
 
 | Command | Style | Best for |
 |---------|-------|----------|
-| `ccr temp` | interactive | quick manual input of a temporary configuration |
-| `ccr temp-token` | command-line | scripts, copy/paste workflows, explicit flag-driven overrides |
+| `ccr temp` | interactive prompts | manual step-by-step entry and preview of a temporary config |
+| `ccr temp-token` | subcommand flags | inspecting, applying, and clearing explicit temporary overrides |
 
 ## Notes
 
-- `set` applies directly to the active settings.
-- This command is for temporary overrides, not long-lived profile management.
-- Permanent configuration should still be managed through `ccr add`, `ccr switch`, and `profiles.toml`.
+- `set` writes directly to active host settings and leaves `~/.ccr/platforms/claude/profiles.db` unchanged.
+- Be mindful of shell history when invoking `set` interactively; store long-lived credentials via `printf '%s' "$TOKEN" | ccr claude profile create <name> ... --auth-token-stdin` and switch with `ccr claude profile switch <name>`.
+
+## Related Commands
+
+- [`temp`](./temp.md) - interactive temporary configuration
+- [`claude`](./claude.md) - persistent Claude profile catalog management
+- [`current`](./current.md) - inspect current runtime status

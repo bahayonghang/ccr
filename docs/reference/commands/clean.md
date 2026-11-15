@@ -2,8 +2,8 @@
 
 裸 `ccr clean` 会进入交互式清理菜单；脚本和自动化场景应显式使用 `ccr clean planfiles`、`ccr clean backups` 或 `ccr clean storage`。
 
-::: tip 重要更新
-从 CCR 1.1.5 开始，所有备份操作（`switch`、`init --force`、`import`）都会**自动保留最近10个备份**，无需手动清理。`clean backups` 主要用于清理更早期的备份或手动管理备份策略。
+::: tip 自动备份保留策略
+每次切换平台 Profile（`ccr <claude|codex|grok> profile switch`）或导入配置时，CCR 都会自动保留最近 10 个备份文件，日常无需频繁手动清理。`clean backups` 主要用于按保留天数清理更早期的历史备份。
 :::
 
 ## 用法
@@ -175,9 +175,9 @@ $ ccr clean planfiles --all --dry-run
 
 某个候选删除失败时，命令记下该路径，继续处理其余候选，最后以非零状态退出。没有待删项时成功退出。
 
-## 备份文件命名
+## 备份文件命名与边界
 
-CCR 的备份文件遵循以下命名规则：
+`ccr clean backups` 清理 `~/.claude/backups/` 下的宿主运行时备份文件：
 
 ### Settings 备份
 ```
@@ -188,14 +188,7 @@ settings_<timestamp>_<config_name>.json.bak
 - `settings_20250110_120530_anthropic.json.bak`
 - `settings_20250109_083022_anyrouter.json.bak`
 
-### Config 备份
-```
-.ccs_config.toml.<tag>_<timestamp>.bak
-```
-
-示例：
-- `.ccs_config.toml.init_20250110_120530.bak`
-- `.ccs_config.toml.import_backup_20250109_083022.bak`
+> 注：`7.x` 起各平台的 SQLite `profiles.db` 目录写前备份独立存放在 `~/.ccr/platforms/<platform>/backups/`（自动按 `0600` 权限轮换保留），不属于 `~/.claude/backups/` 的扫描目标。
 
 ## 使用场景
 
@@ -341,12 +334,14 @@ fi
 ### 4. 定期导出重要配置
 
 ```bash
-# 每周导出配置到安全位置
-ccr export -o ~/backups/ccr-weekly-$(date +%Y%m%d).toml
+# 每周导出配置库私有快照到安全位置（默认包含内联密钥并以 0600 权限落盘；外发共享或提交 Git 请加 --no-secrets）
+ccr claude profile export -o ~/backups/claude-weekly-$(date +%Y%m%d).toml
 
 # 清理临时备份
 ccr clean backups --days 7
 ```
+
+> 注：未传 `--no-secrets` 时，`profile export` 默认包含内联密钥（以仅属主可读写的 `0600` 权限落盘，仅限本机私有归档）；如需分享或提交版本库，必须附加 `--no-secrets`。
 
 ## 手动清理
 
@@ -424,11 +419,9 @@ sudo photorec
 
 ## 相关命令
 
-- [export](./export) - 导出配置作为长期备份
-- [import](./import) - 从备份恢复配置
-- [switch](./switch) - 切换配置(会创建自动备份)
-- [add](./add) - 添加新配置
-- [delete](./delete) - 删除配置
+- [`claude`](./claude) / [`codex`](./codex) / [`grok`](./grok) - 平台 Profile 切换与 `profile export` / `import` 长期备份
+- [`doctor`](./doctor) - 运行统一环境体检
+- [`history`](./history) - 查看脱敏操作历史
 
 ## 提示展示
 

@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "CCR"
   text: "Unified management for AI CLI configuration and runtime state"
-  tagline: "CLI-first, explicit Claude Runtime / Codex Runtime, with TUI and CCR UI"
+  tagline: "CLI-first, explicit Claude / Codex / Grok runtimes backed by SQLite catalogs, with TUI and CCR UI"
   image:
     src: /logo.svg
     alt: CCR
@@ -25,13 +25,13 @@ const choosePaths = [
   {
     icon: '⚡',
     title: 'Start with the CLI',
-    details: 'Day-to-day runtime work centers on ccr current, ccr claude profile, and ccr codex profile.',
+    details: 'Day-to-day runtime work centers on ccr current and ccr <claude|codex|grok> profile.',
     link: '/en/guide/cli-workflows'
   },
   {
     icon: '🖥️',
     title: 'Use CCR UI visually',
-    details: 'The Vue + Tauri UI shares the same registry, profiles, history, and backups.',
+    details: 'The Tauri UI shares the same registry, profiles.db catalogs, history, and backups.',
     link: '/en/guide/ui-overview'
   }
 ]
@@ -39,14 +39,14 @@ const choosePaths = [
 const capabilityCards = [
   {
     icon: '🔀',
-    title: 'Explicit dual runtime model',
-    details: 'Claude and Codex are shown side by side instead of relying on a global current_platform switch.',
+    title: 'Explicit multi-runtime model',
+    details: 'Inspect active runtime state with ccr current instead of relying on an implicit global platform switch.',
     link: '/en/reference/commands/current'
   },
   {
     icon: '🔐',
-    title: 'Platform-scoped profile commands',
-    details: 'Use ccr claude profile ... and ccr codex profile ... for runtime routing.',
+    title: 'Platform-scoped profile & auth commands',
+    details: 'Use ccr <claude|codex|grok> profile ... and auth ... for runtime routing and official accounts.',
     link: '/en/reference/commands/'
   },
   {
@@ -57,20 +57,20 @@ const capabilityCards = [
   },
   {
     icon: '📚',
-    title: 'Sessions / Provider / Skills',
-    details: 'Session indexing, provider health, and extension surfaces share one CLI.',
-    link: '/en/reference/commands/'
+    title: 'Doctor / Sessions / Skills',
+    details: 'Unified read-only diagnostics, session indexing, provider health, and extensions share one CLI.',
+    link: '/en/reference/commands/doctor'
   },
   {
     icon: '🛡️',
-    title: 'Safe writes',
-    details: 'File locking, atomic writes, backups, and audit history protect configuration changes.',
+    title: 'SQLite catalogs & safe writes',
+    details: 'Live profiles.db storage paired with ExchangeV1 TOML exchange, file locking, atomic writes, and backups.',
     link: '/en/guide/configuration'
   },
   {
     icon: '🏗️',
     title: 'Architecture and migration references',
-    details: 'Workspace layering, runtime flows, and migration mappings are documented together.',
+    details: 'Workspace layering, runtime flows, and 7.x command/storage migration mappings are documented together.',
     link: '/en/reference/migration'
   }
 ]
@@ -82,11 +82,13 @@ const capabilityCards = [
 ## Five-Minute Start
 
 ```bash
-ccr init
-ccr current
-ccr add
+ccr claude profile init
+printf '%s' "$ANTHROPIC_AUTH_TOKEN" | ccr claude profile create work \
+  --base-url https://api.example.com \
+  --auth-token-stdin
 ccr claude profile list
-ccr claude profile switch <name>
+ccr claude profile switch work
+ccr current
 ccr validate
 ```
 
@@ -94,17 +96,19 @@ ccr validate
 
 | Platform | Status | Notes |
 |----------|--------|-------|
-| Claude Code | ✅ Implemented | dual official-auth + profile runtime surface |
-| Codex | ✅ Implemented | auth, profile, and sync-history all supported |
-| Antigravity CLI | ✅ Implemented | internal key remains `gemini`; legacy Gemini session import stays compatible |
-| Factory Droid | ✅ Implemented | still present in the broader platform domain |
-| Qwen CLI | 🚧 Reserved / Partial | reserved key plus partial data-domain support |
+| Claude Code (`claude`) | ✅ Implemented | dual `auth` + `profile` runtime surface backed by `profiles.db` |
+| Codex (`codex`) | ✅ Implemented | `auth`, `profile`, `fix`, and `sync-history` backed by `profiles.db` |
+| Grok (`grok`) | ✅ Implemented | full CLI/TUI/UI `auth` + `profile` support backed by `profiles.db` |
+| Antigravity CLI (`gemini`) | 🔄 Compatibility Adapter | `legacy_adapter` (no CLI `profile`/`auth` subcommands); supports `doctor`, ecosystem tools, and `/antigravity` UI |
+| Factory Droid (`droid`) | 🔄 Compatibility Adapter | `legacy_adapter` (no CLI `profile`/`auth` subcommands); supports `doctor` and ecosystem tools |
+| Qwen CLI (`qwen`) | 🚧 Reserved / Stub | reserved platform key plus partial data-domain support |
 
 ## Common Entry Points
 
 ```bash
 ccr current --verbose
 ccr codex auth current
-ccr codex profile list
+ccr grok profile list
+ccr doctor
 ccr ui -p 15173 --backend-port 38081
 ```

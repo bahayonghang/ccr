@@ -204,7 +204,7 @@ Generate comprehensive documentation for the provided code:
 4. Edge cases and error handling
 EOF
 
-cr prompts add doc-generator \
+ccr prompts add doc-generator \
   --target claude \
   --content @/tmp/doc-prompt.txt \
   --description "Documentation generation template"
