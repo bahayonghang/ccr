@@ -9,13 +9,13 @@ use crate::{
     theme,
 };
 use ccr_app::{
-    environments::ssh::{AuthMethod, ConfigFile, Document, Host, HostInput, Probe, Secret},
+    environments::ssh::{AuthMethod, Host, HostInput, Probe, Secret},
     runtime::{CancellationHandle, Completion, EnvironmentId, Platform, RequestKey, TaskEvent},
 };
 use gpui_kit::base::Selectable;
 use gpui_kit::component::FocusTrapElement;
 use gpui_kit::component::button::{Button, ButtonVariants};
-use gpui_kit::component::input::{Input, InputState, Textarea, TextareaState};
+use gpui_kit::component::input::{Input, InputState};
 use gpui_kit::{
     AppContext, Context, Entity, InteractiveElement, IntoElement, ParentElement, Render,
     SharedString, StatefulInteractiveElement, Styled, Task, Window, base::TestSupportExt,
@@ -25,11 +25,6 @@ use std::collections::HashMap;
 
 mod detect;
 
-#[derive(Clone)]
-struct Draft {
-    document: Document,
-    text: String,
-}
 pub struct EnvironmentRequest(pub EnvironmentId);
 impl gpui_kit::EventEmitter<EnvironmentRequest> for RemoteView {}
 pub struct RemoteView {
@@ -41,9 +36,6 @@ pub struct RemoteView {
     cli: Option<Vec<ccr_app::environments::ssh::CliStatus>>,
     cli_error: Option<&'static str>,
     detecting: bool,
-    file: ConfigFile,
-    drafts: HashMap<(String, &'static str), Draft>,
-    editor: Entity<TextareaState>,
     probe: Option<Probe>,
     busy: bool,
     generation: u64,
@@ -51,8 +43,6 @@ pub struct RemoteView {
     cancel: Option<CancellationHandle>,
     message: Option<&'static str>,
     loaded: bool,
-    save_confirmation: bool,
-    read_confirmation: bool,
     host_form: Option<HostInput>,
     pending_test: Option<HostInput>,
     saved_test: Option<String>,
@@ -65,7 +55,6 @@ pub struct RemoteView {
     decision_enter: bool,
     decision_return: Option<gpui_kit::FocusHandle>,
     host_saved_notice: bool,
-    restore_pending: bool,
     delete_handles: HashMap<String, gpui_kit::FocusHandle>,
 }
 impl RemoteView {
@@ -79,9 +68,6 @@ impl RemoteView {
             cli: None,
             cli_error: None,
             detecting: false,
-            file: ConfigFile::Claude,
-            drafts: HashMap::new(),
-            editor: cx.new(|cx| TextareaState::new(window, cx)),
             probe: None,
             busy: false,
             generation: 0,
@@ -89,8 +75,6 @@ impl RemoteView {
             cancel: None,
             message: None,
             loaded: false,
-            save_confirmation: false,
-            read_confirmation: false,
             host_form: None,
             pending_test: None,
             saved_test: None,
@@ -105,7 +89,6 @@ impl RemoteView {
             decision_enter: false,
             decision_return: None,
             host_saved_notice: false,
-            restore_pending: false,
             delete_handles: HashMap::new(),
         }
     }
@@ -132,16 +115,8 @@ impl RemoteView {
     pub fn hosts(&self) -> &[Host] {
         &self.hosts
     }
-    pub fn has_environment_draft(&self, cx: &gpui_kit::App) -> bool {
-        self.host_form.is_some()
-            || self.pending_test.is_some()
-            || self.saved_test.is_some()
-            || self.drafts.values().any(|d| d.text != d.document.content)
-            || (self
-                .selected
-                .as_ref()
-                .and_then(|h| self.drafts.get(&(h.id.clone(), self.file.path())))
-                .is_some_and(|d| self.editor.read(cx).value().as_str() != d.document.content))
+    pub fn has_environment_draft(&self, _cx: &gpui_kit::App) -> bool {
+        self.host_form.is_some() || self.pending_test.is_some() || self.saved_test.is_some()
     }
     pub fn discard_for_environment_switch(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if let Some(cancel) = &self.cancel {
@@ -154,20 +129,14 @@ impl RemoteView {
         self.generation += 1;
         self.host_form = None;
         self.host_form_pending = false;
-        self.restore_pending = false;
-        self.read_confirmation = false;
-        self.save_confirmation = false;
         self.delete_confirmation = false;
         self.pending_test = None;
         self.saved_test = None;
         self.probe = None;
-        self.drafts.clear();
         self.connected = false;
         self.cli = None;
         self.cli_error = None;
         self.host_fields[7].update(cx, |state, cx| state.set_value("", window, cx));
-        self.editor
-            .update(cx, |state, cx| state.set_value("", window, cx));
         cx.notify();
     }
     pub fn is_remote(&self) -> bool {
@@ -184,26 +153,6 @@ impl RemoteView {
             self.start(SshAction::Hosts, cx);
         }
     }
-    fn remember(&mut self, cx: &Context<Self>) {
-        if self.message == Some("ssh_document_ready") {
-            return;
-        }
-        if let Some(host) = &self.selected
-            && let Some(draft) = self.drafts.get_mut(&(host.id.clone(), self.file.path()))
-        {
-            draft.text = self.editor.read(cx).value().to_string();
-        }
-    }
-    fn restore(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let value = self
-            .selected
-            .as_ref()
-            .and_then(|h| self.drafts.get(&(h.id.clone(), self.file.path())))
-            .map(|d| d.text.clone())
-            .unwrap_or_default();
-        self.editor
-            .update(cx, |state, cx| state.set_value(value, window, cx));
-    }
     fn select(&mut self, host: Host, window: &mut Window, cx: &mut Context<Self>) {
         if self.busy {
             return;
@@ -212,13 +161,11 @@ impl RemoteView {
             .selected
             .as_ref()
             .is_none_or(|selected| selected.id != host.id);
-        self.remember(cx);
         self.host_form = None;
         self.pending_test = None;
         self.saved_test = None;
         self.host_fields[7].update(cx, |state, cx| state.set_value("", window, cx));
         self.delete_confirmation = false;
-        self.read_confirmation = false;
         self.selected = Some(host);
         self.advanced = false;
         self.connected = false;
@@ -226,12 +173,10 @@ impl RemoteView {
         self.cli_error = None;
         self.probe = None;
         self.message = None;
-        self.save_confirmation = false;
         self.generation += 1;
         if changed {
             self.record_selection();
         }
-        self.restore(window, cx);
         cx.notify();
     }
     fn record_selection(&self) {
@@ -241,21 +186,6 @@ impl RemoteView {
             generation: self.generation,
             request_id: self.generation,
         });
-    }
-    fn select_file(&mut self, file: ConfigFile, window: &mut Window, cx: &mut Context<Self>) {
-        if self.busy {
-            return;
-        }
-        self.remember(cx);
-        self.file = file;
-        self.cli = None;
-        self.cli_error = None;
-        self.message = None;
-        self.save_confirmation = false;
-        self.read_confirmation = false;
-        self.generation += 1;
-        self.restore(window, cx);
-        cx.notify();
     }
     fn host_form(&mut self, input: HostInput, window: &mut Window, cx: &mut Context<Self>) {
         self.pending_test = None;
@@ -358,7 +288,6 @@ impl RemoteView {
             SshAction::DetectCli(id) => Some(id.clone()),
             _ => None,
         };
-        self.remember(cx);
         self.generation += 1;
         let generation = self.generation;
         // 管理作业属于准入时的当前环境，切换必须等待其真实终态；
@@ -393,8 +322,6 @@ impl RemoteView {
         self.cli_error = None;
         self.detecting = detecting_host.is_some();
         self.busy = true;
-        self.save_confirmation = false;
-        self.read_confirmation = false;
         self.delete_confirmation = false;
         match self.services.ssh_action(key, action) {
             Err(_) => {
@@ -441,7 +368,6 @@ impl RemoteView {
                                     }
                                     Completion::Success(SshResult::HostSaved(host)) => {
                                         this.host_saved_notice = true;
-                                        this.restore_pending = true;
                                         let changed = this
                                             .selected
                                             .as_ref()
@@ -462,7 +388,6 @@ impl RemoteView {
                                         if let Some(host) = this.selected.take() {
                                             this.delete_handles.remove(&host.id);
                                             this.hosts.retain(|item| item.id != host.id);
-                                            this.drafts.retain(|(id, _), _| id != &host.id);
                                             this.record_selection();
                                         }
                                         this.connected = false;
@@ -502,16 +427,6 @@ impl RemoteView {
                                             this.record_selection();
                                         }
                                     }
-                                    Completion::Success(SshResult::Document(document)) => {
-                                        this.drafts.insert(
-                                            (document.environment.clone(), document.file.path()),
-                                            Draft {
-                                                document: document.clone(),
-                                                text: document.content.clone(),
-                                            },
-                                        );
-                                        this.message = Some("ssh_document_ready");
-                                    }
                                     Completion::Failed(error) => {
                                         this.pending_test = None;
                                         this.saved_test = None;
@@ -549,36 +464,6 @@ impl RemoteView {
             }
         }
         cx.notify();
-    }
-    fn read(&mut self, cx: &mut Context<Self>) {
-        self.remember(cx);
-        if let Some(host) = &self.selected
-            && let Some(draft) = self.drafts.get(&(host.id.clone(), self.file.path()))
-            && draft.text != draft.document.content
-        {
-            self.read_confirmation = true;
-            cx.notify();
-            return;
-        }
-        self.load_document(cx);
-    }
-    fn load_document(&mut self, cx: &mut Context<Self>) {
-        self.read_confirmation = false;
-        if let Some(host) = &self.selected {
-            self.start(SshAction::Read(host.id.clone(), self.file), cx);
-        }
-    }
-
-    fn save(&mut self, cx: &mut Context<Self>) {
-        self.remember(cx);
-        if let Some(host) = &self.selected
-            && let Some(draft) = self.drafts.get(&(host.id.clone(), self.file.path()))
-        {
-            self.start(
-                SshAction::Save(draft.document.clone(), draft.text.clone()),
-                cx,
-            );
-        }
     }
 }
 fn message(code: &str, chinese: bool) -> &'static str {
@@ -670,7 +555,6 @@ impl RemoteView {
                         if this.shell_controlled {
                             cx.emit(EnvironmentRequest(EnvironmentId::Local("local".into())));
                         } else {
-                            this.remember(cx);
                             this.start(SshAction::Disconnect, cx);
                         }
                     })),
@@ -1198,123 +1082,6 @@ impl RemoteView {
         }
         root
     }
-    fn render_document(
-        &self,
-        mut root: gpui_kit::Div,
-        host: &Host,
-        cx: &mut Context<Self>,
-    ) -> gpui_kit::Div {
-        root=root.child(text(cx,"Remote source files may contain credentials. Load only when you intend to view plaintext. Platform remote access is being introduced in later slices.","远程源文件可能包含凭据。仅在需要查看明文时读取；平台远程接入将在后续切片完成。"));
-        let mut files = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
-        for (index, file) in ConfigFile::ALL.into_iter().enumerate() {
-            files = files.child(semantics::button(
-                Button::new(SharedString::from(format!("ssh-file-{index}")))
-                    .label(file.path())
-                    .ghost()
-                    .on_click(
-                        cx.listener(move |this, _, window, cx| this.select_file(file, window, cx)),
-                    ),
-                self.busy,
-                false,
-                cx,
-            ));
-        }
-        root = root.child(files);
-        root = root.child(format!(
-            "{}: {}",
-            text(cx, "Selected file", "选中文件"),
-            self.file.path()
-        ));
-        let draft = self.drafts.get(&(host.id.clone(), self.file.path()));
-        root = root.child(semantics::button(
-            Button::new("ssh-read")
-                .label(text(cx, "Load remote plaintext", "读取远程明文"))
-                .ghost()
-                .on_click(cx.listener(|this, _, _, cx| this.read(cx))),
-            self.busy || !self.connected,
-            false,
-            cx,
-        ));
-        root = self.render_document_confirmation(root, cx);
-        if draft.is_some() {
-            root = root.child(
-                Textarea::new(&self.editor)
-                    .accessibility_id("ssh-document")
-                    .aria_label(text(cx, "Remote configuration source", "远程配置源文件"))
-                    .h(px(200.))
-                    .readonly(self.busy),
-            );
-            root = root.child(semantics::button(
-                Button::new("ssh-save")
-                    .label(text(cx, "Save with remote backup", "备份后保存到远程"))
-                    .on_click(cx.listener(|this, _, _, cx| {
-                        this.save_confirmation = true;
-                        cx.notify();
-                    })),
-                self.busy || !self.connected,
-                false,
-                cx,
-            ));
-        }
-        root
-    }
-    fn render_document_confirmation(
-        &self,
-        mut root: gpui_kit::Div,
-        cx: &mut Context<Self>,
-    ) -> gpui_kit::Div {
-        if self.read_confirmation {
-            root = root.child(text(
-                cx,
-                "Reloading will replace this unsaved draft with remote content.",
-                "重新读取会用远程内容替换当前未保存草稿。",
-            ));
-            root = root.child(semantics::button(
-                Button::new("ssh-cancel-reload")
-                    .label(text(cx, "Keep draft", "保留草稿"))
-                    .ghost()
-                    .on_click(cx.listener(|this, _, _, cx| {
-                        this.read_confirmation = false;
-                        cx.notify();
-                    })),
-                false,
-                false,
-                cx,
-            ));
-            root = root.child(semantics::button(
-                Button::new("ssh-confirm-reload")
-                    .label(text(cx, "Discard draft and reload", "放弃草稿并重新读取"))
-                    .on_click(cx.listener(|this, _, _, cx| this.load_document(cx))),
-                false,
-                false,
-                cx,
-            ));
-        }
-        if self.save_confirmation {
-            root=root.child(text(cx,"Replace this remote file after checking its loaded revision? A remote backup is required before replacement.","检查读取时的版本并替换此远程文件？替换前必须成功创建远程备份。"));
-            root = root.child(semantics::button(
-                Button::new("ssh-cancel-save")
-                    .label(text(cx, "Cancel", "取消"))
-                    .ghost()
-                    .on_click(cx.listener(|this, _, _, cx| {
-                        this.save_confirmation = false;
-                        cx.notify();
-                    })),
-                false,
-                false,
-                cx,
-            ));
-            root = root.child(semantics::button(
-                Button::new("ssh-confirm-save")
-                    .label(text(cx, "Confirm remote save", "确认远程保存"))
-                    .on_click(cx.listener(|this, _, _, cx| this.save(cx))),
-                false,
-                false,
-                cx,
-            ));
-        }
-        root
-    }
 }
 
 impl Render for RemoteView {
@@ -1323,10 +1090,6 @@ impl Render for RemoteView {
             && let Some(form) = self.host_form.clone()
         {
             self.host_form(form, window, cx);
-        }
-        if std::mem::take(&mut self.restore_pending) || self.message == Some("ssh_document_ready") {
-            self.restore(window, cx);
-            self.message = None;
         }
         if self.shell_controlled {
             self.connected = self.selected.as_ref().is_some_and(|host| {
@@ -1405,11 +1168,7 @@ impl Render for RemoteView {
             }
             root = root.child(semantics::button(
                 Button::new("ssh-advanced")
-                    .label(text(
-                        cx,
-                        "Legacy remote files and CLI detection",
-                        "旧版远程文件与 CLI 检测",
-                    ))
+                    .label(text(cx, "Remote CLI detection", "远程 CLI 检测"))
                     .ghost()
                     .on_click(cx.listener(|this, _, _, cx| {
                         this.advanced = !this.advanced;
@@ -1421,7 +1180,6 @@ impl Render for RemoteView {
             ));
             if self.advanced {
                 root = self.render_cli(root, cx);
-                root = self.render_document(root, host, cx);
             }
         }
         root = self.render_trust(root, cx);
@@ -1569,7 +1327,7 @@ mod tests {
     }
 
     #[gpui_kit::test]
-    async fn rendered_host_actions_reach_isolated_transport_and_write_remote_document(
+    async fn rendered_host_actions_reach_isolated_transport_without_plaintext_editors(
         cx: &mut TestAppContext,
     ) {
         cx.executor().allow_parking();
@@ -1691,55 +1449,9 @@ mod tests {
             assert!(view.read(cx).connected);
             assert!(root.path().join("ssh.locks").is_dir());
             window.render_frame(cx);
-            if window.try_find("ssh-read").is_none() {
-                window.click("ssh-advanced", cx);
-            }
-            window.click("ssh-read", cx);
-        })
-        .unwrap();
-        cx.wait_for(handle, Duration::from_secs(5), |_, cx| !view.read(cx).busy)
-            .await;
-        cx.update_window(handle, |_, window, cx| {
-            window.render_frame(cx);
-            view.update(cx, |this, cx| {
-                this.editor.update(cx, |state, cx| {
-                    state.set_value(r#"{"edited":true}"#, window, cx)
-                })
-            });
-            window.render_frame(cx);
-            window.click("ssh-save", cx);
-            window.render_frame(cx);
-            assert!(window.find("ssh-confirm-save").visible());
-            assert!(
-                window.find("ssh-confirm-save").bounds().bottom() <= window.bounds().size.height
-            );
-            window.click("ssh-confirm-save", cx);
-        })
-        .unwrap();
-        cx.wait_for(handle, Duration::from_secs(5), |_, cx| !view.read(cx).busy)
-            .await;
-        assert_eq!(
-            transport
-                .file("one.example", "/home/fixture/.claude/settings.json")
-                .as_deref(),
-            Some(r#"{"edited":true}"#)
-        );
-        cx.update_window(handle, |_, window, cx| {
-            window.render_frame(cx);
-            view.update(cx, |this, cx| {
-                this.editor.update(cx, |state, cx| {
-                    state.set_value(r#"{"unsaved":true}"#, window, cx)
-                })
-            });
-            window.render_frame(cx);
-            window.click("ssh-read", cx);
-            assert!(view.read(cx).read_confirmation);
-            window.render_frame(cx);
-            window.click("ssh-file-1", cx);
-            assert!(!view.read(cx).read_confirmation);
-            window.render_frame(cx);
-            window.click("ssh-file-0", cx);
-            window.render_frame(cx);
+            assert!(window.try_find("ssh-read").is_none());
+            assert!(window.try_find("ssh-document").is_none());
+            assert!(window.try_find("ssh-file-0").is_none());
             window.click("ssh-add-host", cx);
             view.update(cx, |this, cx| {
                 for (field, value) in this.host_fields.iter().zip([
@@ -1761,13 +1473,8 @@ mod tests {
         cx.update_window(handle, |_, window, cx| {
             window.render_frame(cx);
             assert_eq!(view.read(cx).selected.as_ref().unwrap().name, "Second");
-            assert!(view.read(cx).editor.read(cx).value().is_empty());
             window.click(SharedString::from(format!("ssh-host-{}", host.id)), cx);
             window.render_frame(cx);
-            assert_eq!(
-                view.read(cx).editor.read(cx).value().as_str(),
-                r#"{"unsaved":true}"#
-            );
         })
         .unwrap();
         assert!(!root.path().join("profiles.toml").exists());

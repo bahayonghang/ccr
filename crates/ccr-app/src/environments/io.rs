@@ -16,11 +16,8 @@ use super::{
     ssh::{IoSession, Workspace},
     ssh_security::{RemotePosixPath, posix_single_quote},
 };
+use crate::jobs::process::{ProcessDescriptor, ProcessGateway};
 use crate::runtime::{EnvironmentId, Platform};
-use crate::{
-    jobs::process::{ProcessDescriptor, ProcessGateway},
-    platform_settings,
-};
 use ccr_core::core::{BackupPolicy, content_version_token};
 use sha2::{Digest, Sha256};
 use std::{
@@ -42,6 +39,9 @@ pub enum Error {
     Cancelled,
     StaleAuthority,
     Process,
+    Busy,
+    Partial,
+    UnrepresentablePath,
     Ssh(&'static str),
 }
 
@@ -147,6 +147,20 @@ pub struct Snapshot {
     relative: String,
     identity: uuid::Uuid,
 }
+/// Opaque binary document authority; never format or serialize its contents.
+#[derive(Clone)]
+pub struct ByteSnapshot {
+    pub content: Vec<u8>,
+    pub exists: bool,
+    token: String,
+    relative: String,
+    identity: uuid::Uuid,
+}
+impl ByteSnapshot {
+    pub fn version(&self) -> &str {
+        &self.token
+    }
+}
 impl Snapshot {
     pub fn version(&self) -> &str {
         &self.token
@@ -160,6 +174,65 @@ pub struct ProcessOutput {
 }
 
 impl EnvironmentIo {
+    pub fn environment(&self) -> &EnvironmentId {
+        &self.environment
+    }
+    /// Capture a typed POSIX root for read-only source inventories outside HOME.
+    pub fn at_remote_root(&self, home: RemotePosixPath) -> Result<Self, Error> {
+        match &self.adapter {
+            Adapter::Ssh {
+                workspace,
+                authority,
+            } => Ok(Self {
+                environment: self.environment.clone(),
+                identity: uuid::Uuid::new_v4(),
+                roots: PlatformRoots {
+                    home: EnvironmentPath::Ssh(home.clone()),
+                    local_platforms: Vec::new(),
+                },
+                adapter: Adapter::Ssh {
+                    workspace: workspace.clone(),
+                    authority: authority.with_home(home),
+                },
+            }),
+            _ => Err(Error::Unsupported),
+        }
+    }
+    pub async fn metadata(
+        &self,
+        relative: &str,
+        cancel: CancellationToken,
+    ) -> Result<Option<(u64, Option<u64>)>, Error> {
+        self.roots.relative(relative)?;
+        check_cancel(&cancel)?;
+        match &self.adapter {
+            Adapter::Ssh {
+                workspace,
+                authority,
+            } => workspace
+                .metadata_io(authority, relative, cancel)
+                .await
+                .map_err(Error::Ssh),
+            Adapter::Local(_) => Err(Error::Unsupported),
+        }
+    }
+    /// Serialize a remote configuration publication without retaining a read lock
+    /// for the lifetime of an editor. Individual files keep their own CAS locks.
+    pub async fn configuration_lock(
+        &self,
+        cancel: CancellationToken,
+    ) -> Result<tokio::sync::OwnedMutexGuard<()>, Error> {
+        match &self.adapter {
+            Adapter::Ssh {
+                workspace,
+                authority,
+            } => workspace
+                .configuration_lock(authority, cancel)
+                .await
+                .map_err(Error::Ssh),
+            Adapter::Local(_) => Err(Error::Unsupported),
+        }
+    }
     /// Captures exactly the requested environment. SSH never evaluates the local
     /// roots closure; a missing or stale connection never falls back to local I/O.
     pub fn resolve(
@@ -262,6 +335,21 @@ impl EnvironmentIo {
     /// Local filesystem work runs on a blocking worker and is joined even when
     /// cancellation arrives, so no detached writer outlives its terminal result.
     pub async fn read(&self, relative: &str, cancel: CancellationToken) -> Result<Snapshot, Error> {
+        let bytes = self.read_bytes(relative, cancel).await?;
+        Ok(Snapshot {
+            content: String::from_utf8(bytes.content).map_err(|_| Error::Io)?,
+            exists: bytes.exists,
+            token: bytes.token,
+            relative: bytes.relative,
+            identity: bytes.identity,
+        })
+    }
+
+    pub async fn read_bytes(
+        &self,
+        relative: &str,
+        cancel: CancellationToken,
+    ) -> Result<ByteSnapshot, Error> {
         self.roots.relative(relative)?;
         check_cancel(&cancel)?;
         let content = match &self.adapter {
@@ -282,7 +370,7 @@ impl EnvironmentIo {
                     if bytes.len() > MAX_CONTENT {
                         return Err(Error::TooLarge);
                     }
-                    String::from_utf8(bytes).map(Some).map_err(|_| Error::Io)
+                    Ok(Some(bytes))
                 })
                 .await
                 .map_err(|_| Error::Io)??
@@ -299,10 +387,10 @@ impl EnvironmentIo {
         if content.as_ref().is_some_and(|s| s.len() > MAX_CONTENT) {
             return Err(Error::TooLarge);
         }
-        Ok(Snapshot {
+        Ok(ByteSnapshot {
             token: content
                 .as_ref()
-                .map(|s| content_version_token(s.as_bytes()))
+                .map(|s| content_version_token(s))
                 .unwrap_or_default(),
             exists: content.is_some(),
             content: content.unwrap_or_default(),
@@ -319,11 +407,36 @@ impl EnvironmentIo {
         content: &str,
         cancel: CancellationToken,
     ) -> Result<Snapshot, Error> {
+        let bytes = ByteSnapshot {
+            content: expected.content.as_bytes().to_vec(),
+            exists: expected.exists,
+            token: expected.token.clone(),
+            relative: expected.relative.clone(),
+            identity: expected.identity,
+        };
+        self.write_bytes(&bytes, Some(content.as_bytes()), cancel)
+            .await?;
+        Ok(Snapshot {
+            content: content.into(),
+            token: content_version_token(content.as_bytes()),
+            exists: true,
+            ..expected.clone()
+        })
+    }
+
+    /// Replace or delete a captured binary file with the same CAS and backup policy.
+    /// Remote deletion is serialized with replacement and backs up the preimage.
+    pub async fn write_bytes(
+        &self,
+        expected: &ByteSnapshot,
+        content: Option<&[u8]>,
+        cancel: CancellationToken,
+    ) -> Result<(), Error> {
         if expected.identity != self.identity {
             return Err(Error::StaleAuthority);
         }
         check_cancel(&cancel)?;
-        if content.len() > MAX_CONTENT {
+        if content.is_some_and(|content| content.len() > MAX_CONTENT) {
             return Err(Error::TooLarge);
         }
         match &self.adapter {
@@ -331,23 +444,28 @@ impl EnvironmentIo {
                 let path = roots.home.join(&expected.relative);
                 let locks = roots.locks.clone();
                 let token = expected.token.clone();
-                let content = content.to_owned();
+                let content = content.map(<[u8]>::to_vec);
                 let cancel = cancel.clone();
                 let result = tokio::task::spawn_blocking(move || {
                     check_cancel(&cancel)?;
-                    platform_settings::write_versioned(
-                        &path,
-                        &content,
-                        &token,
-                        BackupPolicy::SameDir { tag: None },
-                        true,
-                        Some(&locks),
-                    )
+                    let content = content.ok_or(Error::Unsupported)?;
+                    ccr_core::core::LockManager::with_scoped_directory(&locks, || {
+                        ccr_core::core::write_guarded_versioned(
+                            &path,
+                            &content,
+                            &token,
+                            &ccr_core::core::WriteOptions {
+                                backup: BackupPolicy::SameDir { tag: None },
+                                secret: true,
+                                ..Default::default()
+                            },
+                        )
+                    })
                     .map_err(|_| Error::Io)
                 })
                 .await
                 .map_err(|_| Error::Io)??;
-                if result == platform_settings::SaveOutcome::Conflict {
+                if result == ccr_core::core::VersionedWriteOutcome::Conflict {
                     return Err(Error::Conflict);
                 }
             }
@@ -371,12 +489,57 @@ impl EnvironmentIo {
                     }
                 })?,
         }
-        Ok(Snapshot {
-            content: content.into(),
-            token: content_version_token(content.as_bytes()),
-            exists: true,
-            ..expected.clone()
-        })
+        Ok(())
+    }
+
+    /// List validated child names without interpreting a remote path as an OS path.
+    pub async fn list(
+        &self,
+        relative: &str,
+        cancel: CancellationToken,
+    ) -> Result<Vec<String>, Error> {
+        self.roots.relative(relative)?;
+        check_cancel(&cancel)?;
+        let names = match &self.adapter {
+            Adapter::Local(roots) => {
+                let path = roots.home.join(relative);
+                tokio::task::spawn_blocking(move || {
+                    let entries = match std::fs::read_dir(path) {
+                        Ok(entries) => entries,
+                        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                            return Ok(Vec::new());
+                        }
+                        Err(_) => return Err(Error::Io),
+                    };
+                    entries
+                        .map(|entry| {
+                            entry
+                                .map_err(|_| Error::Io)?
+                                .file_name()
+                                .into_string()
+                                .map_err(|_| Error::InvalidPath)
+                        })
+                        .collect::<Result<Vec<_>, _>>()
+                })
+                .await
+                .map_err(|_| Error::Io)??
+            }
+            Adapter::Ssh {
+                workspace,
+                authority,
+            } => workspace
+                .list_io(authority, relative, cancel.clone())
+                .await
+                .map_err(Error::Ssh)?,
+        };
+        for name in &names {
+            if name.contains('/') {
+                return Err(Error::InvalidPath);
+            }
+            validate_relative(name)?;
+        }
+        check_cancel(&cancel)?;
+        Ok(names)
     }
 
     /// The backend domain supplies its existing local process capability and the

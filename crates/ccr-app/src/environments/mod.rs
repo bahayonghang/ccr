@@ -1,5 +1,6 @@
 //! Local process, WSL probe, and saved SSH host labels for desktop shells.
 mod admission;
+pub mod config_mirror;
 pub mod io;
 pub mod ssh;
 pub mod ssh_security;

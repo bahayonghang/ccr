@@ -39,7 +39,7 @@ fn environment_views_fit_native_windows_stack_with_isolated_locks() {
         .unwrap_or_else(|error| panic!("{error}"));
     for test in [
         "features::environments::tests::settings_shows_the_local_desktop_without_a_sample_distro",
-        "features::environments::remote::tests::rendered_host_actions_reach_isolated_transport_and_write_remote_document",
+        "features::environments::remote::tests::rendered_host_actions_reach_isolated_transport_without_plaintext_editors",
         "features::environments::remote::detect::tests::connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigation",
         "features::environments::remote::detect::tests::late_cli_results_cannot_rebind_a_left_or_changed_host",
         "features::insights::session_operations::tests::selected_codex_controls_export_cancel_and_clear_plaintext",

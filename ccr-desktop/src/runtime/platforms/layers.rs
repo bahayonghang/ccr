@@ -4,6 +4,209 @@ use ccr_app::environments::EnvironmentPolicy;
 use ccr_app::platform_settings::layers::{self, Layer};
 use std::path::{Path, PathBuf};
 
+#[derive(Clone)]
+pub struct SourceLayer {
+    pub id: String,
+    pub label: String,
+    pub path: Option<ccr_app::environments::io::EnvironmentPath>,
+    pub exists: Option<bool>,
+    pub size: Option<u64>,
+    pub mtime: Option<u64>,
+    pub editable: bool,
+    pub state: layers::State,
+}
+impl From<Layer> for SourceLayer {
+    fn from(layer: Layer) -> Self {
+        Self {
+            id: layer.id,
+            label: layer.label,
+            path: layer
+                .path
+                .map(ccr_app::environments::io::EnvironmentPath::Local),
+            exists: layer.exists,
+            size: layer.size,
+            mtime: layer.mtime,
+            editable: layer.editable,
+            state: layer.state,
+        }
+    }
+}
+
+async fn remote_inventory(
+    io: ccr_app::environments::io::EnvironmentIo,
+    platform: Platform,
+    project: Option<String>,
+    cancel: tokio_util::sync::CancellationToken,
+) -> Result<Vec<SourceLayer>, PlatformError> {
+    use ccr_app::environments::{io::EnvironmentPath, ssh_security::RemotePosixPath};
+    let absolute = io
+        .at_remote_root(RemotePosixPath::root(Some("/")).map_err(|_| PlatformError::Invalid)?)
+        .map_err(super::super::remote_config::error)?;
+    let project = project
+        .map(|path| {
+            if !path.starts_with('/') {
+                return Err(PlatformError::Invalid);
+            }
+            RemotePosixPath::root(Some(&path)).map_err(|_| PlatformError::Invalid)
+        })
+        .transpose()?;
+    let mut sources: Vec<(&str, &str, Option<EnvironmentPath>, bool)> = Vec::new();
+    let user = match platform {
+        Platform::Claude => ".claude/settings.json",
+        Platform::Codex => ".codex/config.toml",
+        Platform::Grok => ".grok/config.toml",
+        Platform::OpenCode => ".config/opencode/opencode.json",
+        Platform::Gemini => ".gemini/antigravity-cli/settings.json",
+        _ => return Err(PlatformError::Unsupported),
+    };
+    sources.push((
+        "user",
+        "User",
+        Some(
+            io.roots()
+                .relative(user)
+                .map_err(super::super::remote_config::error)?,
+        ),
+        true,
+    ));
+    if platform == Platform::Claude {
+        sources.insert(
+            0,
+            (
+                "managed",
+                "Managed",
+                Some(EnvironmentPath::Ssh(
+                    RemotePosixPath::root(Some("/etc/claude-code/managed-settings.json"))
+                        .map_err(|_| PlatformError::Invalid)?,
+                )),
+                false,
+            ),
+        );
+        for (id, path) in [
+            ("project", ".claude/settings.json"),
+            ("local", ".claude/settings.local.json"),
+        ] {
+            sources.push((
+                id,
+                id,
+                project
+                    .as_ref()
+                    .map(|root| root.join_relative(path).map(EnvironmentPath::Ssh))
+                    .transpose()
+                    .map_err(|_| PlatformError::Invalid)?,
+                false,
+            ));
+        }
+    }
+    if platform == Platform::Grok {
+        sources.push((
+            "project",
+            "Project",
+            project
+                .as_ref()
+                .map(|root| {
+                    root.join_relative(".grok/config.toml")
+                        .map(EnvironmentPath::Ssh)
+                })
+                .transpose()
+                .map_err(|_| PlatformError::Invalid)?,
+            false,
+        ));
+        for (id, path) in [
+            ("managed_user", ".grok/managed_config.toml"),
+            ("requirements_user", ".grok/requirements.toml"),
+        ] {
+            sources.push((
+                id,
+                id,
+                Some(
+                    io.roots()
+                        .relative(path)
+                        .map_err(super::super::remote_config::error)?,
+                ),
+                false,
+            ));
+        }
+        for (id, path) in [
+            ("managed_system", "/etc/grok/managed_config.toml"),
+            ("requirements_system", "/etc/grok/requirements.toml"),
+        ] {
+            sources.push((
+                id,
+                id,
+                Some(EnvironmentPath::Ssh(
+                    RemotePosixPath::root(Some(path)).map_err(|_| PlatformError::Invalid)?,
+                )),
+                false,
+            ));
+        }
+    }
+    let mut rows = Vec::new();
+    for (id, label, path, editable) in sources {
+        let metadata = match &path {
+            Some(EnvironmentPath::Ssh(path)) => Some(
+                absolute
+                    .metadata(path.as_str().trim_start_matches('/'), cancel.clone())
+                    .await
+                    .map_err(super::super::remote_config::error)?,
+            ),
+            None => None,
+            _ => return Err(PlatformError::Invalid),
+        };
+        let present = metadata.flatten();
+        rows.push(SourceLayer {
+            id: id.into(),
+            label: label.into(),
+            path,
+            exists: metadata.map(|value| value.is_some()),
+            size: present.map(|value| value.0),
+            mtime: present.and_then(|value| value.1),
+            editable,
+            state: match metadata {
+                None => layers::State::Unresolved,
+                Some(None) => layers::State::Missing,
+                Some(Some(_)) => layers::State::Present,
+            },
+        });
+    }
+    if platform == Platform::Codex {
+        let mut names = io
+            .list(".codex", cancel.clone())
+            .await
+            .map_err(super::super::remote_config::error)?;
+        names.sort();
+        for name in names
+            .into_iter()
+            .filter(|name| name.ends_with(".config.toml") && name != "config.toml")
+        {
+            let relative = format!(".codex/{name}");
+            let metadata = io
+                .metadata(&relative, cancel.clone())
+                .await
+                .map_err(super::super::remote_config::error)?;
+            rows.push(SourceLayer {
+                id: "profile_overlay".into(),
+                label: name.trim_end_matches(".toml").into(),
+                path: Some(
+                    io.roots()
+                        .relative(&relative)
+                        .map_err(super::super::remote_config::error)?,
+                ),
+                exists: Some(metadata.is_some()),
+                size: metadata.map(|value| value.0),
+                mtime: metadata.and_then(|value| value.1),
+                editable: false,
+                state: if metadata.is_some() {
+                    layers::State::Present
+                } else {
+                    layers::State::Missing
+                },
+            });
+        }
+    }
+    Ok(rows)
+}
+
 fn check_path(path: &Path) -> Result<(), PlatformError> {
     for ancestor in path.ancestors() {
         match std::fs::symlink_metadata(ancestor) {
@@ -147,8 +350,23 @@ impl Services {
     pub fn platform_layers_request(
         &self,
         key: RequestKey,
-        project: Option<PathBuf>,
-    ) -> Result<TaskSubscription<Vec<Layer>, PlatformError>, AdmissionError> {
+        project: Option<String>,
+    ) -> Result<TaskSubscription<Vec<SourceLayer>, PlatformError>, AdmissionError> {
+        if matches!(key.environment, ccr_app::runtime::EnvironmentId::Ssh(_)) {
+            let io = self.remote_configuration_io(&key.environment);
+            let platform = key.platform;
+            return self.executor.read(key, move |cancel, _| {
+                tokio::runtime::Handle::current().block_on(async move {
+                    remote_inventory(
+                        io.map_err(super::super::remote_config::error)?,
+                        platform,
+                        project,
+                        cancel,
+                    )
+                    .await
+                })
+            });
+        }
         let source = self.source.clone();
         let platform = key.platform;
         let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
@@ -156,7 +374,8 @@ impl Services {
             if !local {
                 return Err(PlatformError::Unsupported);
             }
-            inventory(&source, platform, project)
+            inventory(&source, platform, project.map(PathBuf::from))
+                .map(|rows| rows.into_iter().map(SourceLayer::from).collect())
         })
     }
 }

@@ -254,6 +254,7 @@ fn benchmark_oauth_rejects_owned_and_foreign_sessions_before_claim_or_effects() 
         foreign_roots.home = root.parent().unwrap().join("foreign-owned-home");
         fs::create_dir(&foreign_roots.home).unwrap();
         let foreign = platforms::PlatformSession {
+            remote: None,
             document: ccr_app::platform_settings::Document::new(
                 foreign_roots.home.join("config.toml"),
                 None,

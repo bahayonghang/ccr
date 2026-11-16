@@ -114,6 +114,7 @@ pub struct Shell {
     active_environment: environment::ActiveEnvironment,
     _environment_request: Subscription,
     _remote_observation: Subscription,
+    _configuration_observation: Subscription,
     destination: Destination,
     lens: Lens,
     settings_nav: settings::Navigation,
@@ -221,13 +222,24 @@ impl Shell {
         });
         let weak_shell = cx.weak_entity();
         let lens_bar = cx.new(|cx| page_header::LensBar::new(weak_shell, cx));
+        let configurations =
+            cx.new(|cx| ConfigurationApp::new_deferred(services.clone(), window, cx));
+        let mut history_visible = false;
+        let configuration_observation =
+            cx.observe(&configurations, move |_, configurations, cx| {
+                let visible = configurations.read(cx).showing_history(cx);
+                if visible != history_visible {
+                    history_visible = visible;
+                    cx.notify();
+                }
+            });
         let mut shell = Self {
             active_environment: environment::ActiveEnvironment::new(services.clone(), cx),
             _environment_request: environment_request,
             remote,
             _remote_observation: remote_observation,
-            configurations: cx
-                .new(|cx| ConfigurationApp::new_deferred(services.clone(), window, cx)),
+            configurations,
+            _configuration_observation: configuration_observation,
             commands: cx.new(|cx| CommandState::new(&services, window, cx)),
             converter: cx
                 .new(|cx| crate::features::converter::Converter::new(services.clone(), window, cx)),
@@ -443,7 +455,14 @@ impl Shell {
         if self.destination == Destination::Settings {
             self.remote.update(cx, |view, cx| view.refresh(cx));
         }
-        if self.active_environment.is_ssh() && !self.independent_destination() {
+        if self.lens == Lens::Profiles && self.configurations.read(cx).showing_history(cx) {
+            return;
+        }
+        if self.active_environment.is_ssh()
+            && !self.independent_destination()
+            && (!self.remote_configuration_destination()
+                || self.active_environment.state != environment::ConnectionState::Connected)
+        {
             return;
         }
         match self.lens {
@@ -568,7 +587,7 @@ impl Shell {
     }
 
     fn focus_main(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.active_environment.is_ssh() {
+        if self.active_environment.is_ssh() && !self.remote_configuration_destination() {
             window.focus(&self.main_focus, cx);
             window.focus_next(cx);
             return;
@@ -951,6 +970,9 @@ impl Shell {
                 }))
                 .into_any_element();
         }
+        if self.lens == Lens::Profiles && self.configurations.read(cx).showing_history(cx) {
+            return self.configurations.clone().into_any_element();
+        }
         if self.active_environment.switching && !self.independent_destination() {
             return div()
                 .p(px(24.))
@@ -962,10 +984,48 @@ impl Shell {
                 .into_any_element();
         }
         if self.active_environment.is_ssh() && !self.independent_destination() {
-            return div().p(px(theme::CONTENT_PADDING)).flex().flex_col().gap(px(theme::CONTROL_GAP))
+            if !self.remote_configuration_destination() {
+                return div().p(px(theme::CONTENT_PADDING)).flex().flex_col().gap(px(theme::CONTROL_GAP))
                 .child(self.environment_status(cx))
                 .child(text(cx,"Remote access is not available on this page yet. The selected SSH environment is retained; no local data is shown.","此页面尚未支持远程。当前 SSH 环境仍被保留，不显示本地数据。"))
                 .child(self.environment_recovery(cx)).into_any_element();
+            }
+            if self.active_environment.state != environment::ConnectionState::Connected {
+                return div()
+                    .p(px(theme::CONTENT_PADDING))
+                    .flex()
+                    .flex_col()
+                    .gap(px(theme::CONTROL_GAP))
+                    .child(self.environment_status(cx))
+                    .child(text(
+                        cx,
+                        "Connect the current SSH host to load its configuration.",
+                        "连接当前 SSH 主机后读取其配置。",
+                    ))
+                    .child(self.environment_recovery(cx))
+                    .children((self.lens == Lens::Profiles).then(|| {
+                        let platform = self.platform().unwrap_or(Platform::Claude);
+                        semantics::button(
+                            Button::new("profile-history")
+                                .label(text(
+                                    cx,
+                                    "Operation records (all platforms)",
+                                    "操作记录（跨平台）",
+                                ))
+                                .ghost()
+                                .on_click(cx.listener(move |this, _, window, cx| {
+                                    this.configurations.update(cx, |view, cx| {
+                                        view.open_history(platform, window, cx)
+                                    });
+                                    cx.notify();
+                                })),
+                            false,
+                            false,
+                            cx,
+                        )
+                    }))
+                    .into_any_element();
+            }
         }
 
         match self.lens {

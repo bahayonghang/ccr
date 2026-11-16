@@ -663,6 +663,171 @@ async fn ready(cx: &mut TestAppContext, handle: gpui_kit::AnyWindowHandle, shell
 }
 
 #[gpui_kit::test]
+async fn ssh_configuration_tabs_load_remote_data_while_later_capabilities_stay_closed(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let fixture = Fixture::new(true).await;
+    fixture.preferences(true);
+    fixture.transport.set_file(
+        "build.fixture.invalid",
+        "/home/fixture/.claude/settings.json",
+        "{\"model\":\"remote-fixture\"}",
+    );
+    let (handle, shell) = fixture.open(cx);
+    ready(cx, handle, &shell).await;
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        shell.read(cx).active_environment.state == ConnectionState::Connected
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("nav-claude-code", cx);
+        window.click("tool-settings", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("platform-source-open").is_some()
+    })
+    .await;
+    assert!(
+        fixture
+            .transport
+            .batches()
+            .iter()
+            .any(|item| item == "get /home/fixture/.claude/settings.json")
+    );
+    cx.update_window(handle, |_, window, cx| {
+        assert!(window.try_find("platform-source-open").is_some());
+        window.click("tool-files", cx);
+        assert!(window.try_find("platform-source-open").is_none());
+        window.click("tool-auth", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("platform-account-save").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("tool-profiles", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("profile-create").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        for id in ["profile-import", "profile-backups", "profile-restore"] {
+            assert!(window.try_find(id).is_none());
+        }
+        window.click("tool-settings", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("platform-source-open").is_some()
+    })
+    .await;
+    action(
+        &fixture.services,
+        EnvironmentId::Ssh(fixture.host.id.clone()),
+        SshAction::Disconnect,
+    )
+    .await;
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        shell.read(cx).active_environment.state == ConnectionState::Unreachable
+    })
+    .await;
+    cx.update_window(handle, |_, window, _| {
+        assert!(window.try_find("platform-source-open").is_none());
+        assert!(window.try_find("environment-return-local").is_some());
+    })
+    .unwrap();
+    cx.update_window(handle, |_, window, cx| {
+        window.click("tool-profiles", cx);
+        window.click("profile-history", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("configuration-history").is_some()
+    })
+    .await;
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        !shell.read(cx).configurations.read(cx).history_busy(cx)
+    })
+    .await;
+    let before = fixture.transport.batches();
+    cx.update_window(handle, |_, window, cx| {
+        assert!(window.try_find("environment-return-local").is_none());
+        window.click("configuration-history-back", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("configuration-history").is_none()
+            && window.try_find("environment-return-local").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, _| {
+        assert!(window.try_find("configuration-history").is_none());
+        assert!(window.try_find("environment-return-local").is_some());
+        assert!(window.try_find("profile-create").is_none());
+    })
+    .unwrap();
+    assert_eq!(fixture.transport.batches(), before);
+    fixture
+        .runtime
+        .shutdown_after(fixture.services.disconnect_ssh());
+}
+
+#[gpui_kit::test]
+async fn application_history_control_is_available_before_a_first_successful_ssh_connection(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let fixture = Fixture::new(true).await;
+    fixture.preferences(true);
+    fixture.transport.fail("agent");
+    let (handle, shell) = fixture.open(cx);
+    ready(cx, handle, &shell).await;
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        shell.read(cx).active_environment.state == ConnectionState::Unreachable
+    })
+    .await;
+    assert_eq!(fixture.transport.handshakes(), 0);
+    let before = fixture.transport.batches();
+    cx.update_window(handle, |_, window, cx| {
+        window.click("nav-claude-code", cx);
+        window.click("tool-profiles", cx);
+        window.click("profile-history", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("configuration-history").is_some()
+    })
+    .await;
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        !shell.read(cx).configurations.read(cx).history_busy(cx)
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("configuration-history-back", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("configuration-history").is_none()
+            && window.try_find("environment-return-local").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, _| {
+        assert!(window.try_find("environment-return-local").is_some());
+        assert!(window.try_find("profile-create").is_none());
+    })
+    .unwrap();
+    assert_eq!(fixture.transport.batches(), before);
+    fixture
+        .runtime
+        .shutdown_after(fixture.services.disconnect_ssh());
+}
+
+#[gpui_kit::test]
 async fn delayed_preference_resolution_never_starts_or_renders_local_destination_reads(
     cx: &mut TestAppContext,
 ) {

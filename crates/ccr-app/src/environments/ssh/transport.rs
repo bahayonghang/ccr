@@ -27,13 +27,16 @@ pub(super) trait Connection: Send + Sync {
     fn is_closed(&self) -> bool;
     fn disconnect(&self) -> RunFuture<'_, ()>;
     fn exec(&self, command: String) -> RunFuture<'_, Output>;
-    fn download(&self, path: RemotePosixPath) -> RunFuture<'_, Option<String>>;
+    fn download(&self, path: RemotePosixPath) -> RunFuture<'_, Option<Vec<u8>>>;
     fn upload(
         &self,
         path: RemotePosixPath,
-        content: String,
+        content: Vec<u8>,
         cancel: CancellationToken,
     ) -> RunFuture<'_, ()>;
+    fn list(&self, path: RemotePosixPath) -> RunFuture<'_, Vec<String>>;
+    fn remove(&self, path: RemotePosixPath) -> RunFuture<'_, ()>;
+    fn metadata(&self, path: RemotePosixPath) -> RunFuture<'_, Option<(u64, Option<u64>)>>;
 }
 pub(super) async fn bounded<T>(
     cancel: CancellationToken,
@@ -293,7 +296,7 @@ impl Connection for LiveConnection {
             result
         })
     }
-    fn download(&self, path: RemotePosixPath) -> RunFuture<'_, Option<String>> {
+    fn download(&self, path: RemotePosixPath) -> RunFuture<'_, Option<Vec<u8>>> {
         Box::pin(async move {
             let channel = self
                 .0
@@ -312,7 +315,7 @@ impl Connection for LiveConnection {
     fn upload(
         &self,
         path: RemotePosixPath,
-        content: String,
+        content: Vec<u8>,
         cancel: CancellationToken,
     ) -> RunFuture<'_, ()> {
         Box::pin(async move {
@@ -363,7 +366,7 @@ impl Connection for LiveConnection {
                     .await
                     .map_err(|_| "ssh_network_error")?;
                 open_handle = Some(handle.handle.clone());
-                for (index, bytes) in content.as_bytes().chunks(32768).enumerate() {
+                for (index, bytes) in content.chunks(32768).enumerate() {
                     raw.write(&handle.handle, (index * 32768) as u64, bytes.to_vec())
                         .await
                         .map_err(|_| "ssh_network_error")?;
@@ -404,8 +407,98 @@ impl Connection for LiveConnection {
             result
         })
     }
+    fn list(&self, path: RemotePosixPath) -> RunFuture<'_, Vec<String>> {
+        Box::pin(async move {
+            let raw = self.sftp().await?;
+            let handle = match raw.opendir(path.as_str()).await {
+                Ok(handle) => handle.handle,
+                Err(russh_sftp::client::error::Error::Status(status))
+                    if status.status_code == StatusCode::NoSuchFile =>
+                {
+                    return Ok(Vec::new());
+                }
+                Err(_) => return Err("ssh_read_failed"),
+            };
+            let result = async {
+                let mut names = Vec::new();
+                loop {
+                    match raw.readdir(&handle).await {
+                        Ok(batch) => {
+                            for entry in batch.files {
+                                if matches!(entry.filename.as_str(), "." | "..") {
+                                    continue;
+                                }
+                                if entry.attrs.is_symlink()
+                                    || (!entry.attrs.is_regular() && !entry.attrs.is_dir())
+                                {
+                                    return Err("ssh_invalid_remote_path");
+                                }
+                                names.push(entry.filename);
+                                if names.len() > 4096 {
+                                    return Err("ssh_file_too_large");
+                                }
+                            }
+                        }
+                        Err(russh_sftp::client::error::Error::Status(status))
+                            if status.status_code == StatusCode::Eof =>
+                        {
+                            break;
+                        }
+                        Err(_) => return Err("ssh_read_failed"),
+                    }
+                }
+                Ok(names)
+            }
+            .await;
+            raw.close(handle).await.map_err(|_| "ssh_cleanup_failed")?;
+            result
+        })
+    }
+    fn remove(&self, path: RemotePosixPath) -> RunFuture<'_, ()> {
+        Box::pin(async move {
+            self.sftp()
+                .await?
+                .remove(path.as_str())
+                .await
+                .map(|_| ())
+                .map_err(|_| "ssh_write_outcome_unknown")
+        })
+    }
+    fn metadata(&self, path: RemotePosixPath) -> RunFuture<'_, Option<(u64, Option<u64>)>> {
+        Box::pin(async move {
+            match self.sftp().await?.lstat(path.as_str()).await {
+                Ok(attrs) if attrs.attrs.is_regular() => Ok(Some((
+                    attrs.attrs.size.unwrap_or_default(),
+                    attrs.attrs.mtime.map(|time| u64::from(time) * 1000),
+                ))),
+                Ok(_) => Err("ssh_invalid_remote_path"),
+                Err(russh_sftp::client::error::Error::Status(status))
+                    if status.status_code == StatusCode::NoSuchFile =>
+                {
+                    Ok(None)
+                }
+                Err(_) => Err("ssh_read_failed"),
+            }
+        })
+    }
 }
-async fn read_sftp(raw: &RawSftpSession, path: &RemotePosixPath) -> Result<Option<String>, Error> {
+impl LiveConnection {
+    async fn sftp(&self) -> Result<RawSftpSession, Error> {
+        let channel = self
+            .0
+            .channel_open_session()
+            .await
+            .map_err(|_| "ssh_network_error")?;
+        channel
+            .request_subsystem(true, "sftp")
+            .await
+            .map_err(|_| "ssh_network_error")?;
+        let raw = RawSftpSession::new(channel.into_stream());
+        raw.init().await.map_err(|_| "ssh_network_error")?;
+        Ok(raw)
+    }
+}
+async fn read_sftp(raw: &RawSftpSession, path: &RemotePosixPath) -> Result<Option<Vec<u8>>, Error> {
     let handle = match raw
         .open(path.as_str(), OpenFlags::READ, FileAttributes::default())
         .await
@@ -437,9 +530,7 @@ async fn read_sftp(raw: &RawSftpSession, path: &RemotePosixPath) -> Result<Optio
                 Err(_) => return Err("ssh_read_failed"),
             }
         }
-        String::from_utf8(bytes)
-            .map(Some)
-            .map_err(|_| "ssh_read_failed")
+        Ok(Some(bytes))
     }
     .await;
     raw.close(handle).await.map_err(|_| "ssh_cleanup_failed")?;

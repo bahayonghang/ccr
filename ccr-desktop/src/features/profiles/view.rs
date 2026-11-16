@@ -144,6 +144,12 @@ impl Render for ProfileTools {
                 );
         }
         if self.mode == Mode::Closed {
+            if matches!(
+                self.services.environment(),
+                ccr_app::runtime::EnvironmentId::Ssh(_)
+            ) {
+                root = root.child(text(cx, "Profile editing, apply and deactivate use this SSH host. Collection import, backup management and file export are not connected for SSH yet.", "方案编辑、应用与解除作用于此 SSH 主机；方案集合导入、备份管理和文件导出尚未接入 SSH。"));
+            }
             let mut bar = div().flex().flex_wrap().gap(px(theme::SELECTION_RADIUS));
             for (id, action, en, zh, needs_target) in [
                 ("profile-create", Action::Create, "New", "新建", false),
@@ -230,38 +236,57 @@ impl Render for ProfileTools {
                     true,
                 ),
             ] {
-                let supported = match self.platform {
-                    Platform::Claude => !matches!(
-                        action,
-                        Action::GrokForceDelete | Action::Environment | Action::ShellEnvironment
-                    ),
-                    Platform::Codex => matches!(
-                        action,
-                        Action::Create
-                            | Action::Edit
-                            | Action::Delete
-                            | Action::Apply
-                            | Action::Off
-                            | Action::Validate
-                            | Action::Source
-                            | Action::Inspect
-                            | Action::ExportSecrets
-                            | Action::Environment
-                            | Action::ShellEnvironment
-                    ),
-                    Platform::Grok => matches!(
-                        action,
-                        Action::Create
-                            | Action::Edit
-                            | Action::Delete
-                            | Action::Apply
-                            | Action::Off
-                            | Action::Inspect
-                            | Action::Validate
-                    ),
-                    _ => false,
+                let supported = if matches!(action, Action::History)
+                    && matches!(
+                        self.services.environment(),
+                        ccr_app::runtime::EnvironmentId::Ssh(_)
+                    ) {
+                    true
+                } else {
+                    match self.platform {
+                        Platform::Claude => !matches!(
+                            action,
+                            Action::GrokForceDelete
+                                | Action::Environment
+                                | Action::ShellEnvironment
+                        ),
+                        Platform::Codex => matches!(
+                            action,
+                            Action::Create
+                                | Action::Edit
+                                | Action::Delete
+                                | Action::Apply
+                                | Action::Off
+                                | Action::Validate
+                                | Action::Source
+                                | Action::Inspect
+                                | Action::ExportSecrets
+                                | Action::Environment
+                                | Action::ShellEnvironment
+                        ),
+                        Platform::Grok => matches!(
+                            action,
+                            Action::Create
+                                | Action::Edit
+                                | Action::Delete
+                                | Action::Apply
+                                | Action::Off
+                                | Action::Inspect
+                                | Action::Validate
+                        ),
+                        _ => false,
+                    }
                 };
                 if !supported {
+                    continue;
+                }
+                if matches!(
+                    self.services.environment(),
+                    ccr_app::runtime::EnvironmentId::Ssh(_)
+                ) && matches!(
+                    action,
+                    Action::Import | Action::Backups | Action::Restore | Action::ExportSecrets
+                ) {
                     continue;
                 }
                 if self.embedded
@@ -327,7 +352,12 @@ impl Render for ProfileTools {
                         ))
                         .primary()
                         .on_click(cx.listener(|this, _, _, cx| this.save_output(cx))),
-                    self.busy || self.confirmation.is_some(),
+                    self.busy
+                        || self.confirmation.is_some()
+                        || matches!(
+                            self.services.environment(),
+                            ccr_app::runtime::EnvironmentId::Ssh(_)
+                        ),
                     self.busy,
                     cx,
                 ));

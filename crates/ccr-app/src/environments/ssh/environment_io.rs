@@ -14,6 +14,23 @@ impl IoSession {
 }
 
 impl Workspace {
+    pub(crate) async fn configuration_lock(
+        &self,
+        authority: &IoSession,
+        cancel: CancellationToken,
+    ) -> Result<tokio::sync::OwnedMutexGuard<()>, Error> {
+        self.check_io(authority)?;
+        let lock = self
+            .writes
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .entry(format!("{}:configuration-batch", authority.0.id))
+            .or_default()
+            .clone();
+        let guard = bounded(cancel, async { Ok(lock.lock_owned().await) }).await?;
+        self.check_io(authority)?;
+        Ok(guard)
+    }
     pub(crate) fn capture_io(&self, id: &str) -> Result<IoSession, Error> {
         let session = self.current(id)?;
         let home = RemotePosixPath::root(session.host.remote_home.as_deref())
@@ -33,7 +50,7 @@ impl Workspace {
         authority: &IoSession,
         relative: &str,
         cancel: CancellationToken,
-    ) -> Result<Option<String>, Error> {
+    ) -> Result<Option<Vec<u8>>, Error> {
         self.check_io(authority)?;
         let path = authority
             .home()
@@ -57,7 +74,7 @@ impl Workspace {
         authority: &IoSession,
         relative: &str,
         expected: &str,
-        content: &str,
+        content: Option<&[u8]>,
         cancel: CancellationToken,
     ) -> Result<(), Error> {
         self.check_io(authority)?;
@@ -82,27 +99,35 @@ impl Workspace {
             .await?;
             let token = previous
                 .as_ref()
-                .map(|s| content_version_token(s.as_bytes()))
+                .map(|s| content_version_token(s))
                 .unwrap_or_default();
             if token != expected {
                 return Err("ssh_conflict");
             }
-            if let Some(previous) = previous {
+            if let Some(previous) = &previous {
                 let backup = path
                     .with_suffix(&format!(".bak.{}", uuid::Uuid::new_v4()))
                     .map_err(|_| "ssh_invalid_remote_path")?;
                 authority
                     .0
                     .connection
-                    .upload(backup, previous, cancel.clone())
+                    .upload(backup, previous.clone(), cancel.clone())
                     .await?;
             }
             self.check_io(authority)?;
-            authority
-                .0
-                .connection
-                .upload(path, content.into(), cancel)
-                .await?;
+            match content {
+                Some(content) => {
+                    authority
+                        .0
+                        .connection
+                        .upload(path, content.into(), cancel)
+                        .await?
+                }
+                None if previous.is_some() => {
+                    bounded(cancel, authority.0.connection.remove(path)).await?;
+                }
+                None => {}
+            }
             self.check_io(authority)
         }
         .await;
@@ -110,6 +135,45 @@ impl Workspace {
             self.revoke(authority.0.session_id).await?;
         }
         result
+    }
+
+    pub(crate) async fn list_io(
+        &self,
+        authority: &IoSession,
+        relative: &str,
+        cancel: CancellationToken,
+    ) -> Result<Vec<String>, Error> {
+        self.check_io(authority)?;
+        let path = authority
+            .home()
+            .join_relative(relative)
+            .map_err(|_| "ssh_invalid_remote_path")?;
+        let result = bounded(cancel, authority.0.connection.list(path)).await;
+        match result {
+            Ok(names) => {
+                self.check_io(authority)?;
+                Ok(names)
+            }
+            Err(error) => {
+                self.revoke(authority.0.session_id).await?;
+                Err(error)
+            }
+        }
+    }
+    pub(crate) async fn metadata_io(
+        &self,
+        authority: &IoSession,
+        relative: &str,
+        cancel: CancellationToken,
+    ) -> Result<Option<(u64, Option<u64>)>, Error> {
+        self.check_io(authority)?;
+        let path = authority
+            .home()
+            .join_relative(relative)
+            .map_err(|_| "ssh_invalid_remote_path")?;
+        let result = bounded(cancel, authority.0.connection.metadata(path)).await?;
+        self.check_io(authority)?;
+        Ok(result)
     }
 
     pub(crate) async fn exec_io(

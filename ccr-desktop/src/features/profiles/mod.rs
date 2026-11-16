@@ -87,6 +87,7 @@ pub struct ProfileTools {
     management: bool,
     import_preview: Option<Arc<ccr_app::config::import::Preview>>,
     output_kind: OutputKind,
+    history_mode: bool,
     import_overwrite: std::collections::BTreeSet<String>,
     clear_sensitive: bool,
     base_url: Entity<InputState>,
@@ -111,6 +112,12 @@ pub struct ProfileTools {
 }
 impl ProfileTools {
     fn save_output(&mut self, cx: &mut Context<Self>) {
+        if matches!(
+            self.services.environment(),
+            ccr_app::runtime::EnvironmentId::Ssh(_)
+        ) {
+            return;
+        }
         if self.mode != Mode::Output || self.busy {
             return;
         }
@@ -165,6 +172,7 @@ impl ProfileTools {
             management: false,
             import_preview: None,
             output_kind: OutputKind::None,
+            history_mode: false,
             import_overwrite: Default::default(),
             clear_sensitive: false,
             base_url: cx.new(|cx| InputState::new(window, cx)),
@@ -190,6 +198,25 @@ impl ProfileTools {
     }
     pub fn busy(&self) -> bool {
         self.busy
+    }
+    pub fn output_focus(&self, cx: &gpui_kit::App) -> FocusHandle {
+        self.content.read(cx).focus_handle(cx)
+    }
+    pub fn showing_history(&self) -> bool {
+        self.history_mode
+    }
+    pub fn open_history(
+        &mut self,
+        platform: Platform,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.platform = platform;
+        self.act(Action::History, window, cx);
+    }
+    pub fn close_history(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.close(window, cx);
+        self.message = None;
     }
     /// 选中的行是否就是当前运行方案。
     pub fn target_is_current(&self) -> bool {
@@ -302,6 +329,7 @@ impl ProfileTools {
         self.import_preview = None;
         self.import_overwrite.clear();
         self.mode = Mode::Closed;
+        self.history_mode = false;
         self.confirmation = None;
         self.original = None;
         self.revision.clear();
@@ -457,6 +485,8 @@ impl ProfileTools {
                 self.submit(ProfileCommand::Backups, cx)
             }
             Action::History => {
+                self.history_mode = true;
+                self.mode = Mode::Output;
                 self.output_kind = OutputKind::Lines;
                 self.submit(ProfileCommand::History, cx)
             }
@@ -681,7 +711,14 @@ impl ProfileTools {
         let is_status = matches!(command, ProfileCommand::Status);
         self.request += 1;
         let key = RequestKey {
-            environment: self.services.environment(),
+            environment: if matches!(
+                command,
+                ProfileCommand::History | ProfileCommand::ClearHistory
+            ) {
+                ccr_app::runtime::EnvironmentId::Local("application".into())
+            } else {
+                self.services.environment()
+            },
             platform: self.platform,
             generation: self.request,
             request_id: self.request,
@@ -874,7 +911,7 @@ impl ProfileTools {
             } => {
                 self.source_location = Some(format!(
                     "{} · {}",
-                    path.display(),
+                    path,
                     if *exists {
                         text(cx, "catalog exists", "目录存在")
                     } else {

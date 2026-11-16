@@ -31,10 +31,24 @@ pub enum ProfileError {
     Unmigrated,
     Storage,
     Unsupported,
+    RemoteBusy,
+    RemotePartial,
+    RemotePathUnsupported,
+    Cancelled,
 }
 impl ProfileError {
     pub fn message(self) -> &'static str {
         match self {
+            Self::RemotePathUnsupported => {
+                "Remote filenames cannot be represented safely on this desktop. Resolve conflicting or reserved names on the host first. / 远程文件名无法在此桌面安全表示，请先在主机处理大小写冲突或保留名称。"
+            }
+            Self::Cancelled => "Operation cancelled after cleanup. / 操作已取消并完成清理。",
+            Self::RemoteBusy => {
+                "Remote catalog is busy. Close its writers and retry after checkpointing. / 远程方案目录忙碌，请关闭写入程序并完成检查点后重试。"
+            }
+            Self::RemotePartial => {
+                "Remote updates are incomplete or unconfirmed. Reload and inspect remote preimage backups before recovery. / 远程更新未完成或结果未确认，请重新读取并检查远程原始备份后恢复。"
+            }
             Self::Conflict => {
                 "Catalog changed. Your draft is retained. Reload or cancel. / 配置已变化，草稿已保留，请重新读取或取消"
             }
@@ -177,7 +191,7 @@ pub enum ProfileResult {
     Source {
         content: String,
         revision: String,
-        path: std::path::PathBuf,
+        path: String,
         exists: bool,
     },
     SourceSave(SourceSaveOutcome),
@@ -339,6 +353,24 @@ impl Services {
         filter: String,
     ) -> std::result::Result<TaskSubscription<Arc<Vec<ConfigRow>>, ProfileError>, AdmissionError>
     {
+        if matches!(key.environment, ccr_app::runtime::EnvironmentId::Ssh(_)) {
+            let io = self.remote_configuration_io(&key.environment);
+            let platform = key.platform;
+            return self.executor.read(key, move |cancel, _| {
+                tokio::runtime::Handle::current().block_on(async move {
+                    let io = io.map_err(remote_error)?;
+                    let mirror = super::remote_config::capture(io, platform, cancel)
+                        .await
+                        .map_err(remote_platform_error)?;
+                    let context = super::remote_config::context(
+                        &mirror,
+                        domain_platform(&platform).map_err(safe_error)?,
+                    )
+                    .map_err(safe_error)?;
+                    rows(&context, &filter).map(Arc::new).map_err(safe_error)
+                })
+            });
+        }
         let source = self.source.clone();
         self.executor.read(key.clone(), move |cancel, _| {
             if EnvironmentPolicy::LocalOnly
@@ -367,9 +399,92 @@ impl Services {
     }
     pub fn profile_command(
         &self,
-        key: RequestKey,
+        mut key: RequestKey,
         command: ProfileCommand,
     ) -> std::result::Result<TaskSubscription<ProfileResult, ProfileError>, AdmissionError> {
+        if matches!(
+            command,
+            ProfileCommand::History | ProfileCommand::ClearHistory
+        ) {
+            key.environment = ccr_app::runtime::EnvironmentId::Local("application".into());
+            let path = super::remote_config::history_path(&self.source);
+            let clear = matches!(command, ProfileCommand::ClearHistory);
+            let work = move || application_history(path.as_deref(), clear);
+            if clear {
+                return self.executor.job(key, move |cancel, _| {
+                    if cancel.is_cancelled() {
+                        return Completion::Cancelled;
+                    }
+                    match work() {
+                        Ok(value) => Completion::Success(value),
+                        Err(error) => Completion::Failed(error),
+                    }
+                });
+            }
+            return self.executor.read(key, move |_, _| work());
+        }
+        if matches!(key.environment, ccr_app::runtime::EnvironmentId::Ssh(_)) {
+            let io = self.remote_configuration_io(&key.environment);
+            let platform = key.platform;
+            let read = matches!(
+                command,
+                ProfileCommand::Source
+                    | ProfileCommand::Inspect { .. }
+                    | ProfileCommand::Export { .. }
+                    | ProfileCommand::ExportEnvironment { .. }
+                    | ProfileCommand::Status
+                    | ProfileCommand::GenericValidate
+                    | ProfileCommand::Validate
+            );
+            let history = super::remote_config::history_path(&self.source);
+            let run = move |cancel: tokio_util::sync::CancellationToken| {
+                let mut result = tokio::runtime::Handle::current().block_on(async move {
+                    if !remote_supported(&command) { return Err(ProfileError::Unsupported); }
+                    let io = io.map_err(remote_error)?;
+                    let mirror = super::remote_config::capture(io.clone(), platform, cancel.clone()).await.map_err(remote_platform_error)?;
+                    let context = super::remote_config::context(&mirror, domain_platform(&platform).map_err(safe_error)?).map_err(safe_error)?;
+                    if matches!(command, ProfileCommand::SaveSource { .. }) && context.manager().canonical_toml().map_err(safe_error)?.is_some() {
+                        context.run(|| context.manager().backup(Some("ssh_source_preimage"))).map_err(safe_error)?;
+                    }
+                    let mut result = execute(&context, context.paths().root.as_path(), command).map_err(safe_error)?;
+                    if let ProfileResult::Source { path, .. } = &mut result {
+                        let relative = format!(".ccr/platforms/{}/profiles.db", platform.short_name());
+                        *path = match io.roots().relative(&relative).map_err(remote_error)? {
+                            ccr_app::environments::io::EnvironmentPath::Ssh(path) => path.as_str().into(),
+                            _ => return Err(ProfileError::Unsupported),
+                        };
+                    }
+                    if let ProfileResult::Outcome(outcome) = &mut result {
+                        outcome.recovery_paths.clear();
+                        if outcome.status == ccr_cli::application::profile_lifecycle::ProfileStatus::RecoveryRequired { return Err(ProfileError::Storage); }
+                    }
+                    if !read && remote_result_success(&result) { mirror.publish(cancel).await.map_err(remote_error)?; }
+                    Ok(result)
+                });
+                let committed = result.as_ref().is_ok_and(remote_result_success);
+                if !read
+                    && !super::remote_config::record(history.as_deref(), platform, committed)
+                    && committed
+                {
+                    match &mut result {
+                        Ok(ProfileResult::Outcome(outcome)) => {
+                            outcome.warnings.push(ccr_cli::application::profile_lifecycle::ProfileWarning::HistoryFailed);
+                            outcome.status = ccr_cli::application::profile_lifecycle::ProfileStatus::AppliedWithWarning;
+                        }
+                        _ => result = Ok(ProfileResult::Done("Remote operation committed; the application operation record could not be saved. Reload before another operation. / 远程操作已提交，但应用操作记录未保存，请重新读取后再操作。".into())),
+                    }
+                }
+                result
+            };
+            if read {
+                return self.executor.read(key, move |cancel, _| run(cancel));
+            }
+            return self.executor.job(key, move |cancel, _| match run(cancel) {
+                Ok(value) => Completion::Success(value),
+                Err(ProfileError::Cancelled) => Completion::Cancelled,
+                Err(error) => Completion::Failed(error),
+            });
+        }
         let source = self.source.clone();
         let read = matches!(
             command,
@@ -419,6 +534,108 @@ impl Services {
                 Err(error) => Completion::Failed(error),
             }
         })
+    }
+}
+
+pub fn remote_supported(command: &ProfileCommand) -> bool {
+    !matches!(
+        command,
+        ProfileCommand::Import { .. }
+            | ProfileCommand::PreviewImport { .. }
+            | ProfileCommand::CommitImport(_)
+            | ProfileCommand::Backups
+            | ProfileCommand::Restore { .. }
+            | ProfileCommand::CleanBackups
+            | ProfileCommand::SaveExport { .. }
+    )
+}
+fn application_history(
+    path: Option<&std::path::Path>,
+    clear: bool,
+) -> std::result::Result<ProfileResult, ProfileError> {
+    let database = super::remote_config::history_database(path.ok_or(ProfileError::Storage)?)
+        .map_err(safe_error)?;
+    let history =
+        ccr_store::HistoryService::new(Arc::new(ccr_store::HistoryManager::new(database)));
+    if clear {
+        history.clear().map_err(safe_error)?;
+        return Ok(ProfileResult::Done(
+            "Application operation records cleared. / 应用操作记录已清空。".into(),
+        ));
+    }
+    history
+        .get_recent(100)
+        .map(|entries| {
+            ProfileResult::Lines(
+                entries
+                    .iter()
+                    .map(|entry| {
+                        format!(
+                            "{} · {} · {}",
+                            entry.timestamp.format("%Y-%m-%d %H:%M"),
+                            entry.operation.as_str(),
+                            match entry.result {
+                                ccr_store::OperationResult::Success => "success",
+                                ccr_store::OperationResult::Failure(_) => "failed",
+                                ccr_store::OperationResult::Warning(_) => "warning",
+                            }
+                        )
+                    })
+                    .collect(),
+            )
+        })
+        .map_err(safe_error)
+}
+fn remote_result_success(result: &ProfileResult) -> bool {
+    if let ProfileResult::Outcome(outcome) = result {
+        return match outcome.status {
+            ccr_cli::application::profile_lifecycle::ProfileStatus::RecoveryRequired => false,
+            ccr_cli::application::profile_lifecycle::ProfileStatus::Unchanged => {
+                outcome.activation_committed
+            }
+            _ => true,
+        };
+    }
+    !matches!(
+        result,
+        ProfileResult::SourceSave(
+            SourceSaveOutcome::Conflict
+                | SourceSaveOutcome::Invalid { .. }
+                | SourceSaveOutcome::ActivationConflict { .. }
+        ) | ProfileResult::GrokDelete {
+            reason: Some(_),
+            ..
+        }
+    )
+}
+fn remote_error(error: ccr_app::environments::io::Error) -> ProfileError {
+    match error {
+        ccr_app::environments::io::Error::UnrepresentablePath => {
+            ProfileError::RemotePathUnsupported
+        }
+        ccr_app::environments::io::Error::Cancelled
+        | ccr_app::environments::io::Error::Ssh("ssh_cancelled") => ProfileError::Cancelled,
+        ccr_app::environments::io::Error::Ssh(
+            "ssh_write_outcome_unknown" | "ssh_cleanup_failed",
+        ) => ProfileError::RemotePartial,
+        ccr_app::environments::io::Error::Busy => ProfileError::RemoteBusy,
+        ccr_app::environments::io::Error::Partial => ProfileError::RemotePartial,
+        ccr_app::environments::io::Error::Conflict => ProfileError::Conflict,
+        ccr_app::environments::io::Error::Unsupported => ProfileError::Unsupported,
+        _ => ProfileError::Storage,
+    }
+}
+fn remote_platform_error(error: super::platforms::PlatformError) -> ProfileError {
+    match error {
+        super::platforms::PlatformError::RemotePathUnsupported => {
+            ProfileError::RemotePathUnsupported
+        }
+        super::platforms::PlatformError::Cancelled => ProfileError::Cancelled,
+        super::platforms::PlatformError::RemoteBusy => ProfileError::RemoteBusy,
+        super::platforms::PlatformError::RemotePartial => ProfileError::RemotePartial,
+        super::platforms::PlatformError::Conflict => ProfileError::Conflict,
+        super::platforms::PlatformError::Unsupported => ProfileError::Unsupported,
+        _ => ProfileError::Storage,
     }
 }
 
@@ -683,7 +900,7 @@ fn execute(
                 return Ok(ProfileResult::Source {
                     content: source.content,
                     revision: source.token,
-                    path: source.path,
+                    path: source.path.display().to_string(),
                     exists: source.exists,
                 });
             }
@@ -865,6 +1082,28 @@ fn validate_fields(platform: Platform, value: &serde_json::Value) -> Result<()> 
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+    #[test]
+    fn remote_history_classification_keeps_rolled_back_and_already_applied_outcomes_distinct() {
+        let mut outcome = ProfileOutcome {
+            operation_id: "synthetic-operation".into(),
+            platform: "claude".into(),
+            profile: "fixture".into(),
+            previous_profile: None,
+            status: ccr_cli::application::profile_lifecycle::ProfileStatus::Unchanged,
+            activation_committed: false,
+            warnings: Vec::new(),
+            recovery_paths: Vec::new(),
+        };
+        assert!(!remote_result_success(&ProfileResult::Outcome(
+            outcome.clone()
+        )));
+        outcome.activation_committed = true;
+        assert!(remote_result_success(&ProfileResult::Outcome(
+            outcome.clone()
+        )));
+        outcome.status = ccr_cli::application::profile_lifecycle::ProfileStatus::RecoveryRequired;
+        assert!(!remote_result_success(&ProfileResult::Outcome(outcome)));
+    }
     use ccr_app::runtime::{RuntimeOwner, TaskEvent};
     use std::time::Duration;
     pub(crate) fn fixture() -> (tempfile::TempDir, ConfigSource) {

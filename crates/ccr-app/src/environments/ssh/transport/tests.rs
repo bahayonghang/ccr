@@ -171,7 +171,7 @@ impl russh_sftp::server::Handler for ReadServer {
 }
 
 #[tokio::test]
-async fn production_sftp_reader_handles_missing_empty_chunks_utf8_limit_and_closes_handles() {
+async fn production_sftp_reader_handles_missing_empty_binary_chunks_limit_and_closes_handles() {
     for content in [
         None,
         Some(Vec::new()),
@@ -200,8 +200,7 @@ async fn production_sftp_reader_handles_missing_empty_chunks_utf8_limit_and_clos
             Some(bytes) if bytes.len() > 2 * 1024 * 1024 => {
                 assert_eq!(result, Err("ssh_file_too_large"))
             }
-            Some(bytes) if bytes == &[255] => assert_eq!(result, Err("ssh_read_failed")),
-            Some(bytes) => assert_eq!(result, Ok(Some(String::from_utf8(bytes.clone()).unwrap()))),
+            Some(bytes) => assert_eq!(result, Ok(Some(bytes.clone()))),
         }
         assert_eq!(
             closed.load(std::sync::atomic::Ordering::SeqCst),

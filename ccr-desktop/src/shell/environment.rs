@@ -221,6 +221,18 @@ impl Shell {
         ) || (self.destination == Destination::Commands
             && matches!(self.lens, Lens::Favorites | Lens::Recent))
     }
+    pub(super) fn remote_configuration_destination(&self) -> bool {
+        matches!(
+            (self.platform(), self.lens),
+            (Some(_), Lens::Accounts)
+                | (
+                    Some(Platform::Claude | Platform::Codex | Platform::Grok),
+                    Lens::Profiles | Lens::Auth,
+                )
+                | (Some(Platform::Codex | Platform::OpenCode), Lens::Providers)
+                | (Some(Platform::Codex), Lens::Models)
+        )
+    }
     pub(super) fn environment_name(&self, cx: &gpui_kit::App) -> String {
         if !self.preferences_loaded {
             return text(cx, "Loading execution environment…", "正在加载执行环境…").into();

@@ -366,15 +366,8 @@ fn late_cli_results_cannot_rebind_a_left_or_changed_host(cx: &mut TestAppContext
             view.detecting = true;
             view.busy = true;
             view.connected = true;
-            view.editor.update(cx, |editor, cx| {
-                editor.set_value("synthetic unsaved remote draft", window, cx);
-            });
             view.clear_cli_on_leave(cx);
             assert_eq!(view.selected.as_ref().unwrap().id, "old");
-            assert_eq!(
-                view.editor.read(cx).value().as_ref(),
-                "synthetic unsaved remote draft"
-            );
             let rows = Completion::Success(SshResult::CliDetected(vec![CliStatus {
                 name: "claude",
                 installed: true,

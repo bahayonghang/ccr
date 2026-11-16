@@ -136,7 +136,8 @@ impl LensBar {
                         !shell.preferences_loaded
                             || shell.active_environment.switching
                             || (shell.active_environment.is_ssh()
-                                && !shell.independent_destination()),
+                                && !shell.independent_destination()
+                                && !shell.remote_configuration_destination()),
                     )
                 });
                 if current != Some((destination, lens, generation, false))

@@ -1,5 +1,12 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 use super::*;
+#[test]
+fn retained_opencode_document_api_uses_the_platform_configuration_path() {
+    assert_eq!(
+        ConfigFile::OpenCode.path(),
+        ".config/opencode/opencode.json"
+    );
+}
 fn fixture() -> (tempfile::TempDir, Workspace, Arc<fixture::FixtureTransport>) {
     let root = tempfile::tempdir().unwrap();
     let db = root.path().join("ssh.db");

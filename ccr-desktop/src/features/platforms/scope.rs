@@ -42,6 +42,10 @@ fn statement(category: Category, session: &PlatformSession, cx: &gpui_kit::App) 
     let chinese = is_chinese(cx);
     match (category, session.platform) {
         // Gemini 兼容路径与 Antigravity 客户端识别分开陈述，且此处只读。
+        (Category::Runtime, Platform::Gemini) if session.remote.is_some() => text(cx,
+            "Gemini-compatible legacy path on the current SSH host. Explicit source editing is available; whether Antigravity reads this file is unverified.",
+            "当前 SSH 主机上的 Gemini 兼容旧路径。可显式编辑源文件；Antigravity 是否读取此文件尚未验证。"
+        ).to_string(),
         (Category::Runtime, Platform::Gemini) => text(
             cx,
             "Gemini-compatible legacy path. Whether the Antigravity client reads it is unverified; it stays read-only here.",

@@ -12,6 +12,7 @@ pub mod monitoring;
 pub mod platforms;
 pub mod preferences;
 pub mod profiles;
+mod remote_config;
 pub mod resources;
 pub mod sync;
 pub mod tools;

@@ -73,7 +73,7 @@ impl ConfigFile {
             Self::Claude => ".claude/settings.json",
             Self::Codex => ".codex/config.toml",
             Self::Gemini => ".gemini/antigravity-cli/settings.json",
-            Self::OpenCode => ".opencode/opencode.json",
+            Self::OpenCode => ".config/opencode/opencode.json",
         }
     }
 }
@@ -684,6 +684,7 @@ impl Workspace {
         bounded(cancel, session.connection.download(path.clone()))
             .await?
             .ok_or("ssh_read_failed")
+            .and_then(|bytes| String::from_utf8(bytes).map_err(|_| "ssh_read_failed"))
     }
     pub async fn read(
         &self,
@@ -754,11 +755,11 @@ impl Workspace {
                 .map_err(|_| "ssh_invalid_remote_path")?;
             session
                 .connection
-                .upload(backup, previous, cancel.clone())
+                .upload(backup, previous.into_bytes(), cancel.clone())
                 .await?;
             session
                 .connection
-                .upload(path, content.into(), cancel)
+                .upload(path, content.as_bytes().to_vec(), cancel)
                 .await?;
             Ok(Document {
                 content: content.into(),

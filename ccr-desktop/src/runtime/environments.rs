@@ -36,7 +36,7 @@ pub fn load(
     })
 }
 
-use ccr_app::environments::ssh::{ConfigFile, Document, Host, HostInput, Probe, Workspace};
+use ccr_app::environments::ssh::{Host, HostInput, Probe, Workspace};
 use ccr_app::runtime::Completion;
 use std::sync::Arc;
 
@@ -52,8 +52,6 @@ pub enum SshAction {
     ConfirmTest(String),
     Connect(String),
     Disconnect,
-    Read(String, ConfigFile),
-    Save(Document, String),
     DetectCli(String),
 }
 pub enum SshResult {
@@ -66,7 +64,6 @@ pub enum SshResult {
     Tested,
     Disconnected,
     Confirmed,
-    Document(Document),
     CliDetected(Vec<ccr_app::environments::ssh::CliStatus>),
 }
 impl Services {
@@ -138,11 +135,9 @@ impl Services {
         self.executor.job(key, move |cancel, _| {
             let work = async {
                 let target = match &action {
-                    SshAction::Probe(id)
-                    | SshAction::Connect(id)
-                    | SshAction::Read(id, _)
-                    | SshAction::DetectCli(id) => Some(id),
-                    SshAction::Save(document, _) => Some(&document.environment),
+                    SshAction::Probe(id) | SshAction::Connect(id) | SshAction::DetectCli(id) => {
+                        Some(id)
+                    }
                     _ => None,
                 };
                 if let Some(target) = target
@@ -162,8 +157,6 @@ impl Services {
                             | SshAction::Connect(_)
                             | SshAction::Confirm(_)
                             | SshAction::ConfirmTest(_)
-                            | SshAction::Read(_, _)
-                            | SshAction::Save(_, _)
                             | SshAction::DetectCli(_)
                     )
                 {
@@ -215,14 +208,6 @@ impl Services {
                         .disconnect_checked()
                         .await
                         .map(|()| SshResult::Disconnected),
-                    SshAction::Read(id, file) => owner
-                        .read(&id, file, cancel.clone())
-                        .await
-                        .map(SshResult::Document),
-                    SshAction::Save(document, content) => owner
-                        .save(&document, &content, cancel.clone())
-                        .await
-                        .map(SshResult::Document),
                     SshAction::DetectCli(_) => owner
                         .detect_cli(&cli_authority.ok_or("ssh_not_connected")??, cancel.clone())
                         .await
@@ -251,7 +236,7 @@ impl Services {
     }
 }
 
-fn owner_is_fixture_transport(services: &Services) -> bool {
+pub(super) fn owner_is_fixture_transport(services: &Services) -> bool {
     #[cfg(test)]
     {
         services.ssh.get().is_some_and(|owner| owner.is_fixture())

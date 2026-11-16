@@ -76,10 +76,28 @@ pub enum PlatformError {
     Invalid,
     Storage,
     ManagedLocked,
+    Conflict,
+    RemoteBusy,
+    RemotePartial,
+    RemotePathUnsupported,
+    Cancelled,
 }
 impl PlatformError {
     pub fn message(self) -> &'static str {
         match self {
+            Self::Conflict => {
+                "Remote configuration changed. Reload before retrying. / 远程配置已变化，请重新读取后重试。"
+            }
+            Self::RemotePathUnsupported => {
+                "Remote account filenames cannot be represented safely on this desktop. Rename conflicting or reserved names on the host first. / 远程账户文件名无法在此桌面安全表示，请先在主机处理大小写冲突或保留名称。"
+            }
+            Self::Cancelled => "Operation cancelled after cleanup. / 操作已取消并完成清理。",
+            Self::RemoteBusy => {
+                "Remote profile catalog is busy. Close its writers and retry after checkpointing. / 远程方案目录忙碌，请关闭写入程序并完成检查点后重试。"
+            }
+            Self::RemotePartial => {
+                "Remote updates are incomplete or unconfirmed. Reload and inspect remote preimage backups before recovery. / 远程更新未完成或结果未确认，请重新读取并检查远程原始备份后恢复。"
+            }
             Self::Unsupported => {
                 "This action is not connected for this platform/environment. / 此平台或环境尚未接入该操作"
             }
@@ -148,6 +166,7 @@ pub enum ProviderReport {
 }
 /// No Debug/Serialize: documents and original revisions can contain credentials.
 pub struct PlatformSession {
+    pub remote: Option<Arc<ccr_app::environments::config_mirror::ConfigMirror>>,
     pub roots: PlatformRoots,
     pub document: Document,
     pub snapshot: Snapshot,
@@ -207,6 +226,7 @@ pub enum ResultValue {
     Loaded(Arc<PlatformSession>),
     Quotas(Vec<QuotaRow>),
     Saved(SaveOutcome),
+    SavedWithWarning { outcome: SaveOutcome },
     AccountChanged { warning: bool },
 }
 
@@ -692,6 +712,14 @@ fn read(
     surface: Surface,
 ) -> Result<ResultValue, PlatformError> {
     let roots = roots(source)?;
+    read_at(roots, platform, surface, None)
+}
+fn read_at(
+    roots: PlatformRoots,
+    platform: Platform,
+    surface: Surface,
+    remote: Option<Arc<ccr_app::environments::config_mirror::ConfigMirror>>,
+) -> Result<ResultValue, PlatformError> {
     let document = document(&roots, platform, surface)?;
     let mut snapshot = document.read().map_err(settings_error)?;
     if platform == Platform::OpenCode
@@ -740,7 +768,16 @@ fn read(
         })
         .collect();
     }
-    let auth = project_auth(&roots, platform, surface);
+    let auth = if remote.is_some() && surface != Surface::Auth {
+        AuthProjection {
+            credential: CredentialState::PlatformUnsupported,
+            accounts: Vec::new(),
+            runtime_auth_present: None,
+            signed_in: false,
+        }
+    } else {
+        project_auth(&roots, platform, surface)
+    };
     let (provider_report, provider_ids) =
         if platform == Platform::Codex && surface == Surface::Providers {
             providers::project(&roots)?
@@ -754,6 +791,7 @@ fn read(
     };
     let file_label = file_label(platform, surface, &snapshot);
     Ok(ResultValue::Loaded(Arc::new(PlatformSession {
+        remote,
         roots,
         document,
         snapshot,
@@ -879,7 +917,7 @@ fn execute(
                 Ok(ResultValue::Saved(outcome))
             }
             Command::Source { session, content } => {
-                if platform == Platform::Gemini {
+                if platform == Platform::Gemini && session.remote.is_none() {
                     return Err(PlatformError::Unsupported);
                 }
                 if platform == Platform::Grok {
@@ -1036,11 +1074,145 @@ impl Services {
         command: Command,
     ) -> Result<TaskSubscription<ResultValue, PlatformError>, AdmissionError> {
         let source = self.source.clone();
+        if matches!(key.environment, ccr_app::runtime::EnvironmentId::Ssh(_)) {
+            let io = self.remote_configuration_io(&key.environment);
+            let environment = key.environment.clone();
+            let platform = key.platform;
+            let is_read = matches!(command, Command::Read(_));
+            let history = super::remote_config::history_path(&self.source);
+            let run = move |cancel: tokio_util::sync::CancellationToken| {
+                let mut result = tokio::runtime::Handle::current().block_on(async move {
+                    let io = io.map_err(super::remote_config::error)?;
+                    if let Command::Read(surface) = command {
+                        if !matches!(
+                            surface,
+                            Surface::Settings
+                                | Surface::Auth
+                                | Surface::LegacySettings
+                                | Surface::Tui
+                                | Surface::Providers
+                                | Surface::Models
+                        ) {
+                            return Err(PlatformError::Unsupported);
+                        }
+                        let mirror = if surface == Surface::Auth {
+                            super::remote_config::capture(io, platform, cancel).await?
+                        } else {
+                            super::remote_config::capture_settings(io, platform, surface, cancel)
+                                .await?
+                        };
+                        return read_at(
+                            super::remote_config::roots(&mirror),
+                            platform,
+                            surface,
+                            Some(mirror),
+                        );
+                    }
+                    let session = match &command {
+                        Command::Patch { session, .. }
+                        | Command::Source { session, .. }
+                        | Command::Account { session, .. }
+                        | Command::Provider { session, .. } => session,
+                        _ => return Err(PlatformError::Unsupported),
+                    };
+                    if !super::remote_config::session_matches(session, &environment) {
+                        return Err(PlatformError::Unsupported);
+                    }
+                    if session.surface == Surface::Models {
+                        return Err(PlatformError::Unsupported);
+                    }
+                    let mut mirror = session.remote.clone().ok_or(PlatformError::Unsupported)?;
+                    mirror
+                        .verify(cancel.clone())
+                        .await
+                        .map_err(super::remote_config::error)?;
+                    let command = if platform == Platform::Grok && session.surface != Surface::Auth
+                    {
+                        let expanded = super::remote_config::capture_grok_settings_write(
+                            mirror.io().clone(),
+                            cancel.clone(),
+                        )
+                        .await?;
+                        let ResultValue::Loaded(fresh) = read_at(
+                            super::remote_config::roots(&expanded),
+                            platform,
+                            session.surface,
+                            Some(expanded.clone()),
+                        )?
+                        else {
+                            return Err(PlatformError::Invalid);
+                        };
+                        if fresh.snapshot.token != session.snapshot.token
+                            || fresh.snapshot.exists != session.snapshot.exists
+                        {
+                            return Err(PlatformError::Conflict);
+                        }
+                        mirror = expanded;
+                        match command {
+                            Command::Patch { content, .. } => Command::Patch {
+                                session: fresh,
+                                content,
+                            },
+                            Command::Source { content, .. } => Command::Source {
+                                session: fresh,
+                                content,
+                            },
+                            _ => return Err(PlatformError::Unsupported),
+                        }
+                    } else {
+                        command
+                    };
+                    let result = execute(&source, platform, command)?;
+                    mirror
+                        .publish(cancel)
+                        .await
+                        .map_err(super::remote_config::error)?;
+                    Ok(result)
+                });
+                if !is_read {
+                    let committed = matches!(
+                        &result,
+                        Ok(ResultValue::Saved(SaveOutcome::Saved { .. })
+                            | ResultValue::AccountChanged { .. })
+                    );
+                    if !super::remote_config::record(history.as_deref(), platform, committed)
+                        && committed
+                    {
+                        result = match result {
+                            Ok(ResultValue::Saved(outcome)) => {
+                                Ok(ResultValue::SavedWithWarning { outcome })
+                            }
+                            Ok(ResultValue::AccountChanged { .. }) => {
+                                Ok(ResultValue::AccountChanged { warning: true })
+                            }
+                            result => result,
+                        };
+                    }
+                }
+                result
+            };
+            if is_read {
+                return self.executor.read(key, move |cancel, _| run(cancel));
+            }
+            return self.executor.job(key, move |cancel, _| match run(cancel) {
+                Ok(result) => Completion::Success(result),
+                Err(PlatformError::Cancelled) => Completion::Cancelled,
+                Err(error) => Completion::Failed(error),
+            });
+        }
         let supported = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         let platform = key.platform;
         let is_read = matches!(command, Command::Read(_));
         let run = move || {
-            if supported {
+            let remote_session = match &command {
+                Command::Read(_) => false,
+                Command::Patch { session, .. }
+                | Command::Source { session, .. }
+                | Command::Account { session, .. }
+                | Command::Provider { session, .. }
+                | Command::Quota { session, .. } => session.remote.is_some(),
+            };
+            if supported && !remote_session {
                 execute(&source, platform, command)
             } else {
                 Err(PlatformError::Unsupported)

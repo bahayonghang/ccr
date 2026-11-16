@@ -37,6 +37,7 @@ rusqlite = { version = "=0.41.1", features = ["bundled", "functions"] }
 serde_json = { version = "=1.0.154", features = ["float_roundtrip"] }
 sysinfo = { version = "=0.39.6", default-features = false, features = ["system"] }
 tokio = { version = "=1.53.3", features = ["rt", "sync", "time", "macros"] }
+tokio-util = { version = "0.7.19", features = ["rt"] }
 toml = "=1.1.8"
 ccr-db = { path = "../crates/ccr-db" }
 ccr-core = { path = "../crates/ccr-core" }

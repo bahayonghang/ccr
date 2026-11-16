@@ -8,9 +8,10 @@ use std::{
 type FixtureOutput = (bool, Vec<u8>, Vec<u8>);
 #[derive(Default)]
 pub struct FixtureTransport {
-    files: Mutex<HashMap<(String, String), String>>,
+    files: Mutex<HashMap<(String, String), Vec<u8>>>,
     key: Mutex<String>,
     failure: Mutex<VecDeque<(&'static str, Error)>>,
+    path_failures: Mutex<VecDeque<(&'static str, String, Error)>>,
     batches: Mutex<Vec<String>>,
     cli_outputs: Mutex<HashMap<String, Vec<u8>>>,
     cli_requests: Mutex<Vec<Vec<String>>>,
@@ -54,12 +55,19 @@ impl FixtureTransport {
         *self.cli_delay.lock().unwrap_or_else(|p| p.into_inner()) = delay;
     }
     pub fn set_file(&self, host: &str, path: &str, text: &str) {
+        self.set_bytes(host, path, text.as_bytes());
+    }
+    pub fn set_bytes(&self, host: &str, path: &str, bytes: &[u8]) {
         self.files
             .lock()
             .unwrap_or_else(|p| p.into_inner())
-            .insert((host.into(), path.into()), text.into());
+            .insert((host.into(), path.into()), bytes.into());
     }
     pub fn file(&self, host: &str, path: &str) -> Option<String> {
+        self.bytes(host, path)
+            .and_then(|bytes| String::from_utf8(bytes).ok())
+    }
+    pub fn bytes(&self, host: &str, path: &str) -> Option<Vec<u8>> {
         self.files
             .lock()
             .unwrap_or_else(|p| p.into_inner())
@@ -77,6 +85,12 @@ impl FixtureTransport {
             .lock()
             .unwrap_or_else(|p| p.into_inner())
             .push_back((operation, error));
+    }
+    pub fn fail_path(&self, operation: &'static str, path: &str, error: Error) {
+        self.path_failures
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .push_back((operation, path.into(), error));
     }
     pub fn batches(&self) -> Vec<String> {
         self.batches
@@ -102,6 +116,13 @@ impl FixtureTransport {
             .lock()
             .unwrap_or_else(|p| p.into_inner())
             .push(format!("{op} {path}"));
+        let mut paths = self.path_failures.lock().unwrap_or_else(|p| p.into_inner());
+        if paths
+            .front()
+            .is_some_and(|(operation, target, _)| *operation == op && target == path)
+        {
+            return Err(paths.pop_front().ok_or("fixture_failure_missing")?.2);
+        }
         let mut errors = self.failure.lock().unwrap_or_else(|p| p.into_inner());
         if errors.front().is_some_and(|(expected, _)| *expected == op) {
             return Err(errors.pop_front().ok_or("fixture_failure_missing")?.1);
@@ -272,13 +293,13 @@ impl Connection for FixtureConnection {
             })
         })
     }
-    fn download(&self, path: RemotePosixPath) -> RunFuture<'_, Option<String>> {
+    fn download(&self, path: RemotePosixPath) -> RunFuture<'_, Option<Vec<u8>>> {
         Box::pin(async move {
             if self.is_closed() {
                 return Err("ssh_network_error");
             }
             self.transport.operation("get", path.as_str())?;
-            let content = self.transport.file(&self.host, path.as_str());
+            let content = self.transport.bytes(&self.host, path.as_str());
             if content.as_ref().is_some_and(|s| s.len() > 2 * 1024 * 1024) {
                 return Err("ssh_file_too_large");
             }
@@ -288,7 +309,7 @@ impl Connection for FixtureConnection {
     fn upload(
         &self,
         path: RemotePosixPath,
-        content: String,
+        content: Vec<u8>,
         cancel: CancellationToken,
     ) -> RunFuture<'_, ()> {
         Box::pin(async move {
@@ -304,11 +325,12 @@ impl Connection for FixtureConnection {
             let result = bounded(cancel, async {
                 self.transport.operation("put", stage.as_str())?;
                 self.transport
-                    .set_file(&self.host, stage.as_str(), &content);
+                    .set_bytes(&self.host, stage.as_str(), &content);
                 self.transport
                     .operation("rename", path.as_str())
                     .map_err(|_| "ssh_write_outcome_unknown")?;
-                self.transport.set_file(&self.host, path.as_str(), &content);
+                self.transport
+                    .set_bytes(&self.host, path.as_str(), &content);
                 Ok(())
             })
             .await;
@@ -323,6 +345,56 @@ impl Connection for FixtureConnection {
                 .unwrap_or_else(|p| p.into_inner())
                 .remove(&(self.host.clone(), stage.as_str().into()));
             result
+        })
+    }
+    fn list(&self, path: RemotePosixPath) -> RunFuture<'_, Vec<String>> {
+        Box::pin(async move {
+            if self.is_closed() {
+                return Err("ssh_network_error");
+            }
+            self.transport.operation("list", path.as_str())?;
+            let prefix = format!("{}/", path.as_str());
+            let files = self
+                .transport
+                .files
+                .lock()
+                .unwrap_or_else(|p| p.into_inner());
+            let mut names = files
+                .keys()
+                .filter(|(host, _)| host == &self.host)
+                .filter_map(|(_, path)| path.strip_prefix(&prefix))
+                .filter_map(|relative| relative.split('/').next())
+                .map(str::to_owned)
+                .collect::<Vec<_>>();
+            names.sort();
+            names.dedup();
+            Ok(names)
+        })
+    }
+    fn remove(&self, path: RemotePosixPath) -> RunFuture<'_, ()> {
+        Box::pin(async move {
+            if self.is_closed() {
+                return Err("ssh_network_error");
+            }
+            self.transport.operation("remove", path.as_str())?;
+            self.transport
+                .files
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .remove(&(self.host.clone(), path.as_str().into()));
+            Ok(())
+        })
+    }
+    fn metadata(&self, path: RemotePosixPath) -> RunFuture<'_, Option<(u64, Option<u64>)>> {
+        Box::pin(async move {
+            if self.is_closed() {
+                return Err("ssh_network_error");
+            }
+            self.transport.operation("stat", path.as_str())?;
+            Ok(self
+                .transport
+                .bytes(&self.host, path.as_str())
+                .map(|bytes| (bytes.len() as u64, None)))
         })
     }
 }
