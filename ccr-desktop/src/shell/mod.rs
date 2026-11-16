@@ -150,6 +150,11 @@ pub struct Shell {
 }
 
 impl Shell {
+    #[cfg(test)]
+    pub(crate) fn mcp_for_test(&self) -> Entity<crate::features::mcp::McpView> {
+        self.mcp.clone()
+    }
+
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
         Self::build(services, None, window, cx)
     }
