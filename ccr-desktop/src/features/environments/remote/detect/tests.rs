@@ -3,7 +3,7 @@ use super::*;
 use crate::{runtime::ConfigSource, shell::Shell};
 use ccr_app::{
     environments::ssh::{CliStatus, Workspace},
-    runtime::RuntimeOwner,
+    runtime::{RuntimeHandle, RuntimeOwner},
 };
 use gpui_kit::test::{TestAppContextExt, TestWindowExt};
 use gpui_kit::{
@@ -49,6 +49,18 @@ fn show(window: &mut Window, id: SharedString, cx: &mut gpui_kit::App) {
         );
     }
     panic!("SSH control is not reachable in the Settings scroll owner");
+}
+
+fn wait_until_runtime_idle(handle: &RuntimeHandle) {
+    // CLI fixture 使用 Tokio 真实时钟延迟，GPUI timer 推进的是虚拟时间。
+    let started = std::time::Instant::now();
+    while handle.active_tasks() > 0 {
+        assert!(
+            started.elapsed() < Duration::from_secs(10),
+            "CLI fixture operation did not reach its terminal state"
+        );
+        std::thread::sleep(Duration::from_millis(10));
+    }
 }
 
 #[gpui_kit::test]
@@ -167,27 +179,27 @@ async fn connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigat
         window.click("environment-trust-confirm", cx);
     })
     .unwrap();
-    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
-        window.try_find("environment-trust-confirm").is_none()
-    })
-    .await;
     cx.update_window(handle, |_, window, cx| {
-        show(window, "ssh-connect".into(), cx);
-        window.click("ssh-connect", cx);
         if window.try_find("ssh-cli-detect").is_none() {
             window.click("ssh-advanced", cx);
         }
     })
     .unwrap();
+    // 信任确认会自动发起连接，弹窗消失不代表连接已到终态。
     cx.wait_for(handle, Duration::from_secs(10), |window, _| {
         window
-            .try_find("ssh-cli-status")
-            .and_then(|node| node.label().map(|v| v.contains("have not been checked")))
-            .unwrap_or(false)
+            .find("environment-switcher")
+            .label()
+            .is_some_and(|label| label.contains(" · Connected · "))
+            && window
+                .try_find("ssh-cli-status")
+                .and_then(|node| node.label().map(|v| v.contains("have not been checked")))
+                .unwrap_or(false)
     })
     .await;
     assert!(workspace.connected(&host.id));
     cx.update_window(handle, |_, window, cx| {
+        assert!(window.try_find("environment-trust-confirm").is_none());
         if window.try_find("ssh-cli-detect").is_none() {
             window.click("ssh-advanced", cx);
         }
@@ -199,6 +211,7 @@ async fn connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigat
         );
     })
     .unwrap();
+    wait_until_runtime_idle(&runtime.handle());
     cx.wait_for(handle, Duration::from_secs(10), |window, _| {
         window.try_find("ssh-cli-claude").is_some()
     })
@@ -238,6 +251,7 @@ async fn connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigat
         assert!(window.try_find("ssh-cli-claude").is_none());
     })
     .unwrap();
+    wait_until_runtime_idle(&runtime.handle());
     cx.wait_for(handle, Duration::from_secs(10), |window, _| {
         window
             .try_find("ssh-cli-status")
@@ -256,9 +270,13 @@ async fn connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigat
     .unwrap();
     cx.wait_for(handle, Duration::from_secs(10), |window, _| {
         window
-            .try_find("ssh-cli-status")
-            .and_then(|node| node.label().map(|v| v.contains("have not been checked")))
-            .unwrap_or(false)
+            .find("environment-switcher")
+            .label()
+            .is_some_and(|label| label.contains(" · Connected · "))
+            && window
+                .try_find("ssh-cli-status")
+                .and_then(|node| node.label().map(|v| v.contains("have not been checked")))
+                .unwrap_or(false)
     })
     .await;
     cx.update_window(handle, |_, window, cx| {
@@ -269,6 +287,7 @@ async fn connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigat
         window.click("ssh-cli-detect", cx);
     })
     .unwrap();
+    wait_until_runtime_idle(&runtime.handle());
     cx.wait_for(handle, Duration::from_secs(10), |window, _| {
         window.try_find("ssh-cli-claude").is_some()
     })
@@ -305,9 +324,8 @@ async fn connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigat
         window.click("settings-nav-environment", cx);
     })
     .unwrap();
-    cx.background_executor
-        .timer(Duration::from_millis(500))
-        .await;
+    wait_until_runtime_idle(&runtime.handle());
+    cx.run_until_parked();
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         assert!(window.try_find("ssh-cli-claude").is_none());
