@@ -66,6 +66,12 @@ pub enum SshResult {
     CliDetected(Vec<ccr_app::environments::ssh::CliStatus>),
 }
 impl Services {
+    /// Release the persistent SSH connection before the owning runtime stops.
+    pub async fn disconnect_ssh(&self) {
+        if let Some(owner) = self.ssh.get() {
+            owner.disconnect().await;
+        }
+    }
     fn ssh_workspace(&self) -> Result<Arc<Workspace>, &'static str> {
         if self.source.is_benchmark() {
             return Err("ssh_fixture_offline");

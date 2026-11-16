@@ -227,6 +227,11 @@ impl RuntimeOwner {
     pub fn shutdown(self) {
         self.runtime.block_on(self.handle.shutdown());
     }
+    /// Drain jobs, then release persistent I/O before dropping the runtime.
+    pub fn shutdown_after(self, cleanup: impl std::future::Future<Output = ()>) {
+        self.runtime.block_on(self.handle.shutdown());
+        self.runtime.block_on(cleanup);
+    }
 }
 
 impl RuntimeHandle {

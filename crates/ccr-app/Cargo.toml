@@ -11,6 +11,8 @@ description = "Framework-independent application orchestration for CCR desktop c
 test-fixtures = []
 
 [dependencies]
+russh = { version = "~0.65.1", default-features = false, features = ["ring", "rsa", "flate2"] }
+russh-sftp = { version = "3", default-features = false }
 base64 = { workspace = true }
 dirs = { workspace = true }
 tempfile = { workspace = true }

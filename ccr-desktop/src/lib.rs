@@ -81,6 +81,8 @@ pub fn run() {
         }
     };
     let executor = owner.handle();
+    let ssh_cleanup = std::sync::Arc::new(std::sync::Mutex::new(None::<runtime::Services>));
+    let ssh_services = ssh_cleanup.clone();
     let failed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let window_failed = failed.clone();
     gpui_kit::application()
@@ -144,6 +146,7 @@ pub fn run() {
                     runtime::Services::new(executor, source).with_insights_paths(paths)
                 }
             };
+            *ssh_services.lock().unwrap_or_else(|p| p.into_inner()) = Some(services.clone());
             cx.spawn(async move |cx| {
                 if let Err(error) = open_app_window(services, cx).await {
                     window_failed.store(true, std::sync::atomic::Ordering::Relaxed);
@@ -157,7 +160,12 @@ pub fn run() {
         });
     // GPUI quit observers have a 200ms platform budget. The owner remains alive
     // outside the event loop and joins all started work before process return.
-    owner.shutdown();
+    let services = ssh_cleanup.lock().unwrap_or_else(|p| p.into_inner()).take();
+    owner.shutdown_after(async move {
+        if let Some(services) = services {
+            services.disconnect_ssh().await;
+        }
+    });
     if failed.load(std::sync::atomic::Ordering::Relaxed) {
         std::process::exit(1);
     }

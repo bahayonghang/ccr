@@ -1,7 +1,10 @@
-//! In-memory OpenSSH stand-in. No process, socket, user home, or identity file is opened.
+//! In-memory persistent SSH sessions. No sockets, processes or credentials are used.
 use super::*;
 use base64::Engine;
-use std::collections::{HashMap, VecDeque};
+use std::{
+    collections::VecDeque,
+    sync::atomic::{AtomicBool, AtomicUsize, Ordering},
+};
 #[derive(Default)]
 pub struct FixtureTransport {
     files: Mutex<HashMap<(String, String), String>>,
@@ -11,6 +14,8 @@ pub struct FixtureTransport {
     cli_outputs: Mutex<HashMap<String, Vec<u8>>>,
     cli_requests: Mutex<Vec<Vec<String>>>,
     cli_delay: Mutex<std::time::Duration>,
+    handshakes: AtomicUsize,
+    unsupported: AtomicBool,
 }
 impl FixtureTransport {
     pub fn set_cli_output(&self, tool: &str, output: &str) {
@@ -59,154 +64,185 @@ impl FixtureTransport {
             .unwrap_or_else(|p| p.into_inner())
             .clone()
     }
+    pub fn handshakes(&self) -> usize {
+        self.handshakes.load(Ordering::SeqCst)
+    }
+    pub fn disable_posix_rename(&self) {
+        self.unsupported.store(true, Ordering::SeqCst);
+    }
+    fn operation(&self, op: &str, path: &str) -> Result<(), Error> {
+        self.batches
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .push(format!("{op} {path}"));
+        let mut errors = self.failure.lock().unwrap_or_else(|p| p.into_inner());
+        if errors.front().is_some_and(|(expected, _)| *expected == op) {
+            return Err(errors.pop_front().ok_or("fixture_failure_missing")?.1);
+        }
+        Ok(())
+    }
+    fn key(&self, host: &SshHost) -> Result<ScannedHostKey, Error> {
+        let key = self.key.lock().unwrap_or_else(|p| p.into_inner());
+        let data = base64::engine::general_purpose::STANDARD.encode(if key.is_empty() {
+            "fixture-host-key"
+        } else {
+            &key
+        });
+        parse_keyscan_output(
+            &format!("[{}]:{} ssh-ed25519 {data}", host.host, host.port),
+            &host.host,
+            host.port,
+        )
+        .map_err(|_| "ssh_host_key_invalid")
+    }
 }
+struct FixtureConnector(Arc<FixtureTransport>);
 impl Workspace {
     pub fn is_fixture(&self) -> bool {
         self.synthetic
     }
-
     pub fn fixture(database: PathBuf, known_hosts: PathBuf) -> (Self, Arc<FixtureTransport>) {
         let transport = Arc::new(FixtureTransport::default());
         let lock_directory = database.with_extension("locks");
         let mut owner = Self::new(Some(database), known_hosts);
         owner.lock_directory = Some(lock_directory);
-        owner.transport = transport.clone();
+        owner.transport = Arc::new(FixtureConnector(transport.clone()));
         owner.synthetic = true;
         (owner, transport)
     }
 }
-impl Transport for FixtureTransport {
-    fn run<'a>(
+impl Transport for FixtureConnector {
+    fn probe<'a>(
         &'a self,
-        command: tokio::process::Command,
-        descriptor: ProcessDescriptor,
-        input: Option<Vec<u8>>,
-        cancel: CancellationToken,
-    ) -> RunFuture<'a> {
+        host: &'a SshHost,
+        _: Option<&'a SshKnownHost>,
+    ) -> RunFuture<'a, ScannedHostKey> {
+        Box::pin(async move { self.0.key(host) })
+    }
+    fn connect<'a>(
+        &'a self,
+        host: &'a SshHost,
+        stored: &'a SshKnownHost,
+    ) -> RunFuture<'a, Arc<dyn Connection>> {
         Box::pin(async move {
-            if cancel.is_cancelled() {
-                return Err("ssh_cancelled");
+            self.0.handshakes.fetch_add(1, Ordering::SeqCst);
+            if self.0.key(host)?.fingerprint != stored.fingerprint {
+                return Err("ssh_host_key_mismatch");
             }
-            let args = command
-                .as_std()
-                .get_args()
-                .map(|a| a.to_string_lossy().into_owned())
-                .collect::<Vec<_>>();
-            let last = args.last().ok_or("fixture_bad_command")?;
-            let stdout = match descriptor.capability().id() {
-                "ssh_keyscan" => {
-                    let key = self.key.lock().unwrap_or_else(|p| p.into_inner());
-                    let bytes = if key.is_empty() {
-                        "fixture-host-key"
-                    } else {
-                        key.as_str()
-                    };
-                    format!(
-                        "{last} ssh-ed25519 {}\n",
-                        base64::engine::general_purpose::STANDARD.encode(bytes)
-                    )
+            Ok(Arc::new(FixtureConnection {
+                transport: self.0.clone(),
+                host: host.host.clone(),
+                closed: AtomicBool::new(false),
+            }) as Arc<dyn Connection>)
+        })
+    }
+}
+struct FixtureConnection {
+    transport: Arc<FixtureTransport>,
+    host: String,
+    closed: AtomicBool,
+}
+impl Connection for FixtureConnection {
+    fn is_closed(&self) -> bool {
+        self.closed.load(Ordering::SeqCst)
+    }
+    fn disconnect(&self) -> RunFuture<'_, ()> {
+        Box::pin(async {
+            self.closed.store(true, Ordering::SeqCst);
+            Ok(())
+        })
+    }
+    fn exec(&self, command: String) -> RunFuture<'_, Output> {
+        Box::pin(async move {
+            if self.is_closed() {
+                return Err("ssh_network_error");
+            }
+            let stdout = if command == "printf '%s' \"$HOME\"" {
+                b"/home/fixture".to_vec()
+            } else if let Some(path) = command
+                .strip_prefix("cat -- '")
+                .and_then(|v| v.strip_suffix('\''))
+            {
+                self.transport
+                    .file(&self.host, path)
+                    .ok_or("ssh_read_failed")?
                     .into_bytes()
-                }
-                "openssh" => {
-                    if let Some((_, tool)) = super::detect::CLI_TOOLS.iter().find(|(_, tool)| {
-                        *last == format!("command -v {} || true", posix_single_quote(tool))
-                    }) {
-                        self.cli_requests
-                            .lock()
-                            .unwrap_or_else(|p| p.into_inner())
-                            .push(args.clone());
-                        let failure = {
-                            let mut failures =
-                                self.failure.lock().unwrap_or_else(|p| p.into_inner());
-                            if failures.front().is_some_and(|(op, _)| *op == "detect") {
-                                failures.pop_front().map(|(_, error)| error)
-                            } else {
-                                None
-                            }
-                        };
-                        if let Some(error) = failure {
-                            return Err(error);
-                        }
-                        let delay = *self.cli_delay.lock().unwrap_or_else(|p| p.into_inner());
-                        tokio::select! { _=tokio::time::sleep(delay)=>{},_ =cancel.cancelled()=>return Err("ssh_cancelled") }
-                        return Ok(Output {
-                            success: true,
-                            stdout: self
-                                .cli_outputs
-                                .lock()
-                                .unwrap_or_else(|p| p.into_inner())
-                                .get(*tool)
-                                .cloned()
-                                .unwrap_or_default(),
-                            stderr: Vec::new(),
-                        });
-                    }
-                    let nonce = last
-                        .strip_prefix("printf '%s\\n' '")
-                        .and_then(|v| v.strip_suffix('\''))
-                        .ok_or("fixture_bad_handshake")?;
-                    nonce.as_bytes().to_vec()
-                }
-                "sftp" => {
-                    let host = last
-                        .rsplit('@')
-                        .next()
-                        .ok_or("fixture_bad_target")?
-                        .to_string();
-                    let batch = String::from_utf8(input.ok_or("fixture_missing_input")?)
-                        .map_err(|_| "fixture_bad_input")?;
-                    self.batches
-                        .lock()
-                        .unwrap_or_else(|p| p.into_inner())
-                        .push(batch.clone());
-                    for line in batch.lines() {
-                        let operation =
-                            line.split_whitespace().next().ok_or("fixture_bad_batch")?;
-                        let mut failure = self.failure.lock().unwrap_or_else(|p| p.into_inner());
-                        if let Some(&(expected, error)) = failure.front()
-                            && expected == operation
-                        {
-                            failure.pop_front();
-                            return Err(error);
-                        }
-                        drop(failure);
-                        let fields = line.split('"').skip(1).step_by(2).collect::<Vec<_>>();
-                        let mut files = self.files.lock().unwrap_or_else(|p| p.into_inner());
-                        match operation {
-                            "-mkdir" => {}
-                            "get" => {
-                                let source = files
-                                    .get(&(host.clone(), fields[0].into()))
-                                    .ok_or("ssh_read_failed")?;
-                                std::fs::write(fields[1], source).map_err(|_| "fixture_io")?;
-                            }
-                            "put" => {
-                                files.insert(
-                                    (host.clone(), fields[1].into()),
-                                    std::fs::read_to_string(fields[0]).map_err(|_| "fixture_io")?,
-                                );
-                            }
-                            "rename" => {
-                                let value = files
-                                    .remove(&(host.clone(), fields[0].into()))
-                                    .ok_or("fixture_missing_upload")?;
-                                files.insert((host.clone(), fields[1].into()), value);
-                            }
-                            "-rm" => {
-                                files.remove(&(host.clone(), fields[0].into()));
-                            }
-                            _ => return Err("fixture_bad_batch"),
-                        }
-                    }
-                    Vec::new()
-                }
-                _ => return Err("fixture_unexpected_capability"),
+            } else {
+                let tool = detect::CLI_TOOLS
+                    .iter()
+                    .find(|(_, tool)| {
+                        command == format!("command -v {} || true", posix_single_quote(tool))
+                    })
+                    .ok_or("fixture_bad_command")?
+                    .1;
+                self.transport
+                    .cli_requests
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .push(vec![command]);
+                self.transport.operation("detect", tool)?;
+                let delay = *self
+                    .transport
+                    .cli_delay
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner());
+                tokio::time::sleep(delay).await;
+                self.transport
+                    .cli_outputs
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .get(tool)
+                    .cloned()
+                    .unwrap_or_default()
             };
+            if stdout.len() > 2 * 1024 * 1024 {
+                return Err("ssh_file_too_large");
+            }
             Ok(Output {
                 success: true,
                 stdout,
                 stderr: Vec::new(),
             })
+        })
+    }
+    fn upload(
+        &self,
+        path: RemotePosixPath,
+        content: String,
+        cancel: CancellationToken,
+    ) -> RunFuture<'_, ()> {
+        Box::pin(async move {
+            if self.is_closed() {
+                return Err("ssh_network_error");
+            }
+            if self.transport.unsupported.load(Ordering::SeqCst) {
+                return Err("ssh_write_outcome_unknown");
+            }
+            let stage = path
+                .with_suffix(".ccr-tmp-fixture")
+                .map_err(|_| "ssh_invalid_remote_path")?;
+            let result = bounded(cancel, async {
+                self.transport.operation("put", stage.as_str())?;
+                self.transport
+                    .set_file(&self.host, stage.as_str(), &content);
+                self.transport
+                    .operation("rename", path.as_str())
+                    .map_err(|_| "ssh_write_outcome_unknown")?;
+                self.transport.set_file(&self.host, path.as_str(), &content);
+                Ok(())
+            })
+            .await;
+            if result.is_err() {
+                self.transport
+                    .operation("-rm", stage.as_str())
+                    .map_err(|_| "ssh_cleanup_failed")?;
+            }
+            self.transport
+                .files
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .remove(&(self.host.clone(), stage.as_str().into()));
+            result
         })
     }
 }

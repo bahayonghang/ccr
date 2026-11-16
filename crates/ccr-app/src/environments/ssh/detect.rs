@@ -49,7 +49,6 @@ impl Workspace {
         authority: &CliSession,
         cancel: CancellationToken,
     ) -> Result<Vec<CliStatus>, Error> {
-        let _guard = self.serial.lock().await;
         if cancel.is_cancelled() {
             return Err("ssh_cancelled");
         }
@@ -63,14 +62,13 @@ impl Workspace {
                 if cancel.is_cancelled() {
                     return Err("ssh_cancelled");
                 }
-                let mut command = Self::target(&session.host)?
-                    .ssh_command(&self.known_hosts, 10)
-                    .map_err(|_| "ssh_invalid_target")?;
-                command.arg(format!("command -v {} || true", posix_single_quote(tool)));
-                let output = self
-                    .transport
-                    .run(command, ProcessDescriptor::openssh(), None, cancel.clone())
-                    .await?;
+                let output = bounded(
+                    cancel.clone(),
+                    session
+                        .connection
+                        .exec(format!("command -v {} || true", posix_single_quote(tool))),
+                )
+                .await?;
                 if cancel.is_cancelled() {
                     return Err("ssh_cancelled");
                 }
@@ -90,7 +88,7 @@ impl Workspace {
         }
         .await;
         if result.is_err() {
-            self.clear();
+            self.revoke(session.session_id).await;
         }
         result
     }
