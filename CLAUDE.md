@@ -74,7 +74,7 @@ Triage uses the default canonical label vocabulary. See `docs/agents/triage-labe
 
 ### Domain docs
 
-This repo uses a multi-context domain-doc layout. See `docs/agents/domain.md`.
+This repo uses a single-context domain-doc layout. See `docs/agents/domain.md`.
 
 ### Harnesses
 
