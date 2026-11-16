@@ -963,6 +963,7 @@ async fn overview_ranges_hide_stale_totals_and_preserve_exact_metrics(cx: &mut T
     });
     let (handle, view) = cx.update(|cx| {
         gpui_kit::init(cx);
+        theme::init(cx);
         gpui_kit::open_window(
             WindowOptions {
                 window_bounds: Some(gpui_kit::WindowBounds::Windowed(gpui_kit::Bounds::new(

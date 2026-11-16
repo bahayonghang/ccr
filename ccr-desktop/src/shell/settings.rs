@@ -389,7 +389,7 @@ impl Shell {
             (
                 1,
                 "settings-mono-font",
-                "Code / monospace font",
+                "Code and monospace font",
                 "等宽字体",
                 self.typography.mono_size,
                 11..=20,

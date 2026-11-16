@@ -353,7 +353,13 @@ async fn settings_shows_the_local_desktop_without_a_sample_distro(cx: &mut TestA
         for id in routes {
             assert!(window.try_find(id).is_some(), "{id} missing");
         }
-        assert!(!text.contains(" / "));
+        assert!(
+            !text.contains(" / "),
+            "unexpected slash labels: {:?}",
+            text.lines()
+                .filter(|line| line.contains(" / "))
+                .collect::<Vec<_>>()
+        );
         assert!(!text.contains("Home insights"));
         assert!(!text.contains("Apply / refresh"));
         assert!(!text.contains("Ubuntu"));
@@ -474,7 +480,13 @@ fn leaving_settings_suspends_the_in_flight_environment_read(cx: &mut TestAppCont
         assert!(text.contains("Checking saved SSH host names."));
         assert!(!text.contains("WSL discovery was not run."));
         assert!(!text.contains("正在检查 WSL。"));
-        assert!(!text.contains(" / "));
+        assert!(
+            !text.contains(" / "),
+            "unexpected slash labels: {:?}",
+            text.lines()
+                .filter(|line| line.contains(" / "))
+                .collect::<Vec<_>>()
+        );
         assert!(!text.contains("Home insights"));
         assert!(!text.contains("Apply / refresh"));
         assert!(!text.to_lowercase().contains("blur"));

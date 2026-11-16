@@ -228,6 +228,9 @@ async fn window_bounds_are_saved_before_close_and_restored_by_the_launch_path(
         window.render_frame(cx);
         window.click("nav-settings", cx);
         window.click("theme-dark", cx);
+        window.click("settings-nav-language", cx);
+        window.render_frame(cx);
+        assert!(window.find("language-zh").visible());
         window.click("language-zh", cx);
     })
     .unwrap();
