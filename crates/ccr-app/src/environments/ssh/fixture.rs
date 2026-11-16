@@ -9,6 +9,8 @@ type FixtureOutput = (bool, Vec<u8>, Vec<u8>);
 #[derive(Default)]
 pub struct FixtureTransport {
     files: Mutex<HashMap<(String, String), Vec<u8>>>,
+    unsupported_paths: Mutex<std::collections::BTreeSet<String>>,
+    directories: Mutex<std::collections::BTreeSet<String>>,
     key: Mutex<String>,
     failure: Mutex<VecDeque<(&'static str, Error)>>,
     path_failures: Mutex<VecDeque<(&'static str, String, Error)>>,
@@ -16,6 +18,8 @@ pub struct FixtureTransport {
     cli_outputs: Mutex<HashMap<String, Vec<u8>>>,
     cli_requests: Mutex<Vec<Vec<String>>>,
     cli_delay: Mutex<std::time::Duration>,
+    io_delay: Mutex<std::time::Duration>,
+    io_started: AtomicUsize,
     home: Mutex<Option<String>>,
     exec_outputs: Mutex<HashMap<String, FixtureOutput>>,
     handshakes: AtomicUsize,
@@ -23,6 +27,29 @@ pub struct FixtureTransport {
     unavailable_database_on_home: Mutex<Option<PathBuf>>,
 }
 impl FixtureTransport {
+    pub fn delay_io(&self, delay: std::time::Duration) {
+        *self.io_delay.lock().unwrap_or_else(|p| p.into_inner()) = delay;
+    }
+    pub fn io_started(&self) -> usize {
+        self.io_started.load(Ordering::SeqCst)
+    }
+    async fn wait_io(&self) {
+        self.io_started.fetch_add(1, Ordering::SeqCst);
+        let delay = *self.io_delay.lock().unwrap_or_else(|p| p.into_inner());
+        tokio::time::sleep(delay).await;
+    }
+    pub fn set_unsupported_path(&self, path: &str) {
+        self.unsupported_paths
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .insert(path.into());
+    }
+    pub fn set_directory(&self, path: &str) {
+        self.directories
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .insert(path.into());
+    }
     pub fn set_exec_output(&self, command: &str, success: bool, stdout: &str, stderr: &str) {
         self.exec_outputs
             .lock()
@@ -116,6 +143,15 @@ impl FixtureTransport {
             .lock()
             .unwrap_or_else(|p| p.into_inner())
             .push(format!("{op} {path}"));
+        if self
+            .unsupported_paths
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .iter()
+            .any(|bad| path == bad || path.starts_with(&format!("{bad}/")))
+        {
+            return Err("ssh_invalid_remote_path");
+        }
         let mut paths = self.path_failures.lock().unwrap_or_else(|p| p.into_inner());
         if paths
             .front()
@@ -298,6 +334,7 @@ impl Connection for FixtureConnection {
             if self.is_closed() {
                 return Err("ssh_network_error");
             }
+            self.transport.wait_io().await;
             self.transport.operation("get", path.as_str())?;
             let content = self.transport.bytes(&self.host, path.as_str());
             if content.as_ref().is_some_and(|s| s.len() > 2 * 1024 * 1024) {
@@ -347,11 +384,16 @@ impl Connection for FixtureConnection {
             result
         })
     }
-    fn list(&self, path: RemotePosixPath) -> RunFuture<'_, Vec<String>> {
+    fn entries(
+        &self,
+        path: RemotePosixPath,
+    ) -> RunFuture<'_, Option<Vec<super::super::io::DirectoryEntry>>> {
         Box::pin(async move {
+            use super::super::io::{DirectoryEntry, EntryKind};
             if self.is_closed() {
                 return Err("ssh_network_error");
             }
+            self.transport.wait_io().await;
             self.transport.operation("list", path.as_str())?;
             let prefix = format!("{}/", path.as_str());
             let files = self
@@ -359,16 +401,43 @@ impl Connection for FixtureConnection {
                 .files
                 .lock()
                 .unwrap_or_else(|p| p.into_inner());
-            let mut names = files
-                .keys()
-                .filter(|(host, _)| host == &self.host)
-                .filter_map(|(_, path)| path.strip_prefix(&prefix))
-                .filter_map(|relative| relative.split('/').next())
-                .map(str::to_owned)
-                .collect::<Vec<_>>();
-            names.sort();
-            names.dedup();
-            Ok(names)
+            let mut entries = std::collections::BTreeMap::new();
+            for ((host, path), _) in files.iter().filter(|((host, _), _)| host == &self.host) {
+                let _ = host;
+                if let Some(relative) = path.strip_prefix(&prefix) {
+                    if let Some((name, _)) = relative.split_once('/') {
+                        entries.insert(name.to_owned(), EntryKind::Directory);
+                    } else {
+                        entries.insert(relative.to_owned(), EntryKind::File);
+                    }
+                }
+            }
+            for path in self
+                .transport
+                .unsupported_paths
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .iter()
+            {
+                if let Some(relative) = path.strip_prefix(&prefix)
+                    && !relative.contains('/')
+                {
+                    entries.insert(relative.into(), EntryKind::Unsupported);
+                }
+            }
+            let exists = !entries.is_empty()
+                || self
+                    .transport
+                    .directories
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .contains(path.as_str());
+            Ok(exists.then(|| {
+                entries
+                    .into_iter()
+                    .map(|(name, kind)| DirectoryEntry { name, kind })
+                    .collect()
+            }))
         })
     }
     fn remove(&self, path: RemotePosixPath) -> RunFuture<'_, ()> {
@@ -383,6 +452,29 @@ impl Connection for FixtureConnection {
                 .unwrap_or_else(|p| p.into_inner())
                 .remove(&(self.host.clone(), path.as_str().into()));
             Ok(())
+        })
+    }
+    fn is_directory(&self, path: RemotePosixPath) -> RunFuture<'_, bool> {
+        Box::pin(async move {
+            if self.is_closed() {
+                return Err("ssh_network_error");
+            }
+            self.transport.operation("stat-directory", path.as_str())?;
+            Ok(self
+                .transport
+                .directories
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .contains(path.as_str())
+                || self
+                    .transport
+                    .files
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .keys()
+                    .any(|(host, file)| {
+                        host == &self.host && file.starts_with(&format!("{}/", path.as_str()))
+                    }))
         })
     }
     fn metadata(&self, path: RemotePosixPath) -> RunFuture<'_, Option<(u64, Option<u64>)>> {

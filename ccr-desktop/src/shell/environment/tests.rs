@@ -676,19 +676,17 @@ async fn ssh_configuration_tabs_load_remote_data_while_later_capabilities_stay_c
     );
     let (handle, shell) = fixture.open(cx);
     ready(cx, handle, &shell).await;
-    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+    wait_resource_ui(cx, handle, |_, cx| {
         shell.read(cx).active_environment.state == ConnectionState::Connected
-    })
-    .await;
+    });
     cx.update_window(handle, |_, window, cx| {
         window.click("nav-claude-code", cx);
         window.click("tool-settings", cx);
     })
     .unwrap();
-    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+    wait_resource_ui(cx, handle, |window, _| {
         window.try_find("platform-source-open").is_some()
-    })
-    .await;
+    });
     assert!(
         fixture
             .transport
@@ -700,21 +698,27 @@ async fn ssh_configuration_tabs_load_remote_data_while_later_capabilities_stay_c
         assert!(window.try_find("platform-source-open").is_some());
         window.click("tool-files", cx);
         assert!(window.try_find("platform-source-open").is_none());
+    })
+    .unwrap();
+    wait_resource_ui(cx, handle, |window, _| {
+        window
+            .try_find("resource-open-claude-user-memory")
+            .is_some()
+    });
+    cx.update_window(handle, |_, window, cx| {
         window.click("tool-auth", cx);
     })
     .unwrap();
-    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+    wait_resource_ui(cx, handle, |window, _| {
         window.try_find("platform-account-save").is_some()
-    })
-    .await;
+    });
     cx.update_window(handle, |_, window, cx| {
         window.click("tool-profiles", cx);
     })
     .unwrap();
-    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+    wait_resource_ui(cx, handle, |window, _| {
         window.try_find("profile-create").is_some()
-    })
-    .await;
+    });
     cx.update_window(handle, |_, window, cx| {
         for id in ["profile-import", "profile-backups", "profile-restore"] {
             assert!(window.try_find(id).is_none());
@@ -722,20 +726,18 @@ async fn ssh_configuration_tabs_load_remote_data_while_later_capabilities_stay_c
         window.click("tool-settings", cx);
     })
     .unwrap();
-    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+    wait_resource_ui(cx, handle, |window, _| {
         window.try_find("platform-source-open").is_some()
-    })
-    .await;
+    });
     action(
         &fixture.services,
         EnvironmentId::Ssh(fixture.host.id.clone()),
         SshAction::Disconnect,
     )
     .await;
-    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+    wait_resource_ui(cx, handle, |_, cx| {
         shell.read(cx).active_environment.state == ConnectionState::Unreachable
-    })
-    .await;
+    });
     cx.update_window(handle, |_, window, _| {
         assert!(window.try_find("platform-source-open").is_none());
         assert!(window.try_find("environment-return-local").is_some());
@@ -746,25 +748,22 @@ async fn ssh_configuration_tabs_load_remote_data_while_later_capabilities_stay_c
         window.click("profile-history", cx);
     })
     .unwrap();
-    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+    wait_resource_ui(cx, handle, |window, _| {
         window.try_find("configuration-history").is_some()
-    })
-    .await;
-    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+    });
+    wait_resource_ui(cx, handle, |_, cx| {
         !shell.read(cx).configurations.read(cx).history_busy(cx)
-    })
-    .await;
+    });
     let before = fixture.transport.batches();
     cx.update_window(handle, |_, window, cx| {
         assert!(window.try_find("environment-return-local").is_none());
         window.click("configuration-history-back", cx);
     })
     .unwrap();
-    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+    wait_resource_ui(cx, handle, |window, _| {
         window.try_find("configuration-history").is_none()
             && window.try_find("environment-return-local").is_some()
-    })
-    .await;
+    });
     cx.update_window(handle, |_, window, _| {
         assert!(window.try_find("configuration-history").is_none());
         assert!(window.try_find("environment-return-local").is_some());
@@ -1698,6 +1697,203 @@ async fn keyboard_menu_selects_hosts_esc_restores_trigger_and_outside_or_navigat
             window.try_find("environment-menu").is_none(),
             "same-route navigation also dismisses the menu"
         );
+    })
+    .unwrap();
+    fixture
+        .runtime
+        .shutdown_after(fixture.services.disconnect_ssh());
+}
+#[track_caller]
+fn wait_resource_ui(
+    cx: &mut TestAppContext,
+    handle: gpui_kit::AnyWindowHandle,
+    mut predicate: impl FnMut(&mut Window, &mut gpui_kit::App) -> bool,
+) {
+    let deadline = std::time::Instant::now() + Duration::from_secs(10);
+    loop {
+        cx.run_until_parked();
+        let ready = cx
+            .update_window(handle, |_, window, cx| {
+                window.render_frame(cx);
+                predicate(window, cx)
+            })
+            .unwrap();
+        if ready {
+            return;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "resource UI condition timed out"
+        );
+        cx.executor().advance_clock(Duration::from_millis(10));
+        std::thread::yield_now();
+    }
+}
+#[gpui_kit::test]
+async fn ssh_offline_mcp_keeps_converter_navigation_input_and_focus(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let fixture = Fixture::new(true).await;
+    fixture.preferences(true);
+    fixture.transport.fail("agent");
+    let (handle, shell) = fixture.open(cx);
+    ready(cx, handle, &shell).await;
+    wait_resource_ui(cx, handle, |_, cx| {
+        shell.read(cx).active_environment.state == ConnectionState::Unreachable
+    });
+    let before = fixture.transport.batches();
+    cx.update_window(handle, |_, window, cx| {
+        window.click("nav-mcp-manager", cx);
+        assert!(window.try_find("environment-return-local").is_some());
+        assert!(window.try_find("tool-converter").is_some());
+        window.click("tool-converter", cx);
+    })
+    .unwrap();
+    wait_resource_ui(cx, handle, |window, _| {
+        window.try_find("converter-acknowledge").is_some()
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.click("converter-acknowledge", cx);
+    })
+    .unwrap();
+    wait_resource_ui(cx, handle, |window, _| {
+        gpui_kit::base::test_support::snapshots(window)
+            .iter()
+            .any(|node| node.label() == Some("Source configuration"))
+    });
+    cx.update_window(handle, |_, window, cx| {
+        assert!(window.try_find("environment-return-local").is_none());
+        let input = gpui_kit::base::test_support::snapshots(window)
+            .into_iter()
+            .find(|node| node.label() == Some("Source configuration"))
+            .unwrap();
+        window.click(input.path().last().cloned().unwrap(), cx);
+        window.input(
+            r#"{"mcpServers":{"fixture":{"command":"fixture-mcp"}}}"#,
+            cx,
+        );
+        window.click("converter-run", cx);
+    })
+    .unwrap();
+    wait_resource_ui(cx, handle, |window, _| {
+        gpui_kit::base::test_support::snapshots(window)
+            .iter()
+            .any(|node| {
+                node.label() == Some("Converted preview")
+                    && node.value().is_some_and(|value| !value.is_empty())
+            })
+    });
+    cx.update_window(handle, |_, window, cx| {
+        let output = gpui_kit::base::test_support::snapshots(window)
+            .into_iter()
+            .find(|node| node.label() == Some("Converted preview"))
+            .unwrap();
+        assert!(output.value().is_some_and(|value| !value.is_empty()));
+        let input_id = gpui_kit::base::test_support::snapshots(window)
+            .into_iter()
+            .find(|node| node.label() == Some("Source configuration"))
+            .unwrap()
+            .path()
+            .last()
+            .cloned()
+            .unwrap();
+        for _ in 0..3 {
+            window.press("f6", cx);
+            if window.find(input_id.clone()).focused() == Some(true) {
+                break;
+            }
+        }
+        assert_eq!(window.find(input_id).focused(), Some(true));
+        window.click("tool-mcp", cx);
+        window.render_frame(cx);
+        assert!(
+            !gpui_kit::base::test_support::snapshots(window)
+                .iter()
+                .any(|node| node.label() == Some("Source configuration"))
+        );
+        assert!(window.try_find("environment-return-local").is_some());
+    })
+    .unwrap();
+    assert_eq!(fixture.transport.batches(), before);
+    fixture
+        .runtime
+        .shutdown_after(fixture.services.disconnect_ssh());
+}
+#[gpui_kit::test]
+async fn ssh_resource_and_mcp_tabs_reach_current_environment_controls(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let fixture = Fixture::new(true).await;
+    fixture.preferences(true);
+    let (handle, shell) = fixture.open(cx);
+    ready(cx, handle, &shell).await;
+    wait_resource_ui(cx, handle, |_, cx| {
+        shell.read(cx).active_environment.state == ConnectionState::Connected
+    });
+    for (nav, id, path) in [
+        ("nav-claude-code", "claude-user-memory", ".claude/CLAUDE.md"),
+        ("nav-codex", "codex-agents", ".codex/AGENTS.md"),
+        ("nav-antigravity", "gemini-md", ".gemini/GEMINI.md"),
+        (
+            "nav-opencode",
+            "opencode-agents",
+            ".config/opencode/AGENTS.md",
+        ),
+    ] {
+        fixture.transport.set_file(
+            "build.fixture.invalid",
+            &format!("/home/fixture/{path}"),
+            "remote instruction fixture",
+        );
+        cx.update_window(handle, |_, window, cx| {
+            window.click(nav, cx);
+            window.click("tool-files", cx);
+        })
+        .unwrap();
+        let open = gpui_kit::SharedString::from(format!("resource-open-{id}"));
+        wait_resource_ui(cx, handle, |window, _| {
+            window.try_find(open.clone()).is_some()
+        });
+        cx.update_window(handle, |_, window, cx| {
+            window.click(open.clone(), cx);
+            window.click("resource-decision-confirm", cx);
+        })
+        .unwrap();
+        wait_resource_ui(cx, handle, |window, _| {
+            gpui_kit::base::test_support::snapshots(window)
+                .iter()
+                .any(|node| node.label() == Some("Scoped instruction file"))
+        });
+        cx.update_window(handle, |_, window, cx| {
+            assert_eq!(
+                gpui_kit::base::test_support::snapshots(window)
+                    .iter()
+                    .find(|node| node.label() == Some("Scoped instruction file"))
+                    .and_then(|node| node.value()),
+                Some("remote instruction fixture")
+            );
+            window.click("resource-editor-close", cx);
+            window.click("tool-extensions", cx);
+        })
+        .unwrap();
+        wait_resource_ui(cx, handle, |window, _| match nav {
+            "nav-claude-code" => window.try_find("claude-extension-source-0").is_some(),
+            "nav-codex" => window.try_find("codex-agent-new").is_some(),
+            _ => gpui_kit::base::test_support::snapshots(window)
+                .iter()
+                .any(|node| {
+                    node.label() == Some("Absolute POSIX project directory on current SSH host")
+                }),
+        });
+    }
+    cx.update_window(handle, |_, window, cx| {
+        window.click("nav-mcp-manager", cx);
+    })
+    .unwrap();
+    wait_resource_ui(cx, handle, |window, _| {
+        window.try_find("mcp-manager").is_some()
+    });
+    cx.update_window(handle, |_, window, _| {
+        assert!(window.try_find("tool-converter").is_some());
+        assert!(window.try_find("environment-return-local").is_none());
     })
     .unwrap();
     fixture

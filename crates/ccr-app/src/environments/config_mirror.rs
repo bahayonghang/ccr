@@ -116,6 +116,16 @@ impl ConfigMirror {
     /// Publish only allowed differences. A partial publication is reported
     /// explicitly; preimage backups remain on the remote host for recovery.
     pub async fn publish(&self, cancel: CancellationToken) -> Result<(), Error> {
+        self.publish_outputs(BTreeSet::new(), cancel).await
+    }
+
+    /// Publish explicitly selected owner outputs, refusing pre-existing unobserved files.
+    pub async fn publish_outputs(
+        &self,
+        outputs: BTreeSet<String>,
+        cancel: CancellationToken,
+    ) -> Result<(), Error> {
+        validate_materialized_paths(outputs.iter().map(String::as_str))?;
         let _guard = self.io.configuration_lock(cancel.clone()).await?;
         self.verify(cancel.clone()).await?;
         let mut paths = self
@@ -159,6 +169,7 @@ impl ConfigMirror {
                 }
             }
         }
+        paths.extend(outputs);
         let mut changes = Vec::new();
         for path in paths {
             let expected = match self.files.get(&path) {

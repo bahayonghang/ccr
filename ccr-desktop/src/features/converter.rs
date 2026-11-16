@@ -78,7 +78,7 @@ impl Converter {
         self.generation += 1;
         let generation = self.generation;
         let key = RequestKey {
-            environment: self.services.environment(),
+            environment: ccr_app::runtime::EnvironmentId::Local("application".into()),
             platform: Platform::Claude,
             generation,
             request_id: generation,

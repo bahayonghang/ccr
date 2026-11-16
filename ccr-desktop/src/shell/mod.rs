@@ -587,7 +587,10 @@ impl Shell {
     }
 
     fn focus_main(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.active_environment.is_ssh() && !self.remote_configuration_destination() {
+        if self.active_environment.is_ssh()
+            && !self.independent_destination()
+            && !self.remote_configuration_destination()
+        {
             window.focus(&self.main_focus, cx);
             window.focus_next(cx);
             return;
@@ -863,6 +866,7 @@ impl Shell {
         if self.active_environment.is_ssh()
             && !self.independent_destination()
             && self.destination != Destination::Commands
+            && self.destination != Destination::McpManager
             && self.platform().is_none()
         {
             return None;
@@ -870,7 +874,13 @@ impl Shell {
         if self.platform().is_some() {
             return Some(self.lens_bar.clone().into_any_element());
         }
-        if self.embeds_lens() {
+        if self.embeds_lens()
+            && !(self.destination == Destination::McpManager
+                && self.active_environment.is_ssh()
+                && (self.active_environment.state != environment::ConnectionState::Connected
+                    || self.active_environment.switching)
+                && self.lens == Lens::Primary)
+        {
             return None;
         }
         let mut capsule = page_header::capsule(cx);
@@ -893,6 +903,7 @@ impl Shell {
             | Destination::Antigravity => self.platform_items(),
             _ if remote
                 && !self.independent_destination()
+                && self.destination != Destination::McpManager
                 && self.destination != Destination::Commands =>
             {
                 return None;

@@ -45,6 +45,19 @@ pub enum Error {
     Ssh(&'static str),
 }
 
+/// Directory identity without reading file bodies or following links.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EntryKind {
+    File,
+    Directory,
+    Unsupported,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DirectoryEntry {
+    pub name: String,
+    pub kind: EntryKind,
+}
+
 /// OS-local roots are provided explicitly, including isolated fixture locks.
 #[derive(Clone)]
 pub struct LocalRoots {
@@ -197,6 +210,31 @@ impl EnvironmentIo {
             }),
             _ => Err(Error::Unsupported),
         }
+    }
+    /// Capture an existing, unlinked project directory using metadata only.
+    pub async fn for_project(
+        &self,
+        root: RemotePosixPath,
+        cancel: CancellationToken,
+    ) -> Result<Self, Error> {
+        if !root.as_str().starts_with('/') {
+            return Err(Error::InvalidPath);
+        }
+        let Adapter::Ssh {
+            workspace,
+            authority,
+        } = &self.adapter
+        else {
+            return Err(Error::Unsupported);
+        };
+        if !workspace
+            .directory_io(authority, root.clone(), cancel)
+            .await
+            .map_err(Error::Ssh)?
+        {
+            return Err(Error::InvalidPath);
+        }
+        self.at_remote_root(root)
     }
     pub async fn metadata(
         &self,
@@ -490,6 +528,29 @@ impl EnvironmentIo {
                 })?,
         }
         Ok(())
+    }
+
+    /// Enumerate resource children, retaining unsupported links as health records.
+    pub async fn entries(
+        &self,
+        relative: &str,
+        cancel: CancellationToken,
+    ) -> Result<Option<Vec<DirectoryEntry>>, Error> {
+        self.roots.relative(relative)?;
+        check_cancel(&cancel)?;
+        let Adapter::Ssh {
+            workspace,
+            authority,
+        } = &self.adapter
+        else {
+            return Err(Error::Unsupported);
+        };
+        let entries = workspace
+            .entries_io(authority, relative, cancel.clone())
+            .await
+            .map_err(Error::Ssh)?;
+        check_cancel(&cancel)?;
+        Ok(entries)
     }
 
     /// List validated child names without interpreting a remote path as an OS path.

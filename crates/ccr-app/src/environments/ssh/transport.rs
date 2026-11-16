@@ -34,15 +34,55 @@ pub(super) trait Connection: Send + Sync {
         content: Vec<u8>,
         cancel: CancellationToken,
     ) -> RunFuture<'_, ()>;
-    fn list(&self, path: RemotePosixPath) -> RunFuture<'_, Vec<String>>;
+    fn entries(
+        &self,
+        path: RemotePosixPath,
+    ) -> RunFuture<'_, Option<Vec<super::super::io::DirectoryEntry>>>;
+    fn list(&self, path: RemotePosixPath) -> RunFuture<'_, Vec<String>> {
+        Box::pin(async move {
+            self.entries(path)
+                .await?
+                .unwrap_or_default()
+                .into_iter()
+                .map(|entry| {
+                    if entry.kind == super::super::io::EntryKind::Unsupported {
+                        Err("ssh_invalid_remote_path")
+                    } else {
+                        Ok(entry.name)
+                    }
+                })
+                .collect()
+        })
+    }
     fn remove(&self, path: RemotePosixPath) -> RunFuture<'_, ()>;
     fn metadata(&self, path: RemotePosixPath) -> RunFuture<'_, Option<(u64, Option<u64>)>>;
+    fn is_directory(&self, path: RemotePosixPath) -> RunFuture<'_, bool>;
 }
 pub(super) async fn bounded<T>(
     cancel: CancellationToken,
     work: impl Future<Output = Result<T, Error>>,
 ) -> Result<T, Error> {
     tokio::select! { biased; _ = cancel.cancelled() => Err("ssh_cancelled"), result = tokio::time::timeout(Duration::from_secs(10), work) => result.map_err(|_| "ssh_network_error")? }
+}
+// 只读取消不能关闭其他页面仍在使用的会话；在原期限内等待已发请求释放句柄。
+pub(super) async fn read_bounded<T>(
+    cancel: CancellationToken,
+    work: impl Future<Output = Result<T, Error>>,
+) -> Result<T, Error> {
+    if cancel.is_cancelled() {
+        return Err("ssh_cancelled");
+    }
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
+    tokio::pin!(work);
+    tokio::select! {
+        biased;
+        _ = cancel.cancelled() => match tokio::time::timeout_at(deadline, work).await {
+            Ok(Ok(_)) => Err("ssh_cancelled"),
+            Ok(Err(error)) => Err(error),
+            Err(_) => Err("ssh_cleanup_failed"),
+        },
+        result = tokio::time::timeout_at(deadline, &mut work) => result.map_err(|_| "ssh_network_error")?,
+    }
 }
 struct Verifier {
     host: String,
@@ -337,6 +377,7 @@ impl Connection for LiveConnection {
                 Ok(raw)
             })
             .await?;
+            ensure_unlinked(&raw, &path).await?;
             let stage = path
                 .with_suffix(&format!(".ccr-tmp-{}", uuid::Uuid::new_v4()))
                 .map_err(|_| "ssh_invalid_remote_path")?;
@@ -407,15 +448,19 @@ impl Connection for LiveConnection {
             result
         })
     }
-    fn list(&self, path: RemotePosixPath) -> RunFuture<'_, Vec<String>> {
+    fn entries(
+        &self,
+        path: RemotePosixPath,
+    ) -> RunFuture<'_, Option<Vec<super::super::io::DirectoryEntry>>> {
         Box::pin(async move {
             let raw = self.sftp().await?;
+            ensure_unlinked(&raw, &path).await?;
             let handle = match raw.opendir(path.as_str()).await {
                 Ok(handle) => handle.handle,
                 Err(russh_sftp::client::error::Error::Status(status))
                     if status.status_code == StatusCode::NoSuchFile =>
                 {
-                    return Ok(Vec::new());
+                    return Ok(None);
                 }
                 Err(_) => return Err("ssh_read_failed"),
             };
@@ -428,12 +473,17 @@ impl Connection for LiveConnection {
                                 if matches!(entry.filename.as_str(), "." | "..") {
                                     continue;
                                 }
-                                if entry.attrs.is_symlink()
-                                    || (!entry.attrs.is_regular() && !entry.attrs.is_dir())
-                                {
-                                    return Err("ssh_invalid_remote_path");
-                                }
-                                names.push(entry.filename);
+                                use super::super::io::{DirectoryEntry, EntryKind};
+                                names.push(DirectoryEntry {
+                                    name: entry.filename,
+                                    kind: if entry.attrs.is_regular() {
+                                        EntryKind::File
+                                    } else if entry.attrs.is_dir() {
+                                        EntryKind::Directory
+                                    } else {
+                                        EntryKind::Unsupported
+                                    },
+                                });
                                 if names.len() > 4096 {
                                     return Err("ssh_file_too_large");
                                 }
@@ -447,7 +497,7 @@ impl Connection for LiveConnection {
                         Err(_) => return Err("ssh_read_failed"),
                     }
                 }
-                Ok(names)
+                Ok(Some(names))
             }
             .await;
             raw.close(handle).await.map_err(|_| "ssh_cleanup_failed")?;
@@ -464,9 +514,26 @@ impl Connection for LiveConnection {
                 .map_err(|_| "ssh_write_outcome_unknown")
         })
     }
+    fn is_directory(&self, path: RemotePosixPath) -> RunFuture<'_, bool> {
+        Box::pin(async move {
+            let raw = self.sftp().await?;
+            ensure_unlinked(&raw, &path).await?;
+            match raw.lstat(path.as_str()).await {
+                Ok(attrs) => Ok(attrs.attrs.is_dir()),
+                Err(russh_sftp::client::error::Error::Status(status))
+                    if status.status_code == StatusCode::NoSuchFile =>
+                {
+                    Ok(false)
+                }
+                Err(_) => Err("ssh_read_failed"),
+            }
+        })
+    }
     fn metadata(&self, path: RemotePosixPath) -> RunFuture<'_, Option<(u64, Option<u64>)>> {
         Box::pin(async move {
-            match self.sftp().await?.lstat(path.as_str()).await {
+            let raw = self.sftp().await?;
+            ensure_unlinked(&raw, &path).await?;
+            match raw.lstat(path.as_str()).await {
                 Ok(attrs) if attrs.attrs.is_regular() => Ok(Some((
                     attrs.attrs.size.unwrap_or_default(),
                     attrs.attrs.mtime.map(|time| u64::from(time) * 1000),
@@ -499,6 +566,7 @@ impl LiveConnection {
     }
 }
 async fn read_sftp(raw: &RawSftpSession, path: &RemotePosixPath) -> Result<Option<Vec<u8>>, Error> {
+    ensure_unlinked(raw, path).await?;
     let handle = match raw
         .open(path.as_str(), OpenFlags::READ, FileAttributes::default())
         .await
@@ -557,4 +625,23 @@ fn rename_payload(old: &str, new: &str) -> Vec<u8> {
         bytes.extend_from_slice(path.as_bytes());
     }
     bytes
+}
+
+async fn ensure_unlinked(raw: &RawSftpSession, path: &RemotePosixPath) -> Result<(), Error> {
+    let mut ancestor = String::new();
+    for part in path.as_str().split('/').filter(|part| !part.is_empty()) {
+        ancestor.push('/');
+        ancestor.push_str(part);
+        match raw.lstat(&ancestor).await {
+            Ok(attrs) if attrs.attrs.is_symlink() => return Err("ssh_invalid_remote_path"),
+            Ok(_) => {}
+            Err(russh_sftp::client::error::Error::Status(status))
+                if status.status_code == StatusCode::NoSuchFile =>
+            {
+                break;
+            }
+            Err(_) => return Err("ssh_read_failed"),
+        }
+    }
+    Ok(())
 }

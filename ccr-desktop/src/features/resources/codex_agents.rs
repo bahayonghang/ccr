@@ -343,10 +343,11 @@ impl CodexAgentsView {
 }
 fn error(cx: &App, value: runtime::Error) -> &'static str {
     match value {
+        runtime::Error::Remote(error) => crate::runtime::remote_resources::message(error),
         runtime::Error::Unsupported => text(
             cx,
-            "Codex agents require the Local environment.",
-            "Codex Agents 仅支持本地环境。",
+            "This Codex agent scope or environment is unsupported.",
+            "不支持此 Codex Agent 作用域或环境。",
         ),
         runtime::Error::Conflict => text(
             cx,
@@ -682,7 +683,20 @@ impl CodexAgentsView {
             )
             .child(
                 Input::new(&self.project)
-                    .aria_label(text(cx, "Absolute project directory", "项目绝对目录"))
+                    .aria_label(
+                        if matches!(
+                            self.services.environment(),
+                            ccr_app::runtime::EnvironmentId::Ssh(_)
+                        ) {
+                            text(
+                                cx,
+                                "Absolute POSIX project directory on current SSH host",
+                                "当前 SSH 主机上的 POSIX 项目绝对路径",
+                            )
+                        } else {
+                            text(cx, "Absolute project directory", "项目绝对目录")
+                        },
+                    )
                     .accessibility_id("codex-agent-project-path"),
             )
             .child(semantics::button(
@@ -711,7 +725,7 @@ impl CodexAgentsView {
                         .on_click(cx.listener(move |this, _, _, cx| {
                             this.request(Read::Open(this.scope.clone(), id.clone()), cx)
                         })),
-                    locked,
+                    locked || agent.unsupported,
                     false,
                     cx,
                 ));

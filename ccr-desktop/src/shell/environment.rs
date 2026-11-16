@@ -218,20 +218,30 @@ impl Shell {
         matches!(
             self.destination,
             Destination::Settings | Destination::Checkin
-        ) || (self.destination == Destination::Commands
-            && matches!(self.lens, Lens::Favorites | Lens::Recent))
+        ) || (self.destination == Destination::McpManager && self.lens == Lens::Converter)
+            || (self.destination == Destination::Commands
+                && matches!(self.lens, Lens::Favorites | Lens::Recent))
     }
     pub(super) fn remote_configuration_destination(&self) -> bool {
-        matches!(
-            (self.platform(), self.lens),
-            (Some(_), Lens::Accounts)
-                | (
-                    Some(Platform::Claude | Platform::Codex | Platform::Grok),
-                    Lens::Profiles | Lens::Auth,
-                )
-                | (Some(Platform::Codex | Platform::OpenCode), Lens::Providers)
-                | (Some(Platform::Codex), Lens::Models)
-        )
+        (self.destination == Destination::McpManager && self.lens == Lens::Primary)
+            || matches!(
+                (self.platform(), self.lens),
+                (
+                    Some(
+                        Platform::Claude | Platform::Codex | Platform::Gemini | Platform::OpenCode
+                    ),
+                    Lens::Files | Lens::Extensions
+                ) | (
+                    Some(Platform::Claude | Platform::Codex | Platform::Gemini),
+                    Lens::Mcp
+                ) | (Some(_), Lens::Accounts)
+                    | (
+                        Some(Platform::Claude | Platform::Codex | Platform::Grok),
+                        Lens::Profiles | Lens::Auth,
+                    )
+                    | (Some(Platform::Codex | Platform::OpenCode), Lens::Providers)
+                    | (Some(Platform::Codex), Lens::Models)
+            )
     }
     pub(super) fn environment_name(&self, cx: &gpui_kit::App) -> String {
         if !self.preferences_loaded {

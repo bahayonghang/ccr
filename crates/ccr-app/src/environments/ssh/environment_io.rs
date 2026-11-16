@@ -56,12 +56,13 @@ impl Workspace {
             .home()
             .join_relative(relative)
             .map_err(|_| "ssh_invalid_remote_path")?;
-        let result = bounded(cancel, authority.0.connection.download(path)).await;
+        let result = transport::read_bounded(cancel, authority.0.connection.download(path)).await;
         match result {
             Ok(content) => {
                 self.check_io(authority)?;
                 Ok(content)
             }
+            Err("ssh_cancelled") => Err("ssh_cancelled"),
             Err(error) => {
                 self.revoke(authority.0.session_id).await?;
                 Err(error)
@@ -137,6 +138,41 @@ impl Workspace {
         result
     }
 
+    pub(crate) async fn directory_io(
+        &self,
+        authority: &IoSession,
+        root: RemotePosixPath,
+        cancel: CancellationToken,
+    ) -> Result<bool, Error> {
+        self.check_io(authority)?;
+        let exists = bounded(cancel, authority.0.connection.is_directory(root)).await?;
+        self.check_io(authority)?;
+        Ok(exists)
+    }
+    pub(crate) async fn entries_io(
+        &self,
+        authority: &IoSession,
+        relative: &str,
+        cancel: CancellationToken,
+    ) -> Result<Option<Vec<super::super::io::DirectoryEntry>>, Error> {
+        self.check_io(authority)?;
+        let path = authority
+            .home()
+            .join_relative(relative)
+            .map_err(|_| "ssh_invalid_remote_path")?;
+        let result = transport::read_bounded(cancel, authority.0.connection.entries(path)).await;
+        match result {
+            Ok(entries) => {
+                self.check_io(authority)?;
+                Ok(entries)
+            }
+            Err(error @ ("ssh_cancelled" | "ssh_invalid_remote_path")) => Err(error),
+            Err(error) => {
+                self.revoke(authority.0.session_id).await?;
+                Err(error)
+            }
+        }
+    }
     pub(crate) async fn list_io(
         &self,
         authority: &IoSession,
@@ -148,12 +184,13 @@ impl Workspace {
             .home()
             .join_relative(relative)
             .map_err(|_| "ssh_invalid_remote_path")?;
-        let result = bounded(cancel, authority.0.connection.list(path)).await;
+        let result = transport::read_bounded(cancel, authority.0.connection.list(path)).await;
         match result {
             Ok(names) => {
                 self.check_io(authority)?;
                 Ok(names)
             }
+            Err("ssh_cancelled") => Err("ssh_cancelled"),
             Err(error) => {
                 self.revoke(authority.0.session_id).await?;
                 Err(error)

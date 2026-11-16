@@ -114,11 +114,35 @@ async fn total_timeout_and_cancel_are_bounded() {
 }
 
 struct ReadServer {
+    link: Option<&'static str>,
+    opened: Arc<std::sync::atomic::AtomicBool>,
     content: Option<Vec<u8>>,
     closed: Arc<std::sync::atomic::AtomicBool>,
 }
 impl russh_sftp::server::Handler for ReadServer {
     type Error = StatusCode;
+    async fn lstat(
+        &mut self,
+        id: u32,
+        path: String,
+    ) -> Result<russh_sftp::protocol::Attrs, StatusCode> {
+        let permissions = if self.link == Some(path.as_str()) {
+            0o120777
+        } else if matches!(path.as_str(), "/home" | "/home/fixture") {
+            0o040700
+        } else if path == "/home/fixture/settings.json" && self.content.is_some() {
+            0o100600
+        } else {
+            return Err(StatusCode::NoSuchFile);
+        };
+        Ok(russh_sftp::protocol::Attrs {
+            id,
+            attrs: FileAttributes {
+                permissions: Some(permissions),
+                ..Default::default()
+            },
+        })
+    }
     fn unimplemented(&self) -> Self::Error {
         StatusCode::OpUnsupported
     }
@@ -129,6 +153,7 @@ impl russh_sftp::server::Handler for ReadServer {
         flags: OpenFlags,
         _: FileAttributes,
     ) -> Result<russh_sftp::protocol::Handle, StatusCode> {
+        self.opened.store(true, std::sync::atomic::Ordering::SeqCst);
         assert_eq!(filename, "/home/fixture/settings.json");
         assert_eq!(flags.bits(), OpenFlags::READ.bits());
         self.content.as_ref().ok_or(StatusCode::NoSuchFile)?;
@@ -184,6 +209,8 @@ async fn production_sftp_reader_handles_missing_empty_binary_chunks_limit_and_cl
         let task = tokio::spawn(russh_sftp::server::run(
             stream,
             ReadServer {
+                link: None,
+                opened: Arc::new(std::sync::atomic::AtomicBool::new(false)),
                 content: content.clone(),
                 closed: closed.clone(),
             },
@@ -208,5 +235,69 @@ async fn production_sftp_reader_handles_missing_empty_binary_chunks_limit_and_cl
         );
         drop(raw);
         task.abort();
+    }
+}
+
+#[tokio::test]
+async fn production_sftp_reader_refuses_linked_leaf_and_ancestors_before_open() {
+    for link in ["/home", "/home/fixture", "/home/fixture/settings.json"] {
+        let (client, stream) = tokio::io::duplex(65536);
+        let opened = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let task = tokio::spawn(russh_sftp::server::run(
+            stream,
+            ReadServer {
+                link: Some(link),
+                opened: opened.clone(),
+                content: Some(b"private".to_vec()),
+                closed: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            },
+        ));
+        let raw = RawSftpSession::new(client);
+        raw.init().await.unwrap();
+        assert_eq!(
+            read_sftp(
+                &raw,
+                &RemotePosixPath::root(Some("/home/fixture/settings.json")).unwrap()
+            )
+            .await,
+            Err("ssh_invalid_remote_path")
+        );
+        assert!(!opened.load(std::sync::atomic::Ordering::SeqCst));
+        drop(raw);
+        task.abort();
+    }
+}
+#[tokio::test(start_paused = true)]
+async fn cancelled_read_cleanup_uses_the_original_deadline_and_discards_late_bytes() {
+    for completes in [false, true] {
+        let started = tokio::time::Instant::now();
+        let cancel = CancellationToken::new();
+        let cancel_worker = cancel.clone();
+        let (result, ()) = tokio::join!(
+            read_bounded(cancel_worker, async {
+                if completes {
+                    tokio::time::sleep(Duration::from_secs(6)).await;
+                    Ok(Some(b"late private data".to_vec()))
+                } else {
+                    std::future::pending::<Result<Option<Vec<u8>>, Error>>().await
+                }
+            }),
+            async {
+                tokio::time::sleep(Duration::from_secs(3)).await;
+                cancel.cancel();
+            }
+        );
+        assert_eq!(
+            result,
+            Err(if completes {
+                "ssh_cancelled"
+            } else {
+                "ssh_cleanup_failed"
+            })
+        );
+        assert_eq!(
+            started.elapsed(),
+            Duration::from_secs(if completes { 6 } else { 10 })
+        );
     }
 }

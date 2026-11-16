@@ -281,10 +281,11 @@ fn notice_text(notice: &Notice, cx: &App) -> &'static str {
             "更改已保存，资源列表已刷新。",
         ),
         Notice::Error(error) => match error {
+            Error::Remote(error) => crate::runtime::remote_resources::message(*error),
             Error::Unsupported => text(
                 cx,
-                "These Claude resources are available only in Local.",
-                "这些 Claude 资源仅在本地环境可用。",
+                "This Claude resource action is unavailable in the selected scope.",
+                "所选作用域不支持此 Claude 资源操作。",
             ),
             Error::Invalid => text(
                 cx,
@@ -644,7 +645,7 @@ impl Render for ClaudeResourcesView {
                         .on_click(
                             cx.listener(move |this, _, _, cx| this.open(name.clone(), false, cx)),
                         ),
-                    self.busy,
+                    self.busy || row.unsupported,
                     false,
                     cx,
                 )),

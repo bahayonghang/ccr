@@ -934,6 +934,7 @@ pub fn parse_scope(value: Option<&str>) -> Option<ClaudeMcpScope> {
 /// An editor captures source identity and its original revision. Never log this snapshot.
 #[derive(Clone)]
 pub struct NativeSnapshot {
+    project_key: Option<String>,
     context: ClaudeMcpContext,
     scope: ClaudeMcpScope,
     root: Map<String, Value>,
@@ -946,6 +947,7 @@ pub fn native_snapshot(
 ) -> Result<NativeSnapshot, String> {
     let (root, token) = read_versioned_json_object(&root_path_for_scope(&context, scope))?;
     Ok(NativeSnapshot {
+        project_key: None,
         context,
         scope,
         root,
@@ -954,19 +956,43 @@ pub fn native_snapshot(
 }
 
 impl NativeSnapshot {
+    /// Bind a remote local-scope key without interpreting it as a local OS path.
+    pub fn with_remote_project_key(mut self, key: String) -> Result<Self, String> {
+        crate::environments::ssh_security::RemotePosixPath::root(Some(&key))
+            .map_err(|_| "Invalid remote project key")?;
+        if self.scope != ClaudeMcpScope::Local {
+            return Err("Invalid project scope".into());
+        }
+        self.project_key = Some(key);
+        Ok(self)
+    }
+    fn servers<'a>(
+        &self,
+        root: &'a mut Map<String, Value>,
+    ) -> Result<&'a mut Map<String, Value>, String> {
+        if let Some(key) = &self.project_key {
+            let projects = ensure_object_field(root, "projects")?;
+            let project = projects
+                .entry(key.clone())
+                .or_insert_with(|| Value::Object(Map::new()))
+                .as_object_mut()
+                .ok_or("Invalid project object")?;
+            ensure_object_field(project, "mcpServers")
+        } else {
+            mcp_servers_for_write(&self.context, self.scope, root)
+        }
+    }
     /// Backend-only batch input; may contain credentials.
     pub fn entries_for_copy(&self) -> Result<Map<String, Value>, String> {
         let mut root = self.root.clone();
-        Ok(mcp_servers_for_write(&self.context, self.scope, &mut root)?.clone())
+        Ok(self.servers(&mut root)?.clone())
     }
 
     /// Backend-only copy input. May contain credentials; never project it into a
     /// list, diagnostic, or editor control.
     pub fn entry_for_copy(&self, name: &str) -> Result<Option<Value>, String> {
         let mut root = self.root.clone();
-        Ok(mcp_servers_for_write(&self.context, self.scope, &mut root)?
-            .get(name)
-            .cloned())
+        Ok(self.servers(&mut root)?.get(name).cloned())
     }
 
     pub fn is_current(&self) -> Result<bool, String> {
@@ -977,7 +1003,7 @@ impl NativeSnapshot {
 
     pub fn contains(&self, name: &str) -> Result<bool, String> {
         let mut root = self.root.clone();
-        Ok(mcp_servers_for_write(&self.context, self.scope, &mut root)?.contains_key(name))
+        Ok(self.servers(&mut root)?.contains_key(name))
     }
 
     /// Returns false for an original-revision conflict. Native drafts are never replayed
@@ -998,7 +1024,7 @@ impl NativeSnapshot {
     ) -> Result<bool, String> {
         use crate::mcp_document::{EntryMutation, validate_entry, validate_name};
         let mut root = self.root.clone();
-        let servers = mcp_servers_for_write(&self.context, self.scope, &mut root)?;
+        let servers = self.servers(&mut root)?;
         for (name, mutation) in mutations {
             validate_name(name).map_err(str::to_string)?;
             match mutation {

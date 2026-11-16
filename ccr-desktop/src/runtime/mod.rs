@@ -13,6 +13,7 @@ pub mod platforms;
 pub mod preferences;
 pub mod profiles;
 mod remote_config;
+pub mod remote_resources;
 pub mod resources;
 pub mod sync;
 pub mod tools;

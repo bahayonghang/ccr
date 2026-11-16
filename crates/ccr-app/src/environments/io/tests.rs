@@ -605,3 +605,119 @@ async fn cancelled_remote_process_with_unconfirmed_disconnect_is_cleanup_failed(
     ));
     assert_eq!(workspace.retained_session_count(), 0);
 }
+#[tokio::test]
+async fn cancelled_read_joins_cleanup_without_revoking_the_current_session_or_returning_bytes() {
+    for (fail_cleanup, replace_session) in
+        [(false, false), (true, false), (false, true), (true, true)]
+    {
+        let h = Harness::new(true).await;
+        let (workspace, transport) = h.remote.as_ref().unwrap();
+        let EnvironmentId::Ssh(id) = h.io.environment() else {
+            panic!("remote");
+        };
+        transport.delay_io(std::time::Duration::from_millis(50));
+        if fail_cleanup {
+            transport.fail_with("get", "ssh_cleanup_failed");
+        }
+        let started = transport.io_started();
+        let cancel = CancellationToken::new();
+        let worker_cancel = cancel.clone();
+        let io = h.io.clone();
+        let work =
+            tokio::spawn(async move { io.read(".claude/settings.json", worker_cancel).await });
+        tokio::time::timeout(std::time::Duration::from_secs(10), async {
+            while transport.io_started() == started {
+                tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+            }
+        })
+        .await
+        .unwrap();
+        if replace_session {
+            workspace.disconnect().await;
+            workspace
+                .connect(id, CancellationToken::new())
+                .await
+                .unwrap();
+        }
+        cancel.cancel();
+        let result = work.await.unwrap();
+        assert!(
+            matches!(result, Err(Error::Ssh(code)) if code == if fail_cleanup { "ssh_cleanup_failed" } else { "ssh_cancelled" })
+        );
+        assert_eq!(workspace.connected(id), replace_session || !fail_cleanup);
+        if !fail_cleanup && !replace_session {
+            assert_eq!(
+                h.io.read(".claude/settings.json", CancellationToken::new())
+                    .await
+                    .unwrap()
+                    .content,
+                "remote original"
+            );
+        }
+    }
+}
+
+#[tokio::test]
+async fn cancelled_typed_entries_join_cleanup_keep_health_and_never_revoke_a_replacement() {
+    for (fail_cleanup, replace_session) in
+        [(false, false), (true, false), (false, true), (true, true)]
+    {
+        let h = Harness::new(true).await;
+        let (workspace, transport) = h.remote.as_ref().unwrap();
+        let EnvironmentId::Ssh(id) = h.io.environment() else {
+            panic!("remote");
+        };
+        transport.delay_io(std::time::Duration::from_millis(50));
+        if fail_cleanup {
+            transport.fail_with("list", "ssh_cleanup_failed");
+        }
+        let started = transport.io_started();
+        let cancel = CancellationToken::new();
+        let worker_cancel = cancel.clone();
+        let io = h.io.clone();
+        let work = tokio::spawn(async move { io.entries(".claude", worker_cancel).await });
+        tokio::time::timeout(std::time::Duration::from_secs(10), async {
+            while transport.io_started() == started {
+                tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+            }
+        })
+        .await
+        .unwrap();
+        if replace_session {
+            workspace.disconnect().await;
+            workspace
+                .connect(id, CancellationToken::new())
+                .await
+                .unwrap();
+        }
+        cancel.cancel();
+        let result = work.await.unwrap();
+        assert!(
+            matches!(result, Err(Error::Ssh(code)) if code == if fail_cleanup { "ssh_cleanup_failed" } else { "ssh_cancelled" })
+        );
+        assert_eq!(workspace.connected(id), replace_session || !fail_cleanup);
+    }
+    let h = Harness::new(true).await;
+    let (workspace, transport) = h.remote.as_ref().unwrap();
+    let EnvironmentId::Ssh(id) = h.io.environment() else {
+        panic!("remote");
+    };
+    transport.set_unsupported_path("/home/fixture/.claude/shared");
+    let entries =
+        h.io.entries(".claude", CancellationToken::new())
+            .await
+            .unwrap()
+            .unwrap();
+    assert!(
+        entries
+            .iter()
+            .any(|entry| entry.name == "shared" && entry.kind == EntryKind::Unsupported)
+    );
+    assert!(workspace.connected(id));
+    assert!(matches!(
+        h.io.entries(".claude/shared", CancellationToken::new())
+            .await,
+        Err(Error::Ssh("ssh_invalid_remote_path"))
+    ));
+    assert!(workspace.connected(id));
+}

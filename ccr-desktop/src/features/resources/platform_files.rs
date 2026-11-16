@@ -285,17 +285,18 @@ fn title(kind: Kind, cx: &App) -> &'static str {
     match kind {
         Kind::OpenCodeAgent => text(cx, "Agents", "代理配置"),
         Kind::OpenCodeCommand => text(cx, "Commands", "命令"),
-        Kind::OpenCodePlugin => text(cx, "Local plugins", "本地插件"),
+        Kind::OpenCodePlugin => text(cx, "Installed plugins", "已安装插件"),
         Kind::AntigravityCommand => text(cx, "Slash commands", "斜杠命令"),
         Kind::Extension => text(cx, "Extensions", "扩展"),
     }
 }
 fn error_text(error: Error, cx: &App) -> &'static str {
     match error {
+        Error::Remote(error) => crate::runtime::remote_resources::message(error),
         Error::Unsupported => text(
             cx,
-            "This resource or scope is unavailable. Extensions are read-only and Local only.",
-            "此资源或作用域不可用。扩展只读，仅支持本地环境。",
+            "This resource or scope is unavailable. Extension manifests and plugin lists are read-only.",
+            "此资源或作用域不可用。扩展 manifest 与插件清单只读。",
         ),
         Error::Invalid => text(
             cx,
@@ -397,7 +398,7 @@ impl Render for PlatformFilesView {
                     )
                 })),
         );
-        root=root.child(div().flex_shrink_0().child(match self.kind{Kind::OpenCodeAgent|Kind::OpenCodeCommand=>text(cx,"Global OpenCode resources use ~/.config/opencode. Project resources use .opencode. Full Markdown preserves frontmatter and body.","OpenCode 全局资源位于 ~/.config/opencode，项目资源位于 .opencode。完整 Markdown 保留前置元数据与正文。"),Kind::OpenCodePlugin=>text(cx,"Local plugin names and paths only. Plugin code is not opened or executed.","仅列出本地插件名称与路径，不读取或执行插件代码。"),Kind::AntigravityCommand=>text(cx,"Antigravity slash commands retain ~/.gemini/commands and project .gemini/commands. Nested TOML file names are supported.","Antigravity 斜杠命令沿用 ~/.gemini/commands 与项目 .gemini/commands，支持子目录 TOML 文件名。"),Kind::Extension=>text(cx,"Existing extensions in ~/.gemini/antigravity-cli/extensions. Manifests are read-only; this page does not install or uninstall extensions.","查看 ~/.gemini/antigravity-cli/extensions 中已有扩展。manifest 只读，此页不安装或卸载扩展。")}));
+        root=root.child(div().flex_shrink_0().child(match self.kind{Kind::OpenCodeAgent|Kind::OpenCodeCommand=>text(cx,"Global OpenCode resources use ~/.config/opencode. Project resources use .opencode. Full Markdown preserves frontmatter and body.","OpenCode 全局资源位于 ~/.config/opencode，项目资源位于 .opencode。完整 Markdown 保留前置元数据与正文。"),Kind::OpenCodePlugin=>text(cx,"Installed plugin names and paths only. Plugin code is not opened or executed.","仅列出已安装插件名称与路径，不读取或执行插件代码。"),Kind::AntigravityCommand=>text(cx,"Antigravity slash commands retain ~/.gemini/commands and project .gemini/commands. Nested TOML file names are supported.","Antigravity 斜杠命令沿用 ~/.gemini/commands 与项目 .gemini/commands，支持子目录 TOML 文件名。"),Kind::Extension=>text(cx,"Existing extensions in ~/.gemini/antigravity-cli/extensions. Manifests are read-only; this page does not install or uninstall extensions.","查看 ~/.gemini/antigravity-cli/extensions 中已有扩展。manifest 只读，此页不安装或卸载扩展。")}));
         if self.kind != Kind::Extension {
             root = root.child(
                 div()
@@ -421,7 +422,20 @@ impl Render for PlatformFilesView {
                     ))
                     .child(
                         Input::new(&self.project)
-                            .aria_label(text(cx, "Absolute project directory", "项目绝对路径"))
+                            .aria_label(
+                                if matches!(
+                                    self.services.environment(),
+                                    ccr_app::runtime::EnvironmentId::Ssh(_)
+                                ) {
+                                    text(
+                                        cx,
+                                        "Absolute POSIX project directory on current SSH host",
+                                        "当前 SSH 主机上的 POSIX 项目绝对路径",
+                                    )
+                                } else {
+                                    text(cx, "Absolute project directory", "项目绝对路径")
+                                },
+                            )
                             .accessibility_id("platform-file-project-path")
                             .disabled(locked)
                             .w(px(320.)),
@@ -714,7 +728,11 @@ impl Render for PlatformFilesView {
                     ""
                 });
             if self.kind == Kind::OpenCodePlugin {
-                item = item.child(format!("{} · {} bytes", row.path, row.bytes));
+                item = if row.unsupported {
+                    item.child(row.path)
+                } else {
+                    item.child(format!("{} · {} bytes", row.path, row.bytes))
+                };
             } else {
                 item = item.child(semantics::button(
                     Button::new(("platform-file-open", index))
@@ -723,7 +741,7 @@ impl Render for PlatformFilesView {
                         .on_click(
                             cx.listener(move |this, _, _, cx| this.open(key.clone(), false, cx)),
                         ),
-                    locked,
+                    locked || row.unsupported,
                     false,
                     cx,
                 ));

@@ -1,5 +1,7 @@
 //! Source-bound MCP edit sessions. Opaque snapshots never expose stored secrets to UI.
+use crate::runtime::remote_resources::{self as remote, Remote};
 use ccr_app::environments::EnvironmentPolicy;
+use ccr_app::resources::environment::Family;
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -58,6 +60,7 @@ pub(super) enum EditDocument {
 }
 
 pub struct McpEditSession {
+    pub(super) remote: Remote,
     pub(super) platform: ccr_app::runtime::Platform,
     pub(super) environment: EnvironmentId,
     pub(super) document: EditDocument,
@@ -88,26 +91,56 @@ pub(super) fn project_path(source: &ConfigSource, path: &Path) -> Result<PathBuf
     Ok(path)
 }
 
+#[cfg(test)]
 pub(super) fn begin(
     source: &ConfigSource,
     environment: &EnvironmentId,
     target: McpTarget,
 ) -> Result<McpEditSession, McpError> {
-    if EnvironmentPolicy::LocalOnly.admit(environment).is_err() {
+    begin_at(source, environment, target, None)
+}
+fn begin_at(
+    source: &ConfigSource,
+    environment: &EnvironmentId,
+    target: McpTarget,
+    remote: Remote,
+) -> Result<McpEditSession, McpError> {
+    if remote.is_none() && EnvironmentPolicy::LocalOnly.admit(environment).is_err() {
         return Err(McpError::Unsupported);
     }
-    let roots = roots(source)?;
+    let roots = match &remote {
+        Some(remote) => crate::runtime::remote_config::roots(&remote.mirror),
+        None => roots(source)?,
+    };
     let platform = target.platform();
+    let remote_project_key = if remote.is_some() {
+        match &target {
+            McpTarget::ClaudeLocal(path) => Some(path.to_str().ok_or(McpError::Scope)?.to_owned()),
+            _ => None,
+        }
+    } else {
+        None
+    };
     let document = match target {
         McpTarget::ClaudeUser | McpTarget::ClaudeLocal(_) | McpTarget::ClaudeProject(_) => {
             let (scope, project_root) = match target {
                 McpTarget::ClaudeUser => (ClaudeMcpScope::User, roots.home.clone()),
-                McpTarget::ClaudeLocal(path) => {
-                    (ClaudeMcpScope::Local, project_path(source, &path)?)
-                }
-                McpTarget::ClaudeProject(path) => {
-                    (ClaudeMcpScope::Project, project_path(source, &path)?)
-                }
+                McpTarget::ClaudeLocal(path) => (
+                    ClaudeMcpScope::Local,
+                    if remote.is_some() {
+                        path
+                    } else {
+                        project_path(source, &path)?
+                    },
+                ),
+                McpTarget::ClaudeProject(path) => (
+                    ClaudeMcpScope::Project,
+                    if let Some(remote) = &remote {
+                        remote.root().into()
+                    } else {
+                        project_path(source, &path)?
+                    },
+                ),
                 _ => return Err(McpError::UnsupportedSource),
             };
             EditDocument::Claude(
@@ -151,7 +184,16 @@ pub(super) fn begin(
             }
         }
     };
+    let document = match (document, remote_project_key) {
+        (EditDocument::Claude(snapshot), Some(key)) => EditDocument::Claude(
+            snapshot
+                .with_remote_project_key(key)
+                .map_err(|_| McpError::Scope)?,
+        ),
+        (document, _) => document,
+    };
     Ok(McpEditSession {
+        remote,
         platform,
         environment: environment.clone(),
         document,
@@ -159,6 +201,43 @@ pub(super) fn begin(
     })
 }
 
+pub(super) fn begin_remote(
+    source: &ConfigSource,
+    environment: &EnvironmentId,
+    target: McpTarget,
+    io: Result<Option<ccr_app::environments::io::EnvironmentIo>, ccr_app::environments::io::Error>,
+    cancel: tokio_util::sync::CancellationToken,
+) -> Result<McpEditSession, McpError> {
+    let mut family = match target {
+        McpTarget::Codex => Family::McpCodex,
+        McpTarget::Antigravity => Family::McpAntigravity,
+        _ => Family::McpClaude,
+    };
+    let io = match (&target, io.map_err(McpError::Remote)?) {
+        (McpTarget::ClaudeProject(path), Some(io)) => {
+            let root = ccr_app::environments::ssh_security::RemotePosixPath::root(path.to_str())
+                .map_err(|_| McpError::Scope)?;
+            family = Family::McpProject;
+            Some(
+                tokio::runtime::Handle::current()
+                    .block_on(io.for_project(root, cancel.clone()))
+                    .map_err(McpError::Remote)?,
+            )
+        }
+        (McpTarget::ClaudeLocal(path), Some(io)) => {
+            let root = ccr_app::environments::ssh_security::RemotePosixPath::root(path.to_str())
+                .map_err(|_| McpError::Scope)?;
+            tokio::runtime::Handle::current()
+                .block_on(io.for_project(root, cancel.clone()))
+                .map_err(McpError::Remote)?;
+            Some(io)
+        }
+        (_, io) => io,
+    };
+    let remote =
+        remote::capture(Ok(io), family, Default::default(), cancel).map_err(McpError::Remote)?;
+    begin_at(source, environment, target, remote)
+}
 fn mutation_error(code: &str) -> McpError {
     match code {
         "mcp_name_exists" => McpError::Duplicate,
@@ -208,22 +287,45 @@ impl McpEditSession {
         Ok(McpFormFields { command, url_key })
     }
 
+    #[cfg(test)]
     pub(super) fn save(
         &self,
         environment: &EnvironmentId,
         name: &str,
         mutation: EntryMutation,
     ) -> Result<(), McpError> {
-        self.save_batch(environment, &[(name.to_owned(), mutation)])
+        self.save_batch_with_cancel(
+            environment,
+            &[(name.to_owned(), mutation)],
+            tokio_util::sync::CancellationToken::new(),
+        )
     }
 
+    #[cfg(test)]
     pub(super) fn save_batch(
         &self,
         environment: &EnvironmentId,
         mutations: &[(String, EntryMutation)],
     ) -> Result<(), McpError> {
+        self.save_batch_with_cancel(
+            environment,
+            mutations,
+            tokio_util::sync::CancellationToken::new(),
+        )
+    }
+    pub(super) fn save_batch_with_cancel(
+        &self,
+        environment: &EnvironmentId,
+        mutations: &[(String, EntryMutation)],
+        cancel: tokio_util::sync::CancellationToken,
+    ) -> Result<(), McpError> {
+        if cancel.is_cancelled() {
+            return Err(McpError::Remote(
+                ccr_app::environments::io::Error::Cancelled,
+            ));
+        }
         if *environment != self.environment
-            || EnvironmentPolicy::LocalOnly.admit(environment).is_err()
+            || (self.remote.is_none() && EnvironmentPolicy::LocalOnly.admit(environment).is_err())
         {
             return Err(McpError::Unsupported);
         }
@@ -280,6 +382,7 @@ impl McpEditSession {
             }
         };
         if saved {
+            remote::publish(&self.remote, cancel).map_err(McpError::Remote)?;
             Ok(())
         } else {
             Err(McpError::Conflict)
@@ -301,11 +404,12 @@ impl Services {
         let scope = self.platform_scope;
         let source = self.source.clone();
         let environment = key.environment.clone();
-        self.executor.read(key, move |_, _| {
+        let io = self.resource_io(&key.environment);
+        self.executor.read(key, move |cancel, _| {
             if scope.is_some_and(|platform| platform != target.platform()) {
                 return Err(McpError::UnsupportedSource);
             }
-            begin(&source, &environment, target).map(Arc::new)
+            begin_remote(&source, &environment, target, io, cancel).map(Arc::new)
         })
     }
 
@@ -326,10 +430,9 @@ impl Services {
             if scope.is_some_and(|platform| platform != session.platform) {
                 return Completion::Failed(McpError::UnsupportedSource);
             }
-            match session
-                .check_source(&source)
-                .and_then(|()| session.save(&environment, &name, mutation))
-            {
+            match session.check_source(&source).and_then(|()| {
+                session.save_batch_with_cancel(&environment, &[(name, mutation)], cancel)
+            }) {
                 Ok(()) => Completion::Success(()),
                 Err(error) => Completion::Failed(error),
             }

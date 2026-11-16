@@ -157,7 +157,15 @@ impl McpEditSession {
         value.ok_or(McpError::Missing)
     }
 
-    pub(super) fn is_current(&self) -> Result<bool, McpError> {
+    pub(super) fn is_current(
+        &self,
+        cancel: tokio_util::sync::CancellationToken,
+    ) -> Result<bool, McpError> {
+        if let Some(remote) = &self.remote {
+            tokio::runtime::Handle::current()
+                .block_on(remote.mirror.verify(cancel))
+                .map_err(McpError::Remote)?;
+        }
         match &self.document {
             EditDocument::Claude(snapshot) => snapshot.is_current().map_err(|_| McpError::Storage),
             EditDocument::Standard {
@@ -168,15 +176,23 @@ impl McpEditSession {
 }
 
 impl McpCopySession {
-    fn save(&self, environment: &EnvironmentId, name: &str) -> Result<(), McpError> {
+    fn save(
+        &self,
+        environment: &EnvironmentId,
+        name: &str,
+        cancel: tokio_util::sync::CancellationToken,
+    ) -> Result<(), McpError> {
         if self.source.environment != *environment {
             return Err(McpError::Unsupported);
         }
-        if !self.source.is_current()? {
+        if !self.source.is_current(cancel.clone())? {
             return Err(McpError::Conflict);
         }
-        self.target
-            .save(environment, name, EntryMutation::Add(self.entry.clone()))
+        self.target.save_batch_with_cancel(
+            environment,
+            &[(name.to_owned(), EntryMutation::Add(self.entry.clone()))],
+            cancel,
+        )
     }
 }
 
@@ -190,7 +206,8 @@ impl Services {
         let scope = self.platform_scope;
         let config = self.source.clone();
         let environment = key.environment.clone();
-        self.executor.read(key, move |_, _| {
+        let io = self.resource_io(&key.environment);
+        self.executor.read(key, move |cancel, _| {
             if scope.is_some_and(|platform| {
                 target.platform() != platform
                     || !McpTarget::for_entry(&source)
@@ -198,10 +215,15 @@ impl Services {
             }) {
                 return Err(McpError::UnsupportedSource);
             }
-            let source_session =
-                editor::begin(&config, &environment, McpTarget::for_entry(&source)?)?;
+            let source_session = editor::begin_remote(
+                &config,
+                &environment,
+                McpTarget::for_entry(&source)?,
+                io.clone(),
+                cancel.clone(),
+            )?;
             let entry = portable_entry(source_session.entry_for_copy(&source.name)?, &target)?;
-            let target = editor::begin(&config, &environment, target)?;
+            let target = editor::begin_remote(&config, &environment, target, io, cancel)?;
             Ok(Arc::new(McpCopySession {
                 source: source_session,
                 target,
@@ -232,7 +254,7 @@ impl Services {
                 .source
                 .check_source(&source)
                 .and_then(|()| session.target.check_source(&source))
-                .and_then(|()| session.save(&environment, &name))
+                .and_then(|()| session.save(&environment, &name, cancel))
             {
                 Ok(()) => Completion::Success(()),
                 Err(error) => Completion::Failed(error),

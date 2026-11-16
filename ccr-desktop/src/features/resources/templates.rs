@@ -252,6 +252,7 @@ impl Render for TemplatesView {
                 .on_click(cx.listener(|_, _, _, cx| cx.emit(TemplateEvent::Close))), blocked, false, cx));
         if let Some(error) = self.error {
             let label = match error {
+                Error::Remote(error) => crate::runtime::remote_resources::message(error),
                 Error::Conflict => text(
                     cx,
                     "The preset library changed. Your draft is retained. Close and reopen templates before retrying.",

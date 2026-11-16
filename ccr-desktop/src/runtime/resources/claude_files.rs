@@ -1,7 +1,8 @@
 //! Captured local Claude resources; remote requests refuse before resolving paths.
-use super::roots;
+use crate::runtime::remote_resources::{self as remote, Remote};
 use crate::runtime::{ConfigSource, Services};
 use ccr_app::environments::EnvironmentPolicy;
+use ccr_app::resources::environment::Family;
 use ccr_app::{
     platform_settings::{Document, Format},
     resources::{claude_collections as collections, claude_files as files},
@@ -41,6 +42,7 @@ impl Kind {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
+    Remote(ccr_app::environments::io::Error),
     Unsupported,
     Invalid,
     UnsafePath,
@@ -76,6 +78,7 @@ impl From<collections::Error> for Error {
 
 #[derive(Clone)]
 pub struct Row {
+    pub unsupported: bool,
     pub name: String,
     pub enabled: Option<bool>,
 }
@@ -85,6 +88,7 @@ enum DocumentSession {
     Collection(collections::Session),
 }
 pub struct Session {
+    remote: Remote,
     document: DocumentSession,
     environment: EnvironmentId,
     pub kind: Kind,
@@ -127,10 +131,20 @@ pub enum Outcome {
     Committed,
 }
 
+#[cfg(test)]
 fn execute(source: &ConfigSource, key: &RequestKey, command: Command) -> Result<Outcome, Error> {
-    if EnvironmentPolicy::LocalOnly
-        .admit(&key.environment)
-        .is_err()
+    execute_at(source, key, command, None)
+}
+fn execute_at(
+    source: &ConfigSource,
+    key: &RequestKey,
+    command: Command,
+    remote: Remote,
+) -> Result<Outcome, Error> {
+    if (remote.is_none()
+        && EnvironmentPolicy::LocalOnly
+            .admit(&key.environment)
+            .is_err())
         || key.platform != Platform::Claude
     {
         return Err(Error::Unsupported);
@@ -168,7 +182,7 @@ fn execute(source: &ConfigSource, key: &RequestKey, command: Command) -> Result<
         }
         return Ok(Outcome::Committed);
     }
-    let roots = roots(source).map_err(|_| Error::Storage)?;
+    let roots = remote::roots(source, &remote).map_err(|_| Error::Storage)?;
     // 所有 Claude 用户资源共享捕获的配置根；settings 文件覆盖不改变资源根。
     let store = files::Store::new(
         roots.claude.config_dir.clone(),
@@ -187,11 +201,12 @@ fn execute(source: &ConfigSource, key: &RequestKey, command: Command) -> Result<
     );
     match command {
         Command::List(kind) => {
-            let rows = if let Some(file) = kind.file() {
+            let mut rows: Vec<Row> = if let Some(file) = kind.file() {
                 store
                     .list(file)?
                     .into_iter()
                     .map(|row| Row {
+                        unsupported: false,
                         name: row.name,
                         enabled: None,
                     })
@@ -200,11 +215,19 @@ fn execute(source: &ConfigSource, key: &RequestKey, command: Command) -> Result<
                 collections::list(&settings, kind.collection().ok_or(Error::Invalid)?)?
                     .into_iter()
                     .map(|row| Row {
+                        unsupported: false,
                         name: row.name,
                         enabled: Some(row.enabled),
                     })
                     .collect()
             };
+            if let Some(remote) = &remote {
+                rows.extend(remote.unsupported.iter().map(|path| Row {
+                    name: format!("Unsupported source / 不支持的来源: {path}"),
+                    enabled: None,
+                    unsupported: true,
+                }));
+            }
             Ok(Outcome::Listed(rows))
         }
         Command::Open {
@@ -236,18 +259,141 @@ fn execute(source: &ConfigSource, key: &RequestKey, command: Command) -> Result<
                 DocumentSession::Collection(session) => session.path().to_path_buf(),
             };
             Ok(Outcome::Opened(Arc::new(Session {
+                source: remote
+                    .as_ref()
+                    .map(|r| r.label(&source).map(std::path::PathBuf::from))
+                    .transpose()
+                    .map_err(Error::Remote)?
+                    .unwrap_or(source),
+                remote,
                 document,
                 environment: key.environment.clone(),
                 kind,
                 name,
                 creating,
-                source,
             })))
         }
         Command::Commit { .. } => Err(Error::Invalid),
     }
 }
 
+fn run(
+    source: &ConfigSource,
+    key: &RequestKey,
+    command: Command,
+    io: Result<Option<ccr_app::environments::io::EnvironmentIo>, ccr_app::environments::io::Error>,
+    cancel: tokio_util::sync::CancellationToken,
+) -> Result<Outcome, Error> {
+    if let Command::List(kind) = &command
+        && let Some(file) = kind.file()
+        && let Some(io) = io.clone().map_err(Error::Remote)?
+    {
+        let root = format!(".claude/{}", file.directory());
+        let mut pending = vec![(root.clone(), 0)];
+        let mut rows = Vec::new();
+        let mut visited = 0;
+        while let Some((directory, depth)) = pending.pop() {
+            let entries = match tokio::runtime::Handle::current()
+                .block_on(io.entries(&directory, cancel.clone()))
+            {
+                Ok(entries) => entries.unwrap_or_default(),
+                Err(ccr_app::environments::io::Error::Ssh("ssh_invalid_remote_path")) => {
+                    rows.push(Row {
+                        name: format!("Unsupported source / 不支持的来源: {directory}"),
+                        enabled: None,
+                        unsupported: true,
+                    });
+                    continue;
+                }
+                Err(error) => return Err(Error::Remote(error)),
+            };
+            for entry in entries {
+                visited += 1;
+                if visited > 4096 {
+                    return Err(Error::TooLarge);
+                }
+                let path = format!("{directory}/{}", entry.name);
+                if entry.kind == ccr_app::environments::io::EntryKind::Unsupported
+                    || ccr_app::environments::config_mirror::validate_materialized_paths([
+                        path.as_str()
+                    ])
+                    .is_err()
+                {
+                    rows.push(Row {
+                        name: format!("Unsupported source / 不支持的来源: {path}"),
+                        enabled: None,
+                        unsupported: true,
+                    });
+                    continue;
+                }
+                if entry.kind == ccr_app::environments::io::EntryKind::Directory {
+                    if depth >= 16 {
+                        return Err(Error::TooLarge);
+                    }
+                    pending.push((path, depth + 1));
+                } else if entry.name.ends_with(".md") {
+                    let name = path
+                        .strip_prefix(&format!("{root}/"))
+                        .ok_or(Error::Invalid)?;
+                    if files::validate_name(name).is_err() {
+                        rows.push(Row {
+                            name: format!("Unsupported source / 不支持的来源: {path}"),
+                            enabled: None,
+                            unsupported: true,
+                        });
+                        continue;
+                    }
+                    if rows.len() >= 1000 {
+                        return Err(Error::TooLarge);
+                    }
+                    rows.push(Row {
+                        name: path
+                            .strip_prefix(&format!("{root}/"))
+                            .ok_or(Error::Invalid)?
+                            .into(),
+                        enabled: None,
+                        unsupported: false,
+                    });
+                }
+            }
+        }
+        rows.sort_by(|a, b| a.name.cmp(&b.name));
+        return Ok(Outcome::Listed(rows));
+    }
+    let writing = matches!(command, Command::Commit { .. });
+    let mut targets = std::collections::BTreeSet::new();
+    if let Command::Open { kind, name, .. } = &command
+        && let Some(kind) = kind.file()
+    {
+        targets.insert(format!(".claude/{}/{name}", kind.directory()));
+    }
+    let remote = match &command {
+        Command::Commit { session, .. } => session.remote.clone(),
+        _ => remote::capture(
+            io,
+            match &command {
+                Command::List(Kind::Rules)
+                | Command::Open {
+                    kind: Kind::Rules, ..
+                } => Family::ClaudeRules,
+                Command::List(Kind::OutputStyles)
+                | Command::Open {
+                    kind: Kind::OutputStyles,
+                    ..
+                } => Family::ClaudeStyles,
+                _ => Family::ClaudeCollections,
+            },
+            targets,
+            cancel.clone(),
+        )
+        .map_err(Error::Remote)?,
+    };
+    let result = execute_at(source, key, command, remote.clone())?;
+    if writing {
+        remote::publish(&remote, cancel).map_err(Error::Remote)?;
+    }
+    Ok(result)
+}
 impl Services {
     pub fn claude_resource_request(
         &self,
@@ -256,19 +402,21 @@ impl Services {
     ) -> Result<TaskSubscription<Outcome, Error>, AdmissionError> {
         let source = self.source.clone();
         let run_key = key.clone();
+        let io = self.resource_io(&key.environment);
         if matches!(command, Command::Commit { .. }) {
             self.executor.job(key, move |cancel, _| {
                 if cancel.is_cancelled() {
                     return Completion::Cancelled;
                 }
-                match execute(&source, &run_key, command) {
+                match run(&source, &run_key, command, io, cancel) {
                     Ok(result) => Completion::Success(result),
                     Err(error) => Completion::Failed(error),
                 }
             })
         } else {
-            self.executor
-                .read(key, move |_, _| execute(&source, &run_key, command))
+            self.executor.read(key, move |cancel, _| {
+                run(&source, &run_key, command, io, cancel)
+            })
         }
     }
 }

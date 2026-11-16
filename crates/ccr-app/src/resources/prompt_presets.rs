@@ -7,6 +7,7 @@ use std::path::Path;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
+    Remote(crate::environments::io::Error),
     Invalid,
     Storage,
     Conflict,
@@ -15,6 +16,7 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
+            Self::Remote(_) => "prompt_preset_remote_failed",
             Self::Invalid => "prompt_preset_invalid",
             Self::Storage => "prompt_preset_storage_failed",
             Self::Conflict => "prompt_preset_conflict",
