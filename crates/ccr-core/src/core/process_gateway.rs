@@ -699,7 +699,9 @@ mod tests {
         let mut process = ManagedProcess::spawn(command).expect("managed parent");
 
         let grandchild_pid = wait_for_pid_file(&pid_file).await;
-        assert!(process_is_running(grandchild_pid));
+        // 固定原进程对象，避免清理后按 PID 再打开时命中系统复用的新进程。
+        let grandchild = open_test_process(grandchild_pid).expect("open fixture descendant");
+        assert!(process_handle_is_running(&grandchild));
 
         process
             .terminate_tree(Duration::from_secs(1))
@@ -707,7 +709,7 @@ mod tests {
             .expect("terminate managed tree");
         tokio::time::sleep(Duration::from_millis(100)).await;
 
-        assert!(!process_is_running(grandchild_pid));
+        assert!(!process_handle_is_running(&grandchild));
     }
 
     #[cfg(unix)]
@@ -1062,27 +1064,43 @@ mod tests {
 
     #[cfg(windows)]
     fn process_is_running(pid: u32) -> bool {
+        open_test_process(pid).is_some_and(|handle| process_handle_is_running(&handle))
+    }
+
+    #[cfg(windows)]
+    fn open_test_process(pid: u32) -> Option<std::os::windows::io::OwnedHandle> {
+        use std::os::windows::io::FromRawHandle;
         const SYNCHRONIZE: u32 = 0x0010_0000;
-        const WAIT_TIMEOUT: u32 = 258;
         unsafe extern "system" {
             fn OpenProcess(
                 desired_access: u32,
                 inherit_handle: i32,
                 process_id: u32,
             ) -> *mut std::ffi::c_void;
-            fn WaitForSingleObject(handle: *mut std::ffi::c_void, milliseconds: u32) -> u32;
-            fn CloseHandle(handle: *mut std::ffi::c_void) -> i32;
         }
-
-        // SAFETY: the opened synchronization handle is closed before returning.
+        // 安全：只打开同步权限，非空句柄交给 OwnedHandle 唯一持有并关闭。
         unsafe {
             let handle = OpenProcess(SYNCHRONIZE, 0, pid);
             if handle.is_null() {
-                return false;
+                None
+            } else {
+                Some(std::os::windows::io::OwnedHandle::from_raw_handle(handle))
             }
-            let running = WaitForSingleObject(handle, 0) == WAIT_TIMEOUT;
-            CloseHandle(handle);
-            running
         }
+    }
+
+    #[cfg(windows)]
+    fn process_handle_is_running(handle: &std::os::windows::io::OwnedHandle) -> bool {
+        use std::os::windows::io::AsRawHandle;
+        unsafe extern "system" {
+            fn WaitForSingleObject(handle: *mut std::ffi::c_void, milliseconds: u32) -> u32;
+        }
+        // 安全：借用仍持有的同步句柄；查询失败不能冒充已退出。
+        let status = unsafe { WaitForSingleObject(handle.as_raw_handle(), 0) };
+        assert!(
+            status == 0 || status == 258,
+            "fixture process wait failed: {status}"
+        );
+        status == 258
     }
 }
