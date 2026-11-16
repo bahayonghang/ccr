@@ -13,7 +13,7 @@ use crate::{
     },
     theme,
 };
-use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent};
+use ccr_app::runtime::{Completion, Platform, RequestKey, ResponseGate, TaskEvent};
 use editor::{EditMode, EditorEvent, McpEditor};
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
@@ -126,6 +126,9 @@ fn project_placeholder(cx: &App) -> &'static str {
 }
 
 impl McpView {
+    pub fn has_environment_draft(&self) -> bool {
+        self.editor.is_some() || self.batch.is_some()
+    }
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let filter = cx.new(|cx| InputState::new(window, cx).placeholder(filter_placeholder(cx)));
         let subscription = cx.subscribe(&filter, |_, _, event, cx| {
@@ -238,14 +241,7 @@ impl McpView {
         }
         self.generation += 1;
         let key = RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.services.environment(),
             platform: self.platform_scope.unwrap_or(Platform::Claude),
             generation: self.generation,
             request_id: self.generation,
@@ -277,14 +273,7 @@ impl McpView {
         }
         self.generation += 1;
         let key = RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.services.environment(),
             platform: Platform::Claude,
             generation: self.generation,
             request_id: self.generation,
@@ -363,14 +352,7 @@ impl McpView {
         }
         self.generation += 1;
         let key = RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.services.environment(),
             platform: Platform::Claude,
             generation: self.generation,
             request_id: self.generation,

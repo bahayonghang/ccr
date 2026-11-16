@@ -325,7 +325,7 @@ The brand row embeds the generated app PNG with its original colors and alpha;
 the Windows executable embeds the matching existing ICO as resource ID 1.
 The status bar keeps the actual environment/source label, a matching state dot,
 four numbered route shortcuts and a local HH:mm clock refreshed every 30 seconds.
-The source dot means configured, never connected or successfully read.
+The status bar names the sole current execution environment. Local displays Ready. Its dot and text show not connected, connecting, connected, unreachable, host key approval required, or credentials missing. Connection failure retains the selected SSH host; it never exposes local destination data. The source configuration indicator inside local Overview still means configured, not successful data retrieval.
 
 平台目的地固定捕获的平台与环境。唯一 h1 为当前 tab 名，平台作为小号上下文；页头只含当前页动作。导航是按任务分组的文字 tab，选中项使用 reading pill、primary 文字与 toggled 语义，组间 16px 与装饰 hairline，组名只作无障碍名称。
 

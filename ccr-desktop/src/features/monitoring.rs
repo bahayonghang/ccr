@@ -8,7 +8,7 @@ use crate::{
     shell::semantics,
     theme,
 };
-use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, TaskEvent};
+use ccr_app::runtime::{Completion, Platform, RequestKey, TaskEvent};
 use ccr_types::{MonitoringEntry, MonitoringFeedQuery, MonitoringLevel};
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
@@ -120,7 +120,7 @@ impl MonitoringView {
             channel: (!channel.is_empty()).then_some(channel),
         };
         let key = RequestKey {
-            environment: EnvironmentId::Local("monitoring".into()),
+            environment: self.requests.environment(),
             platform: Platform::Claude,
             generation,
             request_id: generation,

@@ -27,7 +27,10 @@ struct Draft {
     document: Document,
     text: String,
 }
+pub struct EnvironmentRequest(pub EnvironmentId);
+impl gpui_kit::EventEmitter<EnvironmentRequest> for RemoteView {}
 pub struct RemoteView {
+    pub(crate) shell_controlled: bool,
     services: Services,
     hosts: Vec<Host>,
     selected: Option<Host>,
@@ -56,6 +59,7 @@ pub struct RemoteView {
 impl RemoteView {
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
         Self {
+            shell_controlled: false,
             services,
             hosts: Vec::new(),
             selected: None,
@@ -83,6 +87,55 @@ impl RemoteView {
             host_form_pending: false,
             delete_confirmation: false,
         }
+    }
+    pub fn operation_environment(&self) -> EnvironmentId {
+        self.selected
+            .as_ref()
+            .map(|h| EnvironmentId::Ssh(h.id.clone()))
+            .unwrap_or_else(|| EnvironmentId::Local("local".into()))
+    }
+    pub fn edit_saved_host(&mut self, id: &str, window: &mut Window, cx: &mut Context<Self>) {
+        if let Some(host) = self.hosts.iter().find(|h| h.id == id).cloned() {
+            self.select(host, window, cx);
+            self.start(SshAction::HostDetails(id.into()), cx);
+        }
+    }
+    pub fn is_busy(&self) -> bool {
+        self.busy
+    }
+    pub fn hosts(&self) -> &[Host] {
+        &self.hosts
+    }
+    pub fn has_environment_draft(&self, cx: &gpui_kit::App) -> bool {
+        self.host_form.is_some()
+            || self.pending_test.is_some()
+            || self.drafts.values().any(|d| d.text != d.document.content)
+            || (self
+                .selected
+                .as_ref()
+                .and_then(|h| self.drafts.get(&(h.id.clone(), self.file.path())))
+                .is_some_and(|d| self.editor.read(cx).value().as_str() != d.document.content))
+    }
+    pub fn discard_for_environment_switch(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if let Some(cancel) = &self.cancel {
+            cancel.request_cancel();
+        }
+        self.task = None;
+        self.cancel = None;
+        self.busy = false;
+        self.detecting = false;
+        self.generation += 1;
+        self.host_form = None;
+        self.pending_test = None;
+        self.probe = None;
+        self.drafts.clear();
+        self.connected = false;
+        self.cli = None;
+        self.cli_error = None;
+        self.host_fields[7].update(cx, |state, cx| state.set_value("", window, cx));
+        self.editor
+            .update(cx, |state, cx| state.set_value("", window, cx));
+        cx.notify();
     }
     pub fn is_remote(&self) -> bool {
         self.selected.is_some()
@@ -502,8 +555,12 @@ impl RemoteView {
                 .label(text(cx, "Use Local", "使用本地环境"))
                 .ghost()
                 .on_click(cx.listener(|this, _, _, cx| {
-                    this.remember(cx);
-                    this.start(SshAction::Disconnect, cx);
+                    if this.shell_controlled {
+                        cx.emit(EnvironmentRequest(EnvironmentId::Local("local".into())));
+                    } else {
+                        this.remember(cx);
+                        this.start(SshAction::Disconnect, cx);
+                    }
                 })),
             local_busy,
             false,
@@ -705,6 +762,10 @@ impl RemoteView {
                     .label(text(cx, en, zh))
                     .ghost()
                     .on_click(cx.listener(move |this, _, _, cx| {
+                        if this.shell_controlled {
+                            cx.emit(EnvironmentRequest(EnvironmentId::Ssh(host.id.clone())));
+                            return;
+                        }
                         this.start(
                             if probe {
                                 SshAction::Probe(host.id.clone())
@@ -892,6 +953,12 @@ impl Render for RemoteView {
         if self.message == Some("ssh_document_ready") {
             self.restore(window, cx);
             self.message = None;
+        }
+        if self.shell_controlled {
+            self.connected = self.selected.as_ref().is_some_and(|host| {
+                self.services.environment() == EnvironmentId::Ssh(host.id.clone())
+                    && self.services.ssh_connected(&host.id)
+            });
         }
         let chinese = crate::locales::is_chinese(cx);
         let mut root = div()

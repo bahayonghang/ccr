@@ -50,14 +50,7 @@ impl LayersView {
         self.message = None;
         self.busy = true;
         let key = RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.services.environment(),
             platform: self.platform,
             generation,
             request_id: generation,

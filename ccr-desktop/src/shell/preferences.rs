@@ -67,6 +67,7 @@ impl Shell {
                 self.preferences_failed = false;
                 self.window_placement =
                     Some(super::window_state::placement(window.window_bounds()));
+                self.restore_environment(value.environment.clone(), window, cx);
                 self.apply_preferences(value, window, cx);
             }
             Err(_) => {
@@ -147,6 +148,7 @@ impl Shell {
 
     pub(super) fn preference_snapshot(&self, cx: &Context<Self>) -> DesktopPreferences {
         DesktopPreferences {
+            environment: self.active_environment.id.clone(),
             theme: self.preference,
             language: *cx.global::<Language>(),
             confirm_quit: self.close_guard.confirm.get(),

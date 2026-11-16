@@ -11,7 +11,7 @@ use crate::{
 };
 use ccr_app::{
     config::ConfigRow,
-    runtime::{Completion, EnvironmentId, Platform, RequestKey, TaskEvent},
+    runtime::{Completion, Platform, RequestKey, TaskEvent},
 };
 use ccr_usage::{QueryFilter, SourceKind};
 use gpui_kit::base::TestSupportExt;
@@ -94,6 +94,9 @@ pub struct WorkbenchView {
 }
 
 impl WorkbenchView {
+    pub fn has_environment_draft(&self) -> bool {
+        self.subscription_fields.is_some()
+    }
     pub fn new(services: Services, cx: &mut Context<Self>) -> Self {
         Self {
             requests: InsightsRequests::new(&services),
@@ -151,8 +154,9 @@ impl WorkbenchView {
         self.usage = None;
         self.facts.clear();
         let generation = self.generation;
-        let key = |id: &str| RequestKey {
-            environment: EnvironmentId::Local(format!("platform-workbench-{id}")),
+        let environment = self.services.environment();
+        let key = |_id: &str| RequestKey {
+            environment: environment.clone(),
             platform,
             generation,
             request_id: generation,

@@ -288,7 +288,7 @@ impl Services {
         key: RequestKey,
         operation: Operation,
     ) -> Result<(), OperationError> {
-        if EnvironmentPolicy::LocalOnly
+        if EnvironmentPolicy::Independent
             .admit(&key.environment)
             .is_err()
         {

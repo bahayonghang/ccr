@@ -133,7 +133,10 @@ impl LensBar {
                         shell.destination,
                         shell.lens,
                         shell.navigation_generation,
-                        shell.remote.read(cx).is_remote(),
+                        !shell.preferences_loaded
+                            || shell.active_environment.switching
+                            || (shell.active_environment.is_ssh()
+                                && !shell.independent_destination()),
                     )
                 });
                 if current != Some((destination, lens, generation, false))
@@ -377,11 +380,32 @@ mod tests {
         cx.executor().allow_parking();
         let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
         let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
+        let host_store = ccr_db::database::repositories::ssh_repo::open_host_store(
+            &root.path().join("ssh.db"),
+            true,
+        )
+        .unwrap_or_else(|e| panic!("fixture host store: {e}"));
+        ccr_db::database::repositories::ssh_repo::insert_host(
+            &host_store,
+            &ccr_db::models::ssh::SshHost {
+                id: "fixture-manager".into(),
+                name: "Manager selection".into(),
+                host: "fixture.invalid".into(),
+                port: 22,
+                username: "fixture".into(),
+                identity_file: None,
+                remote_home: Some("/home/fixture".into()),
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+                last_connected_at: None,
+            },
+        )
+        .unwrap_or_else(|e| panic!("fixture saved host: {e}"));
         let (handle, shell) = cx.update(|cx| {
             gpui_kit::init(cx);
             gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
                 cx.new(|cx| {
-                    Shell::new(
+                    Shell::new_with_preferences(
                         Services::new(
                             owner.handle(),
                             ConfigSource::Fixture {
@@ -390,6 +414,7 @@ mod tests {
                                 delay: Duration::ZERO,
                             },
                         ),
+                        Ok(Default::default()),
                         window,
                         cx,
                     )
@@ -397,6 +422,15 @@ mod tests {
             })
             .unwrap_or_else(|e| panic!("window: {e}"))
         });
+        let deadline = std::time::Instant::now() + Duration::from_secs(10);
+        while !cx.update(|cx| shell.read(cx).remote.read(cx).hosts().len() == 1) {
+            cx.run_until_parked();
+            std::thread::yield_now();
+            assert!(
+                std::time::Instant::now() < deadline,
+                "fixture host catalog timed out"
+            );
+        }
         cx.update_window(handle, |_, window, cx| {
             window.render_frame(cx);
             window.click("nav-claude-code", cx);
@@ -443,6 +477,23 @@ mod tests {
             window.simulate_next_frame(cx);
             window.render_frame(cx);
             assert!(bar.read(cx).focus.is_focused(window));
+            // 管理器选中主机不等于当前SSH环境，不能抑制本地tab的合法恢复。
+            shell.update(cx, |shell, cx| {
+                shell.remote.update(cx, |view, cx| {
+                    view.edit_saved_host("fixture-manager", window, cx)
+                })
+            });
+            assert!(shell.read(cx).remote.read(cx).is_remote());
+            assert!(!shell.read(cx).active_environment.is_ssh());
+            let generation = shell.read(cx).navigation_generation;
+            bar.update(cx, |bar, cx| {
+                window.focus(&bar.focus, cx);
+                bar.refocus = Some((Destination::ClaudeCode, Lens::Profiles, 1, generation));
+                bar.restore_focus(window, cx);
+            });
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
+            assert_eq!(window.find("tool-profiles").focused(), Some(true));
             window.remove_window();
         })
         .unwrap_or_else(|e| panic!("late tab focus: {e}"));

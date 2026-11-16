@@ -38,14 +38,7 @@ enum Intent {
 impl PlatformsView {
     fn diagnostic_key(&self) -> RequestKey {
         RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.services.environment(),
             platform: self.platform,
             generation: self.generation,
             request_id: self.diagnostics.generation,

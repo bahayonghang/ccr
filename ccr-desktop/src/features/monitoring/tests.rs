@@ -155,7 +155,14 @@ async fn overview_monitoring_entry_preserves_the_thirteen_destination_shell(
     let (handle, _shell) = cx.update(|cx| {
         gpui_kit::init(cx);
         gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
-            cx.new(|cx| crate::shell::Shell::new(services, window, cx))
+            cx.new(|cx| {
+                crate::shell::Shell::new_with_preferences(
+                    services,
+                    Ok(Default::default()),
+                    window,
+                    cx,
+                )
+            })
         })
         .unwrap()
     });

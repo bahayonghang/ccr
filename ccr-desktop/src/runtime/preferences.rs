@@ -90,6 +90,7 @@ impl TypographyPreferences {
 
 #[derive(Clone, PartialEq)]
 pub struct DesktopPreferences {
+    pub environment: EnvironmentId,
     pub theme: Preference,
     pub language: Language,
     pub confirm_quit: bool,
@@ -100,6 +101,7 @@ pub struct DesktopPreferences {
 impl Default for DesktopPreferences {
     fn default() -> Self {
         Self {
+            environment: EnvironmentId::Local("local".into()),
             theme: Preference::Light,
             language: Language::English,
             confirm_quit: true,
@@ -113,6 +115,14 @@ impl Default for DesktopPreferences {
 pub enum PreferencesError {
     Storage,
     Invalid,
+}
+
+fn valid_ssh_id(id: &str) -> bool {
+    !id.is_empty()
+        && id.len() <= 128
+        && id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
 #[derive(Clone)]
@@ -212,6 +222,18 @@ fn read(path: Option<&std::path::Path>) -> Result<DesktopPreferences, Preference
         return Err(PreferencesError::Invalid);
     }
     Ok(DesktopPreferences {
+        environment: match value.get("environment") {
+            None => EnvironmentId::Local("local".into()),
+            Some(serde_json::Value::String(id)) if id == "local" => {
+                EnvironmentId::Local("local".into())
+            }
+            Some(serde_json::Value::String(id))
+                if id.strip_prefix("ssh:").is_some_and(valid_ssh_id) =>
+            {
+                EnvironmentId::Ssh(id[4..].to_owned())
+            }
+            _ => return Err(PreferencesError::Invalid),
+        },
         typography: TypographyPreferences::read(&value),
         theme: match value.get("theme").and_then(|v| v.as_str()) {
             Some("system") => Preference::System,
@@ -310,6 +332,11 @@ fn write(
         return Err(PreferencesError::Invalid);
     }
     let value = serde_json::json!({
+        "environment": match &preferences.environment {
+            EnvironmentId::Local(_) => "local".to_owned(),
+            EnvironmentId::Ssh(id) if valid_ssh_id(id) => format!("ssh:{id}"),
+            EnvironmentId::Ssh(_) | EnvironmentId::Wsl(_) => return Err(PreferencesError::Invalid),
+        },
         "version": 1,
         "theme": match preferences.theme { Preference::System => "system", Preference::Light => "light", Preference::Dark => "dark" },
         "language": match preferences.language { Language::English => "en", Language::Chinese => "zh" },
@@ -335,11 +362,32 @@ mod tests {
     use super::*;
 
     #[test]
+    fn invalid_environment_never_defaults_to_local_or_replaces_the_file() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("preferences.json");
+        for environment in [
+            serde_json::json!({"id":"saved-ssh"}),
+            serde_json::json!(null),
+            serde_json::json!("ssh:"),
+        ] {
+            let bytes = serde_json::json!({"version":1,"theme":"light","language":"en","confirm_quit":true,"environment":environment}).to_string();
+            std::fs::write(&path, &bytes).unwrap();
+            assert!(matches!(read(Some(&path)), Err(PreferencesError::Invalid)));
+            assert_eq!(
+                write(Some(&path), &DesktopPreferences::default()),
+                Err(PreferencesError::Invalid)
+            );
+            assert_eq!(std::fs::read_to_string(&path).unwrap(), bytes);
+        }
+    }
+
+    #[test]
     fn preferences_round_trip_isolated_and_invalid_file_is_preserved() {
         let root = tempfile::tempdir().unwrap();
         let path = root.path().join("desktop-gpui/preferences.json");
         assert!(read(Some(&path)).unwrap() == DesktopPreferences::default());
         let selected = DesktopPreferences {
+            environment: EnvironmentId::Ssh("fixture-host".into()),
             theme: Preference::Dark,
             language: Language::Chinese,
             confirm_quit: false,
@@ -358,6 +406,11 @@ mod tests {
             },
         };
         write(Some(&path), &selected).unwrap();
+        let before = std::fs::read(&path).unwrap();
+        let mut invalid = selected.clone();
+        invalid.environment = EnvironmentId::Ssh("../escape".into());
+        assert_eq!(write(Some(&path), &invalid), Err(PreferencesError::Invalid));
+        assert_eq!(std::fs::read(&path).unwrap(), before);
         assert!(read(Some(&path)).unwrap() == selected);
         std::fs::write(&path, b"{broken").unwrap();
         assert_eq!(

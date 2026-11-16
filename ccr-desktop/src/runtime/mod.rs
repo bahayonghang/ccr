@@ -1,6 +1,5 @@
 //! Native adapter: explicit sources, typed read requests, no UI-thread I/O.
 use ccr_app::environments::EnvironmentPolicy;
-#[cfg(test)]
 use ccr_app::runtime::EnvironmentId;
 pub mod benchmark;
 pub mod checkin;
@@ -192,6 +191,7 @@ impl LaunchMode {
 
 #[derive(Clone)]
 pub struct Services {
+    environment: Arc<std::sync::Mutex<EnvironmentId>>,
     pub executor: RuntimeHandle,
     source: ConfigSource,
     pub(super) platform_scope: Option<ccr_app::runtime::Platform>,
@@ -214,6 +214,16 @@ pub struct Services {
 }
 
 impl Services {
+    /// Snapshot the shell-selected environment before queuing a request.
+    pub fn environment(&self) -> EnvironmentId {
+        self.environment
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .clone()
+    }
+    pub(crate) fn select_environment(&self, environment: EnvironmentId) {
+        *self.environment.lock().unwrap_or_else(|p| p.into_inner()) = environment;
+    }
     /// Capture the destination separately from caller-supplied response identity.
     pub fn scoped(mut self, platform: Option<Platform>) -> Self {
         self.platform_scope = platform;
@@ -221,6 +231,7 @@ impl Services {
     }
     pub fn new(executor: RuntimeHandle, source: ConfigSource) -> Self {
         Self {
+            environment: Arc::new(std::sync::Mutex::new(EnvironmentId::Local("local".into()))),
             executor,
             source,
             platform_scope: None,

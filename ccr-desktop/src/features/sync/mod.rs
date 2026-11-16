@@ -14,7 +14,7 @@ use crate::{
     shell::semantics,
     theme,
 };
-use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent};
+use ccr_app::runtime::{Completion, Platform, RequestKey, ResponseGate, TaskEvent};
 use folders::{FolderEditor, FolderTarget};
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::button::{Button, ButtonVariants};
@@ -56,6 +56,13 @@ pub struct SyncView {
 }
 
 impl SyncView {
+    pub fn has_environment_draft(&self) -> bool {
+        self.editor.is_some()
+            || self.asset_editor.is_some()
+            || self.folder_editor.is_some()
+            || self.confirmation.is_some()
+            || self.management_confirmation.is_some()
+    }
     pub fn new(services: Services, _window: &mut Window, cx: &mut Context<Self>) -> Self {
         Self {
             operation: services.sync_operation_state(),
@@ -111,14 +118,7 @@ impl SyncView {
         self.folder_editor = None;
         self.generation += 1;
         let key = RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.services.environment(),
             platform: Platform::Claude,
             generation: self.generation,
             request_id: self.generation,
@@ -255,14 +255,7 @@ impl SyncView {
         }
         self.generation += 1;
         let key = RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.services.environment(),
             platform: Platform::Claude,
             generation: self.generation,
             request_id: self.generation,

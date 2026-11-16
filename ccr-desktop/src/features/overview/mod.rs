@@ -1,4 +1,6 @@
 //! Home workbench. Numbers come from the captured usage database and session archive.
+#[cfg(test)]
+use ccr_app::runtime::EnvironmentId;
 mod activity;
 mod chart;
 mod header;
@@ -11,9 +13,7 @@ use crate::{
     runtime::insights::{InsightsRequests, WorkbenchReport},
     theme,
 };
-use ccr_app::runtime::{
-    AdmissionError, Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent,
-};
+use ccr_app::runtime::{AdmissionError, Completion, Platform, RequestKey, ResponseGate, TaskEvent};
 use chart::exact_rows;
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::ActiveTheme;
@@ -128,7 +128,7 @@ impl OverviewView {
             return;
         }
         let key = RequestKey {
-            environment: EnvironmentId::Local("overview".into()),
+            environment: self.requests.environment(),
             platform: Platform::Claude,
             generation: self.generation,
             request_id: self.generation,

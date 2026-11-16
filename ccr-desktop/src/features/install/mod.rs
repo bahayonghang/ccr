@@ -9,9 +9,7 @@ use crate::{
     shell::semantics,
     theme,
 };
-use ccr_app::runtime::{
-    Completion, EnvironmentId, Platform, RequestKey, TaskEvent, TaskSubscription,
-};
+use ccr_app::runtime::{Completion, Platform, RequestKey, TaskEvent, TaskSubscription};
 use ccr_cli::services::install_types::{
     DetectionResult, DurationClass, InstallEvent, PlanId, PlanOutcome, ProgressStage,
     UnsupportedReason,
@@ -45,6 +43,9 @@ pub struct InstallView {
     focus: FocusHandle,
 }
 impl InstallView {
+    pub fn has_environment_draft(&self) -> bool {
+        self.decision.is_some()
+    }
     pub fn new(services: Services, _: &mut Window, cx: &mut Context<Self>) -> Self {
         let tools = cx.new(|cx| tools::ToolsView::new(&services, cx));
         let requests = InstallRequests::new(&services);
@@ -113,14 +114,7 @@ impl InstallView {
     fn key(&mut self) -> RequestKey {
         self.request_id += 1;
         RequestKey {
-            environment: EnvironmentId::Local(
-                if self.requests.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.requests.environment(),
             platform: Platform::Claude,
             generation: self.generation,
             request_id: self.request_id,

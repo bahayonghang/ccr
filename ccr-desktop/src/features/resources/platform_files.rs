@@ -10,7 +10,7 @@ use crate::{
     shell::semantics,
     theme,
 };
-use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent};
+use ccr_app::runtime::{Completion, Platform, RequestKey, ResponseGate, TaskEvent};
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
     ActiveTheme, FocusTrapElement,
@@ -134,14 +134,7 @@ impl PlatformFilesView {
     fn key(&mut self) -> RequestKey {
         self.generation += 1;
         RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.services.environment(),
             platform: self.platform,
             generation: self.generation,
             request_id: self.generation,
@@ -359,15 +352,7 @@ impl Render for PlatformFilesView {
         }
         let locked = self.blocks_switch();
         let operation_visible = self.operation.platform == Some(self.platform)
-            && self.operation.environment
-                == Some(EnvironmentId::Local(
-                    if self.services.is_fixture() {
-                        "fixture"
-                    } else {
-                        "local"
-                    }
-                    .into(),
-                ));
+            && self.operation.environment == Some(self.services.environment());
         let mut root = div()
             .id("platform-files")
             .test_support()

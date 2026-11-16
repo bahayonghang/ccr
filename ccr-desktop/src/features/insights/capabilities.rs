@@ -31,7 +31,7 @@ impl CapabilitiesView {
         self.suspend(cx);
         let generation = self.generation;
         let request = self.requests.usage_capabilities(RequestKey {
-            environment: EnvironmentId::Local("usage-capabilities".into()),
+            environment: self.requests.environment(),
             platform: Platform::Claude,
             generation,
             request_id: generation,

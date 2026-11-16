@@ -189,7 +189,7 @@ impl EnvironmentView {
 }
 
 fn home_environment() -> EnvironmentId {
-    EnvironmentId::Local("local".into())
+    EnvironmentId::Local("desktop-diagnostics".into())
 }
 
 fn environment_read_key(generation: u64) -> RequestKey {

@@ -116,7 +116,11 @@ async fn connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigat
                 ..Default::default()
             },
             cx,
-            |window, cx| cx.new(|cx| Shell::new(services, window, cx)),
+            |window, cx| {
+                cx.new(|cx| {
+                    Shell::new_with_preferences(services, Ok(Default::default()), window, cx)
+                })
+            },
         )
         .unwrap()
     });
@@ -148,16 +152,16 @@ async fn connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigat
     })
     .unwrap();
     cx.wait_for(handle, Duration::from_secs(10), |window, _| {
-        window.try_find("ssh-confirm-trust").is_some()
+        window.try_find("environment-trust-confirm").is_some()
     })
     .await;
     cx.update_window(handle, |_, window, cx| {
-        show(window, "ssh-confirm-trust".into(), cx);
-        window.click("ssh-confirm-trust", cx);
+        show(window, "environment-trust-confirm".into(), cx);
+        window.click("environment-trust-confirm", cx);
     })
     .unwrap();
     cx.wait_for(handle, Duration::from_secs(10), |window, _| {
-        window.try_find("ssh-confirm-trust").is_none()
+        window.try_find("environment-trust-confirm").is_none()
     })
     .await;
     cx.update_window(handle, |_, window, cx| {
@@ -250,7 +254,8 @@ async fn connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigat
     cx.update_window(handle, |_, window, cx| {
         window.click("nav-dashboard", cx);
         assert!(window.try_find("ssh-cli-claude").is_none());
-        window.click("remote-open-settings", cx);
+        window.click("environment-switcher", cx);
+        window.click("environment-manage", cx);
         window.simulate_next_frame(cx);
         window.render_frame(cx);
         assert_eq!(

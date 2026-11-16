@@ -391,6 +391,9 @@ pub struct InsightsRequests {
     session_operations: Arc<session_operations::Owner>,
 }
 impl InsightsRequests {
+    pub fn environment(&self) -> ccr_app::runtime::EnvironmentId {
+        self.services.environment()
+    }
     pub fn scoped(mut self, platform: Option<ccr_app::runtime::Platform>) -> Self {
         self.services = self.services.scoped(platform);
         self

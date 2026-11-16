@@ -189,7 +189,9 @@ impl Services {
         key: RequestKey,
     ) -> Result<TaskSubscription<CheckinSnapshot, CheckinError>, AdmissionError> {
         let source = self.source.clone();
-        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
+        let local = EnvironmentPolicy::Independent
+            .admit(&key.environment)
+            .is_ok();
         self.executor.read(key, move |_, _| {
             if !local {
                 return Err(CheckinError::Unsupported);

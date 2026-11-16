@@ -40,7 +40,16 @@ fn open(
                 ..Default::default()
             },
             cx,
-            |window, cx| cx.new(|cx| Shell::new(services(owner, root), window, cx)),
+            |window, cx| {
+                cx.new(|cx| {
+                    Shell::new_with_preferences(
+                        services(owner, root),
+                        Ok(Default::default()),
+                        window,
+                        cx,
+                    )
+                })
+            },
         )
         .unwrap()
         .0

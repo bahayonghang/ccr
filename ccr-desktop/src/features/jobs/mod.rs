@@ -4,12 +4,14 @@ use crate::{
     runtime::{Services, jobs::CommandRequests},
     shell::semantics,
 };
+#[cfg(test)]
+use ccr_app::runtime::EnvironmentId;
 use ccr_app::{
     jobs::{
         commands::{Snapshot, Status},
         policy::CommandInfo,
     },
-    runtime::{EnvironmentId, Platform, RequestKey},
+    runtime::{Platform, RequestKey},
 };
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
@@ -44,6 +46,17 @@ pub struct JobsView {
     log_scroll: UniformListScrollHandle,
 }
 impl JobsView {
+    pub fn has_environment_draft(&self, cx: &gpui_kit::App) -> bool {
+        self.args.read(cx).value().as_str() != "[\"--json\"]"
+    }
+    pub fn clear_environment(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.suspend(cx);
+        self.job_id = None;
+        self.snapshot = None;
+        self.message = None;
+        self.args
+            .update(cx, |state, cx| state.set_value("[\"--json\"]", window, cx));
+    }
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let requests = CommandRequests::new(&services);
         Self {
@@ -188,14 +201,7 @@ impl JobsView {
         };
         self.generation += 1;
         let key = RequestKey {
-            environment: EnvironmentId::Local(
-                if self.requests.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.requests.environment(),
             platform: Platform::Claude,
             generation: self.generation,
             request_id: self.generation,

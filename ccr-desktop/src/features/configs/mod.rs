@@ -8,9 +8,7 @@ use crate::{
 };
 use ccr_app::{
     config::ConfigRow,
-    runtime::{
-        AdmissionError, Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent,
-    },
+    runtime::{AdmissionError, Completion, Platform, RequestKey, ResponseGate, TaskEvent},
 };
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
@@ -65,6 +63,16 @@ impl ConfigurationApp {
         self.generation
     }
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
+        Self::build(services, true, window, cx)
+    }
+    pub(crate) fn new_deferred(
+        services: Services,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Self {
+        Self::build(services, false, window, cx)
+    }
+    fn build(services: Services, load: bool, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let search = cx.new(|cx| {
             InputState::new(window, cx).placeholder(text(
                 cx,
@@ -123,7 +131,9 @@ impl ConfigurationApp {
             #[cfg(test)]
             last_rendered_count: 0,
         };
-        this.refresh(cx);
+        if load {
+            this.refresh(cx);
+        }
         this
     }
     pub fn focus_main(&self, window: &mut Window, cx: &mut Context<Self>) {
@@ -131,6 +141,7 @@ impl ConfigurationApp {
     }
     /// Navigation dismisses the read subscription, not the application-owned runner.
     pub fn suspend(&mut self, cx: &mut Context<Self>) {
+        self.generation += 1;
         self.read_task = None;
         self.gate.clear();
         self.loading = false;
@@ -163,14 +174,7 @@ impl ConfigurationApp {
         self.read_task = None;
         self.generation += 1;
         let key = RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.services.environment(),
             platform: self.platform,
             generation: self.generation,
             request_id: self.generation,

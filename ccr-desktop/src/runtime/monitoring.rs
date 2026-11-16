@@ -321,6 +321,9 @@ fn payload_size(entry: &MonitoringEntry) -> usize {
 #[derive(Clone)]
 pub struct Requests(Services);
 impl Requests {
+    pub fn environment(&self) -> ccr_app::runtime::EnvironmentId {
+        self.0.environment()
+    }
     pub fn new(services: &Services) -> Self {
         Self(services.clone())
     }

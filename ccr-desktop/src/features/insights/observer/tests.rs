@@ -136,7 +136,14 @@ async fn observer_setup_confirmation_cancels_then_saves_without_a_usage_database
     let (handle, _) = cx.update(|cx| {
         gpui_kit::init(cx);
         gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
-            cx.new(|cx| crate::shell::Shell::new(services, window, cx))
+            cx.new(|cx| {
+                crate::shell::Shell::new_with_preferences(
+                    services,
+                    Ok(Default::default()),
+                    window,
+                    cx,
+                )
+            })
         })
         .unwrap()
     });

@@ -10,7 +10,7 @@ use crate::{
 };
 use ccr_app::{
     config::{ConfigRow, source::SourceSaveOutcome},
-    runtime::{Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent},
+    runtime::{Completion, Platform, RequestKey, ResponseGate, TaskEvent},
 };
 use gpui_kit::component::input::{InputState, TextareaState};
 use gpui_kit::{AppContext, Context, Entity, FocusHandle, Focusable, Task, Window};
@@ -681,14 +681,7 @@ impl ProfileTools {
         let is_status = matches!(command, ProfileCommand::Status);
         self.request += 1;
         let key = RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.services.environment(),
             platform: self.platform,
             generation: self.request,
             request_id: self.request,

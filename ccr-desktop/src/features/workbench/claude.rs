@@ -65,7 +65,7 @@ impl WorkbenchView {
     pub(super) fn load_claude(&mut self, clock: ReportClock, cx: &mut Context<Self>) {
         let generation = self.generation;
         let key = RequestKey {
-            environment: EnvironmentId::Local("claude-workbench".into()),
+            environment: self.services.environment(),
             platform: Platform::Claude,
             generation,
             request_id: generation,
@@ -705,7 +705,7 @@ impl WorkbenchView {
         };
         let generation = self.generation;
         let key = RequestKey {
-            environment: EnvironmentId::Local("claude-workbench-subscription".into()),
+            environment: self.services.environment(),
             platform: Platform::Claude,
             generation,
             request_id: generation,
@@ -756,7 +756,7 @@ impl WorkbenchView {
         let generation = self.generation;
         let clock = self.requests.report_clock();
         let key = RequestKey {
-            environment: EnvironmentId::Local("claude-workbench-subscription-reload".into()),
+            environment: self.services.environment(),
             platform: Platform::Claude,
             generation,
             request_id: generation,

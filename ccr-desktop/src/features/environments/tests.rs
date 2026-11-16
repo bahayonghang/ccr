@@ -286,7 +286,7 @@ async fn settings_shows_the_local_desktop_without_a_sample_distro(cx: &mut TestA
             cx,
             |window, cx| {
                 cx.new(|cx| {
-                    Shell::new(
+                    Shell::new_with_preferences(
                         crate::runtime::Services::new(
                             owner.handle(),
                             ConfigSource::Fixture {
@@ -295,6 +295,7 @@ async fn settings_shows_the_local_desktop_without_a_sample_distro(cx: &mut TestA
                                 delay: Duration::ZERO,
                             },
                         ),
+                        Ok(Default::default()),
                         window,
                         cx,
                     )
@@ -462,7 +463,16 @@ fn leaving_settings_suspends_the_in_flight_environment_read(cx: &mut TestAppCont
                 ..Default::default()
             },
             cx,
-            |window, cx| cx.new(|cx| Shell::new(held_services(&owner, root.path()), window, cx)),
+            |window, cx| {
+                cx.new(|cx| {
+                    Shell::new_with_preferences(
+                        held_services(&owner, root.path()),
+                        Ok(Default::default()),
+                        window,
+                        cx,
+                    )
+                })
+            },
         )
         .unwrap_or_else(|error| panic!("{error}"))
     });
@@ -790,7 +800,7 @@ fn wsl_file_plans_do_not_fall_back_to_a_local_windows_file() {
 }
 
 #[gpui_kit::test]
-async fn non_local_environment_load_returns_local_only(cx: &mut TestAppContext) {
+async fn desktop_diagnostics_remain_environment_independent(cx: &mut TestAppContext) {
     cx.executor().allow_parking();
     let owner = RuntimeOwner::new().unwrap_or_else(|error| panic!("{error}"));
     let root = tempfile::tempdir().unwrap_or_else(|error| panic!("{error}"));
@@ -813,13 +823,14 @@ async fn non_local_environment_load_returns_local_only(cx: &mut TestAppContext) 
     let event = read.next().await;
     match event {
         Some(TaskEvent::Terminal(value)) => match value.as_ref() {
-            Completion::Failed(reason) => {
-                assert_eq!(*reason, LOCAL_ONLY);
-                assert!(!reason.contains("fixture-ssh"));
-                assert!(!reason.contains("ssh-keyscan"));
-                assert!(!reason.contains(" / "));
+            Completion::Success(report) => {
+                assert_eq!(
+                    report.running,
+                    ccr_app::environments::RunningEnvironment::Local
+                );
+                assert_eq!(report.wsl, ccr_app::environments::WslProbe::NotQueried);
             }
-            other => panic!("expected local-only refusal, got {other:?}"),
+            other => panic!("expected independent desktop diagnostics, got {other:?}"),
         },
         other => panic!("missing terminal: {other:?}"),
     }

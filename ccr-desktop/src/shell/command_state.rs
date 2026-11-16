@@ -32,7 +32,6 @@ enum Confirmation {
 
 pub struct CommandState {
     requests: UiStateRequests,
-    fixture: bool,
     history: bool,
     snapshot: Arc<UiStateSnapshot>,
     generation: u64,
@@ -64,7 +63,6 @@ impl CommandState {
         });
         Self {
             requests: UiStateRequests::new(services),
-            fixture: services.is_fixture(),
             history: false,
             snapshot: Arc::new(UiStateSnapshot::default()),
             generation: 0,
@@ -90,9 +88,7 @@ impl CommandState {
     fn key(&mut self) -> RequestKey {
         self.generation += 1;
         RequestKey {
-            environment: EnvironmentId::Local(
-                if self.fixture { "fixture" } else { "local" }.into(),
-            ),
+            environment: EnvironmentId::Local("application".into()),
             platform: Platform::Claude,
             generation: self.generation,
             request_id: self.generation,

@@ -16,7 +16,7 @@ use ccr_app::{
         CodexAgentSourceCatalogResponse, CodexAgentSourceInstallRequest, CodexAgentSourceRecord,
         CodexAgentSourceSyncRequest,
     },
-    runtime::{Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent},
+    runtime::{Completion, Platform, RequestKey, ResponseGate, TaskEvent},
 };
 use ccr_core::core::log_redact::redact_log_text;
 use gpui_kit::base::TestSupportExt;
@@ -130,14 +130,7 @@ impl CodexAgentsView {
     fn key(&mut self) -> RequestKey {
         self.generation += 1;
         RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.services.environment(),
             platform: Platform::Codex,
             generation: self.generation,
             request_id: self.generation,

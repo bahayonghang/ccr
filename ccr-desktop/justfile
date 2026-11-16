@@ -55,6 +55,7 @@ desktop-test:
 # Real GPUI controls in Kit's headless test harness; native pixels/IME require a display.
 desktop-test-ui:
     {{python}} scripts/desktop.py verify{{native_exit}}
+    {{python}} scripts/desktop.py cargo test --locked --lib shell::environment -- --skip export_bindings{{native_exit}}
     {{python}} scripts/desktop.py cargo test --locked --test native_ui --test native_shell -- --skip export_bindings{{native_exit}}
 
 # Ordered, read-only validation. Every subprocess failure stops the recipe.

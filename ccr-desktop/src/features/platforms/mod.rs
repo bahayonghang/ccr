@@ -1,4 +1,6 @@
 //! Native platform settings, scoped source, accounts and OpenCode providers.
+#[cfg(test)]
+use ccr_app::runtime::EnvironmentId;
 mod diagnostics;
 mod forms;
 mod layers;
@@ -17,7 +19,7 @@ use crate::{
 };
 use ccr_app::{
     platform_settings::SaveOutcome,
-    runtime::{Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent},
+    runtime::{Completion, Platform, RequestKey, ResponseGate, TaskEvent},
 };
 use ccr_cli::application::codex_oauth::{NativePhase, NativeStatus};
 use gpui_kit::base::TestSupportExt;
@@ -97,6 +99,13 @@ pub struct PlatformsView {
     selected_account: Option<String>,
 }
 impl PlatformsView {
+    pub fn has_environment_draft(&self, cx: &gpui_kit::App) -> bool {
+        self.form.has_changes(cx)
+            || self.source_mode
+            || self.decision.is_some()
+            || !self.name.read(cx).value().is_empty()
+            || (self.advanced && self.content.read(cx).value().as_str() != "{}")
+    }
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let layers = cx.new(|cx| layers::LayersView::new(services.clone(), window, cx));
         Self {
@@ -220,14 +229,7 @@ impl PlatformsView {
         }
         self.generation += 1;
         let key = RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.services.environment(),
             platform: self.platform,
             generation: self.generation,
             request_id: self.generation,
@@ -362,14 +364,7 @@ impl PlatformsView {
     }
     fn oauth_key(&self) -> RequestKey {
         RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.services.environment(),
             platform: Platform::Codex,
             generation: self.oauth_generation,
             request_id: self.oauth_generation,

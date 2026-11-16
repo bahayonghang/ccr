@@ -117,7 +117,7 @@ impl InsightsView {
     fn start_import(&mut self, cx: &mut Context<Self>) {
         let result = self.requests.start_import_with_options(
             RequestKey {
-                environment: EnvironmentId::Local("insights-explicit".into()),
+                environment: self.requests.environment(),
                 platform: Platform::Claude,
                 generation: self.generation,
                 request_id: self.generation,

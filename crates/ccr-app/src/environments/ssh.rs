@@ -318,14 +318,20 @@ impl Workspace {
             .ok_or("ssh_not_connected")
     }
     async fn clear(&self) {
+        let _ = self.clear_checked().await;
+    }
+    async fn clear_checked(&self) -> Result<(), Error> {
         let session = self
             .session
             .lock()
             .unwrap_or_else(|p| p.into_inner())
             .take();
         if let Some(session) = session {
-            let _ = bounded(CancellationToken::new(), session.connection.disconnect()).await;
+            bounded(CancellationToken::new(), session.connection.disconnect())
+                .await
+                .map_err(|_| "ssh_cleanup_failed")?;
         }
+        Ok(())
     }
     async fn revoke(&self, id: uuid::Uuid) -> Result<(), Error> {
         let session = {
@@ -356,8 +362,12 @@ impl Workspace {
         self.current(id).is_ok()
     }
     pub async fn disconnect(&self) {
+        let _ = self.disconnect_checked().await;
+    }
+    /// Revoke authority first and report whether transport cleanup completed.
+    pub async fn disconnect_checked(&self) -> Result<(), Error> {
         let _guard = self.authentication.lock().await;
-        self.clear().await;
+        self.clear_checked().await
     }
     fn known(&self, host: &SshHost) -> Result<Option<SshKnownHost>, Error> {
         ssh_repo::get_known_host(&self.connection(false)?, &host.host, host.port)

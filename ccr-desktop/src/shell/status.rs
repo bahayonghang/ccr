@@ -45,14 +45,15 @@ impl Render for Clock {
 impl Shell {
     pub(super) fn status_contents(&self, status: &str, cx: &mut Context<Self>) -> impl IntoElement {
         let colors = cx.theme();
-        let state = if self.remote.read(cx).is_remote() {
-            colors.info
-        } else if self.fixture {
-            colors.warning
-        } else if self.overview.read(cx).requests_configured() {
-            colors.success
-        } else {
+        let menu_was_open = self.active_environment.menu;
+        let state = if !self.preferences_loaded {
             colors.muted_foreground
+        } else {
+            match self.active_environment.state {
+                super::environment::ConnectionState::Connected => colors.success,
+                super::environment::ConnectionState::Connecting => colors.info,
+                _ => colors.warning,
+            }
         };
         let mut routes = div().flex().items_center().gap(px(theme::NAV_ROW_GAP));
         for (id, destination, en, zh) in [
@@ -101,11 +102,52 @@ impl Shell {
             .gap(px(theme::CONTROL_GAP))
             .child(div().size(px(6.)).flex_shrink_0().rounded_full().bg(state))
             .child(
-                div()
+                gpui_kit::base::Button::new("environment-switcher")
+                    .track_focus(&self.active_environment.trigger_focus)
+                    .capture_any_mouse_down(cx.listener(move |this, _, _, _| {
+                        this.active_environment.menu_press = menu_was_open
+                    }))
+                    .accessibility_label(status.to_owned())
                     .flex_1()
                     .min_w_0()
-                    .text_ellipsis()
-                    .child(status.to_string()),
+                    .justify_start()
+                    .h(px(24.))
+                    .px(px(4.))
+                    .rounded(px(theme::SELECTION_RADIUS))
+                    .border_2()
+                    .border_color(gpui_kit::transparent_black())
+                    .hover(|style| style.bg(colors.secondary_hover))
+                    .focus_visible(|style| style.border_color(colors.ring))
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap(px(4.))
+                            .flex_1()
+                            .min_w_0()
+                            .child(
+                                div()
+                                    .id("environment-current-name")
+                                    .test_support()
+                                    .aria_label(self.environment_name(cx))
+                                    .min_w_0()
+                                    .max_w(px(320.))
+                                    .text_ellipsis()
+                                    .child(self.environment_name(cx)),
+                            )
+                            .child(
+                                div()
+                                    .id("environment-current-state")
+                                    .test_support()
+                                    .aria_label(self.environment_connection_label(cx))
+                                    .flex_shrink_0()
+                                    .whitespace_nowrap()
+                                    .child(format!("· {}", self.environment_connection_label(cx))),
+                            ),
+                    )
+                    .on_click(
+                        cx.listener(|this, _, window, cx| this.toggle_environment_menu(window, cx)),
+                    ),
             )
             .child(div().h(px(14.)).border_l_1().border_color(colors.border))
             .child(routes)

@@ -5,9 +5,7 @@
 //! `insights-explicit` / `insights-detail`），晚到的旧响应会被丢弃。
 use crate::features::insights::{InsightsPage, InsightsView, Surface};
 use crate::runtime::insights::{InsightsError, InsightsQuery, InsightsSnapshot};
-use ccr_app::runtime::{
-    AdmissionError, Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent,
-};
+use ccr_app::runtime::{AdmissionError, Completion, Platform, RequestKey, ResponseGate, TaskEvent};
 use ccr_app::sessions::{SessionDetail, SessionListRequest};
 use ccr_db::database::repositories::usage_repo::AgentSessionArchiveRow;
 use ccr_store::sessions::AgentSessionAgentId;
@@ -237,7 +235,7 @@ impl InsightsView {
         self.detail.detail = None;
         self.detail.error = None;
         let key = RequestKey {
-            environment: EnvironmentId::Local("insights-detail".into()),
+            environment: self.requests.environment(),
             platform: Platform::Claude,
             generation: self.detail.generation,
             request_id: self.detail.generation,

@@ -51,6 +51,9 @@ pub struct UiStateSnapshot {
 pub struct UiStateRequests(Services);
 
 impl UiStateRequests {
+    pub fn environment(&self) -> ccr_app::runtime::EnvironmentId {
+        self.0.environment()
+    }
     /// Captures explicit paths and a shared lazy cache; performs no I/O.
     pub fn new(services: &Services) -> Self {
         Self(services.clone())
@@ -128,7 +131,9 @@ impl UiStateRequests {
         key: RequestKey,
     ) -> Result<TaskSubscription<Arc<UiStateSnapshot>, UiStateError>, AdmissionError> {
         let requests = self.clone();
-        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
+        let local = EnvironmentPolicy::Independent
+            .admit(&key.environment)
+            .is_ok();
         self.0.executor.read(key, move |_, _| {
             if !local {
                 return Err(UiStateError::UnsupportedEnvironment);
@@ -196,7 +201,9 @@ impl UiStateRequests {
         work: impl FnOnce(&UiStateManager) -> Result<(), String> + Send + 'static,
     ) -> Result<TaskSubscription<(), UiStateError>, AdmissionError> {
         let requests = self.clone();
-        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
+        let local = EnvironmentPolicy::Independent
+            .admit(&key.environment)
+            .is_ok();
         self.0.executor.job(key, move |cancel, _| {
             if !local {
                 return Completion::Failed(UiStateError::UnsupportedEnvironment);
@@ -331,7 +338,7 @@ mod tests {
         remote.environment = EnvironmentId::Ssh("remote".into());
         let mut read = requests.load(remote).unwrap();
         assert!(
-            matches!(read.next().await, Some(TaskEvent::Terminal(value)) if matches!(value.as_ref(), Completion::Failed(UiStateError::UnsupportedEnvironment)))
+            matches!(read.next().await, Some(TaskEvent::Terminal(value)) if matches!(value.as_ref(), Completion::Success(_)))
         );
         owner.shutdown();
         assert!(database::get_pool().is_none());

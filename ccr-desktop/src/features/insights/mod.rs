@@ -18,9 +18,7 @@ use crate::{
     theme,
 };
 use ccr_app::{
-    runtime::{
-        AdmissionError, Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent,
-    },
+    runtime::{AdmissionError, Completion, Platform, RequestKey, ResponseGate, TaskEvent},
     sessions::SessionListRequest,
 };
 use ccr_store::sessions::AgentSessionAgentId;
@@ -126,6 +124,11 @@ pub struct InsightsView {
     rendered_rows: usize,
 }
 impl InsightsView {
+    pub fn has_environment_draft(&self, cx: &gpui_kit::App) -> bool {
+        self.session_ops.has_draft()
+            || self.policies.read(cx).has_draft(cx)
+            || self.observer.read(cx).has_draft(cx)
+    }
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let utc = services.benchmark_clock().is_some();
         let requests = InsightsRequests::new(&services);
@@ -186,6 +189,13 @@ impl InsightsView {
     }
     pub fn focus_main(&self, window: &mut Window, cx: &mut Context<Self>) {
         window.focus(&self.focus, cx);
+    }
+    pub fn clear_environment(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.suspend(cx);
+        self.policies
+            .update(cx, |v, cx| v.clear_environment(window, cx));
+        self.observer
+            .update(cx, |v, cx| v.clear_environment(window, cx));
     }
     pub fn suspend(&mut self, cx: &mut Context<Self>) {
         self.capabilities.update(cx, |this, cx| this.suspend(cx));
@@ -308,7 +318,7 @@ impl InsightsView {
         self.generation += 1;
         let generation = self.generation;
         let key = RequestKey {
-            environment: EnvironmentId::Local("insights-explicit".into()),
+            environment: self.requests.environment(),
             platform: Platform::Claude,
             generation: self.generation,
             request_id: self.generation,
@@ -452,7 +462,7 @@ impl InsightsView {
             }
         };
         let key = RequestKey {
-            environment: EnvironmentId::Local("insights-explicit".into()),
+            environment: self.requests.environment(),
             platform: Platform::Claude,
             generation: self.generation,
             request_id: self.generation,

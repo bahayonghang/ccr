@@ -91,14 +91,7 @@ impl CheckinView {
         }
         self.generation += 1;
         let key = RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: EnvironmentId::Local("application".into()),
             platform: Platform::Claude,
             generation: self.generation,
             request_id: self.generation,

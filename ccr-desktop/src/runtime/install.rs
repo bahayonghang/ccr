@@ -203,6 +203,9 @@ pub enum Query {
     Manual,
 }
 impl InstallRequests {
+    pub fn environment(&self) -> ccr_app::runtime::EnvironmentId {
+        self.0.environment()
+    }
     pub fn new(services: &Services) -> Self {
         Self(services.clone())
     }

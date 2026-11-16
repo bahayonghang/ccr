@@ -11,7 +11,7 @@ pub fn load(
     let live = !services.is_fixture();
     let delay = services.fixture_delay();
     services.executor.read(key, move |cancel, _| {
-        EnvironmentPolicy::LocalOnly.admit(&environment)?;
+        EnvironmentPolicy::Independent.admit(&environment)?;
         // Fixture delay is cancellable QA only. A live read does not sleep here.
         if !delay.is_zero() {
             let deadline = std::time::Instant::now() + delay;
@@ -73,6 +73,9 @@ impl Services {
         if let Some(owner) = self.ssh.get() {
             owner.disconnect().await;
         }
+    }
+    pub fn ssh_connected(&self, id: &str) -> bool {
+        self.ssh.get().is_some_and(|owner| owner.connected(id))
     }
     fn ssh_workspace(&self) -> Result<Arc<Workspace>, &'static str> {
         if self.source.is_benchmark() {
@@ -193,10 +196,10 @@ impl Services {
                         .connect(&id, cancel.clone())
                         .await
                         .map(|()| SshResult::Connected),
-                    SshAction::Disconnect => {
-                        owner.disconnect().await;
-                        Ok(SshResult::Disconnected)
-                    }
+                    SshAction::Disconnect => owner
+                        .disconnect_checked()
+                        .await
+                        .map(|()| SshResult::Disconnected),
                     SshAction::Read(id, file) => owner
                         .read(&id, file, cancel.clone())
                         .await

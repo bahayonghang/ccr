@@ -2,7 +2,7 @@
 use crate::{locales::text, runtime::Services, shell::semantics, theme};
 use ccr_app::{
     benchmark::s2::{Phase, Snapshot},
-    runtime::{EnvironmentId, Platform, RequestKey},
+    runtime::{Platform, RequestKey},
 };
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::button::{Button, ButtonVariants};
@@ -111,7 +111,7 @@ impl BenchmarkView {
         }
         self.dismiss(window, cx);
         let key = RequestKey {
-            environment: EnvironmentId::Local("benchmark-s2".into()),
+            environment: self.services.environment(),
             platform: Platform::Claude,
             generation: self.generation,
             request_id: self.generation,

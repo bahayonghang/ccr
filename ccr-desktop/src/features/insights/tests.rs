@@ -119,7 +119,14 @@ async fn shell_usage_exposes_policy_writes_without_a_usage_database(cx: &mut Tes
     let (handle, _) = cx.update(|cx| {
         gpui_kit::init(cx);
         gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
-            cx.new(|cx| crate::shell::Shell::new(services(&owner, root.path()), window, cx))
+            cx.new(|cx| {
+                crate::shell::Shell::new_with_preferences(
+                    services(&owner, root.path()),
+                    Ok(Default::default()),
+                    window,
+                    cx,
+                )
+            })
         })
         .unwrap()
     });

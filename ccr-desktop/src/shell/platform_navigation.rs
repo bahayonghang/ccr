@@ -224,7 +224,7 @@ mod tests {
             gpui_kit::init(cx);
             gpui_kit::open_window(gpui_kit::WindowOptions::default(), cx, |window, cx| {
                 cx.new(|cx| {
-                    Shell::new(
+                    Shell::new_with_preferences(
                         Services::new(
                             owner.handle(),
                             ConfigSource::Fixture {
@@ -233,6 +233,7 @@ mod tests {
                                 delay: std::time::Duration::ZERO,
                             },
                         ),
+                        Ok(Default::default()),
                         window,
                         cx,
                     )
@@ -294,7 +295,7 @@ mod tests {
             gpui_kit::init(cx);
             gpui_kit::open_window(gpui_kit::WindowOptions::default(), cx, |window, cx| {
                 cx.new(|cx| {
-                    Shell::new(
+                    Shell::new_with_preferences(
                         Services::new(
                             owner.handle(),
                             ConfigSource::Fixture {
@@ -303,6 +304,7 @@ mod tests {
                                 delay: std::time::Duration::ZERO,
                             },
                         ),
+                        Ok(Default::default()),
                         window,
                         cx,
                     )

@@ -117,7 +117,11 @@ fn shell_claude_resources_write_confirm_conflict_and_keep_private_fields(cx: &mu
                 ..Default::default()
             },
             cx,
-            |window, cx| cx.new(|cx| Shell::new(services, window, cx)),
+            |window, cx| {
+                cx.new(|cx| {
+                    Shell::new_with_preferences(services, Ok(Default::default()), window, cx)
+                })
+            },
         )
         .unwrap()
     });

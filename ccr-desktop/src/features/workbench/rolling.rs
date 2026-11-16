@@ -10,7 +10,7 @@ impl WorkbenchView {
         self.rolling_request_id += 1;
         let generation = self.generation;
         let result = self.services.codex_rolling_usage(RequestKey {
-            environment: EnvironmentId::Local("platform-workbench-rolling".into()),
+            environment: self.services.environment(),
             platform: Platform::Codex,
             generation,
             request_id: self.rolling_request_id,

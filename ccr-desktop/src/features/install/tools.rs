@@ -8,7 +8,7 @@ use crate::{
     shell::semantics,
     theme,
 };
-use ccr_app::runtime::{EnvironmentId, Platform, RequestKey};
+use ccr_app::runtime::{Platform, RequestKey};
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
     ActiveTheme, FocusTrapElement,
@@ -85,7 +85,7 @@ impl ToolsView {
             .requests
             .perform(
                 RequestKey {
-                    environment: EnvironmentId::Local("tools".into()),
+                    environment: self.requests.environment(),
                     platform: Platform::Claude,
                     generation: self.request,
                     request_id: self.request,
