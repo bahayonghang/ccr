@@ -71,8 +71,8 @@ fn failure(error: Failure, cx: &gpui_kit::App) -> &'static str {
         ),
         Failure::Process => text(
             cx,
-            "Usage import failed. Check the installed llmusage CLI and local file access.",
-            "用量导入失败，请检查 llmusage CLI 和本地文件权限。",
+            "Usage import failed. Check the connection, llmusage and file access in the current execution environment. SSH snapshots also require Python3 with sqlite3.",
+            "用量导入失败，请检查连接、当前执行环境中的 llmusage 和文件权限；SSH 快照还需要带 sqlite3 的 Python3。",
         ),
     }
 }

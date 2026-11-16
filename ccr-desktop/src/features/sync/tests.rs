@@ -9,6 +9,59 @@ use gpui_kit::{AppContext, TestAppContext, WindowBounds, WindowOptions, px, size
 use std::time::Duration;
 
 #[gpui_kit::test]
+async fn ssh_sync_unavailable_database_and_disconnect_controls_do_not_start_actions(
+    cx: &mut TestAppContext,
+) {
+    let root = tempfile::tempdir().unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let source = services(&owner, root.path());
+    source.select_environment(ccr_app::runtime::EnvironmentId::Ssh(
+        "synthetic-host".into(),
+    ));
+    let (handle, view) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        cx.set_global(crate::locales::Language::English);
+        gpui_kit::open_window(
+            WindowOptions {
+                window_bounds: Some(WindowBounds::Windowed(gpui_kit::Bounds::centered(
+                    None,
+                    size(px(1280.), px(1200.)),
+                    cx,
+                ))),
+                ..Default::default()
+            },
+            cx,
+            |window, cx| cx.new(|cx| SyncView::new(source, window, cx)),
+        )
+        .unwrap()
+    });
+    view.update(cx, |this, _| {
+        this.snapshot = Some(SyncSnapshot::Present(SyncLocal {
+            revision: "synthetic-revision".into(),
+            webdav_enabled: true,
+            url: SyncUrl::Host("fixture.invalid".into()),
+            username_present: true,
+            password_present: true,
+            folders: Vec::new(),
+        }))
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(labels(window).contains("Profile databases, disconnecting WebDAV"));
+        window.click("sync-disconnect", cx);
+        window.click("sync-assets-all", cx);
+        window.click(("sync-asset", 0usize), cx);
+        assert!(view.read(cx).asset_editor.is_none());
+        assert!(view.read(cx).management_confirmation.is_none());
+        assert!(!view.read(cx).operation.busy);
+        window.click(("sync-asset", 1usize), cx);
+        assert!(view.read(cx).asset_editor.is_some());
+    })
+    .unwrap();
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
 async fn disconnect_and_batch_actions_preserve_versions_and_never_contact_fixture_remote(
     cx: &mut TestAppContext,
 ) {

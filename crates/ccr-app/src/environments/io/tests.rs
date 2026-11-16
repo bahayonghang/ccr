@@ -113,6 +113,43 @@ async fn session_budget_does_not_raise_the_configuration_limit() {
 }
 
 #[tokio::test(start_paused = true)]
+async fn usage_download_has_its_own_deadline_and_short_cancel_cleanup() {
+    let h = Harness::new(true).await;
+    let (workspace, transport) = h.remote.as_ref().unwrap();
+    transport.set_file(
+        "fixture.invalid",
+        "/home/fixture/.llmusage/snapshot.db",
+        "snapshot",
+    );
+    transport.delay_io(std::time::Duration::from_secs(11));
+    let started = tokio::time::Instant::now();
+    assert_eq!(
+        h.io.read_usage_bytes(".llmusage/snapshot.db", CancellationToken::new())
+            .await
+            .unwrap(),
+        b"snapshot"
+    );
+    assert!(started.elapsed() >= std::time::Duration::from_secs(11));
+    transport.delay_io(std::time::Duration::from_secs(30));
+    let io = h.io.clone();
+    let cancel = CancellationToken::new();
+    let task_cancel = cancel.clone();
+    let task = tokio::spawn(async move {
+        io.read_usage_bytes(".llmusage/snapshot.db", task_cancel)
+            .await
+    });
+    tokio::task::yield_now().await;
+    let started = tokio::time::Instant::now();
+    cancel.cancel();
+    assert!(matches!(
+        task.await.unwrap(),
+        Err(Error::Ssh("ssh_cleanup_failed"))
+    ));
+    assert!(started.elapsed() < std::time::Duration::from_secs(6));
+    assert_eq!(workspace.retained_session_count(), 0);
+}
+
+#[tokio::test(start_paused = true)]
 async fn cancelled_readonly_probe_joins_its_original_budget_and_keeps_the_connection() {
     let h = Harness::new(true).await;
     let (workspace, transport) = h.remote.as_ref().unwrap();

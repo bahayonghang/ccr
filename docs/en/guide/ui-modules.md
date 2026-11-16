@@ -47,7 +47,22 @@ The Codex session page remains available at `/codex/sessions`; it is distinct fr
 | SSH | `/ssh` | SSH environment management |
 | App settings | `/settings` | UI appearance, behavior, and diagnostics |
 
-## Route Maintenance Rules
+## SSH Boundaries In The Native GPUI Desktop
+
+`ccr-desktop` uses native destinations and platform tabs rather than the Tauri URL routes above. The status bar publishes one active execution environment:
+
+| Destination | SSH behavior |
+|---|---|
+| Platform settings/profiles/accounts, instructions/extensions, MCP | Captured remote HOME reads/writes; unsupported detailed actions fail explicitly |
+| Agent sessions | Per-host private read-only snapshots; missing remote sources never use local files |
+| Commands/installation | Captured-session remote exec; missing CLI leads to installation guidance |
+| Usage/overview | Remote llmusage import, Python3 sqlite3 consistent snapshot, ccr-usage read-only projections; schema 10 minimum, provider features require 14 |
+| Sync | Current-host configuration, four fixed file assets and bounded ordinary folders; profile databases/SQLite sidecars are refused, preserving original encryption and remote preimage backups |
+| Check-ins/global settings/operation record storage | Environment-independent and available with SSH offline |
+
+Usage snapshots are limited to 64MiB with a ten-minute transfer deadline. Ordinary sync allows 2MiB per file, 16MiB total, 128 nodes and 12 levels. SSH WebDAV disconnect and creating new empty destination directories remain unavailable; multi-file publication is not a cross-file transaction. Real SSH, system credential stores, external services, and other platforms require separate verification.
+
+## Tauri Route Maintenance Rules
 
 - Product docs describe stable capability groups rather than every internal route.
 - When a route is added, removed, or converted to a redirect, update this page and its locale mirror.

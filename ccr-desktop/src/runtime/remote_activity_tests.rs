@@ -31,6 +31,50 @@ async fn done<T: Send + Sync + 'static, E: Send + Sync + 'static>(
     .unwrap()
 }
 impl Fixture {
+    fn usage(&self, version: i64) -> String {
+        use ccr_app::environments::ssh_security::posix_single_quote as quote;
+        let paths = ccr_usage::fixtures::create_projection_db(
+            &self.root.path().join(format!("projection-{version}")),
+        );
+        ccr_usage::fixtures::set_schema_version(&paths, version);
+        let connection = rusqlite::Connection::open(&paths.db_path).unwrap();
+        ccr_usage::fixtures::seed_bucket(
+            &connection,
+            &ccr_usage::fixtures::SeedBucket {
+                event_count: 73,
+                total_tokens: 829,
+                hour_start: self
+                    .services
+                    .report_clock()
+                    .date()
+                    .format("%Y-%m-%dT12:00:00Z")
+                    .to_string(),
+                ..Default::default()
+            },
+        );
+        drop(connection);
+        let target = "/srv/activity/.llmusage/.ccr-snapshot-fixture/llmusage.db";
+        self.transport.set_bytes(
+            "activity.fixture.invalid",
+            target,
+            &std::fs::read(paths.db_path).unwrap(),
+        );
+        let command = [
+            "python3",
+            "-c",
+            ccr_usage::snapshot::BACKUP_SCRIPT,
+            "/srv/activity/.llmusage",
+        ]
+        .map(quote)
+        .join(" ");
+        self.transport
+            .set_exec_output(&command, true, &format!("{target}\n"), "");
+        let cleanup = ["python3", "-c", ccr_usage::snapshot::CLEANUP_SCRIPT, target]
+            .map(quote)
+            .join(" ");
+        self.transport.set_exec_output(&cleanup, true, "", "");
+        cleanup
+    }
     async fn new() -> Self {
         let root = tempfile::tempdir().unwrap();
         let owner = RuntimeOwner::new().unwrap();
@@ -122,6 +166,419 @@ impl Fixture {
             "never read or changed"
         );
     }
+}
+
+#[tokio::test]
+async fn ssh_usage_snapshot_projection_schema_gates_and_cache_are_host_private() {
+    let f = Fixture::new().await;
+    let cleanup = f.usage(19);
+    let requests = insights::InsightsRequests::new(&f.services);
+    let report = done(requests.load_workbench(f.key(80), 366).unwrap()).await;
+    assert!(
+        matches!(report.as_ref(), Completion::Success(report) if report.requests == 73 && report.tokens == 829 && report.session_count.is_none())
+    );
+    let io = f
+        .services
+        .remote_configuration_io(&f.key(1).environment)
+        .unwrap();
+    let cache = io
+        .cache_root(&f.root.path().join("session-cache-v1/usage"))
+        .unwrap();
+    assert!(cache.exists());
+    assert_eq!(std::fs::read_dir(&cache).unwrap().count(), 0);
+    assert!(
+        f.transport
+            .batches()
+            .iter()
+            .any(|batch| batch == &format!("exec {cleanup}"))
+    );
+    f.usage(9);
+    assert!(matches!(
+        done(requests.load_workbench(f.key(81), 366).unwrap())
+            .await
+            .as_ref(),
+        Completion::Failed(insights::InsightsError::Unsupported)
+    ));
+    f.usage(10);
+    let query = insights::InsightsQuery::Usage(ccr_usage::QueryFilter {
+        provider: Some("fixture".into()),
+        timezone: ccr_usage::ReportTimezone::Utc,
+        ..Default::default()
+    });
+    assert!(matches!(
+        done(requests.load(f.key(82), query).unwrap())
+            .await
+            .as_ref(),
+        Completion::Failed(insights::InsightsError::Unsupported)
+    ));
+    assert!(!f.root.path().join("poison-usage").exists());
+    f.finish().await;
+}
+
+#[tokio::test]
+async fn ssh_usage_stream_keeps_legal_multimegabyte_progress_and_waits_for_terminal() {
+    use ccr_app::usage::import::{
+        SyncCommandOptions, error::LlmusageAdapterError, remote::run_sync,
+    };
+    let f = Fixture::new().await;
+    f.transport.set_cli_output("llmusage", "/usr/bin/llmusage");
+    let command = "'env' 'RUST_LOG=off' 'NO_COLOR=1' '/usr/bin/llmusage' '--home' '/srv/activity/.llmusage' 'sync' '--json-events'";
+    let progress = "{\"event\":\"progress\",\"source\":\"codex\",\"files_scanned\":1,\"records_imported\":1,\"current_file\":null}\n";
+    let finished = "{\"event\":\"finished\",\"summary\":{\"sources\":1,\"total_seen\":1,\"total_inserted\":1}}\n";
+    let output = format!("{}{finished}", progress.repeat(30000));
+    assert!(output.len() > 2 * 1024 * 1024);
+    f.transport
+        .set_exec_output(command, true, &output, &"x".repeat(3 * 1024 * 1024));
+    let io = f
+        .services
+        .remote_configuration_io(&f.key(1).environment)
+        .unwrap();
+    let events = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let count = events.clone();
+    let result = run_sync(
+        &io,
+        SyncCommandOptions::default(),
+        CancellationToken::new(),
+        Arc::new(move |_| {
+            count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(result.total_seen, 1);
+    assert_eq!(events.load(std::sync::atomic::Ordering::SeqCst), 30000);
+    f.transport
+        .set_exec_output(command, false, finished, "fixture exit failure");
+    assert!(
+        run_sync(
+            &io,
+            SyncCommandOptions::default(),
+            CancellationToken::new(),
+            Arc::new(|_| {})
+        )
+        .await
+        .is_err()
+    );
+    f.transport.set_exec_output(command, true, "{broken}\n", "");
+    assert!(
+        run_sync(
+            &io,
+            SyncCommandOptions::default(),
+            CancellationToken::new(),
+            Arc::new(|_| {})
+        )
+        .await
+        .is_err()
+    );
+    f.workspace.disconnect().await;
+    f.workspace
+        .connect(&f.id, CancellationToken::new())
+        .await
+        .unwrap();
+    let io = f
+        .services
+        .remote_configuration_io(&f.key(1).environment)
+        .unwrap();
+    f.transport.set_exec_output(command, true, finished, "");
+    f.transport.delay_exec_terminal(Duration::from_secs(30));
+    let cancel = CancellationToken::new();
+    let cancel_task = cancel.clone();
+    let io_task = io.clone();
+    let issued = f
+        .transport
+        .batches()
+        .iter()
+        .filter(|batch| batch.starts_with("exec 'env' "))
+        .count();
+    let task = tokio::spawn(async move {
+        run_sync(
+            &io_task,
+            SyncCommandOptions::default(),
+            cancel_task,
+            Arc::new(|_| {}),
+        )
+        .await
+    });
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while f
+            .transport
+            .batches()
+            .iter()
+            .filter(|batch| batch.starts_with("exec 'env' "))
+            .count()
+            == issued
+        {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    assert!(!task.is_finished());
+    cancel.cancel();
+    assert!(matches!(
+        task.await.unwrap(),
+        Err(LlmusageAdapterError::CleanupFailed(_))
+    ));
+    assert!(io.check_authority().is_err());
+    f.finish().await;
+}
+
+#[tokio::test]
+async fn ssh_usage_missing_cli_snapshot_cleanup_and_old_authority_fail_closed() {
+    use ccr_app::usage::import::{
+        SyncCommandOptions,
+        error::LlmusageAdapterError,
+        remote::{Snapshot, run_sync},
+    };
+    let f = Fixture::new().await;
+    let io = f
+        .services
+        .remote_configuration_io(&f.key(1).environment)
+        .unwrap();
+    assert!(matches!(
+        run_sync(
+            &io,
+            SyncCommandOptions::default(),
+            CancellationToken::new(),
+            Arc::new(|_| {})
+        )
+        .await,
+        Err(LlmusageAdapterError::CliMissing)
+    ));
+    let cleanup = f.usage(19);
+    f.transport
+        .set_exec_output(&cleanup, false, "", "synthetic cleanup failure");
+    assert!(matches!(
+        Snapshot::capture(&io, &f.root.path().join("cache"), CancellationToken::new()).await,
+        Err(LlmusageAdapterError::CleanupFailed(_))
+    ));
+    f.workspace.disconnect().await;
+    f.workspace
+        .connect(&f.id, CancellationToken::new())
+        .await
+        .unwrap();
+    let before = f.transport.batches().len();
+    assert!(
+        Snapshot::capture(&io, &f.root.path().join("cache"), CancellationToken::new())
+            .await
+            .is_err()
+    );
+    assert_eq!(f.transport.batches().len(), before);
+    f.finish().await;
+}
+
+#[tokio::test]
+async fn ssh_overview_platform_and_selected_days_reach_shared_usage_projection() {
+    let f = Fixture::new().await;
+    f.usage(19);
+    let paths = ccr_usage::AppPaths::from_root(f.root.path().join("projection-19"));
+    let connection = rusqlite::Connection::open(&paths.db_path).unwrap();
+    let today = f.services.report_clock().date();
+    for (days, count) in [(0, 5), (40, 31)] {
+        ccr_usage::fixtures::seed_bucket(
+            &connection,
+            &ccr_usage::fixtures::SeedBucket {
+                source: "claude".into(),
+                event_count: count,
+                hour_start: (today - chrono::Duration::days(days))
+                    .format("%Y-%m-%dT12:00:00Z")
+                    .to_string(),
+                ..Default::default()
+            },
+        );
+    }
+    drop(connection);
+    f.transport.set_bytes(
+        "activity.fixture.invalid",
+        "/srv/activity/.llmusage/.ccr-snapshot-fixture/llmusage.db",
+        &std::fs::read(paths.db_path).unwrap(),
+    );
+    let requests = insights::InsightsRequests::new(&f.services);
+    for (scope, days, expected) in [
+        (None, 7, 78),
+        (None, 90, 109),
+        (Some(Platform::Codex), 90, 73),
+        (Some(Platform::Claude), 7, 5),
+    ] {
+        let report = done(
+            requests
+                .load_remote_overview(f.key(90 + u64::from(days)), scope, days)
+                .unwrap(),
+        )
+        .await;
+        let Completion::Success(report) = report.as_ref() else {
+            panic!("overview unavailable")
+        };
+        let usage = report.usage.as_ref().unwrap();
+        assert_eq!(usage.window_days, days);
+        assert_eq!(usage.requests, expected);
+        assert_eq!(report.platforms.len(), if scope.is_some() { 1 } else { 5 });
+    }
+    f.finish().await;
+}
+
+#[tokio::test]
+async fn ssh_usage_import_entry_retains_admission_through_remote_cancel_cleanup() {
+    use insights::import::{Failure, Options, Status, ToolUpdate};
+    let f = Fixture::new().await;
+    f.usage(19);
+    f.transport.set_cli_output("llmusage", "/usr/bin/llmusage");
+    let command = "'env' 'RUST_LOG=off' 'NO_COLOR=1' '/usr/bin/llmusage' '--home' '/srv/activity/.llmusage' 'sync' '--json-events' '--recent-days' '7' '--source' 'codex'";
+    f.transport.set_exec_output(command,true,"{\"event\":\"finished\",\"summary\":{\"sources\":1,\"total_seen\":4,\"total_inserted\":2}}\n", "");
+    let requests = insights::InsightsRequests::new(&f.services);
+    let options = Options {
+        source: Some(ccr_usage::SourceKind::Codex),
+        recent_days: 7,
+    };
+    requests
+        .start_import_with_options(f.key(100), options)
+        .unwrap();
+    let mut updates = requests.observe_import();
+    tokio::time::timeout(Duration::from_secs(10), async {
+        while updates.borrow().status.active() {
+            updates.changed().await.unwrap();
+        }
+    })
+    .await
+    .unwrap();
+    assert_eq!(requests.import_snapshot().status, Status::Finished);
+    assert_eq!(requests.import_snapshot().records_imported, 2);
+    assert!(matches!(
+        requests.import_snapshot().tools,
+        ToolUpdate::NotStarted
+    ));
+    f.transport.delay_exec_terminal(Duration::from_secs(30));
+    let issued = f
+        .transport
+        .batches()
+        .iter()
+        .filter(|batch| batch.starts_with("exec 'env' "))
+        .count();
+    requests
+        .start_import_with_options(f.key(101), options)
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while f
+            .transport
+            .batches()
+            .iter()
+            .filter(|batch| batch.starts_with("exec 'env' "))
+            .count()
+            == issued
+        {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    let cleanup = f.transport.hold_disconnect();
+    requests.cancel_import();
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while f.workspace.retained_session_count() != 0 {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    assert_eq!(requests.import_snapshot().status, Status::CancelRequested);
+    assert_eq!(
+        requests.start_import_with_options(f.key(102), options),
+        Err(Failure::Busy)
+    );
+    cleanup.notify_one();
+    tokio::time::timeout(Duration::from_secs(10), async {
+        while updates.borrow().status.active() {
+            updates.changed().await.unwrap();
+        }
+    })
+    .await
+    .unwrap();
+    assert_eq!(
+        requests.import_snapshot().status,
+        Status::Failed(Failure::CleanupFailed)
+    );
+    assert!(!f.root.path().join("local-home").exists());
+    f.finish().await;
+}
+
+#[tokio::test]
+async fn ssh_usage_offline_import_reports_connection_failure_without_admission() {
+    use insights::import::{Failure, Status};
+    let f = Fixture::new().await;
+    f.workspace.disconnect().await;
+    let requests = insights::InsightsRequests::new(&f.services);
+    assert_eq!(requests.start_import(f.key(110)), Err(Failure::Process));
+    let mut unsupported = f.key(111);
+    unsupported.environment = EnvironmentId::Wsl("synthetic-distro".into());
+    assert_eq!(requests.start_import(unsupported), Err(Failure::LocalOnly));
+    assert_eq!(requests.import_snapshot().status, Status::Idle);
+    assert_eq!(requests.import_snapshot().run, 0);
+    assert_eq!(f.owner.handle().active_tasks(), 0);
+    assert!(!f.root.path().join("session-cache-v1").exists());
+    assert!(!f.root.path().join("poison-usage").exists());
+    f.finish().await;
+}
+
+#[tokio::test]
+async fn ssh_snapshot_read_cancellation_joins_helper_then_cleans_without_revoking_shared_session() {
+    use ccr_app::usage::import::{error::LlmusageAdapterError, remote::Snapshot};
+    let f = Fixture::new().await;
+    let cleanup = f.usage(19);
+    let io = f
+        .services
+        .remote_configuration_io(&f.key(1).environment)
+        .unwrap();
+    let cancel = CancellationToken::new();
+    let task_cancel = cancel.clone();
+    let task_io = io.clone();
+    let cache = f.root.path().join("cancelled-usage-cache");
+    let before = f.transport.batches().len();
+    let already_cancelled = CancellationToken::new();
+    already_cancelled.cancel();
+    assert!(matches!(
+        Snapshot::capture(&io, &cache, already_cancelled).await,
+        Err(LlmusageAdapterError::Cancelled)
+    ));
+    assert_eq!(f.transport.batches().len(), before);
+    let helper = f.transport.hold_next_exec();
+    let task_cache = cache.clone();
+    let task =
+        tokio::spawn(async move { Snapshot::capture(&task_io, &task_cache, task_cancel).await });
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while !f
+            .transport
+            .batches()
+            .iter()
+            .any(|batch| batch.starts_with("exec 'python3' '-c'"))
+        {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    cancel.cancel();
+    assert!(!task.is_finished());
+    helper.notify_one();
+    assert!(matches!(
+        task.await.unwrap(),
+        Err(LlmusageAdapterError::Cancelled)
+    ));
+    assert!(io.check_authority().is_ok());
+    assert!(f.workspace.connected(&f.id));
+    assert!(
+        f.transport
+            .batches()
+            .iter()
+            .any(|batch| batch == &format!("exec {cleanup}"))
+    );
+    assert!(
+        !f.transport
+            .batches()
+            .iter()
+            .any(|batch| batch.starts_with("get-session ") && batch.contains(".ccr-snapshot-"))
+    );
+    assert!(!cache.exists());
+    f.finish().await;
 }
 
 #[tokio::test]
@@ -394,10 +851,21 @@ async fn ssh_install_uses_canonical_remote_plan_ack_and_single_consumption() {
 #[tokio::test]
 async fn ssh_overview_uses_remote_facts_and_never_measures_local_usage_as_zero() {
     let f = Fixture::new().await;
+    use ccr_app::environments::ssh_security::posix_single_quote as quote;
+    let command = [
+        "python3",
+        "-c",
+        ccr_usage::snapshot::BACKUP_SCRIPT,
+        "/srv/activity/.llmusage",
+    ]
+    .map(quote)
+    .join(" ");
+    f.transport
+        .set_exec_output(&command, false, "", "python3: not found");
     f.set(".codex/config.toml", "model = 'remote'");
     f.transport.set_cli_output("codex", "/usr/bin/codex");
     let requests = insights::InsightsRequests::new(&f.services);
-    let result = done(requests.load_remote_overview(f.key(1), None).unwrap()).await;
+    let result = done(requests.load_remote_overview(f.key(1), None, 7).unwrap()).await;
     assert!(
         matches!(result.as_ref(),Completion::Success(report) if report.platforms.len()==5 && report.platforms.iter().any(|row|row.platform==Platform::Codex && row.cli && row.configuration))
     );
@@ -405,7 +873,7 @@ async fn ssh_overview_uses_remote_facts_and_never_measures_local_usage_as_zero()
         done(requests.load_workbench(f.key(2), 7).unwrap())
             .await
             .as_ref(),
-        Completion::Failed(insights::InsightsError::RemoteUsagePending)
+        Completion::Failed(insights::InsightsError::RemoteSnapshot)
     ));
     assert!(!f.root.path().join("poison-usage").exists());
     f.finish().await;

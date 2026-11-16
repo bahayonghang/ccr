@@ -281,6 +281,27 @@ impl EnvironmentIo {
             Adapter::Local(_) => Err(Error::Unsupported),
         }
     }
+    /// Inspect directory identity without treating it as a regular file.
+    pub async fn is_directory(
+        &self,
+        relative: &str,
+        cancel: CancellationToken,
+    ) -> Result<bool, Error> {
+        let EnvironmentPath::Ssh(path) = self.roots.relative(relative)? else {
+            return Err(Error::Unsupported);
+        };
+        let Adapter::Ssh {
+            workspace,
+            authority,
+        } = &self.adapter
+        else {
+            return Err(Error::Unsupported);
+        };
+        workspace
+            .directory_io(authority, path, cancel)
+            .await
+            .map_err(Error::Ssh)
+    }
     /// Serialize a remote configuration publication without retaining a read lock
     /// for the lifetime of an editor. Individual files keep their own CAS locks.
     pub async fn configuration_lock(
@@ -471,6 +492,24 @@ impl EnvironmentIo {
         relative: &str,
         cancel: CancellationToken,
     ) -> Result<Vec<u8>, Error> {
+        self.read_snapshot_bytes(relative, cancel, false).await
+    }
+    /// Read an immutable usage backup under its own 64 MiB / ten-minute budget.
+    /// Cancellation joins an issued SFTP request for five seconds, then revokes
+    /// only the captured session if cleanup cannot be confirmed.
+    pub async fn read_usage_bytes(
+        &self,
+        relative: &str,
+        cancel: CancellationToken,
+    ) -> Result<Vec<u8>, Error> {
+        self.read_snapshot_bytes(relative, cancel, true).await
+    }
+    async fn read_snapshot_bytes(
+        &self,
+        relative: &str,
+        cancel: CancellationToken,
+        usage: bool,
+    ) -> Result<Vec<u8>, Error> {
         self.roots.relative(relative)?;
         let Adapter::Ssh {
             workspace,
@@ -487,11 +526,17 @@ impl EnvironmentIo {
         if before.0 > 64 * 1024 * 1024 {
             return Err(Error::TooLarge);
         }
-        let bytes = workspace
-            .read_session_io(authority, relative, cancel.clone())
-            .await
-            .map_err(Error::Ssh)?
-            .ok_or(Error::Conflict)?;
+        let bytes = if usage {
+            workspace
+                .read_usage_io(authority, relative, cancel.clone())
+                .await
+        } else {
+            workspace
+                .read_session_io(authority, relative, cancel.clone())
+                .await
+        }
+        .map_err(Error::Ssh)?
+        .ok_or(Error::Conflict)?;
         if bytes.len() > 64 * 1024 * 1024 {
             return Err(Error::TooLarge);
         }
@@ -732,6 +777,54 @@ impl EnvironmentIo {
         self.execute_observed(descriptor, remote_program, args, cancel, None)
             .await
     }
+    /// Stream installed usage CLI output without retaining complete streams.
+    /// The usage owner enforces line/tail limits and the one-hour descriptor.
+    pub async fn execute_usage_stream(
+        &self,
+        descriptor: &ProcessDescriptor,
+        remote_program: &str,
+        args: &[String],
+        cancel: CancellationToken,
+        observer: OutputObserver,
+    ) -> Result<ProcessOutput, Error> {
+        if descriptor.capability().id() != "llmusage_sync"
+            || remote_program.is_empty()
+            || std::iter::once(remote_program)
+                .chain(args.iter().map(String::as_str))
+                .any(|arg| arg.contains('\0'))
+        {
+            return Err(Error::Unsupported);
+        }
+        check_cancel(&cancel)?;
+        let Adapter::Ssh {
+            workspace,
+            authority,
+        } = &self.adapter
+        else {
+            return Err(Error::Unsupported);
+        };
+        let command = std::iter::once(remote_program)
+            .chain(args.iter().map(String::as_str))
+            .map(posix_single_quote)
+            .collect::<Vec<_>>()
+            .join(" ");
+        let (success, stdout, stderr) = workspace
+            .exec_io(
+                authority,
+                command,
+                descriptor.timeout(),
+                None,
+                cancel,
+                Some(observer),
+            )
+            .await
+            .map_err(Error::Ssh)?;
+        Ok(ProcessOutput {
+            success,
+            stdout,
+            stderr,
+        })
+    }
     /// Observe bounded remote chunks. The consumer buffers complete lines before
     /// redaction; the callback cannot choose commands or change process budgets.
     pub async fn execute_observed(
@@ -787,7 +880,7 @@ impl EnvironmentIo {
                         authority,
                         command,
                         descriptor.timeout(),
-                        descriptor.max_bytes_per_stream(),
+                        Some(descriptor.max_bytes_per_stream()),
                         cancel,
                         observer,
                     )

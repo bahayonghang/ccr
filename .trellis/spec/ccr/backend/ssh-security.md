@@ -1,6 +1,8 @@
-# SSH Trust and Transport
+# SSH Trust and OpenSSH Transport
 
 > Backend-owned OpenSSH capability and host-trust contract for the desktop app.
+
+The native GPUI Workspace now uses russh, captured session authority and keyring credentials under the [execution environment contract](../../ccr-app/backend/execution-environment.md). OpenSSH-specific statements below apply to the Tauri/compatibility path; they do not describe the native Workspace transport or native failure-selection behavior.
 
 ## Scenario: trusted SSH config access
 

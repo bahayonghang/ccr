@@ -42,6 +42,7 @@ pub enum ProcessCapability {
     PortDiscovery,
     LlmusageVersion,
     LlmusageSync,
+    UsageSnapshot,
     PathLookup,
     OpenSsh,
     Sftp,
@@ -63,6 +64,7 @@ impl ProcessCapability {
             Self::PortDiscovery => "port_discovery",
             Self::LlmusageVersion => "llmusage_version",
             Self::LlmusageSync => "llmusage_sync",
+            Self::UsageSnapshot => "usage_snapshot",
             Self::PathLookup => "path_lookup",
             Self::OpenSsh => "openssh",
             Self::Sftp => "sftp",
@@ -106,6 +108,18 @@ pub struct ProcessDescriptor {
 }
 
 impl ProcessDescriptor {
+    /// Fixed standard-library SQLite backup helper, bound to remote environment I/O.
+    pub fn usage_snapshot() -> Self {
+        Self {
+            capability: ProcessCapability::UsageSnapshot,
+            executable: TrustedExecutable::DetectedCli {
+                tool: "python3",
+                path: "python3".into(),
+            },
+            timeout: Duration::from_secs(10),
+            max_bytes_per_stream: 64 * 1024,
+        }
+    }
     #[cfg(any(target_os = "macos", test))]
     pub(crate) const fn skillport_helper(launch: bool) -> Self {
         Self {

@@ -109,6 +109,34 @@ impl Workspace {
             }
         }
     }
+    pub(crate) async fn read_usage_io(
+        &self,
+        authority: &IoSession,
+        relative: &str,
+        cancel: CancellationToken,
+    ) -> Result<Option<Vec<u8>>, Error> {
+        self.check_io(authority)?;
+        let path = authority
+            .home()
+            .join_relative(relative)
+            .map_err(|_| "ssh_invalid_remote_path")?;
+        let result =
+            transport::read_usage_bounded(cancel, authority.0.connection.download_session(path))
+                .await;
+        match result {
+            Ok(content) => {
+                self.check_io(authority)?;
+                Ok(content)
+            }
+            Err(error @ ("ssh_cancelled" | "ssh_file_too_large" | "ssh_invalid_remote_path")) => {
+                Err(error)
+            }
+            Err(error) => {
+                self.revoke(authority.0.session_id).await?;
+                Err(error)
+            }
+        }
+    }
 
     pub(crate) async fn write_io(
         &self,
@@ -258,15 +286,30 @@ impl Workspace {
         authority: &IoSession,
         command: String,
         timeout: std::time::Duration,
-        max_bytes: usize,
+        max_bytes: Option<usize>,
         cancel: CancellationToken,
         observer: Option<super::super::io::OutputObserver>,
     ) -> Result<(bool, Vec<u8>, Vec<u8>), Error> {
         self.check_io(authority)?;
+        let execution = async {
+            if max_bytes.is_none() {
+                authority
+                    .0
+                    .connection
+                    .exec_stream(command, observer.ok_or("ssh_invalid_document")?)
+                    .await
+            } else {
+                authority
+                    .0
+                    .connection
+                    .exec_bounded(command, max_bytes.ok_or("ssh_invalid_document")?, observer)
+                    .await
+            }
+        };
         let result = tokio::select! {
             biased;
             _ = cancel.cancelled() => Err("ssh_cancelled"),
-            result = tokio::time::timeout(timeout, authority.0.connection.exec_bounded(command, max_bytes, observer)) => result.unwrap_or(Err("ssh_network_error")),
+            result = tokio::time::timeout(timeout, execution) => result.unwrap_or(Err("ssh_network_error")),
         };
         if result.is_err() {
             self.revoke(authority.0.session_id).await?;

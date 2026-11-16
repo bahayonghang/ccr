@@ -12,6 +12,7 @@ pub mod fixtures;
 mod insights;
 mod paths;
 mod queries;
+pub mod snapshot;
 mod source;
 mod timezone;
 

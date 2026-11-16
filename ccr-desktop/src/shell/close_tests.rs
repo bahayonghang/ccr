@@ -3,7 +3,7 @@
 use super::Shell;
 use crate::runtime::{Services, profiles::tests::fixture};
 use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, RuntimeOwner};
-use gpui_kit::test::TestWindowExt;
+use gpui_kit::test::{TestAppContextExt, TestWindowExt};
 use gpui_kit::{
     AppContext, Bounds, TestAppContext, VisualTestContext, WindowBounds, WindowOptions, px, size,
 };
@@ -361,14 +361,14 @@ async fn window_bounds_are_saved_before_close_and_restored_by_the_launch_path(
 }
 
 #[gpui_kit::test]
-fn preference_retry_recovers_the_failed_read_or_write(cx: &mut TestAppContext) {
+async fn preference_retry_recovers_the_failed_read_or_write(cx: &mut TestAppContext) {
     cx.executor().allow_parking();
     let (root, source) = fixture();
     let path = root.path().join("desktop-gpui/preferences.json");
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(&path, b"{broken").unwrap();
     let owner = RuntimeOwner::new().unwrap();
-    let (handle, _) = cx.update(|cx| {
+    let (handle, shell) = cx.update(|cx| {
         gpui_kit::init(cx);
         gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
             cx.new(|cx| Shell::new(Services::new(owner.handle(), source), window, cx))
@@ -391,11 +391,15 @@ fn preference_retry_recovers_the_failed_read_or_write(cx: &mut TestAppContext) {
             Some("Reload preferences")
         );
         window.click("preferences-retry", cx);
+        assert!(shell.read(cx).preferences_busy);
+        assert!(!shell.read(cx).preferences_loaded);
     })
     .unwrap();
-    wait_for(cx, handle, "reload", |w| {
-        w.find("theme-dark").disabled() != Some(true)
-    });
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        let state = shell.read(cx);
+        state.preferences_loaded && !state.preferences_busy && !state.preferences_failed
+    })
+    .await;
     std::fs::write(&path, b"{broken").unwrap();
     cx.update_window(handle, |_, window, cx| window.click("theme-dark", cx))
         .unwrap();

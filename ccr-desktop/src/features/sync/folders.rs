@@ -209,8 +209,8 @@ impl SyncView {
             section=section.child(div().id("sync-folder-editor").test_support().flex().flex_col().gap(px(theme::CONTROL_GAP))
                 .child(if editor.target.is_some(){text(cx,"Blank fields keep their saved values. Existing exclusions and automatic-sync settings are preserved.","字段留空保留原值；已有排除规则和自动同步设置不变。")}else{text(cx,"Enter a unique name, local file or directory, and remote path. New folders are enabled; automatic sync remains off.","填写唯一名称、本地文件或目录及远程路径。新文件夹默认启用，自动同步关闭。")})
                 .child(text(cx,"Folder name","文件夹名称")).child(Input::new(&editor.name).accessibility_id("sync-folder-name").aria_label(text(cx,"Folder name","文件夹名称")))
-                .child(text(cx,"Local path","本地路径")).child(Input::new(&editor.local).accessibility_id("sync-folder-local").aria_label(text(cx,"Local path","本地路径")))
-                .child(text(cx,"Remote path","远程路径")).child(Input::new(&editor.remote).accessibility_id("sync-folder-remote").aria_label(text(cx,"Remote path","远程路径")))
+                .child(text(cx,"Current environment path","当前执行环境路径")).child(Input::new(&editor.local).accessibility_id("sync-folder-local").aria_label(text(cx,"Current environment path","当前执行环境路径")))
+                .child(text(cx,"WebDAV path","WebDAV 路径")).child(Input::new(&editor.remote).accessibility_id("sync-folder-remote").aria_label(text(cx,"WebDAV path","WebDAV 路径")))
                 .child(div().flex().gap(px(theme::CONTROL_GAP))
                     .child(semantics::button(Button::new("sync-folder-save").label(text(cx,"Save folder","保存文件夹")).on_click(cx.listener(|this,_,_,cx|this.save_folder(cx))),locked,false,cx))
                     .child(semantics::button(Button::new("sync-folder-cancel").label(text(cx,"Cancel editing","取消编辑")).ghost().on_click(cx.listener(|this,_,_,cx|{this.folder_editor=None;cx.notify();})),locked,false,cx))));

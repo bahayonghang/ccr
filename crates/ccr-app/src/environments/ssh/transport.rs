@@ -45,6 +45,26 @@ pub(super) trait Connection: Send + Sync {
             Ok(output)
         })
     }
+    fn exec_stream(
+        &self,
+        command: String,
+        observer: super::super::io::OutputObserver,
+    ) -> RunFuture<'_, Output> {
+        Box::pin(async move {
+            let output = self.exec(command).await?;
+            for chunk in output.stdout.chunks(16 * 1024) {
+                observer(false, chunk);
+            }
+            for chunk in output.stderr.chunks(16 * 1024) {
+                observer(true, chunk);
+            }
+            Ok(Output {
+                success: output.success,
+                stdout: Vec::new(),
+                stderr: Vec::new(),
+            })
+        })
+    }
     fn download(&self, path: RemotePosixPath) -> RunFuture<'_, Option<Vec<u8>>>;
     fn download_session(&self, path: RemotePosixPath) -> RunFuture<'_, Option<Vec<u8>>> {
         self.download(path)
@@ -110,6 +130,24 @@ pub(super) async fn read_with_timeout<T>(
             Err(_) => Err("ssh_cleanup_failed"),
         },
         result = tokio::time::timeout_at(deadline, &mut work) => result.map_err(|_| "ssh_network_error")?,
+    }
+}
+pub(super) async fn read_usage_bounded<T>(
+    cancel: CancellationToken,
+    work: impl Future<Output = Result<T, Error>>,
+) -> Result<T, Error> {
+    if cancel.is_cancelled() {
+        return Err("ssh_cancelled");
+    }
+    tokio::pin!(work);
+    tokio::select! {
+        biased;
+        _ = cancel.cancelled() => match tokio::time::timeout(Duration::from_secs(5), work).await {
+            Ok(Ok(_)) => Err("ssh_cancelled"),
+            Ok(Err(error)) => Err(error),
+            Err(_) => Err("ssh_cleanup_failed"),
+        },
+        result = tokio::time::timeout(Duration::from_secs(600), &mut work) => result.map_err(|_| "ssh_network_error")?,
     }
 }
 struct Verifier {
@@ -333,47 +371,14 @@ impl Connection for LiveConnection {
         limit: usize,
         observer: Option<super::super::io::OutputObserver>,
     ) -> RunFuture<'_, Output> {
-        Box::pin(async move {
-            let mut channel = self
-                .0
-                .channel_open_session()
-                .await
-                .map_err(|_| "ssh_network_error")?;
-            let result = async {
-                channel
-                    .exec(true, command)
-                    .await
-                    .map_err(|_| "ssh_network_error")?;
-                channel.eof().await.map_err(|_| "ssh_network_error")?;
-                let mut output = Output {
-                    success: false,
-                    stdout: Vec::new(),
-                    stderr: Vec::new(),
-                };
-                while let Some(message) = channel.wait().await {
-                    let (target, data, stderr) = match message {
-                        ChannelMsg::Data { data } => (&mut output.stdout, data, false),
-                        ChannelMsg::ExtendedData { data, .. } => (&mut output.stderr, data, true),
-                        ChannelMsg::ExitStatus { exit_status } => {
-                            output.success = exit_status == 0;
-                            continue;
-                        }
-                        _ => continue,
-                    };
-                    if target.len() + data.len() > limit {
-                        return Err("ssh_file_too_large");
-                    }
-                    if let Some(observer) = &observer {
-                        observer(stderr, &data);
-                    }
-                    target.extend_from_slice(&data);
-                }
-                Ok(output)
-            }
-            .await;
-            let _ = channel.close().await;
-            result
-        })
+        self.exec_channel(command, Some(limit), observer)
+    }
+    fn exec_stream(
+        &self,
+        command: String,
+        observer: super::super::io::OutputObserver,
+    ) -> RunFuture<'_, Output> {
+        self.exec_channel(command, None, Some(observer))
     }
     fn download(&self, path: RemotePosixPath) -> RunFuture<'_, Option<Vec<u8>>> {
         Box::pin(async move {
@@ -595,6 +600,56 @@ impl Connection for LiveConnection {
     }
 }
 impl LiveConnection {
+    fn exec_channel(
+        &self,
+        command: String,
+        limit: Option<usize>,
+        observer: Option<super::super::io::OutputObserver>,
+    ) -> RunFuture<'_, Output> {
+        Box::pin(async move {
+            let mut channel = self
+                .0
+                .channel_open_session()
+                .await
+                .map_err(|_| "ssh_network_error")?;
+            let result = async {
+                channel
+                    .exec(true, command)
+                    .await
+                    .map_err(|_| "ssh_network_error")?;
+                channel.eof().await.map_err(|_| "ssh_network_error")?;
+                let mut output = Output {
+                    success: false,
+                    stdout: Vec::new(),
+                    stderr: Vec::new(),
+                };
+                while let Some(message) = channel.wait().await {
+                    let (target, data, stderr) = match message {
+                        ChannelMsg::Data { data } => (&mut output.stdout, data, false),
+                        ChannelMsg::ExtendedData { data, .. } => (&mut output.stderr, data, true),
+                        ChannelMsg::ExitStatus { exit_status } => {
+                            output.success = exit_status == 0;
+                            continue;
+                        }
+                        _ => continue,
+                    };
+                    if limit.is_some_and(|limit| target.len() + data.len() > limit) {
+                        return Err("ssh_file_too_large");
+                    }
+                    if let Some(observer) = &observer {
+                        observer(stderr, &data);
+                    }
+                    if limit.is_some() {
+                        target.extend_from_slice(&data);
+                    }
+                }
+                Ok(output)
+            }
+            .await;
+            let _ = channel.close().await;
+            result
+        })
+    }
     async fn sftp(&self) -> Result<RawSftpSession, Error> {
         let channel = self
             .0

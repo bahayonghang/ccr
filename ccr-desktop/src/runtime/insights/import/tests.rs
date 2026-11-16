@@ -43,13 +43,13 @@ fn wait(requests: &InsightsRequests, predicate: impl Fn(&Snapshot) -> bool) {
     }
 }
 #[test]
-fn imports_reject_remote_fixture_and_custom_provider_roots_before_admission() {
+fn imports_reject_unconnected_remote_fixture_and_custom_provider_roots_before_admission() {
     let root = tempfile::tempdir().unwrap();
     let owner = RuntimeOwner::new().unwrap();
     let requests = fixture(&owner, root.path());
     assert_eq!(
         requests.start_import(key(EnvironmentId::Ssh("remote".into()))),
-        Err(Failure::LocalOnly)
+        Err(Failure::Process)
     );
     assert_eq!(
         requests.start_import(key(EnvironmentId::Local("fixture".into()))),

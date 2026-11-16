@@ -84,7 +84,7 @@ async fn ssh_activity_sidebar_platform_tabs_and_missing_cli_install_link_reach_r
             .transport
             .batches()
             .iter()
-            .any(|line| line.starts_with("exec "))
+            .any(|line| line.starts_with("exec ") && !line.starts_with("exec 'python3' '-c'"))
     );
     fixture
         .runtime
@@ -139,6 +139,16 @@ impl Fixture {
             root.path().join("ssh/known_hosts"),
         );
         let workspace = Arc::new(workspace);
+        use ccr_app::environments::ssh_security::posix_single_quote as quote;
+        let snapshot_command = [
+            "python3",
+            "-c",
+            ccr_usage::snapshot::BACKUP_SCRIPT,
+            "/home/fixture/.llmusage",
+        ]
+        .map(quote)
+        .join(" ");
+        transport.set_exec_output(&snapshot_command, false, "", "python3: not found");
         services
             .ssh
             .set(workspace.clone())

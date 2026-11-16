@@ -94,7 +94,7 @@ pub enum InsightsError {
     Archive,
     Session(SessionError),
     Remote,
-    RemoteUsagePending,
+    RemoteSnapshot,
 }
 impl InsightsError {
     pub fn message(self) -> &'static str {
@@ -102,8 +102,8 @@ impl InsightsError {
             Self::Remote => {
                 "Cannot read this SSH session snapshot. Reconnect or refresh the remote source. / 无法读取此 SSH 会话快照，请重连或刷新远程来源。"
             }
-            Self::RemoteUsagePending => {
-                "Remote usage is unknown until SSH llmusage snapshots are connected. / 远端用量未知，待接入 SSH llmusage 快照。"
+            Self::RemoteSnapshot => {
+                "Remote usage is unavailable. The SSH host needs Python3 with sqlite3 and a readable ~/.llmusage/llmusage.db; snapshot cleanup must succeed. / 远端用量不可用。SSH 主机需要带 sqlite3 的 Python3、可读的 ~/.llmusage/llmusage.db，且快照必须成功清理。"
             }
             Self::Unconfigured => {
                 "Select explicit usage, archive and provider roots with the insights launch options. / 请通过启动参数指定用量、归档和会话根目录"
@@ -666,13 +666,18 @@ impl InsightsRequests {
         let requests = self.clone();
         let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         let remote = (!local).then(|| requests.services.remote_configuration_io(&key.environment));
-        self.services.executor.read(key, move |_, _| {
+        self.services.executor.read(key, move |cancel, _| {
             if !local {
-                return Err(if remote.is_some_and(|io| io.is_ok()) {
-                    InsightsError::RemoteUsagePending
-                } else {
-                    InsightsError::Remote
-                });
+                let io = remote
+                    .ok_or(InsightsError::Remote)?
+                    .map_err(|_| InsightsError::Remote)?;
+                let (requests, _snapshot) = requests.remote_usage(&io, cancel.clone())?;
+                let report = requests.read_workbench(days).map(Arc::new);
+                io.check_authority().map_err(|_| InsightsError::Remote)?;
+                if cancel.is_cancelled() {
+                    return Err(InsightsError::Remote);
+                }
+                return report;
             }
             requests.read_workbench(days).map(Arc::new)
         })
@@ -690,6 +695,10 @@ impl InsightsRequests {
             .unwrap_or(as_of);
         let filter = QueryFilter {
             timezone: clock.timezone,
+            source: self
+                .services
+                .platform_scope
+                .and_then(|platform| SourceKind::parse_id(platform.short_name())),
             since: Some(since),
             until: Some(as_of),
             ..QueryFilter::default()

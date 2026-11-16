@@ -77,7 +77,7 @@ impl SyncView {
                             .on_click(cx.listener(move |this, _, window, cx| {
                                 this.edit_asset(Some(id.clone()), window, cx)
                             })),
-                        locked,
+                        locked || (self.is_ssh() && asset.id == "ccr-platforms"),
                         false,
                         cx,
                     )),
@@ -93,7 +93,7 @@ impl SyncView {
                         .on_click(
                             cx.listener(|this, _, window, cx| this.edit_asset(None, window, cx)),
                         ),
-                    locked,
+                    locked || self.is_ssh(),
                     false,
                     cx,
                 ))
@@ -102,7 +102,7 @@ impl SyncView {
                         (
                             false,
                             "sync-assets-local",
-                            text(cx, "Inspect local assets", "查看本地资产"),
+                            text(cx, "Inspect environment assets", "查看当前环境资产"),
                         ),
                         (
                             true,
@@ -137,9 +137,9 @@ impl SyncView {
                     row.id,
                     row.local_path,
                     if row.local_exists {
-                        text(cx, "Local present", "本地存在")
+                        text(cx, "Environment copy present", "当前环境副本存在")
                     } else {
-                        text(cx, "Local missing", "本地缺失")
+                        text(cx, "Environment copy missing", "当前环境副本缺失")
                     },
                     match row.remote_exists {
                         Some(true) => text(cx, "Remote present", "远程存在"),

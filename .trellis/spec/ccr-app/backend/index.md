@@ -8,7 +8,7 @@ Framework-independent application orchestration consumed by desktop adapters.
 | --- | --- |
 | [Shared desktop services](./shared-desktop-services.md) | Configuration projection, bounded runtime, response identity and lifecycle |
 | [Configuration policy](./configuration-services.md) | Generic/dedicated patches, source CAS, managed backup and scoped secrets |
-| [Execution environment](./execution-environment.md) | WSL path planning, SSH refusal before a socket, and per-environment surface slots |
+| [Execution environment](./execution-environment.md) | Native SSH transport/credentials, captured environment admission, sync and usage snapshot boundaries; separate Tauri compatibility |
 
 ## Pre-Development Checklist
 

@@ -38,7 +38,15 @@ bun run dev:web -- --host 127.0.0.1 --strictPort
 
 Factory Droid 在 CLI 中作为保留兼容适配器（`legacy_adapter`）存在，Qwen 保留为部分支持/stub；当前路由没有为它们提供独立平台主页。平台支持状态以 [平台支持](/reference/platforms/) 为准，UI 页面以 [UI 模块地图](./ui-modules) 为准。
 
-## 数据边界
+## GPUI 原生桌面的执行环境
+
+独立的 `ccr-desktop`（`ccr-gpui`）在底部状态栏切换本地/SSH 当前执行环境，全局设置分为外观、工作台偏好、执行环境、诊断四页。平台配置、MCP、Agent 会话、命令/安装、同步和用量随所选环境读取；失败保留 SSH 主机且不回落本地。签到和全局设置与环境无关，SSH 离线仍可打开。Tauri 的 SSH 页面继续使用系统 OpenSSH，不随 GPUI 切换为 russh。
+
+SSH 用量需要主机安装 llmusage 与带 sqlite3 的 Python3：显式导入在主机执行，报告使用包含 WAL 的只读 SQLite backup，经 SFTP 拉取最多 64MiB 的私有快照（下载最多 10 分钟），由 `ccr-usage` 按 schema/能力门控，不迁移远端数据库。缺工具、断线、快照或清理失败显示不可用，不显示本机数据或假零值。
+
+SSH WebDAV 支持四个固定文件资产与远程 HOME 内有界普通文件夹；敏感固定资产继续使用 v2 加密。远端方案数据库/SQLite sidecar、解绑 WebDAV 和新建纯空目标目录尚不支持；多文件写回可能部分完成并保留远端备份。真实主机与跨平台验收另行验证。
+
+## Tauri 数据边界
 
 ```text
 Vue view/store

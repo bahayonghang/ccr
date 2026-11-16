@@ -10,6 +10,7 @@ pub struct PlatformSummary {
 }
 pub struct Overview {
     pub platforms: Vec<PlatformSummary>,
+    pub usage: Result<WorkbenchReport, InsightsError>,
 }
 
 impl InsightsRequests {
@@ -17,6 +18,7 @@ impl InsightsRequests {
         &self,
         key: RequestKey,
         platform: Option<ccr_app::runtime::Platform>,
+        days: u16,
     ) -> Result<TaskSubscription<Arc<Overview>, InsightsError>, AdmissionError> {
         let requests = self.clone();
         let io = self.services.remote_configuration_io(&key.environment);
@@ -75,10 +77,15 @@ impl InsightsRequests {
                 });
             }
             io.check_authority().map_err(|_| InsightsError::Remote)?;
-            Ok(Arc::new(Overview { platforms }))
+            let usage = requests
+                .scoped(platform)
+                .remote_usage(&io, cancel.clone())
+                .and_then(|(requests, _snapshot)| requests.read_workbench(days));
+            io.check_authority().map_err(|_| InsightsError::Remote)?;
+            Ok(Arc::new(Overview { platforms, usage }))
         })
     }
-    fn remote_cache(&self) -> Result<PathBuf, InsightsError> {
+    pub(super) fn remote_cache(&self) -> Result<PathBuf, InsightsError> {
         match &self.services.source {
             super::super::ConfigSource::Local => dirs::data_local_dir()
                 .map(|root| root.join("ccr/desktop-gpui/session-cache-v1"))
@@ -136,7 +143,39 @@ impl InsightsRequests {
             query,
             InsightsQuery::Sessions(_) | InsightsQuery::Detail { .. }
         ) {
-            return Err(InsightsError::RemoteUsagePending);
+            let io = io.map_err(|_| InsightsError::Remote)?;
+            let (requests, _snapshot) = self.remote_usage(&io, cancel.clone())?;
+            let result = match query {
+                InsightsQuery::Home {
+                    as_of,
+                    generated_at,
+                } => {
+                    if self.services.platform_scope.is_some() {
+                        return Err(InsightsError::Unsupported);
+                    }
+                    let paths = requests.paths.as_ref().ok_or(InsightsError::Remote)?;
+                    let dashboard =
+                        ccr_usage::open_dashboard(AppPaths::from_root(&paths.usage_root))?;
+                    let projected = dashboard.insights(
+                        &QueryFilter {
+                            timezone: self.report_clock().timezone,
+                            ..Default::default()
+                        },
+                        as_of,
+                    )?;
+                    Ok(InsightsSnapshot::Home(merge_home_insights(
+                        projected,
+                        InsightsSessionCounts::default(),
+                        generated_at,
+                    )))
+                }
+                query => requests.read(query),
+            };
+            io.check_authority().map_err(|_| InsightsError::Remote)?;
+            if cancel.is_cancelled() {
+                return Err(InsightsError::Remote);
+            }
+            return result;
         }
         let snapshot = self.capture_remote(io, cancel, false)?;
         match query {
@@ -188,7 +227,40 @@ impl InsightsRequests {
                 }
                 Ok(InsightsSnapshot::Detail(detail))
             }
-            _ => Err(InsightsError::RemoteUsagePending),
+            _ => Err(InsightsError::Remote),
         }
+    }
+
+    pub(super) fn remote_usage(
+        &self,
+        io: &EnvironmentIo,
+        cancel: CancellationToken,
+    ) -> Result<(Self, ccr_app::usage::import::remote::Snapshot), InsightsError> {
+        let handle = tokio::runtime::Handle::try_current().map_err(|_| InsightsError::Remote)?;
+        let snapshot = handle
+            .block_on(ccr_app::usage::import::remote::Snapshot::capture(
+                io,
+                &self.remote_cache()?.join("usage"),
+                cancel,
+            ))
+            .map_err(|error| match error {
+                ccr_app::usage::import::error::LlmusageAdapterError::SchemaUnsupported {
+                    ..
+                }
+                | ccr_app::usage::import::error::LlmusageAdapterError::FeatureUnavailable {
+                    ..
+                } => InsightsError::Unsupported,
+                _ => InsightsError::RemoteSnapshot,
+            })?;
+        let root = snapshot.paths().root_dir;
+        let mut requests = self.clone();
+        // 远端报告的归档/Observer不可借用本机路径；无会话索引保持 unknown。
+        requests.paths = Some(InsightsPaths {
+            usage_root: root.clone(),
+            archive_db: root.join("unavailable-archive.db"),
+            provider_home: root,
+        });
+        requests.archive = Default::default();
+        Ok((requests, snapshot))
     }
 }

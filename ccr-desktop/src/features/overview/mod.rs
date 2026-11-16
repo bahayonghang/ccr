@@ -140,7 +140,7 @@ impl OverviewView {
             self.gate.replace(key.clone());
             match self
                 .requests
-                .load_remote_overview(key.clone(), self.remote_scope)
+                .load_remote_overview(key.clone(), self.remote_scope, self.days)
             {
                 Ok(mut subscription) => {
                     self.task = Some(cx.spawn(async move |weak, cx| {
@@ -299,8 +299,22 @@ impl Render for OverviewView {
             self.requests.environment(),
             ccr_app::runtime::EnvironmentId::Ssh(_)
         ) {
-            root = root.child(div().id("ssh-overview-source").test_support().child(crate::locales::text(cx, "Current SSH environment · usage, tokens and cost are unknown until remote llmusage snapshots are connected.", "当前 SSH 环境 · 远端 llmusage 快照接入前，用量、Token 与费用未知。")));
+            root = root.child(div().id("ssh-overview-source").test_support().child(
+                crate::locales::text(
+                    cx,
+                    "Current SSH environment · consistent read-only llmusage snapshot.",
+                    "当前 SSH 环境 · llmusage 一致性只读快照。",
+                ),
+            ));
             if let Some(summary) = &self.remote {
+                match &summary.usage {
+                    Ok(report) => {
+                        root = root.child(self.kpis(report, geometry.stacked, cx));
+                    }
+                    Err(error) => {
+                        root = root.child(crate::locales::localized_line(cx, error.message()));
+                    }
+                }
                 for row in &summary.platforms {
                     root = root.child(
                         div()

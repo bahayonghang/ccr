@@ -17,9 +17,9 @@ use super::{
 use crate::jobs::process::{ManagedChild, ProcessDescriptor, ProcessGateway, read_bounded_line};
 
 /// stderr 摘要最长保留行数，避免 OOM 当上游疯狂打日志
-const STDERR_TAIL_LINES: usize = 64;
-const STDERR_MAX_LINE_BYTES: usize = 64 * 1024;
-const STDOUT_MAX_LINE_BYTES: usize = 1024 * 1024;
+pub(super) const STDERR_TAIL_LINES: usize = 64;
+pub(super) const STDERR_MAX_LINE_BYTES: usize = 64 * 1024;
+pub(super) const STDOUT_MAX_LINE_BYTES: usize = 1024 * 1024;
 const CLEANUP_GRACE: Duration = Duration::from_secs(5);
 
 #[derive(Debug, Clone)]
@@ -58,7 +58,7 @@ pub struct SyncCommandOptions {
     pub provider_map: Option<PathBuf>,
 }
 
-fn sync_option_args(options: &SyncCommandOptions) -> Vec<OsString> {
+pub(super) fn sync_option_args(options: &SyncCommandOptions) -> Vec<OsString> {
     let mut args = Vec::new();
     if options.rebuild {
         args.push(OsString::from("--rebuild"));

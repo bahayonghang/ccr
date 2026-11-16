@@ -227,10 +227,15 @@ impl Shell {
     pub(super) fn remote_configuration_destination(&self) -> bool {
         (matches!(
             self.destination,
-            Destination::Dashboard | Destination::AgentSessions | Destination::Commands
+            Destination::Dashboard
+                | Destination::AgentSessions
+                | Destination::Commands
+                | Destination::Sync
+                | Destination::Usage
         ) && self.lens == Lens::Primary)
             || (self.destination == Destination::Usage && self.lens == Lens::Install)
-            || (self.platform().is_some() && matches!(self.lens, Lens::Primary | Lens::Sessions))
+            || (self.platform().is_some()
+                && matches!(self.lens, Lens::Primary | Lens::Sessions | Lens::Usage))
             || (self.destination == Destination::McpManager && self.lens == Lens::Primary)
             || matches!(
                 (self.platform(), self.lens),

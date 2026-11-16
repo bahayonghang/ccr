@@ -2,6 +2,7 @@ use ccr_app::environments::EnvironmentPolicy;
 mod assets;
 mod management;
 use super::*;
+pub(super) use assets::error as asset_error;
 pub use assets::{AssetDirection, AssetRequest, AssetResult, AssetRow};
 use ccr_app::platform_settings::{Document, Format, SaveOutcome};
 use ccr_app::runtime::Completion;
@@ -197,12 +198,15 @@ impl Services {
     /// Side effects outlive a detached view. Active transfers finish using the
     /// domain's bounded request/operation budgets; no false cancellation is exposed.
     pub fn start_sync(&self, key: RequestKey, operation: Operation) -> Result<(), SyncError> {
-        if EnvironmentPolicy::LocalOnly
-            .admit(&key.environment)
-            .is_err()
-        {
-            return Err(SyncError::Unsupported);
-        }
+        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
+        let remote = if local {
+            None
+        } else {
+            Some(
+                self.remote_configuration_io(&key.environment)
+                    .map_err(|_| SyncError::Remote)?,
+            )
+        };
         let owner = self.sync_operations.clone();
         {
             let mut state = owner
@@ -237,11 +241,20 @@ impl Services {
             }
         };
         self.executor
-            .job(key, move |_, _| {
+            .job(key, move |cancel, _| {
                 let mut pending = pending;
                 let result = tokio::runtime::Handle::try_current()
                     .map_err(|_| SyncError::Operation)
-                    .and_then(|handle| handle.block_on(execute(&source, operation, loopback)));
+                    .and_then(|handle| {
+                        handle.block_on(async {
+                            if let Some(io) = remote {
+                                super::remote::execute(&source, io, operation, loopback, cancel)
+                                    .await
+                            } else {
+                                execute(&source, operation, loopback).await
+                            }
+                        })
+                    });
                 monitoring.terminal(
                     &source,
                     "sync",
@@ -351,6 +364,14 @@ fn save_folder(
     revision: &str,
     change: FolderChange,
 ) -> Result<SyncOutcome, SyncError> {
+    save_folder_for_environment(source, revision, change, None)
+}
+pub(super) fn save_folder_for_environment(
+    source: &ConfigSource,
+    revision: &str,
+    change: FolderChange,
+    remote: Option<&ccr_app::environments::io::EnvironmentIo>,
+) -> Result<SyncOutcome, SyncError> {
     let document = document(source)?;
     let before = document.read().map_err(|_| SyncError::Unreadable)?;
     if before.token != revision {
@@ -446,15 +467,26 @@ fn save_folder(
             .clone()
             .try_into()
             .map_err(|_| SyncError::Invalid)?;
-        if source.is_fixture() {
+        if let Some(io) = remote {
+            super::remote::relative(io, &folder.local_path)?;
+        } else if source.is_fixture() {
             local_folder(source, &folder)?;
         }
-        if !folder.validate().is_empty() {
+        let mut validation = folder;
+        if remote.is_some() {
+            validation.local_path = "/".into();
+        }
+        if !validation.validate().is_empty() {
             return Err(SyncError::Invalid);
         }
     }
     let content = toml::to_string_pretty(&value).map_err(|_| SyncError::Invalid)?;
-    let config: SyncFoldersConfig = toml::from_str(&content).map_err(|_| SyncError::Invalid)?;
+    let mut config: SyncFoldersConfig = toml::from_str(&content).map_err(|_| SyncError::Invalid)?;
+    if remote.is_some() {
+        for folder in &mut config.folders {
+            folder.local_path = "/".into();
+        }
+    }
     if !config.validate().is_empty() {
         return Err(SyncError::Invalid);
     }
@@ -467,7 +499,7 @@ fn save_folder(
     }
 }
 
-async fn execute(
+pub(super) async fn execute(
     source: &ConfigSource,
     operation: Operation,
     loopback: bool,

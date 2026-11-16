@@ -22,12 +22,34 @@ pub struct FixtureTransport {
     io_started: AtomicUsize,
     home: Mutex<Option<String>>,
     exec_outputs: Mutex<HashMap<String, FixtureOutput>>,
+    exec_tail_delay: Mutex<std::time::Duration>,
+    disconnect_gate: Mutex<Option<Arc<tokio::sync::Notify>>>,
+    exec_gate: Mutex<Option<Arc<tokio::sync::Notify>>>,
     session_replacements: Mutex<HashMap<String, Vec<u8>>>,
     handshakes: AtomicUsize,
     unsupported: AtomicBool,
     unavailable_database_on_home: Mutex<Option<PathBuf>>,
 }
 impl FixtureTransport {
+    pub fn hold_next_exec(&self) -> Arc<tokio::sync::Notify> {
+        let gate = Arc::new(tokio::sync::Notify::new());
+        *self.exec_gate.lock().unwrap_or_else(|p| p.into_inner()) = Some(gate.clone());
+        gate
+    }
+    pub fn hold_disconnect(&self) -> Arc<tokio::sync::Notify> {
+        let gate = Arc::new(tokio::sync::Notify::new());
+        *self
+            .disconnect_gate
+            .lock()
+            .unwrap_or_else(|p| p.into_inner()) = Some(gate.clone());
+        gate
+    }
+    pub fn delay_exec_terminal(&self, delay: std::time::Duration) {
+        *self
+            .exec_tail_delay
+            .lock()
+            .unwrap_or_else(|p| p.into_inner()) = delay;
+    }
     pub fn replace_after_session_read(&self, path: &str, content: &[u8]) {
         self.session_replacements
             .lock()
@@ -242,12 +264,47 @@ struct FixtureConnection {
     closed: AtomicBool,
 }
 impl Connection for FixtureConnection {
+    fn exec_stream(
+        &self,
+        command: String,
+        observer: super::super::io::OutputObserver,
+    ) -> RunFuture<'_, Output> {
+        Box::pin(async move {
+            let output = self.exec(command).await?;
+            for chunk in output.stdout.chunks(16 * 1024) {
+                observer(false, chunk);
+            }
+            let delay = *self
+                .transport
+                .exec_tail_delay
+                .lock()
+                .unwrap_or_else(|p| p.into_inner());
+            tokio::time::sleep(delay).await;
+            for chunk in output.stderr.chunks(16 * 1024) {
+                observer(true, chunk);
+            }
+            Ok(Output {
+                success: output.success,
+                stdout: Vec::new(),
+                stderr: Vec::new(),
+            })
+        })
+    }
     fn is_closed(&self) -> bool {
         self.closed.load(Ordering::SeqCst)
     }
     fn disconnect(&self) -> RunFuture<'_, ()> {
         Box::pin(async {
             self.transport.operation("disconnect", &self.host)?;
+            let gate = self
+                .transport
+                .disconnect_gate
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .take();
+            if let Some(gate) = gate {
+                gate.notified().await;
+            }
             self.closed.store(true, Ordering::SeqCst);
             Ok(())
         })
@@ -266,6 +323,15 @@ impl Connection for FixtureConnection {
                 .cloned();
             if let Some((success, stdout, stderr)) = fixture_output {
                 self.transport.operation("exec", &command)?;
+                let gate = self
+                    .transport
+                    .exec_gate
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .take();
+                if let Some(gate) = gate {
+                    gate.notified().await;
+                }
                 let delay = *self
                     .transport
                     .cli_delay
@@ -525,6 +591,24 @@ impl Connection for FixtureConnection {
                 return Err("ssh_network_error");
             }
             self.transport.operation("stat", path.as_str())?;
+            if self
+                .transport
+                .directories
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .contains(path.as_str())
+                || self
+                    .transport
+                    .files
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .keys()
+                    .any(|(host, file)| {
+                        host == &self.host && file.starts_with(&format!("{}/", path.as_str()))
+                    })
+            {
+                return Err("ssh_invalid_remote_path");
+            }
             Ok(self
                 .transport
                 .bytes(&self.host, path.as_str())

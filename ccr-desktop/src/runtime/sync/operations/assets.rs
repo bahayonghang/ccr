@@ -49,7 +49,7 @@ fn service(
     let _ = loopback;
     Ok(AssetService::new(config.webdav, roots))
 }
-fn error(message: String) -> SyncError {
+pub(in crate::runtime::sync) fn error(message: String) -> SyncError {
     if message.contains("sync_envelope_passphrase_required") {
         SyncError::AssetPassphrase
     } else if message.contains("sync_envelope_plaintext_v1") {
