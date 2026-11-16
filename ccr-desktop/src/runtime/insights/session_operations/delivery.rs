@@ -1,5 +1,6 @@
 //! File delivery and recoverable trash use the same retained session writer.
 use super::*;
+use ccr_app::environments::EnvironmentPolicy;
 use ccr_codex::{CodexSessionRestoreCandidate, CodexSessionRestorePlan};
 use ccr_core::core::guarded_write::{VersionedWriteOutcome, WriteOptions, write_guarded_versioned};
 
@@ -29,7 +30,7 @@ impl InsightsRequests {
         key: RequestKey,
     ) -> Result<TaskSubscription<Arc<Vec<TrashItem>>, Failure>, AdmissionError> {
         let requests = self.clone();
-        let local = matches!(key.environment, EnvironmentId::Local(_));
+        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         self.services.executor.read(key, move |cancel, _| {
             if !local {
                 return Err(Failure::LocalOnly);
@@ -80,7 +81,7 @@ impl InsightsRequests {
         item: TrashItem,
     ) -> Result<TaskSubscription<Arc<PreparedRestore>, Failure>, AdmissionError> {
         let requests = self.clone();
-        let local = matches!(key.environment, EnvironmentId::Local(_));
+        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         self.services.executor.read(key, move |cancel, _| {
             if !local {
                 return Err(Failure::LocalOnly);

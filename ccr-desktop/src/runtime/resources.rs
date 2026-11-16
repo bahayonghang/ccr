@@ -1,4 +1,5 @@
 //! Fixed resource targets on captured roots, using the shared guarded writer.
+use ccr_app::environments::EnvironmentPolicy;
 pub mod claude_files;
 pub mod codex_agents;
 pub mod platform_files;
@@ -114,7 +115,10 @@ fn execute(
     key: &RequestKey,
     command: ResourceCommand,
 ) -> Result<ResourceResult, ResourceError> {
-    if !matches!(key.environment, EnvironmentId::Local(_)) {
+    if EnvironmentPolicy::LocalOnly
+        .admit(&key.environment)
+        .is_err()
+    {
         return Err(ResourceError::Unsupported);
     }
     // Resolve capability before default roots, so unsupported targets cannot fall back.

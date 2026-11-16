@@ -1,4 +1,7 @@
 //! Typed, explicit-path insights reads through the application-owned bounded executor.
+use ccr_app::environments::EnvironmentPolicy;
+#[cfg(test)]
+use ccr_app::runtime::EnvironmentId;
 pub mod capabilities;
 pub mod claude_workbench;
 pub mod import;
@@ -7,7 +10,7 @@ pub mod policies;
 pub mod session_operations;
 use super::Services;
 use ccr_app::{
-    runtime::{AdmissionError, Completion, EnvironmentId, RequestKey, TaskSubscription},
+    runtime::{AdmissionError, Completion, RequestKey, TaskSubscription},
     sessions::{self, SessionDetail, SessionError, SessionListRequest, SessionPage},
     usage::{
         home::{
@@ -444,7 +447,7 @@ impl InsightsRequests {
         };
         drop(status);
         let requests = self.clone();
-        let local = matches!(key.environment, EnvironmentId::Local(_));
+        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         self.services
             .executor
             .job(key, move |_, _| {
@@ -640,7 +643,7 @@ impl InsightsRequests {
         days: u16,
     ) -> Result<TaskSubscription<Arc<WorkbenchReport>, InsightsError>, AdmissionError> {
         let requests = self.clone();
-        let local = matches!(key.environment, EnvironmentId::Local(_));
+        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         self.services.executor.read(key, move |_, _| {
             if !local {
                 return Err(InsightsError::LocalOnly);
@@ -755,7 +758,7 @@ impl InsightsRequests {
         query: InsightsQuery,
     ) -> Result<TaskSubscription<Arc<InsightsSnapshot>, InsightsError>, AdmissionError> {
         let requests = self.clone();
-        let local = matches!(key.environment, EnvironmentId::Local(_));
+        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         self.services.executor.read(key, move |_, _| {
             if !local {
                 return Err(InsightsError::LocalOnly);

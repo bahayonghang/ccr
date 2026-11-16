@@ -112,3 +112,102 @@ async fn total_timeout_and_cancel_are_bounded() {
         Err("ssh_cancelled")
     );
 }
+
+struct ReadServer {
+    content: Option<Vec<u8>>,
+    closed: Arc<std::sync::atomic::AtomicBool>,
+}
+impl russh_sftp::server::Handler for ReadServer {
+    type Error = StatusCode;
+    fn unimplemented(&self) -> Self::Error {
+        StatusCode::OpUnsupported
+    }
+    async fn open(
+        &mut self,
+        id: u32,
+        filename: String,
+        flags: OpenFlags,
+        _: FileAttributes,
+    ) -> Result<russh_sftp::protocol::Handle, StatusCode> {
+        assert_eq!(filename, "/home/fixture/settings.json");
+        assert_eq!(flags.bits(), OpenFlags::READ.bits());
+        self.content.as_ref().ok_or(StatusCode::NoSuchFile)?;
+        Ok(russh_sftp::protocol::Handle {
+            id,
+            handle: "read-handle".into(),
+        })
+    }
+    async fn read(
+        &mut self,
+        id: u32,
+        handle: String,
+        offset: u64,
+        length: u32,
+    ) -> Result<russh_sftp::protocol::Data, StatusCode> {
+        assert_eq!(handle, "read-handle");
+        let content = self.content.as_ref().unwrap();
+        if offset as usize >= content.len() {
+            return Err(StatusCode::Eof);
+        }
+        let end = (offset as usize + length as usize).min(content.len());
+        Ok(russh_sftp::protocol::Data {
+            id,
+            data: content[offset as usize..end].to_vec(),
+        })
+    }
+    async fn close(
+        &mut self,
+        id: u32,
+        _: String,
+    ) -> Result<russh_sftp::protocol::Status, StatusCode> {
+        self.closed.store(true, std::sync::atomic::Ordering::SeqCst);
+        Ok(russh_sftp::protocol::Status {
+            id,
+            status_code: StatusCode::Ok,
+            error_message: String::new(),
+            language_tag: String::new(),
+        })
+    }
+}
+
+#[tokio::test]
+async fn production_sftp_reader_handles_missing_empty_chunks_utf8_limit_and_closes_handles() {
+    for content in [
+        None,
+        Some(Vec::new()),
+        Some(vec![b'x'; 40000]),
+        Some(vec![255]),
+        Some(vec![b'x'; 2 * 1024 * 1024 + 1]),
+    ] {
+        let (client, stream) = tokio::io::duplex(65536);
+        let closed = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let task = tokio::spawn(russh_sftp::server::run(
+            stream,
+            ReadServer {
+                content: content.clone(),
+                closed: closed.clone(),
+            },
+        ));
+        let raw = RawSftpSession::new(client);
+        raw.init().await.unwrap();
+        let result = read_sftp(
+            &raw,
+            &RemotePosixPath::root(Some("/home/fixture/settings.json")).unwrap(),
+        )
+        .await;
+        match &content {
+            None => assert_eq!(result, Ok(None)),
+            Some(bytes) if bytes.len() > 2 * 1024 * 1024 => {
+                assert_eq!(result, Err("ssh_file_too_large"))
+            }
+            Some(bytes) if bytes == &[255] => assert_eq!(result, Err("ssh_read_failed")),
+            Some(bytes) => assert_eq!(result, Ok(Some(String::from_utf8(bytes.clone()).unwrap()))),
+        }
+        assert_eq!(
+            closed.load(std::sync::atomic::Ordering::SeqCst),
+            content.is_some()
+        );
+        drop(raw);
+        task.abort();
+    }
+}

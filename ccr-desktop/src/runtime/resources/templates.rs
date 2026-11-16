@@ -1,4 +1,5 @@
 use crate::runtime::{ConfigSource, Services};
+use ccr_app::environments::EnvironmentPolicy;
 use ccr_app::{
     resources::prompt_presets,
     runtime::{AdmissionError, Completion, EnvironmentId, Platform, RequestKey, TaskSubscription},
@@ -29,7 +30,10 @@ fn execute(
     command: Command,
 ) -> Result<Outcome, prompt_presets::Error> {
     use prompt_presets::Error;
-    if !matches!(key.environment, EnvironmentId::Local(_)) {
+    if EnvironmentPolicy::LocalOnly
+        .admit(&key.environment)
+        .is_err()
+    {
         return Err(Error::Invalid);
     }
     if let Command::Commit { catalog, mutation } = command {

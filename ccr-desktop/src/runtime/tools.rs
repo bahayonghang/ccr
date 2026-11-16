@@ -1,7 +1,10 @@
 //! App-owned explicit tool operations. No probes or updates run while rendering.
 use super::Services;
+use ccr_app::environments::EnvironmentPolicy;
+#[cfg(test)]
+use ccr_app::runtime::EnvironmentId;
 use ccr_app::{
-    runtime::{Completion, EnvironmentId, RequestKey},
+    runtime::{Completion, RequestKey},
     tools::{self, CliVersion, bridge::SkillportAppStatus},
 };
 use std::sync::{Arc, Mutex};
@@ -100,7 +103,10 @@ impl Requests {
         self.0.tools.updates.subscribe()
     }
     pub fn perform(&self, key: RequestKey, action: Action, confirmed: bool) -> Result<(), Error> {
-        if !matches!(key.environment, EnvironmentId::Local(_)) {
+        if EnvironmentPolicy::LocalOnly
+            .admit(&key.environment)
+            .is_err()
+        {
             return Err(Error::LocalOnly);
         }
         #[cfg(test)]

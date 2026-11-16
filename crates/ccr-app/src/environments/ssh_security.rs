@@ -187,6 +187,7 @@ impl RemotePosixPath {
     pub fn root(value: Option<&str>) -> Result<Self, String> {
         let value = value.unwrap_or("~");
         if value.len() > MAX_REMOTE_PATH_LEN
+            || value.starts_with("//")
             || value != value.trim()
             || value.chars().any(char::is_control)
             || value.contains('\\')
@@ -775,6 +776,8 @@ mod tests {
             "/home/$USER",
             "/home/../root",
             "/home//user",
+            "//home/user",
+            "///home/user",
         ] {
             assert!(RemotePosixPath::root(Some(path)).is_err(), "{path:?}");
         }

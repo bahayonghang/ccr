@@ -1,6 +1,9 @@
 //! Native install adapter; the existing CLI service owns plans and child cleanup.
 use super::Services;
-use ccr_app::runtime::{AdmissionError, Completion, EnvironmentId, RequestKey, TaskSubscription};
+use ccr_app::environments::EnvironmentPolicy;
+#[cfg(test)]
+use ccr_app::runtime::EnvironmentId;
+use ccr_app::runtime::{AdmissionError, Completion, RequestKey, TaskSubscription};
 use ccr_cli::services::{
     install_service::InstallService,
     install_types::{
@@ -216,7 +219,7 @@ impl InstallRequests {
         if self.0.source.is_benchmark() {
             return false;
         }
-        let local = matches!(key.environment, EnvironmentId::Local(_));
+        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         #[cfg(test)]
         if self.0.install.synthetic {
             return local;

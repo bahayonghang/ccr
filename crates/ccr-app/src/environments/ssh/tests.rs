@@ -41,6 +41,85 @@ async fn connect(owner: &Workspace) {
         .await
         .unwrap();
 }
+
+#[tokio::test]
+async fn home_is_validated_cached_per_session_and_explicit_override_has_priority() {
+    let (_root, owner, transport) = fixture();
+    connect(&owner).await;
+    let before = transport.batches();
+    assert_eq!(
+        owner.capture_io("one").unwrap().home().as_str(),
+        "/home/fixture"
+    );
+    assert_eq!(
+        owner.capture_io("one").unwrap().home().as_str(),
+        "/home/fixture"
+    );
+    assert_eq!(transport.batches(), before);
+    for home in [
+        "~",
+        "C:/home",
+        "/home/a/../b",
+        "/home//user",
+        "//home/user",
+        "/home/with space",
+        "/home/user\n",
+    ] {
+        transport.set_home(home);
+        assert_eq!(
+            owner.connect("one", CancellationToken::new()).await,
+            Err("ssh_invalid_remote_path")
+        );
+        assert!(!owner.connected("one"));
+    }
+    let mut host = owner.host("one").unwrap();
+    host.remote_home = Some("/custom/home".into());
+    ssh_repo::update_host(&owner.connection(true).unwrap(), &host).unwrap();
+    let home_probes = transport
+        .batches()
+        .iter()
+        .filter(|s| s.starts_with("home "))
+        .count();
+    owner
+        .connect("one", CancellationToken::new())
+        .await
+        .unwrap();
+    assert_eq!(
+        owner.capture_io("one").unwrap().home().as_str(),
+        "/custom/home"
+    );
+    assert_eq!(
+        transport
+            .batches()
+            .iter()
+            .filter(|s| s.starts_with("home "))
+            .count(),
+        home_probes
+    );
+    transport.set_file("one.example", "/custom/home/.claude/settings.json", "{}");
+    assert_eq!(
+        owner
+            .read("one", ConfigFile::Claude, CancellationToken::new())
+            .await
+            .unwrap()
+            .content,
+        "{}"
+    );
+}
+
+#[tokio::test]
+async fn home_rejection_reports_failed_disconnect_before_business_error() {
+    let (_root, owner, transport) = fixture();
+    connect(&owner).await;
+    owner.disconnect().await;
+    transport.set_home("//invalid/home");
+    transport.fail("disconnect");
+    assert_eq!(
+        owner.connect("one", CancellationToken::new()).await,
+        Err("ssh_cleanup_failed")
+    );
+    assert_eq!(owner.retained_session_count(), 0);
+}
 #[tokio::test]
 async fn trust_three_states_no_implicit_writes_and_changed_confirmation_rejected() {
     let (root, owner, transport) = fixture();

@@ -1,6 +1,7 @@
 //! Captured OpenCode/Antigravity directory resources; no current-directory fallback.
 use super::roots;
 use crate::runtime::{ConfigSource, Services};
+use ccr_app::environments::EnvironmentPolicy;
 use ccr_app::{
     resources::platform_files as files,
     runtime::{AdmissionError, Completion, EnvironmentId, Platform, RequestKey, TaskSubscription},
@@ -51,7 +52,9 @@ pub fn platform(kind: Kind) -> Platform {
     }
 }
 fn gate(key: &RequestKey, kind: Kind) -> Result<(), Error> {
-    if matches!(key.environment, EnvironmentId::Local(_)) && key.platform == platform(kind) {
+    if EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok()
+        && key.platform == platform(kind)
+    {
         Ok(())
     } else {
         Err(Error::Unsupported)

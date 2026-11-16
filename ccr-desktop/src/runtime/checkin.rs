@@ -1,6 +1,8 @@
 //! Local check-in accounts already stored in SQLite.
 //! Opening this reader does not create a database, import accounts, call a provider,
 //! or change the database.
+use ccr_app::environments::EnvironmentPolicy;
+use ccr_app::runtime::EnvironmentId;
 
 mod operations;
 pub use operations::*;
@@ -14,7 +16,7 @@ use ccr_db::{database::repositories::checkin_repo, models::checkin::BalanceSnaps
 use rusqlite::OpenFlags;
 
 use super::{ConfigSource, Services};
-use ccr_app::runtime::{AdmissionError, EnvironmentId, RequestKey, TaskSubscription};
+use ccr_app::runtime::{AdmissionError, RequestKey, TaskSubscription};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CheckinError {
@@ -187,7 +189,7 @@ impl Services {
         key: RequestKey,
     ) -> Result<TaskSubscription<CheckinSnapshot, CheckinError>, AdmissionError> {
         let source = self.source.clone();
-        let local = matches!(key.environment, EnvironmentId::Local(_));
+        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         self.executor.read(key, move |_, _| {
             if !local {
                 return Err(CheckinError::Unsupported);

@@ -1,11 +1,14 @@
 //! Typed command workbench adapter. Fixture processes never invoke a real CLI.
 use super::{ConfigSource, Services};
+use ccr_app::environments::EnvironmentPolicy;
+#[cfg(test)]
+use ccr_app::runtime::EnvironmentId;
 use ccr_app::{
     jobs::{
         commands::{Admission, CommandJobs, Error, Observation, Snapshot, Status, Ticket},
         policy::{CommandExecutionRequest, CommandInfo, command_catalog},
     },
-    runtime::{AdmissionError, Completion, EnvironmentId, RequestKey, TaskSubscription},
+    runtime::{AdmissionError, Completion, RequestKey, TaskSubscription},
 };
 use std::{
     ffi::OsString,
@@ -90,7 +93,10 @@ impl CommandRequests {
         if self.0.source.is_benchmark() {
             return Err(Error::Unavailable.message());
         }
-        if !matches!(key.environment, EnvironmentId::Local(_)) {
+        if EnvironmentPolicy::LocalOnly
+            .admit(&key.environment)
+            .is_err()
+        {
             return Err(
                 "Command execution for this environment is unavailable. / 此环境不可执行命令",
             );

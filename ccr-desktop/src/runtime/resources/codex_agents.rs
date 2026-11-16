@@ -1,5 +1,6 @@
 //! Captured-root Codex agent adapter. Writes and source jobs survive view detachment.
 use super::{ConfigSource, Services, roots};
+use ccr_app::environments::EnvironmentPolicy;
 use ccr_app::{
     codex_agents::{
         AgentStore, CodexAgentContextRequest, CodexAgentRecord,
@@ -207,7 +208,9 @@ impl Drop for Pending {
     }
 }
 fn local(key: &RequestKey) -> Result<(), Error> {
-    if matches!(key.environment, EnvironmentId::Local(_)) && key.platform == Platform::Codex {
+    if EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok()
+        && key.platform == Platform::Codex
+    {
         Ok(())
     } else {
         Err(Error::Unsupported)

@@ -1,5 +1,6 @@
 //! App-owned Check-in mutations; all storage, encryption and HTTP are domain-owned.
 use super::*;
+use ccr_app::environments::EnvironmentPolicy;
 mod credentials;
 mod crypto_guard;
 pub use credentials::AccountCredentials;
@@ -287,7 +288,10 @@ impl Services {
         key: RequestKey,
         operation: Operation,
     ) -> Result<(), OperationError> {
-        if !matches!(key.environment, EnvironmentId::Local(_)) {
+        if EnvironmentPolicy::LocalOnly
+            .admit(&key.environment)
+            .is_err()
+        {
             return Err(OperationError::Unsupported);
         }
         let owner = self.checkin_operations.clone();

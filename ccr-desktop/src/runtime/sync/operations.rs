@@ -1,3 +1,4 @@
+use ccr_app::environments::EnvironmentPolicy;
 mod assets;
 mod management;
 use super::*;
@@ -196,7 +197,10 @@ impl Services {
     /// Side effects outlive a detached view. Active transfers finish using the
     /// domain's bounded request/operation budgets; no false cancellation is exposed.
     pub fn start_sync(&self, key: RequestKey, operation: Operation) -> Result<(), SyncError> {
-        if !matches!(key.environment, EnvironmentId::Local(_)) {
+        if EnvironmentPolicy::LocalOnly
+            .admit(&key.environment)
+            .is_err()
+        {
             return Err(SyncError::Unsupported);
         }
         let owner = self.sync_operations.clone();

@@ -5,6 +5,7 @@ use super::{
     editor::{self, EditDocument},
     transfer,
 };
+use ccr_app::environments::EnvironmentPolicy;
 use ccr_app::{
     mcp_document::{self, EntryMutation},
     runtime::{AdmissionError, Completion, EnvironmentId, RequestKey, TaskSubscription},
@@ -111,7 +112,7 @@ fn prepare(
     targets: Vec<McpTarget>,
     replace: bool,
 ) -> Result<McpBatchSession, McpError> {
-    if !matches!(environment, EnvironmentId::Local(_)) {
+    if EnvironmentPolicy::LocalOnly.admit(&environment).is_err() {
         return Err(McpError::Unsupported);
     }
     if services.platform_scope.is_some() {

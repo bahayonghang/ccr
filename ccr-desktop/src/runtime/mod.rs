@@ -1,4 +1,7 @@
 //! Native adapter: explicit sources, typed read requests, no UI-thread I/O.
+use ccr_app::environments::EnvironmentPolicy;
+#[cfg(test)]
+use ccr_app::runtime::EnvironmentId;
 pub mod benchmark;
 pub mod checkin;
 pub mod environments;
@@ -18,9 +21,7 @@ use std::{ffi::OsString, path::PathBuf, sync::Arc, time::Duration};
 
 use ccr_app::{
     config::{ConfigReadError, ConfigReadService, ConfigRow},
-    runtime::{
-        AdmissionError, EnvironmentId, Platform, RequestKey, RuntimeHandle, TaskSubscription,
-    },
+    runtime::{AdmissionError, Platform, RequestKey, RuntimeHandle, TaskSubscription},
 };
 
 #[derive(Clone)]
@@ -297,8 +298,8 @@ impl Services {
         filter: String,
     ) -> Result<TaskSubscription<Arc<Vec<ConfigRow>>, ConfigReadError>, AdmissionError> {
         let source = self.source.clone();
-        let supported =
-            matches!(key.environment, EnvironmentId::Local(_)) && key.platform == Platform::Claude;
+        let supported = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok()
+            && key.platform == Platform::Claude;
         self.executor.read(key, move |cancel, _| {
             if !supported {
                 return Err(ConfigReadError::PlatformNotSupported(

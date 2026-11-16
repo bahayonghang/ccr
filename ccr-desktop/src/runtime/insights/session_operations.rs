@@ -1,5 +1,6 @@
 //! Opaque archived Codex identity to the existing session/export/trash owners.
 use super::*;
+use ccr_app::environments::EnvironmentPolicy;
 use ccr_codex::{CodexSessionExport, CodexSessionService, CodexSessionTrashService};
 use ccr_core::core::LockManager;
 use ccr_store::sessions::{AgentSessionAgentId, AgentSessionSourceKind};
@@ -116,7 +117,7 @@ impl InsightsRequests {
         archive_id: String,
     ) -> Result<TaskSubscription<Arc<Prepared>, Failure>, AdmissionError> {
         let requests = self.clone();
-        let local = matches!(key.environment, EnvironmentId::Local(_));
+        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         self.services.executor.read(key, move |_, _| {
             if !local {
                 return Err(Failure::LocalOnly);
@@ -130,7 +131,7 @@ impl InsightsRequests {
         archive_id: String,
     ) -> Result<TaskSubscription<Arc<CodexSessionExport>, Failure>, AdmissionError> {
         let requests = self.clone();
-        let local = matches!(key.environment, EnvironmentId::Local(_));
+        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         self.services.executor.read(key, move |_, _| {
             if !local {
                 return Err(Failure::LocalOnly);
@@ -167,7 +168,10 @@ impl InsightsRequests {
         if !self.codex_actions_allowed() {
             return Err(Failure::Unsupported);
         }
-        if !matches!(key.environment, EnvironmentId::Local(_)) {
+        if EnvironmentPolicy::LocalOnly
+            .admit(&key.environment)
+            .is_err()
+        {
             return Err(Failure::LocalOnly);
         }
         let owner = self.session_operations.clone();

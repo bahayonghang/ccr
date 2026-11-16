@@ -1,4 +1,5 @@
 //! Source-bound MCP edit sessions. Opaque snapshots never expose stored secrets to UI.
+use ccr_app::environments::EnvironmentPolicy;
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -92,7 +93,7 @@ pub(super) fn begin(
     environment: &EnvironmentId,
     target: McpTarget,
 ) -> Result<McpEditSession, McpError> {
-    if !matches!(environment, EnvironmentId::Local(_)) {
+    if EnvironmentPolicy::LocalOnly.admit(environment).is_err() {
         return Err(McpError::Unsupported);
     }
     let roots = roots(source)?;
@@ -221,7 +222,9 @@ impl McpEditSession {
         environment: &EnvironmentId,
         mutations: &[(String, EntryMutation)],
     ) -> Result<(), McpError> {
-        if *environment != self.environment || !matches!(environment, EnvironmentId::Local(_)) {
+        if *environment != self.environment
+            || EnvironmentPolicy::LocalOnly.admit(environment).is_err()
+        {
             return Err(McpError::Unsupported);
         }
         let saved = match &self.document {

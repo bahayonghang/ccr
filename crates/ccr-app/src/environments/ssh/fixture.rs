@@ -5,6 +5,7 @@ use std::{
     collections::VecDeque,
     sync::atomic::{AtomicBool, AtomicUsize, Ordering},
 };
+type FixtureOutput = (bool, Vec<u8>, Vec<u8>);
 #[derive(Default)]
 pub struct FixtureTransport {
     files: Mutex<HashMap<(String, String), String>>,
@@ -14,11 +15,29 @@ pub struct FixtureTransport {
     cli_outputs: Mutex<HashMap<String, Vec<u8>>>,
     cli_requests: Mutex<Vec<Vec<String>>>,
     cli_delay: Mutex<std::time::Duration>,
+    home: Mutex<Option<String>>,
+    exec_outputs: Mutex<HashMap<String, FixtureOutput>>,
     handshakes: AtomicUsize,
     unsupported: AtomicBool,
     unavailable_database_on_home: Mutex<Option<PathBuf>>,
 }
 impl FixtureTransport {
+    pub fn set_exec_output(&self, command: &str, success: bool, stdout: &str, stderr: &str) {
+        self.exec_outputs
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .insert(
+                command.into(),
+                (
+                    success,
+                    stdout.as_bytes().to_vec(),
+                    stderr.as_bytes().to_vec(),
+                ),
+            );
+    }
+    pub fn set_home(&self, home: &str) {
+        *self.home.lock().unwrap_or_else(|p| p.into_inner()) = Some(home.into());
+    }
     pub fn set_cli_output(&self, tool: &str, output: &str) {
         self.cli_outputs
             .lock()
@@ -174,7 +193,29 @@ impl Connection for FixtureConnection {
             if self.is_closed() {
                 return Err("ssh_network_error");
             }
+            let fixture_output = self
+                .transport
+                .exec_outputs
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .get(&command)
+                .cloned();
+            if let Some((success, stdout, stderr)) = fixture_output {
+                self.transport.operation("exec", &command)?;
+                let delay = *self
+                    .transport
+                    .cli_delay
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner());
+                tokio::time::sleep(delay).await;
+                return Ok(Output {
+                    success,
+                    stdout,
+                    stderr,
+                });
+            }
             let stdout = if command == "printf '%s' \"$HOME\"" {
+                self.transport.operation("home", "")?;
                 let path = self
                     .transport
                     .unavailable_database_on_home
@@ -185,15 +226,14 @@ impl Connection for FixtureConnection {
                     std::fs::remove_file(&path).map_err(|_| "ssh_database_unavailable")?;
                     std::fs::create_dir(path).map_err(|_| "ssh_database_unavailable")?;
                 }
-                b"/home/fixture".to_vec()
-            } else if let Some(path) = command
-                .strip_prefix("cat -- '")
-                .and_then(|v| v.strip_suffix('\''))
-            {
                 self.transport
-                    .file(&self.host, path)
-                    .ok_or("ssh_read_failed")?
-                    .into_bytes()
+                    .home
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .as_deref()
+                    .unwrap_or("/home/fixture")
+                    .as_bytes()
+                    .to_vec()
             } else {
                 let tool = detect::CLI_TOOLS
                     .iter()
@@ -230,6 +270,19 @@ impl Connection for FixtureConnection {
                 stdout,
                 stderr: Vec::new(),
             })
+        })
+    }
+    fn download(&self, path: RemotePosixPath) -> RunFuture<'_, Option<String>> {
+        Box::pin(async move {
+            if self.is_closed() {
+                return Err("ssh_network_error");
+            }
+            self.transport.operation("get", path.as_str())?;
+            let content = self.transport.file(&self.host, path.as_str());
+            if content.as_ref().is_some_and(|s| s.len() > 2 * 1024 * 1024) {
+                return Err("ssh_file_too_large");
+            }
+            Ok(content)
         })
     }
     fn upload(

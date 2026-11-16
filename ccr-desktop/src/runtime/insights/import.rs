@@ -4,6 +4,7 @@ use super::InsightsPaths;
 use super::InsightsRequests;
 #[cfg(test)]
 use crate::runtime::ConfigSource;
+use ccr_app::environments::EnvironmentPolicy;
 use ccr_app::{
     runtime::{CancellationHandle, Completion, EnvironmentId, RequestKey},
     usage::import::{
@@ -244,7 +245,10 @@ impl InsightsRequests {
             return Err(Failure::FixtureDisabled);
         }
         options.recent_days = options.recent_days.max(1);
-        if !matches!(key.environment, EnvironmentId::Local(_)) {
+        if EnvironmentPolicy::LocalOnly
+            .admit(&key.environment)
+            .is_err()
+        {
             return Err(Failure::LocalOnly);
         }
         let paths = self.paths.clone().ok_or(Failure::Unconfigured)?;

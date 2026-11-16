@@ -1,4 +1,6 @@
 //! Canonical local sync configuration and application-owned WebDAV operations.
+use ccr_app::environments::EnvironmentPolicy;
+use ccr_app::runtime::EnvironmentId;
 mod operations;
 pub use operations::{
     AssetDirection, AssetRequest, FolderChange, FolderPatch, Operation, OperationKind,
@@ -11,7 +13,7 @@ use ccr_core::core::log_redact::redact_log_text;
 use ccr_sync::{SyncFolderManager, SyncFoldersConfig};
 
 use super::{ConfigSource, Services};
-use ccr_app::runtime::{AdmissionError, EnvironmentId, RequestKey, TaskSubscription};
+use ccr_app::runtime::{AdmissionError, RequestKey, TaskSubscription};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SyncError {
@@ -233,7 +235,7 @@ impl Services {
         key: RequestKey,
     ) -> Result<TaskSubscription<SyncSnapshot, SyncError>, AdmissionError> {
         let source = self.source.clone();
-        let local = matches!(key.environment, EnvironmentId::Local(_));
+        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         self.executor.read(key, move |_, _| {
             if !local {
                 return Err(SyncError::Unsupported);

@@ -20,8 +20,10 @@ mod credentials;
 pub use credentials::{AuthMethod, Secret};
 use credentials::{Authentication, Credentials};
 mod detect;
+mod environment_io;
 mod transport;
 pub use detect::{CliSession, CliStatus};
+pub(crate) use environment_io::IoSession;
 use transport::{Connection, RusshTransport, Transport, bounded};
 pub type Error = &'static str;
 type RunFuture<'a, T> = Pin<Box<dyn Future<Output = Result<T, Error>> + Send + 'a>>;
@@ -325,7 +327,7 @@ impl Workspace {
             let _ = bounded(CancellationToken::new(), session.connection.disconnect()).await;
         }
     }
-    async fn revoke(&self, id: uuid::Uuid) {
+    async fn revoke(&self, id: uuid::Uuid) -> Result<(), Error> {
         let session = {
             let mut current = self.session.lock().unwrap_or_else(|p| p.into_inner());
             if current.as_ref().is_some_and(|s| s.session_id == id) {
@@ -335,8 +337,11 @@ impl Workspace {
             }
         };
         if let Some(session) = session {
-            let _ = bounded(CancellationToken::new(), session.connection.disconnect()).await;
+            bounded(CancellationToken::new(), session.connection.disconnect())
+                .await
+                .map_err(|_| "ssh_cleanup_failed")?;
         }
+        Ok(())
     }
     /// Returns retained authority without performing network or database access.
     pub fn retained_session_count(&self) -> usize {
@@ -533,28 +538,33 @@ impl Workspace {
             self.transport.connect(&host, &stored, &auth).await
         })
         .await?;
-        let home = bounded(
-            cancel.clone(),
-            connection.exec("printf '%s' \"$HOME\"".into()),
-        )
-        .await;
-        let home = match home
-            .and_then(|o| {
-                if !o.success {
+        let home = if host.remote_home.as_deref().is_some_and(|s| s != "~") {
+            Ok(host.remote_home.clone().ok_or("ssh_invalid_remote_path")?)
+        } else {
+            bounded(
+                cancel.clone(),
+                connection.exec("printf '%s' \"$HOME\"".into()),
+            )
+            .await
+            .and_then(|output| {
+                if !output.success {
                     return Err("ssh_invalid_remote_path");
                 }
-                String::from_utf8(o.stdout).map_err(|_| "ssh_invalid_remote_path")
+                String::from_utf8(output.stdout).map_err(|_| "ssh_invalid_remote_path")
             })
-            .and_then(|s| {
-                if !s.starts_with('/') {
-                    return Err("ssh_invalid_remote_path");
-                }
-                RemotePosixPath::root(Some(&s)).map_err(|_| "ssh_invalid_remote_path")?;
-                Ok(s)
-            }) {
+        };
+        let home = match home.and_then(|s| {
+            if !s.starts_with('/') {
+                return Err("ssh_invalid_remote_path");
+            }
+            RemotePosixPath::root(Some(&s)).map_err(|_| "ssh_invalid_remote_path")?;
+            Ok(s)
+        }) {
             Ok(home) => home,
             Err(e) => {
-                let _ = bounded(CancellationToken::new(), connection.disconnect()).await;
+                bounded(CancellationToken::new(), connection.disconnect())
+                    .await
+                    .map_err(|_| "ssh_cleanup_failed")?;
                 return Err(e);
             }
         };
@@ -591,17 +601,9 @@ impl Workspace {
         path: &RemotePosixPath,
         cancel: CancellationToken,
     ) -> Result<String, Error> {
-        let output = bounded(
-            cancel,
-            session
-                .connection
-                .exec(format!("cat -- {}", posix_single_quote(path.as_str()))),
-        )
-        .await?;
-        if !output.success {
-            return Err("ssh_read_failed");
-        }
-        String::from_utf8(output.stdout).map_err(|_| "ssh_read_failed")
+        bounded(cancel, session.connection.download(path.clone()))
+            .await?
+            .ok_or("ssh_read_failed")
     }
     pub async fn read(
         &self,
@@ -622,7 +624,7 @@ impl Workspace {
                 session_id: session.session_id,
             }),
             Err(error) => {
-                self.revoke(session.session_id).await;
+                let _ = self.revoke(session.session_id).await;
                 Err(error)
             }
         }
@@ -686,7 +688,7 @@ impl Workspace {
         }
         .await;
         if result.as_ref().is_err_and(|e| *e != "ssh_conflict") {
-            self.revoke(session.session_id).await;
+            let _ = self.revoke(session.session_id).await;
         }
         result
     }

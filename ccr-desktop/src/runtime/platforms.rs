@@ -1,9 +1,12 @@
 //! Capability-driven platform consumers. Secret documents stay scoped to an editor.
+use ccr_app::environments::EnvironmentPolicy;
+#[cfg(test)]
+use ccr_app::runtime::EnvironmentId;
 pub mod diagnostics;
 use super::{ConfigSource, Services};
 use ccr_app::{
     platform_settings::{self, Document, Format, SaveOutcome, Snapshot},
-    runtime::{AdmissionError, Completion, EnvironmentId, Platform, RequestKey, TaskSubscription},
+    runtime::{AdmissionError, Completion, Platform, RequestKey, TaskSubscription},
 };
 use ccr_cli::application::codex_oauth::{NativeError, NativeStatus};
 use ccr_cli::application::platform_roots::PlatformRoots;
@@ -952,7 +955,9 @@ impl Services {
                 .executor
                 .read(key, |_, _| Err(PlatformError::Unsupported));
         }
-        if !matches!(key.environment, EnvironmentId::Local(_))
+        if EnvironmentPolicy::LocalOnly
+            .admit(&key.environment)
+            .is_err()
             || key.platform != Platform::Codex
             || session.platform != Platform::Codex
             || session.surface != Surface::Auth
@@ -1001,7 +1006,9 @@ impl Services {
         }
         let owner = self.platform_oauth.clone();
         self.executor.job(key.clone(), move |_, _| {
-            if !matches!(key.environment, EnvironmentId::Local(_))
+            if EnvironmentPolicy::LocalOnly
+                .admit(&key.environment)
+                .is_err()
                 || key.platform != Platform::Codex
             {
                 return Completion::Failed(PlatformError::Unsupported);
@@ -1029,7 +1036,7 @@ impl Services {
         command: Command,
     ) -> Result<TaskSubscription<ResultValue, PlatformError>, AdmissionError> {
         let source = self.source.clone();
-        let supported = matches!(key.environment, EnvironmentId::Local(_));
+        let supported = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         let platform = key.platform;
         let is_read = matches!(command, Command::Read(_));
         let run = move || {

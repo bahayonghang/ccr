@@ -109,13 +109,6 @@ impl<T: Clone> EnvironmentSurface<T> {
     }
 }
 
-pub fn admit_local_only(environment: &EnvironmentId) -> Result<(), &'static str> {
-    match environment {
-        EnvironmentId::Local(_) => Ok(()),
-        EnvironmentId::Wsl(_) | EnvironmentId::Ssh(_) => Err(LOCAL_ONLY),
-    }
-}
-
 /// Read `owner`'s source only when `caller` is that same local environment.
 /// Any other caller returns [`LOCAL_ONLY`] and does not run `read`.
 pub fn read_local_source<T>(
@@ -133,7 +126,7 @@ pub fn read_local_source<T>(
 
 #[cfg(test)]
 mod tests {
-    use super::{EnvironmentSurface, LOCAL_ONLY, admit_local_only, read_local_source};
+    use super::{EnvironmentSurface, LOCAL_ONLY, read_local_source};
     use crate::runtime::{EnvironmentId, Platform, RequestKey, ResponseGate};
 
     fn key(environment: EnvironmentId, generation: u64) -> RequestKey {
@@ -191,9 +184,6 @@ mod tests {
         let remote = EnvironmentId::Ssh("fixture-ssh".into());
         let wsl = EnvironmentId::Wsl("fixture-wsl".into());
         let other = EnvironmentId::Local("other".into());
-        assert_eq!(admit_local_only(&local), Ok(()));
-        assert_eq!(admit_local_only(&remote), Err(LOCAL_ONLY));
-        assert_eq!(admit_local_only(&wsl), Err(LOCAL_ONLY));
 
         let dir = tempfile::tempdir().unwrap_or_else(|error| panic!("{error}"));
         let file = dir.path().join("source.txt");

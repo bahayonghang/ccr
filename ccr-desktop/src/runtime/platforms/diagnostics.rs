@@ -1,5 +1,6 @@
 //! Explicit Codex auth diagnostics; never probe the host from an isolated source.
 use super::*;
+use ccr_app::environments::EnvironmentPolicy;
 use ccr_app::jobs::process::{CappedProcessOutput, ProcessDescriptor, ProcessGateway};
 use std::{collections::BTreeSet, ffi::OsString, net::TcpListener};
 
@@ -66,7 +67,11 @@ impl Error {
 
 fn admit(services: &Services, key: &RequestKey) -> Result<(), Error> {
     // Reject before resolving roots, reading identity files or touching OS probes.
-    if !matches!(key.environment, EnvironmentId::Local(_)) || key.platform != Platform::Codex {
+    if EnvironmentPolicy::LocalOnly
+        .admit(&key.environment)
+        .is_err()
+        || key.platform != Platform::Codex
+    {
         return Err(Error::Unsupported);
     }
     if services.is_fixture() {

@@ -1,5 +1,6 @@
 //! Captured, metadata-only settings layers; fixture roots never inspect host policy.
 use super::*;
+use ccr_app::environments::EnvironmentPolicy;
 use ccr_app::platform_settings::layers::{self, Layer};
 use std::path::{Path, PathBuf};
 
@@ -150,7 +151,7 @@ impl Services {
     ) -> Result<TaskSubscription<Vec<Layer>, PlatformError>, AdmissionError> {
         let source = self.source.clone();
         let platform = key.platform;
-        let local = matches!(key.environment, EnvironmentId::Local(_));
+        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         self.executor.read(key, move |_, _| {
             if !local {
                 return Err(PlatformError::Unsupported);

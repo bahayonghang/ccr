@@ -1,6 +1,7 @@
 //! Local MCP entries projected from configuration files the desktop already reads.
 //! Native mutations reuse source-bound shared policy and original-revision writes.
 //! Environment values, headers, arguments, URLs, and tokens are not copied out.
+use ccr_app::environments::EnvironmentPolicy;
 
 mod batch;
 mod editor;
@@ -406,7 +407,7 @@ pub(crate) fn read_catalog(
     source: &ConfigSource,
     environment: &EnvironmentId,
 ) -> Result<McpCatalog, McpError> {
-    if !matches!(environment, EnvironmentId::Local(_)) {
+    if EnvironmentPolicy::LocalOnly.admit(environment).is_err() {
         return Err(McpError::Unsupported);
     }
     let roots = roots(source)?;

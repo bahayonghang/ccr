@@ -1,6 +1,6 @@
 //! Environment reads stay on the blocking worker. Render does not spawn processes.
 use super::Services;
-use ccr_app::environments::{EnvironmentReport, InspectOptions, admit_local_only};
+use ccr_app::environments::{EnvironmentPolicy, EnvironmentReport, InspectOptions};
 use ccr_app::runtime::{AdmissionError, EnvironmentId, RequestKey, TaskSubscription};
 
 pub fn load(
@@ -11,7 +11,7 @@ pub fn load(
     let live = !services.is_fixture();
     let delay = services.fixture_delay();
     services.executor.read(key, move |cancel, _| {
-        admit_local_only(&environment)?;
+        EnvironmentPolicy::LocalOnly.admit(&environment)?;
         // Fixture delay is cancellable QA only. A live read does not sleep here.
         if !delay.is_zero() {
             let deadline = std::time::Instant::now() + delay;

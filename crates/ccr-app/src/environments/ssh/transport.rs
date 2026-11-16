@@ -27,6 +27,7 @@ pub(super) trait Connection: Send + Sync {
     fn is_closed(&self) -> bool;
     fn disconnect(&self) -> RunFuture<'_, ()>;
     fn exec(&self, command: String) -> RunFuture<'_, Output>;
+    fn download(&self, path: RemotePosixPath) -> RunFuture<'_, Option<String>>;
     fn upload(
         &self,
         path: RemotePosixPath,
@@ -292,6 +293,22 @@ impl Connection for LiveConnection {
             result
         })
     }
+    fn download(&self, path: RemotePosixPath) -> RunFuture<'_, Option<String>> {
+        Box::pin(async move {
+            let channel = self
+                .0
+                .channel_open_session()
+                .await
+                .map_err(|_| "ssh_network_error")?;
+            channel
+                .request_subsystem(true, "sftp")
+                .await
+                .map_err(|_| "ssh_network_error")?;
+            let raw = RawSftpSession::new(channel.into_stream());
+            raw.init().await.map_err(|_| "ssh_network_error")?;
+            read_sftp(&raw, &path).await
+        })
+    }
     fn upload(
         &self,
         path: RemotePosixPath,
@@ -388,6 +405,47 @@ impl Connection for LiveConnection {
         })
     }
 }
+async fn read_sftp(raw: &RawSftpSession, path: &RemotePosixPath) -> Result<Option<String>, Error> {
+    let handle = match raw
+        .open(path.as_str(), OpenFlags::READ, FileAttributes::default())
+        .await
+    {
+        Ok(handle) => handle.handle,
+        Err(russh_sftp::client::error::Error::Status(status))
+            if status.status_code == StatusCode::NoSuchFile =>
+        {
+            return Ok(None);
+        }
+        Err(_) => return Err("ssh_read_failed"),
+    };
+    let result = async {
+        let mut bytes = Vec::new();
+        loop {
+            match raw.read(&handle, bytes.len() as u64, 32768).await {
+                Ok(data) if !data.data.is_empty() => {
+                    if bytes.len() + data.data.len() > 2 * 1024 * 1024 {
+                        return Err("ssh_file_too_large");
+                    }
+                    bytes.extend_from_slice(&data.data);
+                }
+                Ok(_) => return Err("ssh_read_failed"),
+                Err(russh_sftp::client::error::Error::Status(status))
+                    if status.status_code == StatusCode::Eof =>
+                {
+                    break;
+                }
+                Err(_) => return Err("ssh_read_failed"),
+            }
+        }
+        String::from_utf8(bytes)
+            .map(Some)
+            .map_err(|_| "ssh_read_failed")
+    }
+    .await;
+    raw.close(handle).await.map_err(|_| "ssh_cleanup_failed")?;
+    result
+}
+
 async fn atomic_replace(raw: &RawSftpSession, old: &str, new: &str) -> Result<(), Error> {
     match raw
         .extended("posix-rename@openssh.com", rename_payload(old, new))

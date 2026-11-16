@@ -1,7 +1,10 @@
 //! Desktop-local command favorites/history. The domain owns all SQL and persistence.
+use ccr_app::environments::EnvironmentPolicy;
+#[cfg(test)]
+use ccr_app::runtime::EnvironmentId;
 use std::sync::{Arc, Mutex};
 
-use ccr_app::runtime::{AdmissionError, Completion, EnvironmentId, RequestKey, TaskSubscription};
+use ccr_app::runtime::{AdmissionError, Completion, RequestKey, TaskSubscription};
 use ccr_core::core::log_redact::redact_log_text;
 pub use ccr_db::models::ui_state::AddFavoriteRequest;
 use ccr_db::{
@@ -125,7 +128,7 @@ impl UiStateRequests {
         key: RequestKey,
     ) -> Result<TaskSubscription<Arc<UiStateSnapshot>, UiStateError>, AdmissionError> {
         let requests = self.clone();
-        let local = matches!(key.environment, EnvironmentId::Local(_));
+        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         self.0.executor.read(key, move |_, _| {
             if !local {
                 return Err(UiStateError::UnsupportedEnvironment);
@@ -193,7 +196,7 @@ impl UiStateRequests {
         work: impl FnOnce(&UiStateManager) -> Result<(), String> + Send + 'static,
     ) -> Result<TaskSubscription<(), UiStateError>, AdmissionError> {
         let requests = self.clone();
-        let local = matches!(key.environment, EnvironmentId::Local(_));
+        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         self.0.executor.job(key, move |cancel, _| {
             if !local {
                 return Completion::Failed(UiStateError::UnsupportedEnvironment);

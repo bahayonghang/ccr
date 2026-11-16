@@ -1,5 +1,6 @@
 //! Read-only Grok activation facts from the same owner as Tauri's dashboard.
 use super::*;
+use ccr_app::environments::EnvironmentPolicy;
 use ccr_cli::platforms::{GrokActivationState, GrokPlatform, GrokProfileAuthMode};
 use ccr_config::PlatformConfig;
 
@@ -59,7 +60,7 @@ impl Services {
         &self,
         key: RequestKey,
     ) -> std::result::Result<TaskSubscription<GrokOverview, ProfileError>, AdmissionError> {
-        let supported = matches!(key.environment, EnvironmentId::Local(_))
+        let supported = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok()
             && key.platform == RequestPlatform::Grok;
         let source = self.source.clone();
         self.executor.read(key, move |_, _| {

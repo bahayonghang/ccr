@@ -1,13 +1,15 @@
 //! Typed native requests. Domain owners retain catalog, journal, CAS and backup rules.
 use super::{ConfigSource, Services};
+use ccr_app::environments::EnvironmentPolicy;
+#[cfg(test)]
+use ccr_app::runtime::EnvironmentId;
 use ccr_app::{
     config::{
         ConfigRow,
         source::{self, SourceSaveOutcome},
     },
     runtime::{
-        AdmissionError, Completion, EnvironmentId, Platform as RequestPlatform, RequestKey,
-        TaskSubscription,
+        AdmissionError, Completion, Platform as RequestPlatform, RequestKey, TaskSubscription,
     },
 };
 use ccr_cli::application::profile_lifecycle::{
@@ -339,7 +341,10 @@ impl Services {
     {
         let source = self.source.clone();
         self.executor.read(key.clone(), move |cancel, _| {
-            if !matches!(key.environment, EnvironmentId::Local(_)) {
+            if EnvironmentPolicy::LocalOnly
+                .admit(&key.environment)
+                .is_err()
+            {
                 return Err(ProfileError::Unsupported);
             }
             if let ConfigSource::Fixture { delay, .. } = source {
@@ -378,7 +383,7 @@ impl Services {
                 | ProfileCommand::History
                 | ProfileCommand::Backups
         );
-        let supported = matches!(key.environment, EnvironmentId::Local(_));
+        let supported = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         let platform = key.platform;
         let work = move || {
             if !supported {

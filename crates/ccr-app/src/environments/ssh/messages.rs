@@ -2,6 +2,12 @@
 /// Resolve a stable authentication error code without rendering server-controlled text.
 pub fn authentication_message(code: &str, chinese: bool) -> Option<&'static str> {
     Some(match (code, chinese) {
+        ("ssh_file_too_large", false) => "Remote file or output exceeds the size limit.",
+        ("ssh_file_too_large", true) => "远程文件或输出超过大小上限。",
+        ("ssh_session_changed", false) => {
+            "This document belongs to a previous connection. Reload before saving; your draft is retained."
+        }
+        ("ssh_session_changed", true) => "文件属于之前的连接。请重新读取后保存；草稿已保留。",
         ("ssh_tested", false) => "Connection test succeeded. No host or credential was saved.",
         ("ssh_tested", true) => "测试连接成功，未保存主机或凭据。",
         ("ssh_invalid_auth_method", false) => "Choose agent, private_key or password.",
@@ -58,4 +64,18 @@ pub fn authentication_message(code: &str, chinese: bool) -> Option<&'static str>
         }
         _ => return None,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn environment_io_codes_have_safe_bilingual_messages() {
+        for code in ["ssh_file_too_large", "ssh_session_changed"] {
+            for chinese in [false, true] {
+                let message = super::authentication_message(code, chinese).unwrap_or_default();
+                assert!(!message.is_empty());
+                assert!(!message.contains(code));
+            }
+        }
+    }
 }

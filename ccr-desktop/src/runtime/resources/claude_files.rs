@@ -1,6 +1,7 @@
 //! Captured local Claude resources; remote requests refuse before resolving paths.
 use super::roots;
 use crate::runtime::{ConfigSource, Services};
+use ccr_app::environments::EnvironmentPolicy;
 use ccr_app::{
     platform_settings::{Document, Format},
     resources::{claude_collections as collections, claude_files as files},
@@ -127,7 +128,11 @@ pub enum Outcome {
 }
 
 fn execute(source: &ConfigSource, key: &RequestKey, command: Command) -> Result<Outcome, Error> {
-    if !matches!(key.environment, EnvironmentId::Local(_)) || key.platform != Platform::Claude {
+    if EnvironmentPolicy::LocalOnly
+        .admit(&key.environment)
+        .is_err()
+        || key.platform != Platform::Claude
+    {
         return Err(Error::Unsupported);
     }
     if let Command::Commit { session, content } = command {

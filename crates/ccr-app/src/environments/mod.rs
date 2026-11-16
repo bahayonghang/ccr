@@ -1,4 +1,6 @@
 //! Local process, WSL probe, and saved SSH host labels for desktop shells.
+mod admission;
+pub mod io;
 pub mod ssh;
 pub mod ssh_security;
 mod ssh_session;
@@ -8,6 +10,7 @@ mod wsl;
 
 use std::path::PathBuf;
 
+pub use admission::EnvironmentPolicy;
 pub use ssh_session::{
     AUTH_UNSUPPORTED, CANCELLED_BEFORE_CONNECT, ConnectFacts, ConnectKind, DISCONNECT_NOTHING,
     DisconnectReport, HOST_KEY_MISMATCH, ProcessHostTrust, RECONNECT_UNTRUSTED, ReconnectGate,
@@ -15,9 +18,7 @@ pub use ssh_session::{
     password_only, plan_disconnect, reconnect_gate,
 };
 pub use ssh_trust::{HostKeyDecision, HostKeyStatus, classify_host_key, decide_host_key};
-pub use surface::{
-    EnvironmentSurface, LOCAL_ONLY, SurfaceSlot, admit_local_only, read_local_source,
-};
+pub use surface::{EnvironmentSurface, LOCAL_ONLY, SurfaceSlot, read_local_source};
 pub use wsl::{
     WslDistro, WslExecProbe, WslFileIntent, WslFileTarget, WslListError, WslProbe, WslState,
     WslVersion, classify_exec, decode_wsl_output, list_installed_distros, parse_wsl_list,

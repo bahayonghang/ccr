@@ -88,7 +88,7 @@ impl Workspace {
         }
         .await;
         if result.is_err() {
-            self.revoke(session.session_id).await;
+            let _ = self.revoke(session.session_id).await;
         }
         result
     }
