@@ -27,13 +27,21 @@ pub(super) fn header(view: &InsightsView, cx: &mut Context<InsightsView>) -> Any
         .items_start()
         .justify_between()
         .gap(px(theme::SECTION_GAP))
-        .when(view.platform_scope.is_none(), |row| row.child(title(cx)))
+        .when(view.platform_scope.is_none(), |row| {
+            row.child(title(
+                matches!(
+                    view.requests.environment(),
+                    ccr_app::runtime::EnvironmentId::Ssh(_)
+                ),
+                cx,
+            ))
+        })
         .child(actions(view, cx))
         .into_any_element()
 }
 
 // h1 与其他页面共用内容左缘。
-fn title(cx: &mut Context<InsightsView>) -> Div {
+fn title(remote: bool, cx: &mut Context<InsightsView>) -> Div {
     div()
         .min_w_0()
         .flex()
@@ -54,11 +62,11 @@ fn title(cx: &mut Context<InsightsView>) -> Div {
             div()
                 .text_size(crate::theme::text_size(theme::META_SIZE))
                 .text_color(cx.theme().muted_foreground)
-                .child(text(
+                .child(if remote { text(cx, "Read-only snapshot from the current SSH host. Clone, trash and restore are unavailable; exports save to this computer.", "当前 SSH 主机的只读快照；不支持克隆、废纸篓和恢复；导出保存到本机。") } else { text(
                     cx,
                     "Indexed summaries from this computer.",
                     "本机索引出的会话摘要。",
-                )),
+                ) }),
         )
 }
 
@@ -73,7 +81,10 @@ fn actions(view: &InsightsView, cx: &mut Context<InsightsView>) -> Div {
         Some(tag) => row.child(tag),
         None => row,
     };
-    let show_trash = view
+    let show_trash = !matches!(
+        view.requests.environment(),
+        ccr_app::runtime::EnvironmentId::Ssh(_)
+    ) && view
         .platform_scope
         .is_none_or(|platform| platform == ccr_app::runtime::Platform::Codex)
         && matches!(view.snapshot.as_deref(), Some(crate::features::insights::InsightsSnapshot::Sessions { statuses, .. })

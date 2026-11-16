@@ -12,6 +12,8 @@ pub mod monitoring;
 pub mod platforms;
 pub mod preferences;
 pub mod profiles;
+#[cfg(test)]
+mod remote_activity_tests;
 mod remote_config;
 pub mod remote_resources;
 pub mod resources;
@@ -199,6 +201,7 @@ pub struct Services {
     pub(super) platform_scope: Option<ccr_app::runtime::Platform>,
     ui_state_cache: ui_state::ManagerCache,
     insights_paths: Option<insights::InsightsPaths>,
+    local_delivery_root: Option<PathBuf>,
     pub(super) usage_report_latency: Arc<std::sync::Mutex<ccr_app::monitoring::LatencyWindow>>,
     pub(super) platform_oauth: Arc<ccr_cli::application::codex_oauth::NativeSession>,
     pub(super) command_jobs: Arc<ccr_app::jobs::commands::CommandJobs>,
@@ -236,6 +239,16 @@ impl Services {
         self
     }
     pub fn new(executor: RuntimeHandle, source: ConfigSource) -> Self {
+        // 仅捕获本机交付目录，不创建目录、读取归档或把远端 HOME 当成本机路径。
+        let local_delivery_root = match &source {
+            ConfigSource::Local => std::env::var_os("USERPROFILE")
+                .filter(|path| !path.is_empty())
+                .or_else(|| std::env::var_os("HOME").filter(|path| !path.is_empty()))
+                .map(PathBuf::from),
+            ConfigSource::Fixture { registry, .. } => registry.parent().map(PathBuf::from),
+            ConfigSource::Benchmark(layout) => Some(layout.roots.home.clone()),
+        }
+        .filter(|path| path.is_absolute());
         Self {
             environment: Arc::new(std::sync::Mutex::new(EnvironmentId::Local("local".into()))),
             executor,
@@ -243,6 +256,7 @@ impl Services {
             platform_scope: None,
             ui_state_cache: Default::default(),
             insights_paths: None,
+            local_delivery_root,
             usage_report_latency: Default::default(),
             platform_oauth: Default::default(),
             command_jobs: Default::default(),

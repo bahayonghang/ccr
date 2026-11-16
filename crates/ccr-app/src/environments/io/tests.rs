@@ -89,6 +89,66 @@ impl Harness {
 }
 
 #[tokio::test]
+async fn session_budget_does_not_raise_the_configuration_limit() {
+    let h = Harness::new(true).await;
+    let (_, transport) = h.remote.as_ref().unwrap();
+    let large = "x".repeat(MAX_CONTENT + 1);
+    transport.set_file(
+        "fixture.invalid",
+        "/home/fixture/.codex/sessions/rollout.jsonl",
+        &large,
+    );
+    assert_eq!(
+        h.io.read_session_bytes(".codex/sessions/rollout.jsonl", CancellationToken::new())
+            .await
+            .unwrap()
+            .len(),
+        large.len()
+    );
+    assert!(matches!(
+        h.io.read_bytes(".codex/sessions/rollout.jsonl", CancellationToken::new())
+            .await,
+        Err(Error::Ssh("ssh_file_too_large"))
+    ));
+}
+
+#[tokio::test(start_paused = true)]
+async fn cancelled_readonly_probe_joins_its_original_budget_and_keeps_the_connection() {
+    let h = Harness::new(true).await;
+    let (workspace, transport) = h.remote.as_ref().unwrap();
+    transport.set_exec_output("'uname' '-s'", true, "Linux", "");
+    transport.delay_cli(std::time::Duration::from_secs(1));
+    let io = h.io.clone();
+    let cancel = CancellationToken::new();
+    let worker_cancel = cancel.clone();
+    let task = tokio::spawn(async move {
+        io.probe(
+            &ProcessDescriptor::ccr_version_probe(),
+            "uname",
+            &["-s".into()],
+            worker_cancel,
+        )
+        .await
+    });
+    tokio::task::yield_now().await;
+    cancel.cancel();
+    assert!(matches!(
+        task.await.unwrap(),
+        Err(Error::Ssh("ssh_cancelled"))
+    ));
+    assert!(workspace.connected(match h.io.environment() {
+        EnvironmentId::Ssh(id) => id,
+        _ => panic!("SSH"),
+    }));
+    assert!(
+        !transport
+            .batches()
+            .iter()
+            .any(|line| line.starts_with("disconnect "))
+    );
+}
+
+#[tokio::test]
 async fn local_and_ssh_share_backup_atomic_replacement_cas_and_missing_file_contract() {
     for remote in [false, true] {
         let h = Harness::new(remote).await;

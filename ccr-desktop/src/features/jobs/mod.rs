@@ -31,6 +31,8 @@ enum CommandAction {
     Foreground,
     Help,
 }
+pub struct InstallRequested;
+impl gpui_kit::EventEmitter<InstallRequested> for JobsView {}
 
 pub struct JobsView {
     requests: CommandRequests,
@@ -439,6 +441,8 @@ impl Render for JobsView {
                 .child(semantics::button(Button::new("command-cancel").label(text(cx,"Request cancel","请求取消")).ghost().on_click(cx.listener(|this,_,_,cx|this.cancel(cx))), !self.busy, false, cx))
                 .child(semantics::button(Button::new("command-status").label(text(cx,"Refresh status","刷新状态")).ghost().on_click(cx.listener(|this,_,_,cx|this.refresh(cx))), self.job_id.is_none(), false, cx)))
             .child(div().id("command-job-state").test_support().aria_label(state.clone()).child(state))
+            .when_some(self.snapshot.as_ref().and_then(|snapshot| snapshot.error.clone()), |view, error| view.child(div().id("command-run-error").test_support().child(crate::locales::localized_line(cx, &error))))
+            .when(matches!(self.requests.environment(), ccr_app::runtime::EnvironmentId::Ssh(_)) && self.snapshot.as_ref().is_some_and(|snapshot| snapshot.status == Status::Unavailable), |view| view.child(semantics::button(Button::new("jobs-install-remote-cli").label(text(cx,"Install CCR on this SSH host","在此 SSH 主机安装 CCR")).on_click(cx.listener(|_,_,_,cx| cx.emit(InstallRequested))), false, false, cx)))
             .when_some(self.message, |view, message| {
                 let line = service_error(cx, message);
                 view.child(

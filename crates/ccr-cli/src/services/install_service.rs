@@ -6,6 +6,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
+use std::{future::Future, pin::Pin};
 
 use tokio::sync::{OwnedSemaphorePermit, RwLock, mpsc};
 use tokio_util::sync::CancellationToken;
@@ -23,6 +24,42 @@ use crate::services::install_types::{
 
 const INSTALL_PLAN_TTL: Duration = Duration::from_secs(120);
 const EXPECTED_EFFECT: &str = "Install the llmusage executable for the current user";
+
+pub type BackendFuture<'a, T> =
+    Pin<Box<dyn Future<Output = Result<T, InstallFlowError>> + Send + 'a>>;
+/// A closed invocation produced by the canonical plan owner, never renderer text.
+pub struct InstallInvocation {
+    program: std::path::PathBuf,
+    args: &'static [&'static str],
+}
+impl InstallInvocation {
+    pub(crate) fn new(program: std::path::PathBuf, args: &'static [&'static str]) -> Self {
+        Self { program, args }
+    }
+    pub fn program(&self) -> &std::path::Path {
+        &self.program
+    }
+    pub fn args(&self) -> &[&str] {
+        self.args
+    }
+}
+pub struct InstallOutput {
+    pub success: bool,
+    pub stdout: Vec<u8>,
+    pub stderr: Vec<u8>,
+}
+/// Environment-specific I/O only. Planning, TTL, consumption and attempts remain here.
+pub trait InstallBackend: Send + Sync {
+    fn inspect(
+        &self,
+        cancel: CancellationToken,
+    ) -> BackendFuture<'_, (DetectionResult, HostCapabilities)>;
+    fn execute(
+        &self,
+        invocation: InstallInvocation,
+        cancel: CancellationToken,
+    ) -> BackendFuture<'_, InstallOutput>;
+}
 
 type Clock = Arc<dyn Fn() -> ClockReading + Send + Sync>;
 type HostProbe = Arc<dyn Fn() -> HostCapabilities + Send + Sync>;
@@ -164,6 +201,7 @@ pub struct InstallService {
     clock: Clock,
     host_probe: HostProbe,
     runner: AttemptRunner,
+    remote: Option<Arc<dyn InstallBackend>>,
 }
 
 impl InstallService {
@@ -182,12 +220,81 @@ impl InstallService {
             clock,
             host_probe,
             runner: Arc::new(install_exec::run_attempt),
+            remote: None,
         }
     }
 
     /// Detect whether `llmusage` is available on the host.
     pub async fn detect(&self) -> Result<DetectionResult, InstallFlowError> {
+        if let Some(backend) = &self.remote {
+            return backend
+                .inspect(CancellationToken::new())
+                .await
+                .map(|(detection, _)| detection);
+        }
         install_detect::detect().await
+    }
+    /// Capture detection and host facts from the same environment backend.
+    pub async fn check(&self) -> Result<(DetectionResult, HostCapabilities), InstallFlowError> {
+        self.check_cancellable(CancellationToken::new()).await
+    }
+    pub async fn check_cancellable(
+        &self,
+        cancel: CancellationToken,
+    ) -> Result<(DetectionResult, HostCapabilities), InstallFlowError> {
+        match &self.remote {
+            Some(backend) => backend.inspect(cancel).await,
+            None => Ok((self.detect().await?, self.probe_capabilities())),
+        }
+    }
+    pub fn for_remote(backend: Arc<dyn InstallBackend>) -> Self {
+        let mut service = Self::with_environment(
+            Arc::new(system_clock),
+            Arc::new(|| HostCapabilities {
+                platform: crate::services::install_types::Platform::Linux,
+                has_cargo: false,
+                has_homebrew: false,
+                has_scoop: false,
+                has_winget: false,
+                cargo_path: None,
+                homebrew_path: None,
+            }),
+        );
+        service.remote = Some(backend.clone());
+        service.runner = Arc::new(move |action, plan, id, cancel, ring| {
+            let backend = backend.clone();
+            let spec = install_exec::remote_invocation(&action);
+            let (tx, rx) = mpsc::channel(64);
+            let owner = tokio::spawn(async move {
+                let started = Instant::now();
+                let event = InstallEvent::Started {
+                    attempt_id: id,
+                    plan,
+                };
+                ring.record(&event);
+                let _ = tx.send(event).await;
+                let result = backend.execute(spec, cancel).await;
+                let event = match result {
+                    Ok(output) => {
+                        let mut seq = 0;
+                        for (stream, bytes) in [(crate::services::install_types::LogStream::Stdout, output.stdout), (crate::services::install_types::LogStream::Stderr, output.stderr)] {
+                            for line in String::from_utf8_lossy(&bytes).lines() {
+                                let event = InstallEvent::Log { attempt_id: id, stream, line: crate::services::install_ring_buffer::redact(line), seq };
+                                seq += 1;
+                                ring.record(&event); let _ = tx.send(event).await;
+                            }
+                        }
+                        if output.success { InstallEvent::Succeeded { attempt_id: id, duration_ms: started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64, installed_version: None } }
+                        else { InstallEvent::Failed { attempt_id: id, failure_kind: crate::services::install_types::FailureKind::NonZeroExit, exit_code: None, stderr_excerpt: None, error_message: "Remote installation failed / 远程安装失败".into() } }
+                    }
+                    Err(_) => InstallEvent::Failed { attempt_id: id, failure_kind: crate::services::install_types::FailureKind::InternalError, exit_code: None, stderr_excerpt: None, error_message: "Remote execution or cleanup is unconfirmed. Reconnect before retrying. / 远端执行或清理未确认，请重连后重试。".into() },
+                };
+                ring.record(&event);
+                let _ = tx.send(event).await;
+            });
+            (rx, owner)
+        });
+        service
     }
 
     /// Probe the host for available package managers.
@@ -201,15 +308,39 @@ impl InstallService {
         detection_hint: &DetectionResult,
         capabilities_hint: &HostCapabilities,
     ) -> Result<PlanOutcome, InstallFlowError> {
-        let detection = self.detect().await?;
-        self.plan_with_detection(detection_hint, capabilities_hint, &detection)
+        self.plan_cancellable(detection_hint, capabilities_hint, CancellationToken::new())
+            .await
+    }
+    pub async fn plan_cancellable(
+        &self,
+        detection_hint: &DetectionResult,
+        capabilities_hint: &HostCapabilities,
+        cancel: CancellationToken,
+    ) -> Result<PlanOutcome, InstallFlowError> {
+        let (detection, host) = self.check_cancellable(cancel).await?;
+        self.register_plan(detection_hint, capabilities_hint, &detection, host)
     }
 
+    #[cfg(any(test, feature = "test-support"))]
     fn plan_with_detection(
         &self,
         detection_hint: &DetectionResult,
         capabilities_hint: &HostCapabilities,
         detection: &DetectionResult,
+    ) -> Result<PlanOutcome, InstallFlowError> {
+        self.register_plan(
+            detection_hint,
+            capabilities_hint,
+            detection,
+            self.probe_capabilities(),
+        )
+    }
+    fn register_plan(
+        &self,
+        detection_hint: &DetectionResult,
+        capabilities_hint: &HostCapabilities,
+        detection: &DetectionResult,
+        host: HostCapabilities,
     ) -> Result<PlanOutcome, InstallFlowError> {
         if detection_hint != detection {
             return Err(InstallFlowError::InvalidPayload {
@@ -218,7 +349,6 @@ impl InstallService {
             });
         }
 
-        let host = self.probe_capabilities();
         if capabilities_hint != &host {
             return Err(InstallFlowError::InvalidPayload {
                 field: "capabilities".to_string(),
@@ -284,13 +414,43 @@ impl InstallService {
         plan_id: PlanId,
         admission: Option<OwnedSemaphorePermit>,
     ) -> Result<InstallAttempt, InstallFlowError> {
+        self.execute_admitted(plan_id, admission, CancellationToken::new())
+            .await
+    }
+    pub async fn execute_cancellable(
+        &self,
+        plan_id: PlanId,
+        cancel: CancellationToken,
+    ) -> Result<InstallAttempt, InstallFlowError> {
+        self.execute_admitted(plan_id, None, cancel).await
+    }
+    async fn execute_admitted(
+        &self,
+        plan_id: PlanId,
+        admission: Option<OwnedSemaphorePermit>,
+        cancel: CancellationToken,
+    ) -> Result<InstallAttempt, InstallFlowError> {
+        let remote_host = match &self.remote {
+            Some(backend) => Some(backend.inspect(cancel.clone()).await?.1),
+            None => None,
+        };
+        if cancel.is_cancelled() {
+            return Err(InstallFlowError::Internal {
+                message: "install_cancelled_before_start".into(),
+            });
+        }
         let mut slot = self.slot.write().await;
+        if cancel.is_cancelled() {
+            return Err(InstallFlowError::Internal {
+                message: "install_cancelled_before_start".into(),
+            });
+        }
         if slot.is_some() {
             return Err(InstallFlowError::AlreadyRunning);
         }
 
         let now = (self.clock)();
-        let host = HostFingerprint::from(&self.probe_capabilities());
+        let host = HostFingerprint::from(&remote_host.unwrap_or_else(|| self.probe_capabilities()));
         let plan = self
             .registry
             .lock()

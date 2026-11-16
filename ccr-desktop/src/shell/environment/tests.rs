@@ -8,6 +8,89 @@ use gpui_kit::test::{TestAppContextExt, TestWindowExt};
 use gpui_kit::{Bounds, SharedString, TestAppContext, WindowBounds, WindowOptions, size};
 use std::{sync::Arc, time::Duration};
 
+#[gpui_kit::test]
+async fn ssh_activity_sidebar_platform_tabs_and_missing_cli_install_link_reach_real_owners(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let fixture = Fixture::new(true).await;
+    fixture.preferences(true);
+    fixture.transport.set_file("build.fixture.invalid","/home/fixture/.claude/projects/project/session.jsonl","{\"type\":\"user\",\"sessionId\":\"ssh-ui\",\"timestamp\":\"2026-11-02T00:00:00Z\",\"message\":{\"role\":\"user\",\"content\":\"remote UI transcript\"}}\n");
+    let (handle, shell) = fixture.open(cx);
+    ready(cx, handle, &shell).await;
+    wait_resource_ui(cx, handle, |window, _| {
+        window.try_find("ssh-overview-claude").is_some()
+    });
+    for (nav, platform) in [
+        ("nav-claude-code", "claude"),
+        ("nav-codex", "codex"),
+        ("nav-grok", "grok"),
+        ("nav-antigravity", "gemini"),
+        ("nav-opencode", "opencode"),
+    ] {
+        cx.update_window(handle, |_, window, cx| window.click(nav, cx))
+            .unwrap();
+        let id = SharedString::from(format!("ssh-overview-{platform}"));
+        wait_resource_ui(cx, handle, |window, _| {
+            window.try_find(id.clone()).is_some()
+        });
+        cx.update_window(handle, |_, window, _| {
+            assert!(window.try_find("overview-kpis").is_none())
+        })
+        .unwrap();
+    }
+    cx.update_window(handle, |_, window, cx| {
+        window.click("nav-agent-sessions", cx)
+    })
+    .unwrap();
+    wait_resource_ui(cx, handle, |window, _| {
+        window.try_find("session-listbox").is_some()
+    });
+    cx.update_window(handle, |_, window, cx| {
+        assert!(window.try_find("session-open-trash").is_none());
+        window.click("nav-claude-code", cx);
+        window.click("tool-platform-sessions", cx);
+    })
+    .unwrap();
+    wait_resource_ui(cx, handle, |window, _| {
+        window.try_find("session-listbox").is_some()
+    });
+    cx.update_window(handle, |_, window, cx| window.click("nav-commands", cx))
+        .unwrap();
+    wait_resource_ui(cx, handle, |window, _| {
+        window.try_find("command-foreground").is_some()
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.click("command-foreground", cx)
+    })
+    .unwrap();
+    wait_resource_ui(cx, handle, |window, _| {
+        window.try_find("jobs-install-remote-cli").is_some()
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.click("jobs-install-remote-cli", cx)
+    })
+    .unwrap();
+    wait_resource_ui(cx, handle, |window, _| {
+        window.try_find("install-check").is_some()
+    });
+    cx.update_window(handle, |_, window, _| {
+        assert!(window.try_find("tools-review-update").is_some());
+        assert!(window.try_find("tool-install").is_some());
+    })
+    .unwrap();
+    assert!(
+        !fixture
+            .transport
+            .batches()
+            .iter()
+            .any(|line| line.starts_with("exec "))
+    );
+    fixture
+        .runtime
+        .shutdown_after(fixture.services.disconnect_ssh());
+}
+
 struct Fixture {
     root: tempfile::TempDir,
     runtime: RuntimeOwner,
@@ -1246,7 +1329,8 @@ async fn switcher_trust_cancel_confirm_and_changed_key_use_native_controls(
     let trusted = std::fs::read(fixture.root.path().join("ssh/known_hosts")).unwrap();
     fixture.transport.change_key();
     cx.update_window(handle, |_, window, cx| {
-        window.click("environment-retry", cx)
+        window.click("environment-switcher", cx);
+        window.click("environment-reconnect", cx)
     })
     .unwrap();
     cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
@@ -1535,6 +1619,7 @@ async fn reconnect_cancels_queued_old_authority_before_a_new_session(cx: &mut Te
         shell.read(cx).active_environment.state == ConnectionState::Connected
     })
     .await;
+    open_host_settings(cx, handle, &shell).await;
     let gate = Arc::new(std::sync::Barrier::new(
         ccr_app::runtime::BLOCKING_CONCURRENCY + 1,
     ));
@@ -1566,6 +1651,7 @@ async fn reconnect_cancels_queued_old_authority_before_a_new_session(cx: &mut Te
     for _ in 0..ccr_app::runtime::BLOCKING_CONCURRENCY {
         rx.recv_timeout(Duration::from_secs(5)).unwrap();
     }
+    let before = fixture.transport.cli_requests();
     let mut old = fixture
         .services
         .ssh_action(
@@ -1579,7 +1665,8 @@ async fn reconnect_cancels_queued_old_authority_before_a_new_session(cx: &mut Te
         )
         .unwrap();
     cx.update_window(handle, |_, window, cx| {
-        window.click("environment-retry", cx)
+        window.click("environment-switcher", cx);
+        window.click("environment-reconnect", cx)
     })
     .unwrap();
     cx.wait_for(handle, Duration::from_secs(10), |window, _| {
@@ -1594,7 +1681,7 @@ async fn reconnect_cancels_queued_old_authority_before_a_new_session(cx: &mut Te
         matches!(old.next().await,Some(TaskEvent::Terminal(value)) if matches!(value.as_ref(),Completion::Cancelled))
     );
     assert_eq!(fixture.transport.handshakes(), 1);
-    assert!(fixture.transport.cli_requests().is_empty());
+    assert_eq!(fixture.transport.cli_requests(), before);
     gate.wait();
     cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
         shell.read(cx).active_environment.state == ConnectionState::Connected
@@ -1602,7 +1689,7 @@ async fn reconnect_cancels_queued_old_authority_before_a_new_session(cx: &mut Te
     .await;
     assert_eq!(fixture.transport.handshakes(), 2);
     assert!(
-        fixture.transport.cli_requests().is_empty(),
+        fixture.transport.cli_requests() == before,
         "a queued old capability never retargets the new session"
     );
     drop(held);

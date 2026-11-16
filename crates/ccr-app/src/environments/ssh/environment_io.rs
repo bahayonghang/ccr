@@ -14,6 +14,18 @@ impl IoSession {
 }
 
 impl Workspace {
+    pub(crate) async fn detect_execution_io(
+        &self,
+        authority: &IoSession,
+        cancel: CancellationToken,
+    ) -> Result<Vec<detect::CliStatus>, Error> {
+        self.check_io(authority)?;
+        self.detect_execution_cli(
+            &detect::CliSession::from_io(&authority.0.id, authority.0.session_id),
+            cancel,
+        )
+        .await
+    }
     pub(crate) async fn configuration_lock(
         &self,
         authority: &IoSession,
@@ -38,7 +50,7 @@ impl Workspace {
         Ok(IoSession(session, home))
     }
 
-    fn check_io(&self, authority: &IoSession) -> Result<(), Error> {
+    pub(crate) fn check_io(&self, authority: &IoSession) -> Result<(), Error> {
         if self.current(&authority.0.id)?.session_id != authority.0.session_id {
             return Err("ssh_session_changed");
         }
@@ -63,6 +75,34 @@ impl Workspace {
                 Ok(content)
             }
             Err("ssh_cancelled") => Err("ssh_cancelled"),
+            Err(error) => {
+                self.revoke(authority.0.session_id).await?;
+                Err(error)
+            }
+        }
+    }
+
+    pub(crate) async fn read_session_io(
+        &self,
+        authority: &IoSession,
+        relative: &str,
+        cancel: CancellationToken,
+    ) -> Result<Option<Vec<u8>>, Error> {
+        self.check_io(authority)?;
+        let path = authority
+            .home()
+            .join_relative(relative)
+            .map_err(|_| "ssh_invalid_remote_path")?;
+        let result =
+            transport::read_bounded(cancel, authority.0.connection.download_session(path)).await;
+        match result {
+            Ok(content) => {
+                self.check_io(authority)?;
+                Ok(content)
+            }
+            Err(error @ ("ssh_cancelled" | "ssh_file_too_large" | "ssh_invalid_remote_path")) => {
+                Err(error)
+            }
             Err(error) => {
                 self.revoke(authority.0.session_id).await?;
                 Err(error)
@@ -218,13 +258,15 @@ impl Workspace {
         authority: &IoSession,
         command: String,
         timeout: std::time::Duration,
+        max_bytes: usize,
         cancel: CancellationToken,
+        observer: Option<super::super::io::OutputObserver>,
     ) -> Result<(bool, Vec<u8>, Vec<u8>), Error> {
         self.check_io(authority)?;
         let result = tokio::select! {
             biased;
             _ = cancel.cancelled() => Err("ssh_cancelled"),
-            result = tokio::time::timeout(timeout, authority.0.connection.exec(command)) => result.unwrap_or(Err("ssh_network_error")),
+            result = tokio::time::timeout(timeout, authority.0.connection.exec_bounded(command, max_bytes, observer)) => result.unwrap_or(Err("ssh_network_error")),
         };
         if result.is_err() {
             self.revoke(authority.0.session_id).await?;
@@ -235,6 +277,36 @@ impl Workspace {
                 Ok((output.success, output.stdout, output.stderr))
             }
             Err(error) => Err(error),
+        }
+    }
+    pub(crate) async fn probe_io(
+        &self,
+        authority: &IoSession,
+        command: String,
+        timeout: std::time::Duration,
+        max_bytes: usize,
+        cancel: CancellationToken,
+    ) -> Result<(bool, Vec<u8>, Vec<u8>), Error> {
+        self.check_io(authority)?;
+        let result = transport::read_with_timeout(
+            cancel,
+            authority
+                .0
+                .connection
+                .exec_bounded(command, max_bytes, None),
+            timeout,
+        )
+        .await;
+        match result {
+            Ok(output) => {
+                self.check_io(authority)?;
+                Ok((output.success, output.stdout, output.stderr))
+            }
+            Err("ssh_cancelled") => Err("ssh_cancelled"),
+            Err(error) => {
+                self.revoke(authority.0.session_id).await?;
+                Err(error)
+            }
         }
     }
 }

@@ -20,6 +20,7 @@ use std::{
     time::Duration,
 };
 use tokio::sync::watch;
+mod remote;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
@@ -116,6 +117,8 @@ pub struct InstallOwner {
     state: Mutex<Snapshot>,
     updates: watch::Sender<Arc<Snapshot>>,
     query_generation: AtomicU64,
+    remote: Mutex<std::collections::HashMap<String, Arc<InstallOwner>>>,
+    io: Option<ccr_app::environments::io::EnvironmentIo>,
     #[cfg(test)]
     synthetic: bool,
 }
@@ -131,6 +134,8 @@ impl InstallOwner {
             state: Mutex::new(Snapshot::default()),
             updates: watch::channel(Arc::new(Snapshot::default())).0,
             query_generation: AtomicU64::new(0),
+            remote: Default::default(),
+            io: None,
             #[cfg(test)]
             synthetic: false,
         }
@@ -211,16 +216,25 @@ impl InstallRequests {
     }
     pub fn is_fixture(&self) -> bool {
         self.0.is_fixture()
+            && !(matches!(self.environment(), ccr_app::runtime::EnvironmentId::Ssh(_))
+                && super::environments::owner_is_fixture_transport(&self.0))
     }
     pub fn observe(&self) -> watch::Receiver<Arc<Snapshot>> {
-        self.0.install.observe()
+        self.owner(&self.environment())
+            .unwrap_or_else(|_| Arc::new(InstallOwner::default()))
+            .observe()
     }
     pub fn snapshot(&self) -> Arc<Snapshot> {
-        self.0.install.snapshot()
+        self.owner(&self.environment())
+            .map(|owner| owner.snapshot())
+            .unwrap_or_else(|_| Arc::new(Snapshot::default()))
     }
     fn supported(&self, key: &RequestKey) -> bool {
         if self.0.source.is_benchmark() {
             return false;
+        }
+        if matches!(key.environment, ccr_app::runtime::EnvironmentId::Ssh(_)) {
+            return self.0.remote_configuration_io(&key.environment).is_ok();
         }
         let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         #[cfg(test)]
@@ -235,7 +249,9 @@ impl InstallRequests {
         query: Query,
     ) -> Result<TaskSubscription<Arc<Snapshot>, Error>, AdmissionError> {
         let supported = self.supported(&key);
-        let owner = self.0.install.clone();
+        let owner = self.owner(&key.environment);
+        let supported = supported && owner.is_ok();
+        let owner = owner.unwrap_or_else(|_| self.0.install.clone());
         let generation = owner.query_generation.fetch_add(1, Ordering::SeqCst) + 1;
         self.0.executor.read(key, move |cancel, _| {
             if !supported {
@@ -248,8 +264,11 @@ impl InstallRequests {
                 }
                 match query {
                     Query::Check => {
-                        let detection = owner.service.detect().await.map_err(Error::from)?;
-                        let capabilities = owner.service.probe_capabilities();
+                        let (detection, capabilities) = owner
+                            .service
+                            .check_cancellable(cancel.clone())
+                            .await
+                            .map_err(Error::from)?;
                         if cancel.is_cancelled() {
                             return Err(Error::Interrupted);
                         }
@@ -269,7 +288,7 @@ impl InstallRequests {
                         };
                         let plan = owner
                             .service
-                            .plan(detection, capabilities)
+                            .plan_cancellable(detection, capabilities, cancel.clone())
                             .await
                             .map_err(Error::from)?;
                         if cancel.is_cancelled() {
@@ -303,7 +322,7 @@ impl InstallRequests {
         if !acknowledged {
             return Err(Error::Confirmation);
         }
-        let owner = self.0.install.clone();
+        let owner = self.owner(&key.environment)?;
         {
             let mut state = owner
                 .state
@@ -326,7 +345,14 @@ impl InstallRequests {
             let Ok(handle) = tokio::runtime::Handle::try_current() else { return Completion::Failed(Error::Operation); };
             handle.block_on(async {
                 if owner.snapshot().cancel_requested || cancel.is_cancelled() { return Completion::Cancelled; }
-                let attempt = match owner.service.execute(plan_id).await {
+                let admission_cancel = cancel.child_token();
+                let mut updates = owner.observe();
+                let mut execution = Box::pin(owner.service.execute_cancellable(plan_id, admission_cancel.clone()));
+                let admitted = loop { tokio::select! {
+                    result = &mut execution => break result,
+                    changed = updates.changed() => { if changed.is_err() || updates.borrow_and_update().cancel_requested { admission_cancel.cancel(); } }
+                }};
+                let attempt = match admitted {
                     Ok(attempt) => attempt,
                     Err(error) => {
                         let error = Error::from(error);
@@ -384,7 +410,7 @@ impl InstallRequests {
         }
         // Cancellation remains reachable without another worker/admission slot.
         // The retained runner forwards this request and owns cleanup/terminal.
-        Ok(self.0.install.publish(|state| {
+        Ok(self.owner(&key.environment)?.publish(|state| {
             if state.busy() {
                 state.cancel_requested = true;
             }

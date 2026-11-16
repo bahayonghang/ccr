@@ -58,6 +58,9 @@ impl ToolsView {
                     let snapshot = updates.borrow_and_update().clone();
                     if weak
                         .update(cx, |this, cx| {
+                            if !snapshot.belongs_to(&this.requests.environment()) {
+                                return;
+                            }
                             this.snapshot = snapshot;
                             cx.notify();
                         })
@@ -137,14 +140,29 @@ impl ToolsView {
                     .label(text(cx, en, zh))
                     .ghost()
                     .on_click(cx.listener(move |this, _, _, cx| this.perform(action, false, cx))),
-                blocked || fixture || missing_bridge,
+                blocked
+                    || fixture
+                    || missing_bridge
+                    || (matches!(
+                        self.requests.environment(),
+                        ccr_app::runtime::EnvironmentId::Ssh(_)
+                    ) && matches!(action, Action::DetectBridge | Action::OpenBridge)),
                 false,
                 cx,
             ));
         }
         row.child(semantics::button(
             Button::new("tools-review-update")
-                .label(text(cx, "Review CCR CLI update", "核对 CCR CLI 更新"))
+                .label(
+                    if matches!(
+                        self.requests.environment(),
+                        ccr_app::runtime::EnvironmentId::Ssh(_)
+                    ) {
+                        text(cx, "Install or update CCR on SSH", "在 SSH 安装或更新 CCR")
+                    } else {
+                        text(cx, "Review CCR CLI update", "核对 CCR CLI 更新")
+                    },
+                )
                 .on_click(cx.listener(|this, _, window, cx| {
                     this.return_focus = window.focused(cx);
                     this.decision = true;
@@ -178,9 +196,9 @@ impl ToolsView {
         div().id("tools-update-confirmation").test_support().role(gpui_kit::Role::AlertDialog)
             .aria_label(text(cx,"Confirm user CCR CLI update","确认用户 CCR CLI 更新"))
             .flex().flex_col().gap(px(theme::CONTROL_GAP))
-            .child(text(cx,
+            .child(if matches!(self.requests.environment(), ccr_app::runtime::EnvironmentId::Ssh(_)) { text(cx, "Runs cargo install ccr --root <remote HOME>/.cargo on the current SSH host. Remote Cargo and network access are required; the local CLI and desktop are unchanged. Continue?", "在当前 SSH 主机执行 cargo install ccr --root <远端 HOME>/.cargo；需要远端 Cargo 和网络。本机 CLI 与桌面不变。是否继续？") } else { text(cx,
                 "Runs cargo install ccr --root <your home>/.cargo. Cargo and network access are required. This changes the user CLI in .cargo/bin; it does not update this desktop app or its verified bundled sidecar. A desktop located in that bin directory is refused. Continue?",
-                "执行 cargo install ccr --root <用户目录>/.cargo，需要 Cargo 和网络。更新目标是 .cargo/bin 中的用户 CLI；桌面应用及其校验绑定的便携 sidecar 不在更新范围内。桌面若位于此 bin 目录将拒绝更新。是否继续？"))
+                "执行 cargo install ccr --root <用户目录>/.cargo，需要 Cargo 和网络。更新目标是 .cargo/bin 中的用户 CLI；桌面应用及其校验绑定的便携 sidecar 不在更新范围内。桌面若位于此 bin 目录将拒绝更新。是否继续？") })
             .child(div().tab_group().tab_stop(false).flex().gap(px(theme::CONTROL_GAP))
                 .child(semantics::button(Button::new("tools-update-cancel").label(text(cx,"Cancel","取消")).ghost()
                     .on_click(cx.listener(|this,_,window,cx| this.dismiss(window,cx))),false,false,cx))

@@ -103,6 +103,7 @@ pub struct Shell {
     resources: Entity<crate::features::resources::ResourcesView>,
     mcp: Entity<crate::features::mcp::McpView>,
     jobs: Entity<crate::features::jobs::JobsView>,
+    _jobs_navigation: Subscription,
     install: Entity<crate::features::install::InstallView>,
     monitoring: Entity<crate::features::monitoring::MonitoringView>,
     checkin: Entity<crate::features::checkin::CheckinView>,
@@ -238,8 +239,16 @@ impl Shell {
                     cx.notify();
                 }
             });
+        let jobs = cx.new(|cx| crate::features::jobs::JobsView::new(services.clone(), window, cx));
+        let jobs_navigation = cx.subscribe_in(
+            &jobs,
+            window,
+            |this, _, _: &crate::features::jobs::InstallRequested, window, cx| {
+                this.go(Destination::Usage, Lens::Install, window, cx)
+            },
+        );
         let mut shell = Self {
-            active_environment: environment::ActiveEnvironment::new(services.clone(), cx),
+            active_environment: environment::ActiveEnvironment::new(services.clone(), window, cx),
             _environment_request: environment_request,
             remote,
             _remote_observation: remote_observation,
@@ -258,7 +267,8 @@ impl Shell {
                 crate::features::resources::ResourcesView::new(services.clone(), window, cx)
             }),
             mcp: cx.new(|cx| crate::features::mcp::McpView::new(services.clone(), window, cx)),
-            jobs: cx.new(|cx| crate::features::jobs::JobsView::new(services.clone(), window, cx)),
+            jobs,
+            _jobs_navigation: jobs_navigation,
             install: cx
                 .new(|cx| crate::features::install::InstallView::new(services.clone(), window, cx)),
             monitoring: cx.new(|cx| {
@@ -470,6 +480,15 @@ impl Shell {
         {
             return;
         }
+        if self.active_environment.is_ssh()
+            && self.lens == Lens::Primary
+            && (self.platform().is_some() || self.destination == Destination::Dashboard)
+        {
+            let scope = self.platform();
+            self.overview
+                .update(cx, |view, cx| view.open_remote(scope, cx));
+            return;
+        }
         match self.lens {
             Lens::Extensions => {
                 if let Some(platform) = self.platform() {
@@ -598,6 +617,14 @@ impl Shell {
         {
             window.focus(&self.main_focus, cx);
             window.focus_next(cx);
+            return;
+        }
+        if self.active_environment.is_ssh()
+            && self.lens == Lens::Primary
+            && (self.platform().is_some() || self.destination == Destination::Dashboard)
+        {
+            self.overview
+                .update(cx, |view, cx| view.focus_main(window, cx));
             return;
         }
         match self.lens {
@@ -872,6 +899,7 @@ impl Shell {
             && !self.independent_destination()
             && self.destination != Destination::Commands
             && self.destination != Destination::McpManager
+            && self.destination != Destination::Usage
             && self.platform().is_none()
         {
             return None;
@@ -909,7 +937,9 @@ impl Shell {
             _ if remote
                 && !self.independent_destination()
                 && self.destination != Destination::McpManager
-                && self.destination != Destination::Commands =>
+                && self.destination != Destination::Commands
+                && self.destination != Destination::Usage
+                && self.destination != Destination::Dashboard =>
             {
                 return None;
             }
@@ -1044,6 +1074,12 @@ impl Shell {
             }
         }
 
+        if self.active_environment.is_ssh()
+            && self.lens == Lens::Primary
+            && (self.platform().is_some() || self.destination == Destination::Dashboard)
+        {
+            return self.overview.clone().into_any_element();
+        }
         match self.lens {
             Lens::Extensions => self.resources.clone().into_any_element(),
             Lens::Providers | Lens::Models => self.platforms.clone().into_any_element(),

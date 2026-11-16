@@ -49,12 +49,13 @@ pub(super) struct ActiveEnvironment {
     task: Option<gpui_kit::Task<()>>,
     watch: Option<gpui_kit::Task<()>>,
     pub switching: bool,
+    window: gpui_kit::AnyWindowHandle,
     started: bool,
     enter: bool,
     return_focus: Option<FocusHandle>,
 }
 impl ActiveEnvironment {
-    pub fn new(services: Services, cx: &mut Context<Shell>) -> Self {
+    pub fn new(services: Services, window: &Window, cx: &mut Context<Shell>) -> Self {
         Self {
             id: services.environment(),
             state: ConnectionState::Connected,
@@ -73,6 +74,7 @@ impl ActiveEnvironment {
             task: None,
             watch: None,
             switching: false,
+            window: window.window_handle(),
             started: false,
             enter: false,
             return_focus: None,
@@ -223,7 +225,13 @@ impl Shell {
                 && matches!(self.lens, Lens::Favorites | Lens::Recent))
     }
     pub(super) fn remote_configuration_destination(&self) -> bool {
-        (self.destination == Destination::McpManager && self.lens == Lens::Primary)
+        (matches!(
+            self.destination,
+            Destination::Dashboard | Destination::AgentSessions | Destination::Commands
+        ) && self.lens == Lens::Primary)
+            || (self.destination == Destination::Usage && self.lens == Lens::Install)
+            || (self.platform().is_some() && matches!(self.lens, Lens::Primary | Lens::Sessions))
+            || (self.destination == Destination::McpManager && self.lens == Lens::Primary)
             || matches!(
                 (self.platform(), self.lens),
                 (
@@ -495,6 +503,7 @@ impl Shell {
         self.active_environment.watch = None;
         self.active_environment.generation += 1;
         let generation = self.active_environment.generation;
+        let handle = self.active_environment.window;
         self.active_environment.state = ConnectionState::Connecting;
         self.active_environment.message = None;
         self.active_environment.probe = None;
@@ -513,64 +522,71 @@ impl Shell {
                 self.active_environment.task = Some(cx.spawn(async move |weak, cx| {
                     while let Some(event) = subscription.next().await {
                         if let TaskEvent::Terminal(result) = event {
-                            let _ = weak.update(cx, |this, cx| {
-                                if this.active_environment.generation != generation {
-                                    return;
-                                }
-                                match result.as_ref() {
-                                    Completion::Success(SshResult::Connected) => {
-                                        this.active_environment.state = ConnectionState::Connected;
-                                        this.watch_environment_connection(cx);
-                                        this.remote
-                                            .update(cx, |view, cx| view.clear_cli_on_leave(cx));
+                            let _ = cx.update_window(handle, |_, window, cx| {
+                                let _ = weak.update(cx, |this, cx| {
+                                    if this.active_environment.generation != generation {
+                                        return;
                                     }
-                                    Completion::Success(SshResult::Confirmed) => {
-                                        if let EnvironmentId::Ssh(id) = &this.active_environment.id
-                                        {
-                                            this.start_environment_action(
-                                                SshAction::Connect(id.clone()),
-                                                cx,
-                                            );
+                                    match result.as_ref() {
+                                        Completion::Success(SshResult::Connected) => {
+                                            this.active_environment.state =
+                                                ConnectionState::Connected;
+                                            this.watch_environment_connection(cx);
+                                            this.remote
+                                                .update(cx, |view, cx| view.clear_cli_on_leave(cx));
+                                            this.activate(window, cx);
                                         }
-                                    }
-                                    Completion::Success(SshResult::Probe(probe)) => {
-                                        if probe.status == HostKeyStatus::Mismatch {
+                                        Completion::Success(SshResult::Confirmed) => {
+                                            if let EnvironmentId::Ssh(id) =
+                                                &this.active_environment.id
+                                            {
+                                                this.start_environment_action(
+                                                    SshAction::Connect(id.clone()),
+                                                    cx,
+                                                );
+                                            }
+                                        }
+                                        Completion::Success(SshResult::Probe(probe)) => {
+                                            if probe.status == HostKeyStatus::Mismatch {
+                                                this.active_environment.state =
+                                                    ConnectionState::Unreachable;
+                                                this.active_environment.message =
+                                                    Some("ssh_host_key_mismatch");
+                                            } else {
+                                                this.active_environment.state =
+                                                    ConnectionState::Trust;
+                                                this.active_environment.probe = Some(probe.clone());
+                                                this.active_environment.enter = true;
+                                            }
+                                        }
+                                        Completion::Failed("ssh_host_key_untrusted") => {
+                                            if let EnvironmentId::Ssh(id) =
+                                                &this.active_environment.id
+                                            {
+                                                this.start_environment_action(
+                                                    SshAction::Probe(id.clone()),
+                                                    cx,
+                                                );
+                                            }
+                                        }
+                                        Completion::Failed(error)
+                                        | Completion::CleanupFailed(error) => {
+                                            this.active_environment.state =
+                                                if *error == "ssh_credentials_missing" {
+                                                    ConnectionState::Credentials
+                                                } else {
+                                                    ConnectionState::Unreachable
+                                                };
+                                            this.active_environment.message = Some(error);
+                                        }
+                                        _ => {
                                             this.active_environment.state =
                                                 ConnectionState::Unreachable;
-                                            this.active_environment.message =
-                                                Some("ssh_host_key_mismatch");
-                                        } else {
-                                            this.active_environment.state = ConnectionState::Trust;
-                                            this.active_environment.probe = Some(probe.clone());
-                                            this.active_environment.enter = true;
+                                            this.active_environment.message = Some("ssh_cancelled");
                                         }
                                     }
-                                    Completion::Failed("ssh_host_key_untrusted") => {
-                                        if let EnvironmentId::Ssh(id) = &this.active_environment.id
-                                        {
-                                            this.start_environment_action(
-                                                SshAction::Probe(id.clone()),
-                                                cx,
-                                            );
-                                        }
-                                    }
-                                    Completion::Failed(error)
-                                    | Completion::CleanupFailed(error) => {
-                                        this.active_environment.state =
-                                            if *error == "ssh_credentials_missing" {
-                                                ConnectionState::Credentials
-                                            } else {
-                                                ConnectionState::Unreachable
-                                            };
-                                        this.active_environment.message = Some(error);
-                                    }
-                                    _ => {
-                                        this.active_environment.state =
-                                            ConnectionState::Unreachable;
-                                        this.active_environment.message = Some("ssh_cancelled");
-                                    }
-                                }
-                                cx.notify();
+                                    cx.notify();
+                                });
                             });
                             break;
                         }
@@ -718,7 +734,12 @@ impl Shell {
             )
             .on_key_down(
                 cx.listener(|this, event: &gpui_kit::KeyDownEvent, window, cx| {
-                    let count = this.remote.read(cx).hosts().len() + 2;
+                    let count = this.remote.read(cx).hosts().len()
+                        + 2
+                        + usize::from(
+                            this.active_environment.is_ssh()
+                                && this.active_environment.state == ConnectionState::Connected,
+                        );
                     match event.keystroke.key.as_str() {
                         "down" => {
                             window.focus_next(cx);
@@ -812,6 +833,31 @@ impl Shell {
                 .on_click(cx.listener(move |this, _, window, cx| {
                     this.request_environment(EnvironmentId::Ssh(id.clone()), window, cx)
                 })),
+                false,
+                false,
+                cx,
+            ));
+        }
+        if self.active_environment.is_ssh()
+            && self.active_environment.state == ConnectionState::Connected
+        {
+            menu = menu.child(semantics::button(
+                Button::new("environment-reconnect")
+                    .role(gpui_kit::Role::MenuItem)
+                    .label(text(
+                        cx,
+                        "Reconnect current SSH host",
+                        "重新连接当前 SSH 主机",
+                    ))
+                    .ghost()
+                    .on_click(cx.listener(|this, _, window, cx| {
+                        this.request_environment_switch(
+                            this.active_environment.id.clone(),
+                            true,
+                            window,
+                            cx,
+                        )
+                    })),
                 false,
                 false,
                 cx,

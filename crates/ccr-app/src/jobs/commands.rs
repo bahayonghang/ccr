@@ -27,6 +27,7 @@ use super::{
     process::{ProcessDescriptor, ProcessGateway, SidecarContext, read_bounded_line},
 };
 use crate::runtime::{Progress, ProgressReporter, RequestKey};
+mod remote_output;
 
 pub const MAX_JOBS: usize = 64;
 pub const TTL: Duration = Duration::from_secs(30 * 60);
@@ -201,6 +202,59 @@ impl Error {
 }
 
 impl CommandJobs {
+    /// Execute the validated CCR request through an already captured SSH session.
+    /// The retained owner still owns admission, cancellation and terminal storage.
+    pub fn run_remote_blocking(
+        self: &Arc<Self>,
+        ticket: Ticket,
+        app_cancel: CancellationToken,
+        io: crate::environments::io::EnvironmentIo,
+    ) -> Result<Snapshot, Error> {
+        let handle = tokio::runtime::Handle::try_current().map_err(|_| Error::Unavailable)?;
+        handle.block_on(async {
+            let started = Instant::now();
+            let id = ticket.job_id.clone();
+            if ticket.cancel.is_cancelled() || app_cancel.is_cancelled() {
+                return self.complete(&id, Status::Cancelled, started, None, None).ok_or(Error::Missing);
+            }
+            self.update(&id, |entry| entry.snapshot.status = Status::Running);
+            let lines = Arc::new(Mutex::new(remote_output::Lines::default()));
+            let output_lines = lines.clone(); let output_owner = self.clone(); let output_id = id.clone();
+            let observer: crate::environments::io::OutputObserver = Arc::new(move |stderr, bytes| {
+                let mut lines = output_lines.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+                lines.push(&output_owner, &output_id, stderr, bytes);
+            });
+            let cancel = ticket.cancel.clone();
+            let forward = tokio::spawn(async move { app_cancel.cancelled().await; cancel.cancel(); });
+            let mut launched = false;
+            let result = async {
+                let tools = io.detect_execution_cli(ticket.cancel.clone()).await?;
+                let Some(program) = tools.iter().find(|tool| tool.name == "ccr").and_then(|tool| tool.path.as_ref()) else { return Ok(None); };
+                let snapshot = self.status(&id).map_err(|_| crate::environments::io::Error::Process)?;
+                let args = std::iter::once(snapshot.command).chain(snapshot.args).collect::<Vec<_>>();
+                launched = true;
+                io.execute_observed(&ProcessDescriptor::ccr_command(), program, &args, ticket.cancel.clone(), Some(observer)).await.map(Some)
+            }.await;
+            forward.abort();
+            let _ = forward.await;
+            lines.lock().unwrap_or_else(std::sync::PoisonError::into_inner).finish(self, &id);
+            let (status, error) = match result {
+                Ok(Some(output)) => {
+                    (if output.success { Status::Success } else { Status::Failed }, None)
+                }
+                Ok(None) => (Status::Unavailable, Some("Remote CCR CLI is missing. Open Install and install CCR on this SSH host; no local command ran. / 远端缺少 CCR CLI，请打开安装并在此 SSH 主机安装 CCR；未运行本机命令。".into())),
+                Err(crate::environments::io::Error::Ssh("ssh_file_too_large")) => {
+                    self.update(&id, |entry| { entry.snapshot.truncated = true; entry.snapshot.dropped_lines += 1; });
+                    (Status::CleanupFailed, Some("Remote output limit exceeded; cleanup is unconfirmed and this SSH session was revoked. / 远端输出超限，清理未确认，此 SSH 连接已撤销。".into()))
+                }
+                Err(crate::environments::io::Error::Ssh("ssh_cleanup_failed")) => (Status::CleanupFailed, Some("Remote command stopped or exceeded its deadline; remote cleanup is unconfirmed and this SSH session was revoked. / 远程命令停止或超出期限，远程清理未确认，此 SSH 连接已撤销。".into())),
+                Err(crate::environments::io::Error::Ssh("ssh_cancelled" | "ssh_network_error")) if launched => (Status::CleanupFailed, Some("Remote command stopped or exceeded its deadline; remote cleanup is unconfirmed and this SSH session was revoked. / 远程命令停止或超出期限，远程清理未确认，此 SSH 连接已撤销。".into())),
+                Err(_) if ticket.cancel.is_cancelled() && io.check_authority().is_ok() => (Status::Cancelled, None),
+                Err(_) => (Status::Unavailable, Some("Captured SSH command authority is unavailable. Reconnect and run again. / 已捕获的 SSH 命令权限不可用，请重连后重新运行。".into())),
+            };
+            self.complete(&id, status, started, None, error).ok_or(Error::Missing)
+        })
+    }
     /// Native blocking worker entry; consumes the application's existing runtime.
     pub fn run_blocking(
         &self,

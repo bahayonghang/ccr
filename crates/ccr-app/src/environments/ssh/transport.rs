@@ -27,7 +27,28 @@ pub(super) trait Connection: Send + Sync {
     fn is_closed(&self) -> bool;
     fn disconnect(&self) -> RunFuture<'_, ()>;
     fn exec(&self, command: String) -> RunFuture<'_, Output>;
+    fn exec_bounded(
+        &self,
+        command: String,
+        limit: usize,
+        observer: Option<super::super::io::OutputObserver>,
+    ) -> RunFuture<'_, Output> {
+        Box::pin(async move {
+            let output = self.exec(command).await?;
+            if output.stdout.len() > limit || output.stderr.len() > limit {
+                return Err("ssh_file_too_large");
+            }
+            if let Some(observer) = observer {
+                observer(false, &output.stdout);
+                observer(true, &output.stderr);
+            }
+            Ok(output)
+        })
+    }
     fn download(&self, path: RemotePosixPath) -> RunFuture<'_, Option<Vec<u8>>>;
+    fn download_session(&self, path: RemotePosixPath) -> RunFuture<'_, Option<Vec<u8>>> {
+        self.download(path)
+    }
     fn upload(
         &self,
         path: RemotePosixPath,
@@ -69,10 +90,17 @@ pub(super) async fn read_bounded<T>(
     cancel: CancellationToken,
     work: impl Future<Output = Result<T, Error>>,
 ) -> Result<T, Error> {
+    read_with_timeout(cancel, work, Duration::from_secs(10)).await
+}
+pub(super) async fn read_with_timeout<T>(
+    cancel: CancellationToken,
+    work: impl Future<Output = Result<T, Error>>,
+    timeout: Duration,
+) -> Result<T, Error> {
     if cancel.is_cancelled() {
         return Err("ssh_cancelled");
     }
-    let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
+    let deadline = tokio::time::Instant::now() + timeout;
     tokio::pin!(work);
     tokio::select! {
         biased;
@@ -297,6 +325,14 @@ impl Connection for LiveConnection {
         })
     }
     fn exec(&self, command: String) -> RunFuture<'_, Output> {
+        self.exec_bounded(command, 2 * 1024 * 1024, None)
+    }
+    fn exec_bounded(
+        &self,
+        command: String,
+        limit: usize,
+        observer: Option<super::super::io::OutputObserver>,
+    ) -> RunFuture<'_, Output> {
         Box::pin(async move {
             let mut channel = self
                 .0
@@ -315,17 +351,20 @@ impl Connection for LiveConnection {
                     stderr: Vec::new(),
                 };
                 while let Some(message) = channel.wait().await {
-                    let (target, data) = match message {
-                        ChannelMsg::Data { data } => (&mut output.stdout, data),
-                        ChannelMsg::ExtendedData { data, .. } => (&mut output.stderr, data),
+                    let (target, data, stderr) = match message {
+                        ChannelMsg::Data { data } => (&mut output.stdout, data, false),
+                        ChannelMsg::ExtendedData { data, .. } => (&mut output.stderr, data, true),
                         ChannelMsg::ExitStatus { exit_status } => {
                             output.success = exit_status == 0;
                             continue;
                         }
                         _ => continue,
                     };
-                    if target.len() + data.len() > 2 * 1024 * 1024 {
+                    if target.len() + data.len() > limit {
                         return Err("ssh_file_too_large");
+                    }
+                    if let Some(observer) = &observer {
+                        observer(stderr, &data);
                     }
                     target.extend_from_slice(&data);
                 }
@@ -350,6 +389,12 @@ impl Connection for LiveConnection {
             let raw = RawSftpSession::new(channel.into_stream());
             raw.init().await.map_err(|_| "ssh_network_error")?;
             read_sftp(&raw, &path).await
+        })
+    }
+    fn download_session(&self, path: RemotePosixPath) -> RunFuture<'_, Option<Vec<u8>>> {
+        Box::pin(async move {
+            let raw = self.sftp().await?;
+            read_sftp_limited(&raw, &path, 64 * 1024 * 1024).await
         })
     }
     fn upload(
@@ -566,6 +611,13 @@ impl LiveConnection {
     }
 }
 async fn read_sftp(raw: &RawSftpSession, path: &RemotePosixPath) -> Result<Option<Vec<u8>>, Error> {
+    read_sftp_limited(raw, path, 2 * 1024 * 1024).await
+}
+async fn read_sftp_limited(
+    raw: &RawSftpSession,
+    path: &RemotePosixPath,
+    limit: usize,
+) -> Result<Option<Vec<u8>>, Error> {
     ensure_unlinked(raw, path).await?;
     let handle = match raw
         .open(path.as_str(), OpenFlags::READ, FileAttributes::default())
@@ -584,7 +636,7 @@ async fn read_sftp(raw: &RawSftpSession, path: &RemotePosixPath) -> Result<Optio
         loop {
             match raw.read(&handle, bytes.len() as u64, 32768).await {
                 Ok(data) if !data.data.is_empty() => {
-                    if bytes.len() + data.data.len() > 2 * 1024 * 1024 {
+                    if bytes.len() + data.data.len() > limit {
                         return Err("ssh_file_too_large");
                     }
                     bytes.extend_from_slice(&data.data);

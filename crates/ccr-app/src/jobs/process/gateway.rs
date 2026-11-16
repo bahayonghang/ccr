@@ -256,6 +256,9 @@ impl ProcessDescriptor {
     pub const fn timeout(&self) -> Duration {
         self.timeout
     }
+    pub const fn max_bytes_per_stream(&self) -> usize {
+        self.max_bytes_per_stream
+    }
 }
 
 #[derive(Debug, Clone)]

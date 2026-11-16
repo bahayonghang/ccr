@@ -22,11 +22,18 @@ pub struct FixtureTransport {
     io_started: AtomicUsize,
     home: Mutex<Option<String>>,
     exec_outputs: Mutex<HashMap<String, FixtureOutput>>,
+    session_replacements: Mutex<HashMap<String, Vec<u8>>>,
     handshakes: AtomicUsize,
     unsupported: AtomicBool,
     unavailable_database_on_home: Mutex<Option<PathBuf>>,
 }
 impl FixtureTransport {
+    pub fn replace_after_session_read(&self, path: &str, content: &[u8]) {
+        self.session_replacements
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .insert(path.into(), content.into());
+    }
     pub fn delay_io(&self, delay: std::time::Duration) {
         *self.io_delay.lock().unwrap_or_else(|p| p.into_inner()) = delay;
     }
@@ -292,7 +299,18 @@ impl Connection for FixtureConnection {
                     .as_bytes()
                     .to_vec()
             } else {
-                let tool = detect::CLI_TOOLS
+                let tools = [
+                    ("claude", "claude"),
+                    ("codex", "codex"),
+                    ("gemini", "agy"),
+                    ("opencode", "opencode"),
+                    ("grok", "grok"),
+                    ("ccr", "ccr"),
+                    ("llmusage", "llmusage"),
+                    ("cargo", "cargo"),
+                    ("brew", "brew"),
+                ];
+                let tool = tools
                     .iter()
                     .find(|(_, tool)| {
                         command == format!("command -v {} || true", posix_single_quote(tool))
@@ -338,6 +356,30 @@ impl Connection for FixtureConnection {
             self.transport.operation("get", path.as_str())?;
             let content = self.transport.bytes(&self.host, path.as_str());
             if content.as_ref().is_some_and(|s| s.len() > 2 * 1024 * 1024) {
+                return Err("ssh_file_too_large");
+            }
+            Ok(content)
+        })
+    }
+    fn download_session(&self, path: RemotePosixPath) -> RunFuture<'_, Option<Vec<u8>>> {
+        Box::pin(async move {
+            if self.is_closed() {
+                return Err("ssh_network_error");
+            }
+            self.transport.wait_io().await;
+            self.transport.operation("get-session", path.as_str())?;
+            let content = self.transport.bytes(&self.host, path.as_str());
+            if let Some(replacement) = self
+                .transport
+                .session_replacements
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .remove(path.as_str())
+            {
+                self.transport
+                    .set_bytes(&self.host, path.as_str(), &replacement);
+            }
+            if content.as_ref().is_some_and(|s| s.len() > 64 * 1024 * 1024) {
                 return Err("ssh_file_too_large");
             }
             Ok(content)
@@ -486,7 +528,7 @@ impl Connection for FixtureConnection {
             Ok(self
                 .transport
                 .bytes(&self.host, path.as_str())
-                .map(|bytes| (bytes.len() as u64, None)))
+                .map(|bytes| (bytes.len() as u64, Some(1_700_000_000_000))))
         })
     }
 }

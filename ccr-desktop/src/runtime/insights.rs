@@ -7,6 +7,7 @@ pub mod claude_workbench;
 pub mod import;
 pub mod observer;
 pub mod policies;
+pub mod remote;
 pub mod session_operations;
 use super::Services;
 use ccr_app::{
@@ -92,10 +93,18 @@ pub enum InsightsError {
     Query,
     Archive,
     Session(SessionError),
+    Remote,
+    RemoteUsagePending,
 }
 impl InsightsError {
     pub fn message(self) -> &'static str {
         match self {
+            Self::Remote => {
+                "Cannot read this SSH session snapshot. Reconnect or refresh the remote source. / 无法读取此 SSH 会话快照，请重连或刷新远程来源。"
+            }
+            Self::RemoteUsagePending => {
+                "Remote usage is unknown until SSH llmusage snapshots are connected. / 远端用量未知，待接入 SSH llmusage 快照。"
+            }
             Self::Unconfigured => {
                 "Select explicit usage, archive and provider roots with the insights launch options. / 请通过启动参数指定用量、归档和会话根目录"
             }
@@ -389,6 +398,7 @@ pub struct InsightsRequests {
     archive: Arc<Mutex<Option<DbPool>>>,
     refresh: Arc<Mutex<RefreshStatus>>,
     session_operations: Arc<session_operations::Owner>,
+    remote: Arc<Mutex<Option<Arc<sessions::remote::SessionSnapshot>>>>,
 }
 impl InsightsRequests {
     pub fn environment(&self) -> ccr_app::runtime::EnvironmentId {
@@ -412,13 +422,15 @@ impl InsightsRequests {
             archive: Default::default(),
             refresh: Arc::new(Mutex::new(RefreshStatus::Idle)),
             session_operations: Default::default(),
+            remote: Default::default(),
         }
     }
     pub fn report_clock(&self) -> ccr_app::usage::report_clock::ReportClock {
         self.services.report_clock()
     }
     pub fn configured(&self) -> bool {
-        self.paths.is_some()
+        matches!(self.environment(), ccr_app::runtime::EnvironmentId::Ssh(_))
+            || self.paths.is_some()
     }
     pub fn refresh_status(&self) -> RefreshStatus {
         self.refresh
@@ -451,12 +463,18 @@ impl InsightsRequests {
         drop(status);
         let requests = self.clone();
         let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
+        let remote = (!local).then(|| requests.services.remote_configuration_io(&key.environment));
         self.services
             .executor
-            .job(key, move |_, _| {
+            .job(key, move |cancel, _| {
                 let result = (|| {
                     if !local {
-                        return Err(InsightsError::LocalOnly);
+                        let snapshot = requests.capture_remote(
+                            remote.ok_or(InsightsError::Remote)?,
+                            cancel,
+                            true,
+                        )?;
+                        return Ok(Arc::new(snapshot.report.clone()));
                     }
                     let paths = requests.paths.as_ref().ok_or(InsightsError::Unconfigured)?;
                     let pool = requests.archive_pool(paths)?;
@@ -647,9 +665,14 @@ impl InsightsRequests {
     ) -> Result<TaskSubscription<Arc<WorkbenchReport>, InsightsError>, AdmissionError> {
         let requests = self.clone();
         let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
+        let remote = (!local).then(|| requests.services.remote_configuration_io(&key.environment));
         self.services.executor.read(key, move |_, _| {
             if !local {
-                return Err(InsightsError::LocalOnly);
+                return Err(if remote.is_some_and(|io| io.is_ok()) {
+                    InsightsError::RemoteUsagePending
+                } else {
+                    InsightsError::Remote
+                });
             }
             requests.read_workbench(days).map(Arc::new)
         })
@@ -762,9 +785,11 @@ impl InsightsRequests {
     ) -> Result<TaskSubscription<Arc<InsightsSnapshot>, InsightsError>, AdmissionError> {
         let requests = self.clone();
         let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
-        self.services.executor.read(key, move |_, _| {
+        let remote = (!local).then(|| requests.services.remote_configuration_io(&key.environment));
+        self.services.executor.read(key, move |cancel, _| {
             if !local {
-                return Err(InsightsError::LocalOnly);
+                let io = remote.ok_or(InsightsError::Remote)?;
+                return requests.read_remote(io, query, cancel).map(Arc::new);
             }
             requests.read(query).map(Arc::new)
         })

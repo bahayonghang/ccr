@@ -265,6 +265,63 @@ pub struct AgentSessionProviderRegistry {
 }
 
 impl AgentSessionProviderRegistry {
+    /// Fixed HOME-relative inputs for a read-only remote snapshot. Parsing,
+    /// source validation and SQLite schema gates still belong to this registry.
+    pub fn snapshot_roots() -> Vec<String> {
+        let home = PathBuf::from("snapshot-home");
+        let registry = Self::new(home.clone()).without_environment_overrides();
+        let mut roots = AgentSessionAgentId::ALL
+            .into_iter()
+            .flat_map(|agent| registry.roots(agent))
+            .filter_map(|(_, root)| {
+                root.strip_prefix(&home)
+                    .ok()
+                    .map(|p| p.to_string_lossy().replace('\\', "/"))
+            })
+            .collect::<Vec<_>>();
+        roots.sort();
+        roots.dedup();
+        roots
+    }
+
+    /// Only session payloads and their provider-owned companion files may cross
+    /// the snapshot boundary; settings/auth files are never snapshot inputs.
+    pub fn snapshot_input(relative: &str) -> bool {
+        if relative.split('/').any(|p| matches!(p, "" | "." | "..")) {
+            return false;
+        }
+        let name = relative.rsplit('/').next().unwrap_or_default();
+        for root in Self::snapshot_roots() {
+            let Some(child) = relative.strip_prefix(&(root.clone() + "/")) else {
+                continue;
+            };
+            return match root.as_str() {
+                ".grok/sessions" => matches!(name, "summary.json" | "chat_history.jsonl"),
+                ".local/share/opencode" => {
+                    child == "opencode.db"
+                        || (["storage/session/", "storage/message/", "storage/part/"]
+                            .iter()
+                            .any(|root| child.starts_with(root))
+                            && name.ends_with(".json"))
+                }
+                ".gemini/antigravity" | ".gemini/antigravity-cli" => {
+                    (child.starts_with("conversations/") || child.starts_with("implicit/"))
+                        && (name.ends_with(".db")
+                            || name.ends_with(".pb")
+                            || name.ends_with(".trajectory.json"))
+                        || name == "history.jsonl"
+                        || child.starts_with("brain/")
+                            && (name.ends_with(".md")
+                                || name.ends_with(".txt")
+                                || name.ends_with(".json"))
+                }
+                ".kimi/sessions" | ".kimi-code/sessions" => name == "wire.jsonl",
+                _ => name.ends_with(".jsonl"),
+            };
+        }
+        false
+    }
+
     pub fn new(home: PathBuf) -> Self {
         Self {
             home,

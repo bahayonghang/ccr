@@ -1,6 +1,5 @@
 //! Typed command workbench adapter. Fixture processes never invoke a real CLI.
 use super::{ConfigSource, Services};
-use ccr_app::environments::EnvironmentPolicy;
 #[cfg(test)]
 use ccr_app::runtime::EnvironmentId;
 use ccr_app::{
@@ -51,6 +50,8 @@ impl CommandRequests {
     }
     pub fn is_fixture(&self) -> bool {
         self.0.is_fixture()
+            && !(matches!(self.environment(), ccr_app::runtime::EnvironmentId::Ssh(_))
+                && super::environments::owner_is_fixture_transport(&self.0))
     }
     pub fn status(&self, id: &str) -> Result<Snapshot, Error> {
         self.0.command_jobs.status(id)
@@ -96,14 +97,19 @@ impl CommandRequests {
         if self.0.source.is_benchmark() {
             return Err(Error::Unavailable.message());
         }
-        if EnvironmentPolicy::LocalOnly
-            .admit(&key.environment)
-            .is_err()
-        {
-            return Err(
-                "Command execution for this environment is unavailable. / 此环境不可执行命令",
-            );
-        }
+        let remote = match &key.environment {
+            ccr_app::runtime::EnvironmentId::Ssh(_) => Some(
+                self.0
+                    .remote_configuration_io(&key.environment)
+                    .map_err(|_| "SSH command connection is unavailable. / SSH 命令连接不可用")?,
+            ),
+            ccr_app::runtime::EnvironmentId::Local(_) => None,
+            _ => {
+                return Err(
+                    "Command execution for this environment is unavailable. / 此环境不可执行命令",
+                );
+            }
+        };
         let owner = self.0.command_jobs.clone();
         let Admission { snapshot, ticket } =
             owner.admit(key.clone(), request).map_err(Error::message)?;
@@ -141,34 +147,39 @@ impl CommandRequests {
                     return Completion::Failed(Error::Missing);
                 };
                 work_owner.report_to(&id, progress);
-                let result = match source {
-                    ConfigSource::Benchmark(_) => {
-                        *worker_terminal
-                            .lock()
-                            .unwrap_or_else(std::sync::PoisonError::into_inner) =
-                            work_owner.abandon_snapshot(ticket);
-                        Err(Error::Unavailable)
-                    }
-                    ConfigSource::Local => {
-                        work_owner.run_blocking(ticket, cancel, &sidecar_context())
-                    }
-                    ConfigSource::Fixture { profiles, .. } => {
-                        let root = profiles
-                            .parent()
-                            .ok_or(Error::Unavailable)
-                            .and_then(validate_fixture_root);
-                        match (root, std::env::current_exe()) {
-                            (Ok(root), Ok(executable)) => {
-                                let mut command = ccr_app::jobs::process::tokio_command(executable);
-                                command.arg("--native-command-fixture").arg(root);
-                                work_owner.run_fixture_blocking(ticket, cancel, command)
-                            }
-                            _ => {
-                                *worker_terminal
-                                    .lock()
-                                    .unwrap_or_else(std::sync::PoisonError::into_inner) =
-                                    work_owner.abandon_snapshot(ticket);
-                                Err(Error::Unavailable)
+                let result = if let Some(io) = remote {
+                    work_owner.run_remote_blocking(ticket, cancel, io)
+                } else {
+                    match source {
+                        ConfigSource::Benchmark(_) => {
+                            *worker_terminal
+                                .lock()
+                                .unwrap_or_else(std::sync::PoisonError::into_inner) =
+                                work_owner.abandon_snapshot(ticket);
+                            Err(Error::Unavailable)
+                        }
+                        ConfigSource::Local => {
+                            work_owner.run_blocking(ticket, cancel, &sidecar_context())
+                        }
+                        ConfigSource::Fixture { profiles, .. } => {
+                            let root = profiles
+                                .parent()
+                                .ok_or(Error::Unavailable)
+                                .and_then(validate_fixture_root);
+                            match (root, std::env::current_exe()) {
+                                (Ok(root), Ok(executable)) => {
+                                    let mut command =
+                                        ccr_app::jobs::process::tokio_command(executable);
+                                    command.arg("--native-command-fixture").arg(root);
+                                    work_owner.run_fixture_blocking(ticket, cancel, command)
+                                }
+                                _ => {
+                                    *worker_terminal
+                                        .lock()
+                                        .unwrap_or_else(std::sync::PoisonError::into_inner) =
+                                        work_owner.abandon_snapshot(ticket);
+                                    Err(Error::Unavailable)
+                                }
                             }
                         }
                     }

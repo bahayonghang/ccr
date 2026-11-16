@@ -41,6 +41,8 @@ pub struct OverviewView {
     fixture: bool,
     days: u16,
     report: Option<std::sync::Arc<WorkbenchReport>>,
+    remote: Option<std::sync::Arc<crate::runtime::insights::remote::Overview>>,
+    remote_scope: Option<Platform>,
     loading: bool,
     error: Option<&'static str>,
     generation: u64,
@@ -68,6 +70,8 @@ impl OverviewView {
             error: (!requests.configured()).then_some(MISSING),
             requests,
             report: None,
+            remote: None,
+            remote_scope: None,
             loading: false,
             generation: 0,
             gate: ResponseGate::default(),
@@ -120,6 +124,59 @@ impl OverviewView {
         self.gate.clear();
         self.generation += 1;
         self.error = None;
+        self.remote = None;
+        if matches!(
+            self.requests.environment(),
+            ccr_app::runtime::EnvironmentId::Ssh(_)
+        ) {
+            self.report = None;
+            self.loading = true;
+            let key = RequestKey {
+                environment: self.requests.environment(),
+                platform: self.remote_scope.unwrap_or(Platform::Claude),
+                generation: self.generation,
+                request_id: self.generation,
+            };
+            self.gate.replace(key.clone());
+            match self
+                .requests
+                .load_remote_overview(key.clone(), self.remote_scope)
+            {
+                Ok(mut subscription) => {
+                    self.task = Some(cx.spawn(async move |weak, cx| {
+                        while let Some(event) = subscription.next().await {
+                            if let TaskEvent::Terminal(result) = event {
+                                let _ = weak.update(cx, |this, cx| {
+                                    if !this.gate.accepts(&key) {
+                                        return;
+                                    }
+                                    this.loading = false;
+                                    match result.as_ref() {
+                                        Completion::Success(report) => {
+                                            this.remote = Some(report.clone())
+                                        }
+                                        _ => {
+                                            this.error = Some(
+                                                crate::runtime::insights::InsightsError::Remote
+                                                    .message(),
+                                            )
+                                        }
+                                    }
+                                    cx.notify();
+                                });
+                                break;
+                            }
+                        }
+                    }))
+                }
+                Err(_) => {
+                    self.loading = false;
+                    self.error = Some(crate::runtime::insights::InsightsError::Remote.message());
+                }
+            }
+            cx.notify();
+            return;
+        }
         if !self.requests.configured() {
             self.loading = false;
             self.report = None;
@@ -181,6 +238,11 @@ impl OverviewView {
         cx.notify();
     }
 
+    pub fn open_remote(&mut self, scope: Option<Platform>, cx: &mut Context<Self>) {
+        self.remote_scope = scope;
+        self.refresh(cx);
+    }
+
     /// 接受新报告。热力图放不下时默认露出最新一周：偏移由布局钳制到可滚范围，
     /// 放得下时自然归零。
     fn show_report(&mut self, report: std::sync::Arc<WorkbenchReport>) {
@@ -233,6 +295,47 @@ impl Render for OverviewView {
             .p(px(geometry.padding))
             .gap(px(theme::SECTION_GAP))
             .child(self.header(cx));
+        if matches!(
+            self.requests.environment(),
+            ccr_app::runtime::EnvironmentId::Ssh(_)
+        ) {
+            root = root.child(div().id("ssh-overview-source").test_support().child(crate::locales::text(cx, "Current SSH environment · usage, tokens and cost are unknown until remote llmusage snapshots are connected.", "当前 SSH 环境 · 远端 llmusage 快照接入前，用量、Token 与费用未知。")));
+            if let Some(summary) = &self.remote {
+                for row in &summary.platforms {
+                    root = root.child(
+                        div()
+                            .id(format!("ssh-overview-{}", row.platform.short_name()))
+                            .test_support()
+                            .child(format!(
+                                "{} · CLI: {} · {}: {} · {}: {}",
+                                crate::features::workbench::name(row.platform),
+                                if row.cli {
+                                    crate::locales::text(cx, "available", "已安装")
+                                } else {
+                                    crate::locales::text(
+                                        cx,
+                                        "missing; install on this SSH host",
+                                        "缺失，请在此 SSH 主机安装",
+                                    )
+                                },
+                                crate::locales::text(cx, "Configuration", "配置"),
+                                if row.configuration {
+                                    crate::locales::text(cx, "present", "存在")
+                                } else {
+                                    crate::locales::text(cx, "absent", "不存在")
+                                },
+                                crate::locales::text(cx, "Session sources indexed", "已索引会话源"),
+                                row.session_sources
+                                    .map(|n| n.to_string())
+                                    .unwrap_or_else(
+                                        || crate::locales::text(cx, "unknown", "未知").into()
+                                    )
+                            )),
+                    );
+                }
+            }
+            return root;
+        }
         if let Some(report) = report {
             root = root.child(self.kpis(report, geometry.stacked, cx));
             if let Some(band) = self.platforms(report, cx) {

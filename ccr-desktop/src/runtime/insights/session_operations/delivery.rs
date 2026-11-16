@@ -23,7 +23,10 @@ pub struct PreparedRestore {
 impl InsightsRequests {
     /// Initial native dialog location; never resolves a process HOME fallback.
     pub fn session_save_directory(&self) -> Option<PathBuf> {
-        self.paths.as_ref().map(|p| p.provider_home.clone())
+        self.paths
+            .as_ref()
+            .map(|p| p.provider_home.clone())
+            .or_else(|| self.services.local_delivery_root.clone())
     }
     pub fn list_session_trash(
         &self,
@@ -155,13 +158,59 @@ impl InsightsRequests {
     }
     pub fn start_session_save(
         &self,
-        key: RequestKey,
+        mut key: RequestKey,
         archive_id: String,
         export: Arc<CodexSessionExport>,
         destination: PathBuf,
     ) -> Result<(), Failure> {
         let requests = self.clone();
+        let remote = if matches!(key.environment, ccr_app::runtime::EnvironmentId::Ssh(_)) {
+            let snapshot = self
+                .remote
+                .lock()
+                .map_err(|_| Failure::Storage)?
+                .clone()
+                .ok_or(Failure::LocalOnly)?;
+            if snapshot.io().environment() != &key.environment
+                || snapshot.io().check_authority().is_err()
+            {
+                return Err(Failure::Conflict);
+            }
+            Some(snapshot)
+        } else {
+            None
+        };
+        // 已显式选择的导出文件属于本机交付，不授予远端会话改写权限。
+        if matches!(key.environment, ccr_app::runtime::EnvironmentId::Ssh(_)) {
+            key.environment =
+                ccr_app::runtime::EnvironmentId::Local("application-session-export".into());
+        }
         self.start_session_work(key, move || {
+            if let Some(snapshot) = remote {
+                let (source, _) = sessions::resolve_source_with_registry(
+                    &snapshot.pool,
+                    &snapshot.registry,
+                    &archive_id,
+                )
+                .map_err(|_| Failure::Source)?;
+                if source.agent != AgentSessionAgentId::Codex || source.variant != "codex-live" {
+                    return Err(Failure::Unsupported);
+                }
+                snapshot
+                    .verify_source(&source.physical_path)
+                    .map_err(|_| Failure::Conflict)?;
+                let expected = CodexSessionService::new(snapshot.root().join(".codex"))
+                    .export_session_markdown(&source.physical_path, None)
+                    .map_err(|_| Failure::Source)?;
+                if expected.session_id != export.session_id
+                    || expected.file_name != export.file_name
+                    || expected.content != export.content
+                    || expected.truncated != export.truncated
+                    || expected.max_messages != export.max_messages
+                {
+                    return Err(Failure::Conflict);
+                }
+            }
             requests.save_session_export(&archive_id, &export, &destination)
         })
     }
@@ -173,7 +222,18 @@ impl InsightsRequests {
     ) -> Result<Outcome, Failure> {
         // The preview is explicit view-owned data. The retained writer holds it
         // only until completion; terminal state never contains transcript bytes.
-        let paths = self.paths.as_ref().ok_or(Failure::Storage)?;
+        let codex_home = self
+            .paths
+            .as_ref()
+            .map(|paths| paths.provider_home.join(".codex"))
+            .or_else(|| {
+                self.remote.lock().ok().and_then(|snapshot| {
+                    snapshot
+                        .as_ref()
+                        .map(|snapshot| snapshot.root().join(".codex"))
+                })
+            })
+            .ok_or(Failure::Storage)?;
         if !destination.is_absolute()
             || destination
                 .components()
@@ -187,7 +247,12 @@ impl InsightsRequests {
                 .check_path(destination)
                 .map_err(|_| Failure::Storage)?;
         } else if self.services.source.is_fixture() {
-            let root = paths.archive_db.parent().ok_or(Failure::Storage)?;
+            let root = self
+                .paths
+                .as_ref()
+                .and_then(|paths| paths.archive_db.parent())
+                .or(self.services.local_delivery_root.as_deref())
+                .ok_or(Failure::Storage)?;
             let root = root.canonicalize().map_err(|_| Failure::Storage)?;
             let parent = destination
                 .parent()
@@ -220,7 +285,7 @@ impl InsightsRequests {
             action: Action::Save,
             session_id: export.session_id.clone(),
             archive_updated: true,
-            codex_home: paths.provider_home.join(".codex"),
+            codex_home,
         })
     }
     fn with_session_locks<T>(
@@ -235,6 +300,7 @@ impl InsightsRequests {
                 .paths
                 .as_ref()
                 .and_then(|p| p.archive_db.parent())
+                .or(self.services.local_delivery_root.as_deref())
                 .ok_or(Failure::Storage)?;
             LockManager::with_scoped_directory(&root.join("locks"), || Ok(run()))
                 .map_err(|_| Failure::Storage)?

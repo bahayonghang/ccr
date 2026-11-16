@@ -185,10 +185,37 @@ pub struct ProcessOutput {
     pub stdout: Vec<u8>,
     pub stderr: Vec<u8>,
 }
+pub type OutputObserver = Arc<dyn Fn(bool, &[u8]) + Send + Sync>;
 
 impl EnvironmentIo {
     pub fn environment(&self) -> &EnvironmentId {
         &self.environment
+    }
+    /// Check the captured connection without acquiring authority from a reconnect.
+    pub fn check_authority(&self) -> Result<(), Error> {
+        match &self.adapter {
+            Adapter::Ssh {
+                workspace,
+                authority,
+            } => workspace.check_io(authority).map_err(Error::Ssh),
+            Adapter::Local(_) => Ok(()),
+        }
+    }
+    /// Reuse the fixed CLI detector under this admission's captured connection.
+    pub async fn detect_execution_cli(
+        &self,
+        cancel: CancellationToken,
+    ) -> Result<Vec<super::ssh::CliStatus>, Error> {
+        match &self.adapter {
+            Adapter::Ssh {
+                workspace,
+                authority,
+            } => workspace
+                .detect_execution_io(authority, cancel)
+                .await
+                .map_err(Error::Ssh),
+            _ => Err(Error::Unsupported),
+        }
     }
     /// Capture a typed POSIX root for read-only source inventories outside HOME.
     pub fn at_remote_root(&self, home: RemotePosixPath) -> Result<Self, Error> {
@@ -437,6 +464,45 @@ impl EnvironmentIo {
         })
     }
 
+    /// Read a session snapshot under the separate 64 MiB session-operation budget.
+    /// Configuration reads and all writes retain their 2 MiB safety limit.
+    pub async fn read_session_bytes(
+        &self,
+        relative: &str,
+        cancel: CancellationToken,
+    ) -> Result<Vec<u8>, Error> {
+        self.roots.relative(relative)?;
+        let Adapter::Ssh {
+            workspace,
+            authority,
+        } = &self.adapter
+        else {
+            return Err(Error::Unsupported);
+        };
+        check_cancel(&cancel)?;
+        let before = self
+            .metadata(relative, cancel.clone())
+            .await?
+            .ok_or(Error::Conflict)?;
+        if before.0 > 64 * 1024 * 1024 {
+            return Err(Error::TooLarge);
+        }
+        let bytes = workspace
+            .read_session_io(authority, relative, cancel.clone())
+            .await
+            .map_err(Error::Ssh)?
+            .ok_or(Error::Conflict)?;
+        if bytes.len() > 64 * 1024 * 1024 {
+            return Err(Error::TooLarge);
+        }
+        let after = self.metadata(relative, cancel.clone()).await?;
+        check_cancel(&cancel)?;
+        if after != Some(before) || bytes.len() as u64 != before.0 {
+            return Err(Error::Conflict);
+        }
+        Ok(bytes)
+    }
+
     /// Schema validation belongs to the calling domain. This operation owns
     /// version conflict detection, backup ordering and private atomic replacement.
     pub async fn write(
@@ -606,12 +672,75 @@ impl EnvironmentIo {
     /// The backend domain supplies its existing local process capability and the
     /// matching remote executable. Each remote argument is separately POSIX quoted;
     /// no shell fragments, local executable discovery or implicit SSH reconnect run.
+    pub async fn probe(
+        &self,
+        descriptor: &ProcessDescriptor,
+        remote_program: &str,
+        args: &[String],
+        cancel: CancellationToken,
+    ) -> Result<ProcessOutput, Error> {
+        if !matches!(
+            descriptor.capability().id(),
+            "ccr_version_probe" | "cli_probe"
+        ) {
+            return Err(Error::Unsupported);
+        }
+        check_cancel(&cancel)?;
+        if remote_program.is_empty()
+            || std::iter::once(remote_program)
+                .chain(args.iter().map(String::as_str))
+                .any(|arg| arg.contains('\0'))
+        {
+            return Err(Error::InvalidPath);
+        }
+        match &self.adapter {
+            Adapter::Ssh {
+                workspace,
+                authority,
+            } => {
+                let command = std::iter::once(remote_program)
+                    .chain(args.iter().map(String::as_str))
+                    .map(posix_single_quote)
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                let (success, stdout, stderr) = workspace
+                    .probe_io(
+                        authority,
+                        command,
+                        descriptor.timeout(),
+                        descriptor.max_bytes_per_stream(),
+                        cancel,
+                    )
+                    .await
+                    .map_err(Error::Ssh)?;
+                Ok(ProcessOutput {
+                    success,
+                    stdout,
+                    stderr,
+                })
+            }
+            _ => self.execute(descriptor, remote_program, args, cancel).await,
+        }
+    }
     pub async fn execute(
         &self,
         descriptor: &ProcessDescriptor,
         remote_program: &str,
         args: &[String],
         cancel: CancellationToken,
+    ) -> Result<ProcessOutput, Error> {
+        self.execute_observed(descriptor, remote_program, args, cancel, None)
+            .await
+    }
+    /// Observe bounded remote chunks. The consumer buffers complete lines before
+    /// redaction; the callback cannot choose commands or change process budgets.
+    pub async fn execute_observed(
+        &self,
+        descriptor: &ProcessDescriptor,
+        remote_program: &str,
+        args: &[String],
+        cancel: CancellationToken,
+        observer: Option<OutputObserver>,
     ) -> Result<ProcessOutput, Error> {
         check_cancel(&cancel)?;
         if remote_program.is_empty()
@@ -654,7 +783,14 @@ impl EnvironmentIo {
                     .collect::<Vec<_>>()
                     .join(" ");
                 let (success, stdout, stderr) = workspace
-                    .exec_io(authority, command, descriptor.timeout(), cancel)
+                    .exec_io(
+                        authority,
+                        command,
+                        descriptor.timeout(),
+                        descriptor.max_bytes_per_stream(),
+                        cancel,
+                        observer,
+                    )
                     .await
                     .map_err(Error::Ssh)?;
                 Ok(ProcessOutput {

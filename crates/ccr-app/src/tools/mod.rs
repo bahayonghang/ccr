@@ -115,5 +115,49 @@ pub async fn update_ccr() -> Result<UpdateReport, String> {
     .map(Into::into)
 }
 
+/// The existing user Cargo install, executed under captured SSH authority.
+pub async fn update_ccr_remote(
+    io: &crate::environments::io::EnvironmentIo,
+    cancel: tokio_util::sync::CancellationToken,
+) -> Result<UpdateReport, String> {
+    let tools = io
+        .detect_execution_cli(cancel.clone())
+        .await
+        .map_err(|_| "ssh_tools_unavailable")?;
+    let cargo = tools
+        .iter()
+        .find(|tool| tool.name == "cargo")
+        .and_then(|tool| tool.path.as_deref())
+        .ok_or("ssh_cargo_missing")?;
+    let crate::environments::io::EnvironmentPath::Ssh(root) = io
+        .roots()
+        .relative(".cargo")
+        .map_err(|_| "ssh_tools_unavailable")?
+    else {
+        return Err("ssh_tools_unavailable".into());
+    };
+    let output = io
+        .execute(
+            &ProcessDescriptor::ccr_update(),
+            cargo,
+            &[
+                "install".into(),
+                "ccr".into(),
+                "--root".into(),
+                root.as_str().into(),
+            ],
+            cancel,
+        )
+        .await
+        .map_err(|_| "ssh_execution_or_cleanup_unconfirmed")?;
+    Ok(UpdateReport {
+        success: output.success,
+        stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
+        stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+        timed_out: false,
+        truncated: false,
+    })
+}
+
 #[cfg(test)]
 mod tests;

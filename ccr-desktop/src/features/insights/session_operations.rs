@@ -319,7 +319,11 @@ impl InsightsView {
                         .on_click(cx.listener(|this, _, _, cx| {
                             this.prepare_session_action(Action::Clone, cx)
                         })),
-                    active,
+                    active
+                        || matches!(
+                            self.requests.environment(),
+                            ccr_app::runtime::EnvironmentId::Ssh(_)
+                        ),
                     false,
                     cx,
                 ))
@@ -330,7 +334,11 @@ impl InsightsView {
                         .on_click(cx.listener(|this, _, _, cx| {
                             this.prepare_session_action(Action::Trash, cx)
                         })),
-                    active,
+                    active
+                        || matches!(
+                            self.requests.environment(),
+                            ccr_app::runtime::EnvironmentId::Ssh(_)
+                        ),
                     false,
                     cx,
                 ))

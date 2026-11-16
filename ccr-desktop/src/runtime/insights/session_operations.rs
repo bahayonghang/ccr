@@ -132,9 +132,31 @@ impl InsightsRequests {
     ) -> Result<TaskSubscription<Arc<CodexSessionExport>, Failure>, AdmissionError> {
         let requests = self.clone();
         let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
-        self.services.executor.read(key, move |_, _| {
+        let remote = (!local).then(|| self.services.remote_configuration_io(&key.environment));
+        self.services.executor.read(key, move |cancel, _| {
             if !local {
-                return Err(Failure::LocalOnly);
+                let snapshot = requests
+                    .capture_remote(remote.ok_or(Failure::Source)?, cancel, false)
+                    .map_err(|_| Failure::Source)?;
+                let (source, _) = sessions::resolve_source_with_registry(
+                    &snapshot.pool,
+                    &snapshot.registry,
+                    &archive_id,
+                )
+                .map_err(|_| Failure::Source)?;
+                snapshot
+                    .verify_source(&source.physical_path)
+                    .map_err(|_| Failure::Conflict)?;
+                if !requests.codex_actions_allowed()
+                    || source.agent != AgentSessionAgentId::Codex
+                    || source.variant != "codex-live"
+                {
+                    return Err(Failure::Unsupported);
+                }
+                return CodexSessionService::new(snapshot.root().join(".codex"))
+                    .export_session_markdown(&source.physical_path, None)
+                    .map(Arc::new)
+                    .map_err(|_| Failure::Source);
             }
             let prepared = requests.prepare_session(&archive_id)?;
             CodexSessionService::new(prepared.codex_home.clone())

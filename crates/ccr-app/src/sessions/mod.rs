@@ -1,5 +1,6 @@
 //! Explicit-path archive reads. Provider validation/parsing and SQL stay with their domain owners.
 pub mod refresh;
+pub mod remote;
 
 use ccr_db::database::{
     DbPool,
