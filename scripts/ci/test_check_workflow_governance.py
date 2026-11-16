@@ -10,6 +10,7 @@ import tempfile
 import textwrap
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from scripts.common import REPO_ROOT
 from scripts.ci.ci_surface_policy import SURFACE_PATHS, is_relevant, path_matches
@@ -39,6 +40,22 @@ from scripts.ci.check_workflow_governance import (
     workflow_event_values,
     workflow_job_block,
 )
+
+
+def _bash_executable() -> str | None:
+    if sys.platform != "win32":
+        return shutil.which("bash")
+
+    # Windows' PATH may resolve bash to the WSL launcher instead of Git Bash.
+    git = shutil.which("git")
+    if git is not None:
+        exec_path = subprocess.check_output(
+            [git, "--exec-path"], text=True, encoding="utf-8", timeout=10,
+        ).strip()
+        bash = Path(exec_path).parents[2] / "bin" / "bash.exe"
+        if bash.is_file():
+            return str(bash)
+    raise RuntimeError("Git for Windows Bash is required for shell execution probes")
 
 
 def _workflow_step_fields(text: str, needle: str) -> dict[str, str]:
@@ -242,6 +259,28 @@ updates:
                     manifest.write_bytes(original)
 
 
+class BashExecutableTests(unittest.TestCase):
+    def test_windows_uses_git_bash_when_path_starts_with_wsl(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="ccr-bash-test-") as temporary:
+            root = Path(temporary)
+            git = root / "Git" / "cmd" / "git.exe"
+            bash = root / "Git" / "bin" / "bash.exe"
+            bash.parent.mkdir(parents=True)
+            bash.touch()
+            executables = {"bash": str(root / "System32" / "bash.exe"), "git": str(git)}
+            with (
+                patch.object(sys, "platform", "win32"),
+                patch.object(shutil, "which", side_effect=executables.get) as which,
+                patch.object(subprocess, "check_output", return_value=str(root / "Git" / "mingw64" / "libexec" / "git-core")) as query,
+            ):
+                self.assertEqual(_bash_executable(), str(bash))
+                which.assert_called_once_with("git")
+                self.assertEqual(query.call_args.args[0], [str(git), "--exec-path"])
+                bash.unlink()
+                with self.assertRaisesRegex(RuntimeError, "Git for Windows Bash"):
+                    _bash_executable()
+
+
 class ReadonlyAggregateTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -254,7 +293,7 @@ class ReadonlyAggregateTests(unittest.TestCase):
         }
 
     def run_body(self, platform: str, recipe: str, stub: str) -> subprocess.CompletedProcess[str]:
-        shell = shutil.which("pwsh" if platform == "windows" else "bash")
+        shell = shutil.which("pwsh") if platform == "windows" else _bash_executable()
         if shell is None:
             self.skipTest(f"{platform} recipe probe requires its shell, not the product toolchain")
         block = recipe_block(self.source, recipe)
@@ -262,7 +301,6 @@ class ReadonlyAggregateTests(unittest.TestCase):
         body = textwrap.dedent("\n".join(block.splitlines()[2:]))
         body = body.replace("{{CARGO_AUDIT_VERSION}}", "0.22.2").replace("{{RUST_TOOLCHAIN}}", DEVELOPMENT_RUST_TOOLCHAIN)
         script = stub + "\n" + body
-        # stdin avoids a second expansion through Windows' legacy WSL bash.exe -c.
         args = ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script] if platform == "windows" else ["--noprofile", "--norc", "-s"]
         result = subprocess.run(
             [shell, *args], input=None if platform == "windows" else script.encode("utf-8"), cwd=REPO_ROOT,
@@ -570,7 +608,7 @@ class WorkflowGovernanceParserTests(unittest.TestCase):
         )
         self.assertEqual(step.get("shell"), "bash")
 
-        bash = shutil.which("bash")
+        bash = _bash_executable()
         if bash is None:
             self.skipTest(
                 "bash is not available to probe GitHub pipefail semantics"
