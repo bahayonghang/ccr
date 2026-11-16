@@ -1,4 +1,4 @@
-//! In-memory persistent SSH sessions. No sockets, processes or credentials are used.
+//! In-memory persistent SSH sessions. No sockets, processes or system credential stores are used.
 use super::*;
 use base64::Engine;
 use std::{
@@ -16,6 +16,7 @@ pub struct FixtureTransport {
     cli_delay: Mutex<std::time::Duration>,
     handshakes: AtomicUsize,
     unsupported: AtomicBool,
+    unavailable_database_on_home: Mutex<Option<PathBuf>>,
 }
 impl FixtureTransport {
     pub fn set_cli_output(&self, tool: &str, output: &str) {
@@ -70,6 +71,13 @@ impl FixtureTransport {
     pub fn disable_posix_rename(&self) {
         self.unsupported.store(true, Ordering::SeqCst);
     }
+    /// Make the host store unavailable after successful authentication and HOME detection.
+    pub fn break_database_after_home(&self, path: PathBuf) {
+        *self
+            .unavailable_database_on_home
+            .lock()
+            .unwrap_or_else(|p| p.into_inner()) = Some(path);
+    }
     fn operation(&self, op: &str, path: &str) -> Result<(), Error> {
         self.batches
             .lock()
@@ -108,6 +116,9 @@ impl Workspace {
         owner.lock_directory = Some(lock_directory);
         owner.transport = Arc::new(FixtureConnector(transport.clone()));
         owner.synthetic = true;
+        owner.credentials = Credentials(Some(
+            keyring_core::mock::Store::new().unwrap_or_else(|_| panic!("mock store")),
+        ));
         (owner, transport)
     }
 }
@@ -123,8 +134,13 @@ impl Transport for FixtureConnector {
         &'a self,
         host: &'a SshHost,
         stored: &'a SshKnownHost,
+        auth: &'a Authentication,
     ) -> RunFuture<'a, Arc<dyn Connection>> {
         Box::pin(async move {
+            self.0.operation(auth.method.as_str(), "authentication")?;
+            if auth.method == AuthMethod::Password && auth.secret.is_none() {
+                return Err("ssh_credentials_missing");
+            }
             self.0.handshakes.fetch_add(1, Ordering::SeqCst);
             if self.0.key(host)?.fingerprint != stored.fingerprint {
                 return Err("ssh_host_key_mismatch");
@@ -148,6 +164,7 @@ impl Connection for FixtureConnection {
     }
     fn disconnect(&self) -> RunFuture<'_, ()> {
         Box::pin(async {
+            self.transport.operation("disconnect", &self.host)?;
             self.closed.store(true, Ordering::SeqCst);
             Ok(())
         })
@@ -158,6 +175,16 @@ impl Connection for FixtureConnection {
                 return Err("ssh_network_error");
             }
             let stdout = if command == "printf '%s' \"$HOME\"" {
+                let path = self
+                    .transport
+                    .unavailable_database_on_home
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .take();
+                if let Some(path) = path {
+                    std::fs::remove_file(&path).map_err(|_| "ssh_database_unavailable")?;
+                    std::fs::create_dir(path).map_err(|_| "ssh_database_unavailable")?;
+                }
                 b"/home/fixture".to_vec()
             } else if let Some(path) = command
                 .strip_prefix("cat -- '")

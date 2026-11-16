@@ -87,6 +87,7 @@ async fn connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigat
             port: 22,
             user: "fixture".into(),
             remote_home: "/home/fixture".into(),
+            ..Default::default()
         }),
     )
     .await;

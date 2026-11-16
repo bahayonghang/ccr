@@ -62,6 +62,20 @@ pub fn boundary_before_connect(
     Ok(())
 }
 
+/// Native authentication permits passwords but preserves every trust/cancellation rule.
+pub fn desktop_boundary_before_connect(
+    kind: ConnectKind,
+    facts: ConnectFacts<'_>,
+) -> Result<(), &'static str> {
+    boundary_before_connect(
+        kind,
+        ConnectFacts {
+            password_only: false,
+            ..facts
+        },
+    )
+}
+
 pub fn password_only(password: Option<&str>) -> bool {
     password.is_some_and(|value| !value.trim().is_empty())
 }

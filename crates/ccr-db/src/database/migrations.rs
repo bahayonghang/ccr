@@ -1719,6 +1719,29 @@ fn legacy_session_source_variant(platform: &str, file_path: &str) -> &'static st
     }
 }
 
+/// Add explicit desktop authentication without changing the OpenSSH host DTO.
+pub fn run_migration_v18(conn: &Connection) -> MigrationResult<()> {
+    if is_migration_applied(conn, 18)? {
+        return Ok(());
+    }
+    create_verified_migration_backup(conn, 18)?;
+    apply_migration(
+        conn,
+        18,
+        "ssh_auth_method",
+        |tx| {
+            tx.execute_batch("ALTER TABLE ssh_hosts ADD COLUMN auth_method TEXT NOT NULL DEFAULT 'agent' CHECK(auth_method IN ('agent', 'private_key', 'password'));
+            UPDATE ssh_hosts SET auth_method = 'private_key' WHERE identity_file IS NOT NULL AND trim(identity_file) <> '';
+            CREATE TRIGGER ssh_hosts_legacy_identity_insert AFTER INSERT ON ssh_hosts WHEN NEW.auth_method = 'agent' AND NEW.identity_file IS NOT NULL AND trim(NEW.identity_file) <> '' BEGIN UPDATE ssh_hosts SET auth_method = 'private_key' WHERE id = NEW.id; END;")
+            .map_err(|e| MigrationError::Database(e.to_string()))?;
+            Ok(())
+        },
+        |_, ()| Ok(()),
+        |()| "ssh_auth_method".to_string(),
+    )?;
+    Ok(())
+}
+
 fn create_verified_migration_backup(
     conn: &Connection,
     version: i32,
@@ -1837,6 +1860,7 @@ pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult
 
     // Step 3.5: Add Agent Sessions provider/source identity.
     run_migration_v17(conn)?;
+    run_migration_v18(conn)?;
 
     // Step 4: Recalculate usage costs after all legacy/live rows are present.
     run_migration_v13(conn)?;

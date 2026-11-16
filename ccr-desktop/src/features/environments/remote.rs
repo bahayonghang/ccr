@@ -9,7 +9,7 @@ use crate::{
     theme,
 };
 use ccr_app::{
-    environments::ssh::{ConfigFile, Document, Host, HostInput, Probe},
+    environments::ssh::{AuthMethod, ConfigFile, Document, Host, HostInput, Probe, Secret},
     runtime::{CancellationHandle, Completion, EnvironmentId, Platform, RequestKey, TaskEvent},
 };
 use gpui_kit::component::button::{Button, ButtonVariants};
@@ -48,7 +48,8 @@ pub struct RemoteView {
     save_confirmation: bool,
     read_confirmation: bool,
     host_form: Option<HostInput>,
-    host_fields: [Entity<InputState>; 5],
+    pending_test: Option<HostInput>,
+    host_fields: [Entity<InputState>; 8],
     host_form_pending: bool,
     delete_confirmation: bool,
 }
@@ -75,7 +76,10 @@ impl RemoteView {
             save_confirmation: false,
             read_confirmation: false,
             host_form: None,
-            host_fields: std::array::from_fn(|_| cx.new(|cx| InputState::new(window, cx))),
+            pending_test: None,
+            host_fields: std::array::from_fn(|index| {
+                cx.new(|cx| InputState::new(window, cx).masked(index == 7))
+            }),
             host_form_pending: false,
             delete_confirmation: false,
         }
@@ -124,6 +128,8 @@ impl RemoteView {
             .is_none_or(|selected| selected.id != host.id);
         self.remember(cx);
         self.host_form = None;
+        self.pending_test = None;
+        self.host_fields[7].update(cx, |state, cx| state.set_value("", window, cx));
         self.delete_confirmation = false;
         self.read_confirmation = false;
         self.selected = Some(host);
@@ -164,12 +170,17 @@ impl RemoteView {
         cx.notify();
     }
     fn host_form(&mut self, input: HostInput, window: &mut Window, cx: &mut Context<Self>) {
+        self.pending_test = None;
+        self.probe = None;
         let values = [
             input.name.clone(),
             input.host.clone(),
             input.port.to_string(),
             input.user.clone(),
             input.remote_home.clone(),
+            input.auth_method.as_str().to_owned(),
+            input.identity_file.clone().unwrap_or_default(),
+            String::new(),
         ];
         for (field, value) in self.host_fields.iter().zip(values) {
             field.update(cx, |state, cx| state.set_value(value, window, cx));
@@ -178,7 +189,7 @@ impl RemoteView {
         self.host_form_pending = false;
         cx.notify();
     }
-    fn save_host(&mut self, cx: &mut Context<Self>) {
+    fn save_host(&mut self, test: bool, window: &mut Window, cx: &mut Context<Self>) {
         let Some(form) = &self.host_form else { return };
         let fields = self
             .host_fields
@@ -190,21 +201,46 @@ impl RemoteView {
             cx.notify();
             return;
         };
+        let Ok(auth_method) = AuthMethod::parse(&fields[5]) else {
+            self.message = Some("ssh_invalid_auth_method");
+            cx.notify();
+            return;
+        };
+        let input = HostInput {
+            id: form.id.clone(),
+            name: fields[0].clone(),
+            host: fields[1].clone(),
+            port,
+            user: fields[3].clone(),
+            remote_home: fields[4].clone(),
+            auth_method,
+            identity_file: (!fields[6].is_empty()).then(|| fields[6].clone()),
+            secret: (!fields[7].is_empty()).then(|| Secret::new(fields[7].clone())),
+        };
+        self.probe = None;
+        self.pending_test = test.then(|| input.clone());
+        // 测试保留当前遮蔽输入以便随后保存；真正提交后立即清空，不再回显。
+        if !test {
+            self.host_fields[7].update(cx, |state, cx| state.set_value("", window, cx));
+        }
         self.start(
-            SshAction::SaveHost(HostInput {
-                id: form.id.clone(),
-                name: fields[0].clone(),
-                host: fields[1].clone(),
-                port,
-                user: fields[3].clone(),
-                remote_home: fields[4].clone(),
-            }),
+            if test {
+                SshAction::TestConnection(input)
+            } else {
+                SshAction::SaveHost(input)
+            },
             cx,
         );
     }
     fn start(&mut self, action: SshAction, cx: &mut Context<Self>) {
         if self.busy {
             return;
+        }
+        if !matches!(
+            &action,
+            SshAction::TestConnection(_) | SshAction::Confirm(_)
+        ) {
+            self.pending_test = None;
         }
         let detecting_host = match &action {
             SshAction::DetectCli(id) => Some(id.clone()),
@@ -299,6 +335,13 @@ impl RemoteView {
                                         this.probe = None;
                                         this.connected = false;
                                         this.message = Some("ssh_trusted");
+                                        if let Some(input) = this.pending_test.take() {
+                                            this.start(SshAction::TestConnection(input), cx);
+                                        }
+                                    }
+                                    Completion::Success(SshResult::Tested) => {
+                                        this.pending_test = None;
+                                        this.message = Some("ssh_tested");
                                     }
                                     Completion::Success(SshResult::Connected) => {
                                         this.connected = true;
@@ -325,6 +368,7 @@ impl RemoteView {
                                         this.message = Some("ssh_document_ready");
                                     }
                                     Completion::Failed(error) => {
+                                        this.pending_test = None;
                                         this.message = Some(*error);
                                         if !matches!(
                                             *error,
@@ -334,10 +378,12 @@ impl RemoteView {
                                         }
                                     }
                                     Completion::Cancelled => {
+                                        this.pending_test = None;
                                         this.message = Some("ssh_cancelled");
                                         this.connected = false;
                                     }
                                     Completion::CleanupFailed(error) => {
+                                        this.pending_test = None;
                                         this.message = Some(*error);
                                         this.connected = false;
                                     }
@@ -388,6 +434,9 @@ impl RemoteView {
     }
 }
 fn message(code: &str, chinese: bool) -> &'static str {
+    if let Some(message) = ccr_app::environments::ssh::authentication_message(code, chinese) {
+        return message;
+    }
     match (code, chinese) {
         ("ssh_connected", false) => "Connected. Remote configuration access uses SFTP.",
         ("ssh_connected", true) => "已连接，远程配置通过 SFTP 访问。",
@@ -418,11 +467,9 @@ fn message(code: &str, chinese: bool) -> &'static str {
         }
         ("ssh_host_key_untrusted", true) => "主机密钥尚未受信任。请先检查并明确确认指纹。",
         ("ssh_auth_unsupported", false) => {
-            "Authentication failed. Use a saved key or an SSH agent; interactive passwords are unsupported."
+            "SSH agent unavailable. Start the agent or select another authentication method."
         }
-        ("ssh_auth_unsupported", true) => {
-            "认证失败。请使用保存的密钥或 SSH agent，不支持交互式密码。"
-        }
+        ("ssh_auth_unsupported", true) => "SSH agent 不可用。请启动 agent 或选择其他认证方式。",
         ("ssh_cancelled", false) => {
             "Operation cancelled after cleanup. Reconnect before accessing remote files."
         }
@@ -506,6 +553,7 @@ impl RemoteView {
                             port: 22,
                             user: String::new(),
                             remote_home: "~".into(),
+                            ..Default::default()
                         },
                         window,
                         cx,
@@ -519,13 +567,24 @@ impl RemoteView {
     }
     fn render_host_form(&self, mut root: gpui_kit::Div, cx: &mut Context<Self>) -> gpui_kit::Div {
         if self.host_form.is_some() {
-            root=root.child(text(cx,"New hosts use an SSH agent. Editing keeps an existing identity-file setting. Passwords are unsupported.","新主机使用 SSH agent；编辑时保留已有身份文件设置。不支持密码认证。"));
+            root = root.child(text(cx, "Authentication: agent / private_key / password. A blank secret keeps the stored credential for the same method.", "认证方式填写 agent / private_key / password。认证方式不变时，凭据留空沿用已保存值。"));
+            root = root.child(semantics::button(
+                Button::new("ssh-host-test")
+                    .label(text(cx, "Test connection", "测试连接"))
+                    .on_click(cx.listener(|this, _, window, cx| this.save_host(true, window, cx))),
+                self.busy,
+                false,
+                cx,
+            ));
             for (index, (en, zh)) in [
                 ("Name", "名称"),
                 ("Host", "主机"),
                 ("Port", "端口"),
                 ("User", "用户"),
                 ("Remote home", "远程主目录"),
+                ("Authentication method", "认证方式"),
+                ("Private key path", "私钥路径"),
+                ("Password / key passphrase", "密码 / 私钥口令"),
             ]
             .into_iter()
             .enumerate()
@@ -540,7 +599,7 @@ impl RemoteView {
             root = root.child(semantics::button(
                 Button::new("ssh-host-save")
                     .label(text(cx, "Save host", "保存主机"))
-                    .on_click(cx.listener(|this, _, _, cx| this.save_host(cx))),
+                    .on_click(cx.listener(|this, _, window, cx| this.save_host(false, window, cx))),
                 self.busy,
                 false,
                 cx,
@@ -549,8 +608,11 @@ impl RemoteView {
                 Button::new("ssh-host-cancel")
                     .label(text(cx, "Cancel", "取消"))
                     .ghost()
-                    .on_click(cx.listener(|this, _, _, cx| {
+                    .on_click(cx.listener(|this, _, window, cx| {
                         this.host_form = None;
+                        this.pending_test = None;
+                        this.probe = None;
+                        this.host_fields[7].update(cx, |state, cx| state.set_value("", window, cx));
                         cx.notify();
                     })),
                 self.busy,
@@ -657,6 +719,9 @@ impl RemoteView {
                 cx,
             ));
         }
+        root
+    }
+    fn render_trust(&self, mut root: gpui_kit::Div, cx: &mut Context<Self>) -> gpui_kit::Div {
         if let Some(probe) = self.probe.clone() {
             root = root.child(format!(
                 "{}:{} · {}",
@@ -690,6 +755,7 @@ impl RemoteView {
                     .ghost()
                     .on_click(cx.listener(|this, _, _, cx| {
                         this.probe = None;
+                        this.pending_test = None;
                         cx.notify();
                     })),
                 self.busy,
@@ -841,6 +907,7 @@ impl Render for RemoteView {
             root = self.render_cli(root, cx);
             root = self.render_document(root, host, cx);
         }
+        root = self.render_trust(root, cx);
         if self.busy && !self.detecting {
             root = root.child(semantics::button(
                 Button::new("ssh-cancel")
@@ -874,6 +941,102 @@ mod tests {
     use std::{sync::Arc, time::Duration};
 
     #[gpui_kit::test]
+    async fn unsaved_password_test_continues_after_trust_and_save_clears_the_input(
+        cx: &mut TestAppContext,
+    ) {
+        cx.executor().allow_parking();
+        let root = tempfile::tempdir().unwrap();
+        let owner = RuntimeOwner::new().unwrap();
+        let (ssh, transport) = Workspace::fixture(
+            root.path().join("ssh.db"),
+            root.path().join("ssh/known_hosts"),
+        );
+        let ssh = Arc::new(ssh);
+        let services = Services::new(
+            owner.handle(),
+            crate::runtime::ConfigSource::Fixture {
+                profiles: root.path().join("profiles.toml"),
+                registry: root.path().join("registry.toml"),
+                delay: Duration::ZERO,
+            },
+        );
+        services
+            .ssh
+            .set(ssh.clone())
+            .unwrap_or_else(|_| panic!("owner set"));
+        let (handle, view) = cx.update(|cx| {
+            gpui_kit::init(cx);
+            cx.set_global(crate::locales::Language::English);
+            gpui_kit::open_window(
+                WindowOptions {
+                    window_bounds: Some(WindowBounds::Windowed(Bounds::centered(
+                        None,
+                        size(px(1200.), px(1800.)),
+                        cx,
+                    ))),
+                    ..Default::default()
+                },
+                cx,
+                |window, cx| cx.new(|cx| RemoteView::new(services, window, cx)),
+            )
+            .unwrap()
+        });
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.click("ssh-add-host", cx);
+            view.update(cx, |this, cx| {
+                for (field, value) in this.host_fields.iter().zip([
+                    "Synthetic",
+                    "fixture.invalid",
+                    "22",
+                    "fixture",
+                    "~",
+                    "password",
+                    "",
+                    "synthetic-password",
+                ]) {
+                    field.update(cx, |state, cx| state.set_value(value, window, cx));
+                }
+            });
+            window.render_frame(cx);
+            window.click("ssh-host-test", cx);
+        })
+        .unwrap();
+        cx.wait_for(handle, Duration::from_secs(5), |_, cx| !view.read(cx).busy)
+            .await;
+        cx.update_window(handle, |_, window, cx| {
+            assert!(view.read(cx).probe.is_some());
+            assert!(view.read(cx).pending_test.is_some());
+            assert!(!root.path().join("ssh/known_hosts").exists());
+            window.render_frame(cx);
+            window.click("ssh-confirm-trust", cx);
+        })
+        .unwrap();
+        cx.wait_for(handle, Duration::from_secs(5), |_, cx| !view.read(cx).busy)
+            .await;
+        cx.update_window(handle, |_, window, cx| {
+            assert_eq!(view.read(cx).message, Some("ssh_tested"));
+            assert!(view.read(cx).pending_test.is_none());
+            assert_eq!(transport.handshakes(), 1);
+            assert!(ssh.hosts().unwrap().is_empty());
+            window.render_frame(cx);
+            window.click("ssh-host-save", cx);
+            assert!(view.read(cx).host_fields[7].read(cx).value().is_empty());
+        })
+        .unwrap();
+        cx.wait_for(handle, Duration::from_secs(5), |_, cx| !view.read(cx).busy)
+            .await;
+        cx.update_window(handle, |_, _, cx| {
+            let host = view.read(cx).selected.as_ref().unwrap();
+            let details = ssh.host_details(&host.id).unwrap();
+            assert_eq!(details.auth_method, AuthMethod::Password);
+            assert!(details.secret.is_none());
+        })
+        .unwrap();
+        owner.shutdown();
+    }
+
+    #[gpui_kit::test]
     async fn rendered_host_actions_reach_isolated_transport_and_write_remote_document(
         cx: &mut TestAppContext,
     ) {
@@ -904,6 +1067,7 @@ mod tests {
                         port: 22,
                         user: "fixture".into(),
                         remote_home: "/home/fixture".into(),
+                        ..Default::default()
                     };
                     handle.block_on(setup.save_host(input))
                 },

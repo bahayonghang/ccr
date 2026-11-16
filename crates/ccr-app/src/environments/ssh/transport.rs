@@ -8,6 +8,7 @@ use russh_sftp::{
     protocol::{FileAttributes, OpenFlags, Packet, StatusCode},
 };
 use std::time::Duration;
+mod authentication;
 
 pub(super) trait Transport: Send + Sync {
     fn probe<'a>(
@@ -19,6 +20,7 @@ pub(super) trait Transport: Send + Sync {
         &'a self,
         host: &'a SshHost,
         stored: &'a SshKnownHost,
+        auth: &'a Authentication,
     ) -> RunFuture<'a, Arc<dyn Connection>>;
 }
 pub(super) trait Connection: Send + Sync {
@@ -119,6 +121,7 @@ impl Transport for RusshTransport {
         &'a self,
         host: &'a SshHost,
         stored: &'a SshKnownHost,
+        auth: &'a Authentication,
     ) -> RunFuture<'a, Arc<dyn Connection>> {
         Box::pin(async move {
             let observed = Arc::new(Mutex::new(None));
@@ -148,6 +151,11 @@ impl Transport for RusshTransport {
             })?;
             // RAII 守卫在认证取消/超时/失败时也显式发送断开。
             let mut connection = LiveConnection(Arc::new(handle));
+            if auth.method != AuthMethod::Agent {
+                authentication::authenticate(&mut connection, host, auth).await?;
+                return Ok(Arc::new(connection) as Arc<dyn Connection>);
+            }
+            let mut failure = "ssh_auth_failed";
             #[cfg(unix)]
             let mut agent = AgentClient::connect_env()
                 .await
@@ -203,11 +211,14 @@ impl Transport for RusshTransport {
                             .await
                     }
                 };
-                if result.is_ok_and(|auth| auth.success()) {
-                    return Ok(Arc::new(connection) as Arc<dyn Connection>);
+                if let Ok(result) = result {
+                    if result.success() {
+                        return Ok(Arc::new(connection) as Arc<dyn Connection>);
+                    }
+                    failure = authentication::failure(result);
                 }
             }
-            Err("ssh_auth_unsupported")
+            Err(failure)
         })
     }
 }

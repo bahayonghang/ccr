@@ -44,6 +44,7 @@ pub enum SshAction {
     Hosts,
     HostDetails(String),
     SaveHost(HostInput),
+    TestConnection(HostInput),
     DeleteHost(String),
     Probe(String),
     Confirm(String),
@@ -60,6 +61,7 @@ pub enum SshResult {
     HostDeleted,
     Probe(Probe),
     Connected,
+    Tested,
     Disconnected,
     Confirmed,
     Document(Document),
@@ -95,7 +97,13 @@ impl Services {
                 (Some(database), root.join("ssh/known_hosts"))
             }
         };
-        let owner = Arc::new(Workspace::new(database, known_hosts));
+        let owner = Workspace::new(database, known_hosts);
+        let owner = if self.is_fixture() {
+            owner.with_mock_credentials()?
+        } else {
+            owner
+        };
+        let owner = Arc::new(owner);
         let _ = self.ssh.set(owner);
         self.ssh.get().cloned().ok_or("ssh_database_unavailable")
     }
@@ -144,6 +152,7 @@ impl Services {
                     && matches!(
                         &action,
                         SshAction::Probe(_)
+                            | SshAction::TestConnection(_)
                             | SshAction::Connect(_)
                             | SshAction::Confirm(_)
                             | SshAction::Read(_, _)
@@ -155,6 +164,13 @@ impl Services {
                 }
                 let owner = services.ssh_workspace()?;
                 match action {
+                    SshAction::TestConnection(input) => owner
+                        .test_connection(input, cancel.clone())
+                        .await
+                        .map(|probe| match probe {
+                            Some(probe) => SshResult::Probe(probe),
+                            None => SshResult::Tested,
+                        }),
                     SshAction::Hosts => owner.hosts().map(SshResult::Hosts),
                     SshAction::HostDetails(id) => {
                         owner.host_details(&id).map(SshResult::HostDetails)
@@ -262,6 +278,7 @@ mod ssh_tests {
                     port: 22,
                     user: "fixture".into(),
                     remote_home: "~".into(),
+                    ..Default::default()
                 }),
             )
             .unwrap_or_else(|_| panic!("save admission"));

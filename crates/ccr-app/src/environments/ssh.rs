@@ -14,6 +14,11 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tokio_util::sync::CancellationToken;
+mod messages;
+pub use messages::authentication_message;
+mod credentials;
+pub use credentials::{AuthMethod, Secret};
+use credentials::{Authentication, Credentials};
 mod detect;
 mod transport;
 pub use detect::{CliSession, CliStatus};
@@ -25,7 +30,7 @@ pub struct Host {
     pub id: String,
     pub name: String,
 }
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct HostInput {
     pub id: Option<String>,
     pub name: String,
@@ -33,6 +38,9 @@ pub struct HostInput {
     pub port: u16,
     pub user: String,
     pub remote_home: String,
+    pub auth_method: AuthMethod,
+    pub identity_file: Option<String>,
+    pub secret: Option<Secret>,
 }
 #[derive(Clone, Debug)]
 pub struct Probe {
@@ -92,6 +100,7 @@ pub struct Workspace {
     authentication: tokio::sync::Mutex<()>,
     writes: Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>,
     transport: Arc<dyn Transport>,
+    credentials: Credentials,
 }
 impl Workspace {
     pub fn new(database: Option<PathBuf>, known_hosts: PathBuf) -> Self {
@@ -106,7 +115,19 @@ impl Workspace {
             authentication: tokio::sync::Mutex::new(()),
             writes: Mutex::new(HashMap::new()),
             transport: Arc::new(RusshTransport),
+            credentials: Credentials::default(),
         }
+    }
+    /// Use an isolated store, without changing keyring's process-global default.
+    pub fn with_credential_store(mut self, store: Arc<keyring_core::CredentialStore>) -> Self {
+        self.credentials = Credentials(Some(store));
+        self
+    }
+    /// Isolate credentials for offline adapters without enabling network access.
+    pub fn with_mock_credentials(self) -> Result<Self, Error> {
+        Ok(self.with_credential_store(
+            keyring_core::mock::Store::new().map_err(|_| "ssh_credential_store_unavailable")?,
+        ))
     }
     fn connection(&self, write: bool) -> Result<rusqlite::Connection, Error> {
         ssh_repo::open_host_store(
@@ -150,6 +171,12 @@ impl Workspace {
     pub fn host_details(&self, id: &str) -> Result<HostInput, Error> {
         let host = self.host(id)?;
         Ok(HostInput {
+            auth_method: AuthMethod::parse(
+                &ssh_repo::auth_method(&self.connection(true)?, id)
+                    .map_err(|_| "ssh_database_unavailable")?,
+            )?,
+            identity_file: host.identity_file,
+            secret: None,
             id: Some(host.id),
             name: host.name,
             host: host.host,
@@ -166,8 +193,21 @@ impl Workspace {
         {
             return Err("ssh_invalid_target");
         }
-        let target = SshTarget::new(&input.host, input.port, Some(&input.user), None)
-            .map_err(|_| "ssh_invalid_target")?;
+        if input.auth_method == AuthMethod::PrivateKey
+            && input
+                .identity_file
+                .as_deref()
+                .is_none_or(|s| s.trim().is_empty())
+        {
+            return Err("ssh_invalid_target");
+        }
+        let target = SshTarget::new(
+            &input.host,
+            input.port,
+            Some(&input.user),
+            input.identity_file.as_deref(),
+        )
+        .map_err(|_| "ssh_invalid_target")?;
         RemotePosixPath::root(Some(&input.remote_home)).map_err(|_| "ssh_invalid_remote_path")?;
         let now = chrono::Utc::now();
         let mut row = match input.id {
@@ -191,8 +231,34 @@ impl Workspace {
         row.username = input.user;
         row.remote_home = Some(input.remote_home);
         row.updated_at = now;
-        {
-            let conn = self.connection(true)?;
+        row.identity_file = if input.auth_method == AuthMethod::PrivateKey {
+            input.identity_file
+        } else {
+            None
+        };
+        let old_method = ssh_repo::auth_method(&self.connection(true)?, &row.id).ok();
+        let touches_secret = input.secret.is_some()
+            || old_method
+                .as_deref()
+                .is_some_and(|m| m != input.auth_method.as_str());
+        let previous = if touches_secret {
+            self.credentials.get(&row.id).await?
+        } else {
+            None
+        };
+        if touches_secret {
+            self.credentials
+                .set(
+                    &row.id,
+                    input
+                        .secret
+                        .filter(|_| input.auth_method != AuthMethod::Agent),
+                )
+                .await?;
+        }
+        let saved = (|| -> Result<(), Error> {
+            let mut conn = self.connection(true)?;
+            let conn = conn.transaction().map_err(|_| "ssh_database_unavailable")?;
             if ssh_repo::get_host(&conn, &row.id)
                 .map_err(|_| "ssh_database_unavailable")?
                 .is_some()
@@ -203,6 +269,16 @@ impl Workspace {
             } else {
                 ssh_repo::insert_host(&conn, &row).map_err(|_| "ssh_database_unavailable")?;
             }
+            ssh_repo::set_auth_method(&conn, &row.id, input.auth_method.as_str())
+                .map_err(|_| "ssh_database_unavailable")?;
+            conn.commit().map_err(|_| "ssh_database_unavailable")?;
+            Ok(())
+        })();
+        if let Err(error) = saved {
+            if touches_secret {
+                self.credentials.set(&row.id, previous).await?;
+            }
+            return Err(error);
         }
         if self.current(&row.id).is_ok() {
             self.clear().await;
@@ -214,9 +290,15 @@ impl Workspace {
     }
     pub async fn delete_host(&self, id: &str) -> Result<(), Error> {
         let _guard = self.authentication.lock().await;
-        if !ssh_repo::delete_host(&self.connection(true)?, id)
-            .map_err(|_| "ssh_database_unavailable")?
-        {
+        self.host(id)?;
+        let conn = self.connection(true)?;
+        let previous = self.credentials.get(id).await?;
+        self.credentials.set(id, None).await?;
+        let deleted = ssh_repo::delete_host(&conn, id);
+        if deleted.is_err() {
+            self.credentials.set(id, previous).await?;
+        }
+        if !deleted.map_err(|_| "ssh_database_unavailable")? {
             return Err("ssh_host_missing");
         }
         if self.current(id).is_ok() {
@@ -344,6 +426,93 @@ impl Workspace {
         )
         .map_err(|_| "ssh_trust_write_failed")
     }
+    async fn authentication_for(
+        &self,
+        id: &str,
+        method: AuthMethod,
+        supplied: Option<Secret>,
+    ) -> Result<Authentication, Error> {
+        super::ssh_session::desktop_boundary_before_connect(
+            super::ConnectKind::Open,
+            super::ConnectFacts {
+                cancel_requested: false,
+                password_only: method == AuthMethod::Password,
+                stored_fingerprint: None,
+                observed_fingerprint: None,
+                process_trusted: false,
+            },
+        )?;
+        let secret = if method == AuthMethod::Agent {
+            None
+        } else if supplied.is_some() {
+            supplied
+        } else {
+            self.credentials.get(id).await?
+        };
+        if method == AuthMethod::Password && secret.as_ref().is_none_or(|s| s.expose().is_empty()) {
+            return Err("ssh_credentials_missing");
+        }
+        Ok(Authentication { method, secret })
+    }
+    /// Test an unsaved draft. Unknown keys return a one-use confirmation challenge.
+    /// Only explicit `confirm` persists trust; neither hosts nor secrets are saved here.
+    pub async fn test_connection(
+        &self,
+        input: HostInput,
+        cancel: CancellationToken,
+    ) -> Result<Option<Probe>, Error> {
+        let _guard = bounded(cancel.clone(), async {
+            Ok(self.authentication.lock().await)
+        })
+        .await?;
+        let now = chrono::Utc::now();
+        let host = SshHost {
+            id: input.id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
+            name: input.name,
+            host: input.host,
+            port: input.port,
+            username: input.user,
+            identity_file: input.identity_file,
+            remote_home: Some(input.remote_home),
+            created_at: now,
+            updated_at: now,
+            last_connected_at: None,
+        };
+        Self::target(&host)?;
+        RemotePosixPath::root(host.remote_home.as_deref())
+            .map_err(|_| "ssh_invalid_remote_path")?;
+        // 首次测试可初始化空信任库，但不插入主机记录。
+        let _ = self.connection(true)?;
+        let stored = self.known(&host)?;
+        let key = bounded(cancel.clone(), self.transport.probe(&host, stored.as_ref())).await?;
+        let stored_fingerprint = stored.as_ref().map(|s| s.fingerprint.clone());
+        let status = classify_host_key(stored_fingerprint.as_deref(), &key.fingerprint);
+        if status == HostKeyStatus::Mismatch {
+            return Err("ssh_host_key_mismatch");
+        }
+        if status != HostKeyStatus::Matched {
+            return Ok(Some(Probe {
+                challenge_id: self
+                    .trust
+                    .register(host.host.clone(), host.port, key.clone()),
+                host: host.host,
+                port: host.port,
+                fingerprint: key.fingerprint,
+                stored_fingerprint,
+                status,
+            }));
+        }
+        let stored = stored.ok_or("ssh_host_key_untrusted")?;
+        let connection = bounded(cancel, async {
+            let auth = self
+                .authentication_for(&host.id, input.auth_method, input.secret)
+                .await?;
+            self.transport.connect(&host, &stored, &auth).await
+        })
+        .await?;
+        bounded(CancellationToken::new(), connection.disconnect()).await?;
+        Ok(None)
+    }
     pub async fn connect(&self, id: &str, cancel: CancellationToken) -> Result<(), Error> {
         let _guard = bounded(cancel.clone(), async {
             Ok(self.authentication.lock().await)
@@ -355,7 +524,15 @@ impl Workspace {
         RemotePosixPath::root(host.remote_home.as_deref())
             .map_err(|_| "ssh_invalid_remote_path")?;
         let stored = self.known(&host)?.ok_or("ssh_host_key_untrusted")?;
-        let connection = bounded(cancel.clone(), self.transport.connect(&host, &stored)).await?;
+        let method = AuthMethod::parse(
+            &ssh_repo::auth_method(&self.connection(true)?, id)
+                .map_err(|_| "ssh_database_unavailable")?,
+        )?;
+        let connection = bounded(cancel.clone(), async {
+            let auth = self.authentication_for(id, method, None).await?;
+            self.transport.connect(&host, &stored, &auth).await
+        })
+        .await?;
         let home = bounded(
             cancel.clone(),
             connection.exec("printf '%s' \"$HOME\"".into()),
@@ -383,6 +560,17 @@ impl Workspace {
         };
         if host.remote_home.as_deref().is_none_or(|s| s == "~") {
             host.remote_home = Some(home);
+        }
+        let recorded = (|| {
+            let conn = self.connection(true)?;
+            ssh_repo::set_last_connected_at(&conn, id, chrono::Utc::now())
+                .map_err(|_| "ssh_database_unavailable")
+        })();
+        if let Err(error) = recorded {
+            bounded(CancellationToken::new(), connection.disconnect())
+                .await
+                .map_err(|_| "ssh_cleanup_failed")?;
+            return Err(error);
         }
         *self.session.lock().unwrap_or_else(|p| p.into_inner()) = Some(Session {
             id: id.into(),
@@ -503,6 +691,8 @@ impl Workspace {
         result
     }
 }
+#[cfg(test)]
+mod authentication_tests;
 #[cfg(any(test, feature = "test-fixtures"))]
 pub mod fixture;
 #[cfg(test)]

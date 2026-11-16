@@ -58,8 +58,28 @@ pub fn open_host_store(path: &std::path::Path, write: bool) -> Result<Connection
             .map_err(|_| "ssh_database_unavailable".to_string())?;
         super::super::migrations::run_migration_v6(&conn)
             .map_err(|_| "ssh_database_unavailable".to_string())?;
+        super::super::migrations::run_migration_v18(&conn)
+            .map_err(|_| "ssh_database_unavailable".to_string())?;
     }
     Ok(conn)
+}
+
+/// Read the desktop authentication selection after schema initialization.
+pub fn auth_method(conn: &Connection, id: &str) -> Result<String, rusqlite::Error> {
+    conn.query_row(
+        "SELECT auth_method FROM ssh_hosts WHERE id = ?1",
+        [id],
+        |row| row.get(0),
+    )
+}
+
+/// Persist only the method; secrets belong exclusively to the credential store.
+pub fn set_auth_method(conn: &Connection, id: &str, method: &str) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "UPDATE ssh_hosts SET auth_method = ?2 WHERE id = ?1",
+        params![id, method],
+    )?;
+    Ok(())
 }
 
 pub fn list_hosts(conn: &Connection) -> Result<Vec<SshHost>, rusqlite::Error> {

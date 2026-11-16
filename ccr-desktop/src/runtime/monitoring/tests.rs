@@ -322,6 +322,7 @@ async fn monitoring_projects_latency_and_retained_ssh_without_initializing_or_pr
                             port: 22,
                             user: "fixture".into(),
                             remote_home: "/fixture".into(),
+                            ..Default::default()
                         })
                         .await?;
                     let probe = setup.probe(&host.id, Default::default()).await?;
