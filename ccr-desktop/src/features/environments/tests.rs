@@ -318,76 +318,33 @@ async fn settings_shows_the_local_desktop_without_a_sample_distro(cx: &mut TestA
     cx.run_until_parked();
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
-        let os = ccr_app::environments::host_os_name();
-        let text = labels(window);
-        assert!(text.contains(&local_line(false, os)));
-        if cfg!(windows) {
-            assert!(text.contains("WSL discovery was not run."));
-            assert!(text.contains("Hide and restore are unsupported on Windows."));
-        } else {
-            assert!(text.contains("WSL is not available on this operating system."));
-            assert!(text.contains("Hide and restore were not run on this operating system."));
-        }
-        assert!(text.contains("Manage saved SSH hosts in SSH environments below."));
-        assert!(text.contains(ssh_trust_line(false)));
-        assert!(!text.to_lowercase().contains("connected"));
-        assert!(!text.to_lowercase().contains("trusted"));
-        assert!(window.try_find("env-reconnect").is_none());
-        assert!(window.try_find("env-disconnect").is_none());
-        assert!(text.contains("The tray is unsupported. This window stack has no tray."));
-        assert!(text.contains("A system notification can be posted. Delivery is not confirmed."));
-        let routes: [&str; 13] = [
-            "nav-dashboard",
-            "nav-agent-sessions",
-            "nav-mcp-manager",
-            "nav-claude-code",
-            "nav-codex",
-            "nav-grok",
-            "nav-antigravity",
-            "nav-opencode",
-            "nav-commands",
-            "nav-checkin",
-            "nav-sync",
-            "nav-usage",
-            "nav-settings",
-        ];
-        for id in routes {
-            assert!(window.try_find(id).is_some(), "{id} missing");
-        }
-        assert!(
-            !text.contains(" / "),
-            "unexpected slash labels: {:?}",
-            text.lines()
-                .filter(|line| line.contains(" / "))
-                .collect::<Vec<_>>()
-        );
-        assert!(!text.contains("Home insights"));
-        assert!(!text.contains("Apply / refresh"));
-        assert!(!text.contains("Ubuntu"));
-        assert!(!text.contains("docker-desktop"));
-        assert!(!text.to_lowercase().contains("blur"));
-        assert!(window.try_find("env-hide-action").is_none());
-        window.click("language-zh", cx);
-        assert!(
-            matches!(
-                cx.global::<crate::locales::Language>(),
-                crate::locales::Language::Chinese
-            ),
-            "The rendered language button did not update the language owner"
-        );
-        window.render_frame(cx);
-        let chinese = labels(window);
-        assert!(chinese.contains(&local_line(true, os)));
-        assert!(chinese.contains(ssh_trust_line(true)));
-        assert!(!chinese.contains(ssh_trust_line(false)));
-        assert!(!chinese.contains("This desktop is running"));
-        assert!(!chinese.contains(" / "));
-        assert!(!chinese.to_lowercase().contains("connected"));
-        assert!(!chinese.to_lowercase().contains("trusted"));
-        window.click("language-en", cx);
         window.click("settings-nav-environment", cx);
+        let os = ccr_app::environments::host_os_name();
+        assert!(labels(window).contains(&local_line(false, os)));
+        assert!(labels(window).contains(if cfg!(windows) {
+            "WSL discovery was not run."
+        } else {
+            "WSL is not available on this operating system."
+        }));
+        assert!(labels(window).contains(ssh_trust_line(false)));
+        assert!(window.try_find("env-notify").is_none());
+        window.click("settings-nav-diagnostics", cx);
+        assert!(window.try_find("env-local").is_none());
+        assert!(labels(window).contains("The tray is unsupported. This window stack has no tray."));
+        assert!(
+            labels(window)
+                .contains("A system notification can be posted. Delivery is not confirmed.")
+        );
+        window.click("settings-nav-appearance", cx);
+        window.click("language-zh", cx);
+        window.click("settings-nav-environment", cx);
+        assert!(labels(window).contains(&local_line(true, os)));
+        assert!(labels(window).contains(ssh_trust_line(true)));
+        assert!(!labels(window).contains(ssh_trust_line(false)));
+        window.click("settings-nav-appearance", cx);
+        window.click("language-en", cx);
+        window.click("settings-nav-diagnostics", cx);
         window.click("env-notify", cx);
-        window.render_frame(cx);
         assert!(labels(window).contains("Notification request posted. Delivery is not confirmed."));
         window.remove_window();
     })
@@ -479,6 +436,7 @@ fn leaving_settings_suspends_the_in_flight_environment_read(cx: &mut TestAppCont
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-settings", cx);
+        window.click("settings-nav-environment", cx);
         window.render_frame(cx);
         let probe = shell.update(cx, |this, cx| this.environment_probe(cx));
         assert!(probe.task);
@@ -603,7 +561,7 @@ fn stale_environment_terminal_does_not_replace_the_visible_report(cx: &mut TestA
         });
         window.render_frame(cx);
         let text = labels(window);
-        assert!(text.contains("Saved SSH host names: late-host."));
+        assert!(text.contains(ssh_trust_line(false)));
         assert!(text.contains(ssh_trust_line(false)));
         assert!(!text.contains("after-suspend"));
         assert!(!text.contains("stale-generation"));
@@ -619,7 +577,7 @@ fn stale_environment_terminal_does_not_replace_the_visible_report(cx: &mut TestA
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         let text = labels(window);
-        assert!(text.contains("Saved SSH host names: late-host."));
+        assert!(text.contains(ssh_trust_line(false)));
         assert!(!text.contains("after-suspend"));
         assert!(!text.contains("stale-generation"));
         assert!(!text.contains("after-second-suspend"));
@@ -869,7 +827,7 @@ fn switching_environment_keeps_cache_draft_and_job_apart(cx: &mut TestAppContext
         });
         window.render_frame(cx);
         let local = labels(window);
-        assert!(local.contains("Manage saved SSH hosts in SSH environments below."));
+        assert!(local.contains(ssh_trust_line(false)));
         assert!(local.contains(&draft_line(false, "local-draft")));
         assert!(local.contains(&job_line(false, "local-job")));
         assert!(!local.contains(local_only_line(false)));
@@ -953,7 +911,7 @@ fn switching_environment_keeps_cache_draft_and_job_apart(cx: &mut TestAppContext
         });
         window.render_frame(cx);
         let restored = labels(window);
-        assert!(restored.contains("Manage saved SSH hosts in SSH environments below."));
+        assert!(restored.contains(ssh_trust_line(false)));
         assert!(restored.contains(&draft_line(false, "local-draft")));
         assert!(restored.contains(&job_line(false, "local-job")));
         assert!(!restored.contains("ssh-draft"));

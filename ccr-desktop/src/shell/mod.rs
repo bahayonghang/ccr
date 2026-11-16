@@ -132,6 +132,7 @@ pub struct Shell {
     _window_bounds: Subscription,
     reveal_preferences_after_save: bool,
     fixture: bool,
+    fixture_settings: bool,
     slow_fixture: bool,
     brand: std::sync::Arc<gpui_kit::Image>,
     clock: Entity<status::Clock>,
@@ -274,6 +275,9 @@ impl Shell {
             _window_bounds: window_bounds,
             reveal_preferences_after_save: false,
             fixture: services.is_fixture(),
+            fixture_settings: services.allow_fixture_settings(
+                std::env::var_os("CCR_FIXTURE_SETTINGS").is_some_and(|value| value == "1"),
+            ),
             slow_fixture: services.is_slow_fixture(),
             brand: std::sync::Arc::new(gpui_kit::Image::from_bytes(
                 gpui_kit::ImageFormat::Png,
@@ -383,8 +387,12 @@ impl Shell {
             return;
         }
         self.navigation_generation += 1;
-        if self.lens == Lens::Profiles && self.configurations.read(cx).has_dirty_draft(cx) {
+        if (self.lens == Lens::Profiles && self.configurations.read(cx).has_dirty_draft(cx))
+            || (self.destination == Destination::Settings
+                && self.remote.read(cx).has_environment_draft(cx))
+        {
             self.navigation_decision = Some(navigation_guard::Decision {
+                settings_tab: None,
                 destination,
                 lens,
                 generation: self.navigation_generation,
@@ -395,8 +403,9 @@ impl Shell {
             return;
         }
         if self.destination == Destination::Settings && destination != Destination::Settings {
-            self.remote
-                .update(cx, |view, cx| view.clear_cli_on_leave(cx));
+            self.remote.update(cx, |view, cx| {
+                view.discard_for_environment_switch(window, cx)
+            });
         }
         self.destination = destination;
         self.lens = lens;

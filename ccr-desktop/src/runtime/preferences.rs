@@ -90,6 +90,7 @@ impl TypographyPreferences {
 
 #[derive(Clone, PartialEq)]
 pub struct DesktopPreferences {
+    pub settings_tab: SettingsTab,
     pub environment: EnvironmentId,
     pub theme: Preference,
     pub language: Language,
@@ -101,12 +102,33 @@ pub struct DesktopPreferences {
 impl Default for DesktopPreferences {
     fn default() -> Self {
         Self {
+            settings_tab: SettingsTab::Appearance,
             environment: EnvironmentId::Local("local".into()),
             theme: Preference::Light,
             language: Language::English,
             confirm_quit: true,
             window: None,
             typography: TypographyPreferences::default(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum SettingsTab {
+    #[default]
+    Appearance,
+    Workbench,
+    Environment,
+    Diagnostics,
+}
+
+impl SettingsTab {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Appearance => "appearance",
+            Self::Workbench => "workbench",
+            Self::Environment => "environment",
+            Self::Diagnostics => "diagnostics",
         }
     }
 }
@@ -222,6 +244,12 @@ fn read(path: Option<&std::path::Path>) -> Result<DesktopPreferences, Preference
         return Err(PreferencesError::Invalid);
     }
     Ok(DesktopPreferences {
+        settings_tab: match value.get("settings_tab").and_then(|v| v.as_str()) {
+            Some("workbench") => SettingsTab::Workbench,
+            Some("environment") => SettingsTab::Environment,
+            Some("diagnostics") => SettingsTab::Diagnostics,
+            _ => SettingsTab::Appearance,
+        },
         environment: match value.get("environment") {
             None => EnvironmentId::Local("local".into()),
             Some(serde_json::Value::String(id)) if id == "local" => {
@@ -332,6 +360,7 @@ fn write(
         return Err(PreferencesError::Invalid);
     }
     let value = serde_json::json!({
+        "settings_tab": preferences.settings_tab.as_str(),
         "environment": match &preferences.environment {
             EnvironmentId::Local(_) => "local".to_owned(),
             EnvironmentId::Ssh(id) if valid_ssh_id(id) => format!("ssh:{id}"),
@@ -387,6 +416,7 @@ mod tests {
         let path = root.path().join("desktop-gpui/preferences.json");
         assert!(read(Some(&path)).unwrap() == DesktopPreferences::default());
         let selected = DesktopPreferences {
+            settings_tab: SettingsTab::Environment,
             environment: EnvironmentId::Ssh("fixture-host".into()),
             theme: Preference::Dark,
             language: Language::Chinese,

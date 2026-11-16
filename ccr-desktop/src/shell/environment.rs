@@ -20,7 +20,7 @@ pub(super) enum ConnectionState {
     Credentials,
 }
 impl ConnectionState {
-    fn label(self, cx: &gpui_kit::App) -> &'static str {
+    pub(super) fn label(self, cx: &gpui_kit::App) -> &'static str {
         match self {
             Self::Disconnected => text(cx, "Not connected", "未连接"),
             Self::Connecting => text(cx, "Connecting", "连接中"),

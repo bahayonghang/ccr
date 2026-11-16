@@ -5,18 +5,21 @@ use crate::{
         Services,
         environments::{SshAction, SshResult},
     },
-    shell::semantics,
+    shell::{badge, semantics},
     theme,
 };
 use ccr_app::{
     environments::ssh::{AuthMethod, ConfigFile, Document, Host, HostInput, Probe, Secret},
     runtime::{CancellationHandle, Completion, EnvironmentId, Platform, RequestKey, TaskEvent},
 };
+use gpui_kit::base::Selectable;
+use gpui_kit::component::FocusTrapElement;
 use gpui_kit::component::button::{Button, ButtonVariants};
 use gpui_kit::component::input::{Input, InputState, Textarea, TextareaState};
 use gpui_kit::{
-    AppContext, Context, Entity, IntoElement, ParentElement, Render, SharedString, Styled, Task,
-    Window, div, px,
+    AppContext, Context, Entity, InteractiveElement, IntoElement, ParentElement, Render,
+    SharedString, StatefulInteractiveElement, Styled, Task, Window, base::TestSupportExt,
+    component::ActiveTheme, div, px,
 };
 use std::collections::HashMap;
 
@@ -52,9 +55,18 @@ pub struct RemoteView {
     read_confirmation: bool,
     host_form: Option<HostInput>,
     pending_test: Option<HostInput>,
+    saved_test: Option<String>,
     host_fields: [Entity<InputState>; 8],
     host_form_pending: bool,
     delete_confirmation: bool,
+    advanced: bool,
+    connection_status: &'static str,
+    decision_focus: gpui_kit::FocusHandle,
+    decision_enter: bool,
+    decision_return: Option<gpui_kit::FocusHandle>,
+    host_saved_notice: bool,
+    restore_pending: bool,
+    delete_handles: HashMap<String, gpui_kit::FocusHandle>,
 }
 impl RemoteView {
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
@@ -81,11 +93,20 @@ impl RemoteView {
             read_confirmation: false,
             host_form: None,
             pending_test: None,
+            saved_test: None,
             host_fields: std::array::from_fn(|index| {
                 cx.new(|cx| InputState::new(window, cx).masked(index == 7))
             }),
             host_form_pending: false,
             delete_confirmation: false,
+            advanced: false,
+            connection_status: "",
+            decision_focus: cx.focus_handle().tab_stop(false),
+            decision_enter: false,
+            decision_return: None,
+            host_saved_notice: false,
+            restore_pending: false,
+            delete_handles: HashMap::new(),
         }
     }
     pub fn operation_environment(&self) -> EnvironmentId {
@@ -95,6 +116,11 @@ impl RemoteView {
             .unwrap_or_else(|| EnvironmentId::Local("local".into()))
     }
     pub fn edit_saved_host(&mut self, id: &str, window: &mut Window, cx: &mut Context<Self>) {
+        if self.shell_controlled && self.services.environment() == EnvironmentId::Ssh(id.into()) {
+            self.message = Some("ssh_edit_current");
+            cx.notify();
+            return;
+        }
         if let Some(host) = self.hosts.iter().find(|h| h.id == id).cloned() {
             self.select(host, window, cx);
             self.start(SshAction::HostDetails(id.into()), cx);
@@ -109,6 +135,7 @@ impl RemoteView {
     pub fn has_environment_draft(&self, cx: &gpui_kit::App) -> bool {
         self.host_form.is_some()
             || self.pending_test.is_some()
+            || self.saved_test.is_some()
             || self.drafts.values().any(|d| d.text != d.document.content)
             || (self
                 .selected
@@ -126,7 +153,13 @@ impl RemoteView {
         self.detecting = false;
         self.generation += 1;
         self.host_form = None;
+        self.host_form_pending = false;
+        self.restore_pending = false;
+        self.read_confirmation = false;
+        self.save_confirmation = false;
+        self.delete_confirmation = false;
         self.pending_test = None;
+        self.saved_test = None;
         self.probe = None;
         self.drafts.clear();
         self.connected = false;
@@ -182,10 +215,12 @@ impl RemoteView {
         self.remember(cx);
         self.host_form = None;
         self.pending_test = None;
+        self.saved_test = None;
         self.host_fields[7].update(cx, |state, cx| state.set_value("", window, cx));
         self.delete_confirmation = false;
         self.read_confirmation = false;
         self.selected = Some(host);
+        self.advanced = false;
         self.connected = false;
         self.cli = None;
         self.cli_error = None;
@@ -224,6 +259,7 @@ impl RemoteView {
     }
     fn host_form(&mut self, input: HostInput, window: &mut Window, cx: &mut Context<Self>) {
         self.pending_test = None;
+        self.saved_test = None;
         self.probe = None;
         let values = [
             input.name.clone(),
@@ -243,6 +279,7 @@ impl RemoteView {
         cx.notify();
     }
     fn save_host(&mut self, test: bool, window: &mut Window, cx: &mut Context<Self>) {
+        self.host_saved_notice = false;
         let Some(form) = &self.host_form else { return };
         let fields = self
             .host_fields
@@ -267,8 +304,10 @@ impl RemoteView {
             user: fields[3].clone(),
             remote_home: fields[4].clone(),
             auth_method,
-            identity_file: (!fields[6].is_empty()).then(|| fields[6].clone()),
-            secret: (!fields[7].is_empty()).then(|| Secret::new(fields[7].clone())),
+            identity_file: (auth_method == AuthMethod::PrivateKey && !fields[6].is_empty())
+                .then(|| fields[6].clone()),
+            secret: (auth_method != AuthMethod::Agent && !fields[7].is_empty())
+                .then(|| Secret::new(fields[7].clone())),
         };
         self.probe = None;
         self.pending_test = test.then(|| input.clone());
@@ -289,11 +328,31 @@ impl RemoteView {
         if self.busy {
             return;
         }
+        // 当前主机的破坏性管理只能在统一切换排空并断开后执行。
+        if self.shell_controlled
+            && match &action {
+                SshAction::SaveHost(input) => input.id.as_ref().is_some_and(|id| {
+                    self.services.environment() == EnvironmentId::Ssh(id.clone())
+                }),
+                SshAction::DeleteHost(id) | SshAction::HostDetails(id) => {
+                    self.services.environment() == EnvironmentId::Ssh(id.clone())
+                }
+                _ => false,
+            }
+        {
+            self.message = Some("ssh_edit_current");
+            cx.notify();
+            return;
+        }
         if !matches!(
             &action,
-            SshAction::TestConnection(_) | SshAction::Confirm(_)
+            SshAction::TestConnection(_)
+                | SshAction::TestHost(_)
+                | SshAction::Confirm(_)
+                | SshAction::ConfirmTest(_)
         ) {
             self.pending_test = None;
+            self.saved_test = None;
         }
         let detecting_host = match &action {
             SshAction::DetectCli(id) => Some(id.clone()),
@@ -302,11 +361,27 @@ impl RemoteView {
         self.remember(cx);
         self.generation += 1;
         let generation = self.generation;
-        let environment = self
-            .selected
-            .as_ref()
-            .map(|h| EnvironmentId::Ssh(h.id.clone()))
-            .unwrap_or(EnvironmentId::Local("local".into()));
+        // 管理作业属于准入时的当前环境，切换必须等待其真实终态；
+        // 不能把 Local 上编辑 B 的作业登记为 SSH B，否则 Local drain 会漏掉它。
+        let environment = if self.shell_controlled
+            && matches!(
+                &action,
+                SshAction::Hosts
+                    | SshAction::HostDetails(_)
+                    | SshAction::SaveHost(_)
+                    | SshAction::DeleteHost(_)
+                    | SshAction::TestHost(_)
+                    | SshAction::TestConnection(_)
+                    | SshAction::Confirm(_)
+                    | SshAction::ConfirmTest(_)
+            ) {
+            self.services.environment()
+        } else {
+            self.selected
+                .as_ref()
+                .map(|h| EnvironmentId::Ssh(h.id.clone()))
+                .unwrap_or(EnvironmentId::Local("local".into()))
+        };
         let key = RequestKey {
             environment,
             platform: Platform::Claude,
@@ -347,7 +422,17 @@ impl RemoteView {
                                 this.cancel = None;
                                 match result.as_ref() {
                                     Completion::Success(SshResult::Hosts(hosts)) => {
+                                        this.delete_handles.retain(|id, _| {
+                                            hosts.iter().any(|host| &host.id == id)
+                                        });
                                         this.hosts = hosts.clone();
+                                        this.selected =
+                                            this.selected.as_ref().and_then(|selected| {
+                                                hosts
+                                                    .iter()
+                                                    .find(|host| host.id == selected.id)
+                                                    .cloned()
+                                            });
                                         this.loaded = true;
                                     }
                                     Completion::Success(SshResult::HostDetails(input)) => {
@@ -355,6 +440,8 @@ impl RemoteView {
                                         this.host_form_pending = true;
                                     }
                                     Completion::Success(SshResult::HostSaved(host)) => {
+                                        this.host_saved_notice = true;
+                                        this.restore_pending = true;
                                         let changed = this
                                             .selected
                                             .as_ref()
@@ -369,9 +456,11 @@ impl RemoteView {
                                         if changed {
                                             this.record_selection();
                                         }
+                                        this.start(SshAction::Hosts, cx);
                                     }
                                     Completion::Success(SshResult::HostDeleted) => {
                                         if let Some(host) = this.selected.take() {
+                                            this.delete_handles.remove(&host.id);
                                             this.hosts.retain(|item| item.id != host.id);
                                             this.drafts.retain(|(id, _), _| id != &host.id);
                                             this.record_selection();
@@ -388,12 +477,15 @@ impl RemoteView {
                                         this.probe = None;
                                         this.connected = false;
                                         this.message = Some("ssh_trusted");
-                                        if let Some(input) = this.pending_test.take() {
+                                        if let Some(id) = this.saved_test.take() {
+                                            this.start(SshAction::TestHost(id), cx);
+                                        } else if let Some(input) = this.pending_test.take() {
                                             this.start(SshAction::TestConnection(input), cx);
                                         }
                                     }
                                     Completion::Success(SshResult::Tested) => {
                                         this.pending_test = None;
+                                        this.saved_test = None;
                                         this.message = Some("ssh_tested");
                                     }
                                     Completion::Success(SshResult::Connected) => {
@@ -422,6 +514,7 @@ impl RemoteView {
                                     }
                                     Completion::Failed(error) => {
                                         this.pending_test = None;
+                                        this.saved_test = None;
                                         this.message = Some(*error);
                                         if !matches!(
                                             *error,
@@ -432,11 +525,13 @@ impl RemoteView {
                                     }
                                     Completion::Cancelled => {
                                         this.pending_test = None;
+                                        this.saved_test = None;
                                         this.message = Some("ssh_cancelled");
                                         this.connected = false;
                                     }
                                     Completion::CleanupFailed(error) => {
                                         this.pending_test = None;
+                                        this.saved_test = None;
                                         this.message = Some(*error);
                                         this.connected = false;
                                     }
@@ -495,6 +590,12 @@ fn message(code: &str, chinese: bool) -> &'static str {
         ("ssh_connected", true) => "已连接，远程配置通过 SFTP 访问。",
         ("ssh_trusted", false) => "Host key saved. Connect to verify this host again.",
         ("ssh_trusted", true) => "已保存主机密钥。连接时会再次验证。",
+        ("ssh_edit_current", false) => {
+            "Switch to Local before editing, repairing credentials or deleting the current SSH host. Running work and drafts use the normal switch confirmation."
+        }
+        ("ssh_edit_current", true) => {
+            "编辑、修复凭据或删除当前 SSH 主机前，请先切回本地。运行中的作业和草稿会使用统一切换确认。"
+        }
         ("ssh_document_ready", false) => "Remote document loaded or saved.",
         ("ssh_document_ready", true) => "远程文件已读取或保存。",
         ("ssh_session_changed", false) => {
@@ -544,42 +645,246 @@ fn message(code: &str, chinese: bool) -> &'static str {
 // Keep debug renderer frames bounded: GPUI builders are large values, and
 // a single function reserves stack slots for every conditional branch.
 impl RemoteView {
+    pub(crate) fn set_connection_status(&mut self, status: &'static str, cx: &mut Context<Self>) {
+        if self.connection_status != status {
+            self.connection_status = status;
+            cx.notify();
+        }
+    }
     fn render_host_controls(
         &self,
         mut root: gpui_kit::Div,
         cx: &mut Context<Self>,
     ) -> gpui_kit::Div {
-        let local_busy = self.busy;
-        root = root.child(semantics::button(
-            Button::new("ssh-local")
-                .label(text(cx, "Use Local", "使用本地环境"))
-                .ghost()
-                .on_click(cx.listener(|this, _, _, cx| {
-                    if this.shell_controlled {
-                        cx.emit(EnvironmentRequest(EnvironmentId::Local("local".into())));
-                    } else {
-                        this.remember(cx);
-                        this.start(SshAction::Disconnect, cx);
-                    }
-                })),
-            local_busy,
-            false,
-            cx,
-        ));
-        for host in self.hosts.clone() {
-            let selected = self.selected.as_ref().is_some_and(|h| h.id == host.id);
-            let label = format!("{}{}", if selected { "● " } else { "" }, host.name);
-            root = root.child(semantics::button(
-                Button::new(SharedString::from(format!("ssh-host-{}", host.id)))
-                    .label(label)
+        let blocked = self.busy || self.host_form.is_some();
+        let toolbar = div()
+            .flex()
+            .flex_wrap()
+            .items_center()
+            .gap(px(theme::CONTROL_GAP))
+            .child(semantics::button(
+                Button::new("ssh-local")
+                    .label(text(cx, "Use Local", "使用本地环境"))
                     .ghost()
-                    .on_click(cx.listener(move |this, _, window, cx| {
-                        this.select(host.clone(), window, cx)
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        if this.shell_controlled {
+                            cx.emit(EnvironmentRequest(EnvironmentId::Local("local".into())));
+                        } else {
+                            this.remember(cx);
+                            this.start(SshAction::Disconnect, cx);
+                        }
                     })),
                 self.busy,
                 false,
                 cx,
+            ))
+            .child(semantics::button(
+                Button::new("ssh-add-host")
+                    .label(text(cx, "Add SSH host", "添加 SSH 主机"))
+                    .on_click(cx.listener(|this, _, window, cx| {
+                        this.host_form(
+                            HostInput {
+                                port: 22,
+                                remote_home: "~".into(),
+                                ..Default::default()
+                            },
+                            window,
+                            cx,
+                        )
+                    })),
+                blocked,
+                false,
+                cx,
+            ))
+            .child(semantics::button(
+                Button::new("ssh-hosts-reload")
+                    .label(text(cx, "Reload hosts", "重新加载主机"))
+                    .ghost()
+                    .on_click(cx.listener(|this, _, _, cx| this.start(SshAction::Hosts, cx))),
+                blocked,
+                false,
+                cx,
             ));
+        root = root.child(toolbar);
+        for host in self.hosts.clone() {
+            let selected = self.selected.as_ref().is_some_and(|h| h.id == host.id);
+            let current = self.shell_controlled
+                && self.services.environment() == EnvironmentId::Ssh(host.id.clone());
+            let mut card = div()
+                .id(SharedString::from(format!("ssh-card-{}", host.id)))
+                .test_support()
+                .flex()
+                .flex_col()
+                .gap(px(theme::CONTROL_GAP))
+                .p(px(theme::SECTION_GAP))
+                .border_1()
+                .border_color(cx.theme().border)
+                .rounded(px(theme::INPUT_RADIUS))
+                .child(
+                    div()
+                        .flex()
+                        .flex_wrap()
+                        .items_center()
+                        .gap(px(theme::CONTROL_GAP))
+                        .child(semantics::button(
+                            Button::new(SharedString::from(format!("ssh-host-{}", host.id)))
+                                .label(host.name.clone())
+                                .ghost()
+                                .on_click(cx.listener({
+                                    let host = host.clone();
+                                    move |this, _, window, cx| this.select(host.clone(), window, cx)
+                                })),
+                            blocked,
+                            false,
+                            cx,
+                        ))
+                        .child(if current {
+                            text(cx, "Current environment", "当前执行环境")
+                        } else {
+                            ""
+                        }),
+                )
+                .child(
+                    div()
+                        .text_size(theme::text_size(theme::META_SIZE))
+                        .text_color(cx.theme().muted_foreground)
+                        .child(format!(
+                            "{}@{}:{} · {} · {}",
+                            host.user,
+                            host.host,
+                            host.port,
+                            auth_label(host.auth_method, cx),
+                            if current {
+                                self.connection_status
+                            } else if host.credentials_missing {
+                                text(cx, "Credentials missing", "凭据缺失")
+                            } else {
+                                text(cx, "Not connected", "未连接")
+                            }
+                        )),
+                )
+                .child(
+                    div()
+                        .text_size(theme::text_size(theme::META_SIZE))
+                        .text_color(cx.theme().muted_foreground)
+                        .child(format!(
+                            "{}: {}",
+                            text(cx, "Last connected", "最近连接"),
+                            host.last_connected_at
+                                .map(|time| time.format("%Y-%m-%d %H:%M UTC").to_string())
+                                .unwrap_or_else(|| text(cx, "Never", "尚未连接").into())
+                        )),
+                );
+            let mut actions = div()
+                .flex()
+                .flex_wrap()
+                .items_center()
+                .gap(px(theme::CONTROL_GAP));
+            for (action, en, zh) in [
+                ("current", "Set as current", "设为当前"),
+                ("edit", "Edit", "编辑"),
+                ("test", "Test", "测试"),
+                ("delete", "Delete", "删除"),
+            ] {
+                let id = if selected {
+                    match action {
+                        "current" if self.shell_controlled => "ssh-connect".into(),
+                        "current" => "ssh-current".into(),
+                        "edit" => "ssh-edit-host".into(),
+                        "test" => "ssh-test-host".into(),
+                        _ => "ssh-delete-host".into(),
+                    }
+                } else {
+                    format!("ssh-{action}-{}", host.id)
+                };
+                let host = host.clone();
+                if action == "delete" {
+                    let focus = self
+                        .delete_handles
+                        .get(&host.id)
+                        .unwrap_or(&self.decision_focus)
+                        .clone();
+                    let disabled = blocked || current;
+                    actions = actions.child(
+                        gpui_kit::base::Button::new(SharedString::from(id))
+                            .accessibility_label(text(cx, en, zh))
+                            .track_focus(&focus)
+                            .disabled(disabled)
+                            .tab_stop(!disabled)
+                            .a11y_synthetic_children(move |tree| {
+                                if disabled {
+                                    tree.parent_node().set_disabled();
+                                } else {
+                                    tree.parent_node().clear_disabled();
+                                }
+                            })
+                            .h(px(36.))
+                            .px(px(12.))
+                            .rounded(px(theme::PILL_RADIUS))
+                            .border_2()
+                            .border_color(gpui_kit::transparent_black())
+                            .text_color(if disabled {
+                                cx.theme().muted_foreground
+                            } else {
+                                cx.theme().danger
+                            })
+                            .focus_visible(|style| style.border_color(cx.theme().ring))
+                            .child(text(cx, en, zh))
+                            .on_click(cx.listener(move |this, _, window, cx| {
+                                this.select(host.clone(), window, cx);
+                                this.delete_confirmation = true;
+                                this.decision_enter = true;
+                                this.decision_return = this.delete_handles.get(&host.id).cloned();
+                                cx.notify();
+                            })),
+                    );
+                    continue;
+                }
+                actions = actions.child(semantics::button(
+                    Button::new(SharedString::from(id))
+                        .label(text(cx, en, zh))
+                        .ghost()
+                        .on_click(cx.listener(move |this, _, window, cx| {
+                            this.select(host.clone(), window, cx);
+                            match action {
+                                "current" if this.shell_controlled => {
+                                    cx.emit(EnvironmentRequest(EnvironmentId::Ssh(host.id.clone())))
+                                }
+                                "current" => this.start(SshAction::Connect(host.id.clone()), cx),
+                                "edit" => this.start(SshAction::HostDetails(host.id.clone()), cx),
+                                "test" => {
+                                    this.saved_test = Some(host.id.clone());
+                                    this.start(SshAction::TestHost(host.id.clone()), cx);
+                                }
+                                _ => {}
+                            }
+                        })),
+                    blocked || (current && matches!(action, "edit" | "delete")),
+                    false,
+                    cx,
+                ));
+            }
+            if host.credentials_missing {
+                let host = host.clone();
+                actions = actions.child(semantics::button(
+                    Button::new(SharedString::from(format!("ssh-repair-{}", host.id)))
+                        .label(text(cx, "Repair credentials", "重新输入凭据"))
+                        .ghost()
+                        .on_click(cx.listener(move |this, _, window, cx| {
+                            this.select(host.clone(), window, cx);
+                            this.start(SshAction::HostDetails(host.id.clone()), cx);
+                        })),
+                    blocked || current,
+                    false,
+                    cx,
+                ));
+            }
+            card = card.child(actions);
+            if current {
+                card=card.child(div().text_size(theme::text_size(theme::META_SIZE)).text_color(cx.theme().muted_foreground)
+                .child(text(cx,"To edit, repair credentials or delete this host, use Local first; then set this host as current again.","编辑、修复凭据或删除此主机前，请先使用本地环境；完成后再设为当前。")));
+            }
+            root = root.child(card);
         }
         if self.loaded && self.hosts.is_empty() {
             root = root.child(text(
@@ -588,88 +893,115 @@ impl RemoteView {
                 "没有保存的 SSH 主机，请先添加主机。",
             ));
         }
-        root = root.child(semantics::button(
-            Button::new("ssh-hosts-reload")
-                .label(text(cx, "Reload hosts", "重新加载主机"))
-                .ghost()
-                .on_click(cx.listener(|this, _, _, cx| this.start(SshAction::Hosts, cx))),
-            self.busy,
-            false,
-            cx,
-        ));
-        root = root.child(semantics::button(
-            Button::new("ssh-add-host")
-                .label(text(cx, "Add SSH host", "添加 SSH 主机"))
-                .ghost()
-                .on_click(cx.listener(|this, _, window, cx| {
-                    this.host_form(
-                        HostInput {
-                            id: None,
-                            name: String::new(),
-                            host: String::new(),
-                            port: 22,
-                            user: String::new(),
-                            remote_home: "~".into(),
-                            ..Default::default()
-                        },
-                        window,
-                        cx,
-                    )
-                })),
-            self.busy,
-            false,
-            cx,
-        ));
         root
     }
     fn render_host_form(&self, mut root: gpui_kit::Div, cx: &mut Context<Self>) -> gpui_kit::Div {
-        if self.host_form.is_some() {
-            root = root.child(text(cx, "Authentication: agent / private_key / password. A blank secret keeps the stored credential for the same method.", "认证方式填写 agent / private_key / password。认证方式不变时，凭据留空沿用已保存值。"));
-            root = root.child(semantics::button(
-                Button::new("ssh-host-test")
-                    .label(text(cx, "Test connection", "测试连接"))
-                    .on_click(cx.listener(|this, _, window, cx| this.save_host(true, window, cx))),
-                self.busy,
-                false,
+        let Some(form) = &self.host_form else {
+            return root;
+        };
+        let method =
+            AuthMethod::parse(self.host_fields[5].read(cx).value().as_str()).unwrap_or_default();
+        let mut content = div()
+            .id("ssh-host-form")
+            .test_support()
+            .flex()
+            .flex_col()
+            .gap(px(theme::SECTION_GAP))
+            .p(px(theme::SECTION_GAP))
+            .border_1()
+            .border_color(cx.theme().border)
+            .rounded(px(theme::INPUT_RADIUS))
+            .child(badge::section_heading(
+                if form.id.is_some() {
+                    text(cx, "Edit SSH host", "编辑 SSH 主机")
+                } else {
+                    text(cx, "New SSH host", "新建 SSH 主机")
+                },
+                None,
                 cx,
             ));
-            for (index, (en, zh)) in [
-                ("Name", "名称"),
-                ("Host", "主机"),
-                ("Port", "端口"),
-                ("User", "用户"),
-                ("Remote home", "远程主目录"),
-                ("Authentication method", "认证方式"),
-                ("Private key path", "私钥路径"),
-                ("Password / key passphrase", "密码 / 私钥口令"),
-            ]
-            .into_iter()
-            .enumerate()
-            {
-                root = root.child(text(cx, en, zh)).child(
-                    Input::new(&self.host_fields[index])
-                        .accessibility_id(SharedString::from(format!("ssh-host-field-{index}")))
-                        .aria_label(text(cx, en, zh))
-                        .disabled(self.busy),
-                );
-            }
-            root = root.child(semantics::button(
-                Button::new("ssh-host-save")
-                    .label(text(cx, "Save host", "保存主机"))
-                    .on_click(cx.listener(|this, _, window, cx| this.save_host(false, window, cx))),
-                self.busy,
-                false,
-                cx,
-            ));
-            root = root.child(semantics::button(
-                Button::new("ssh-host-cancel")
-                    .label(text(cx, "Cancel", "取消"))
-                    .ghost()
-                    .on_click(cx.listener(|this, _, window, cx| {
-                        this.host_form = None;
-                        this.pending_test = None;
-                        this.probe = None;
+        content = content.child(
+            div()
+                .flex()
+                .flex_wrap()
+                .gap(px(theme::CONTROL_GAP))
+                .child(semantics::button(
+                    Button::new("ssh-host-save")
+                        .label(text(cx, "Save host", "保存主机"))
+                        .on_click(
+                            cx.listener(|this, _, window, cx| this.save_host(false, window, cx)),
+                        ),
+                    self.busy,
+                    false,
+                    cx,
+                ))
+                .child(semantics::button(
+                    Button::new("ssh-host-test")
+                        .label(text(cx, "Test connection", "测试连接"))
+                        .outline()
+                        .on_click(
+                            cx.listener(|this, _, window, cx| this.save_host(true, window, cx)),
+                        ),
+                    self.busy,
+                    false,
+                    cx,
+                ))
+                .child(semantics::button(
+                    Button::new("ssh-host-cancel")
+                        .label(text(cx, "Cancel", "取消"))
+                        .ghost()
+                        .on_click(cx.listener(|this, _, window, cx| {
+                            this.host_form = None;
+                            this.host_fields[7]
+                                .update(cx, |state, cx| state.set_value("", window, cx));
+                            this.pending_test = None;
+                            this.saved_test = None;
+                            this.probe = None;
+                            cx.notify();
+                        })),
+                    self.busy,
+                    false,
+                    cx,
+                )),
+        );
+        content = content.child(badge::section_heading(
+            text(cx, "Connection", "连接"),
+            None,
+            cx,
+        ));
+        let mut fields = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
+        for (index, en, zh) in [
+            (0, "Name", "名称"),
+            (1, "Host", "主机"),
+            (2, "Port", "端口"),
+            (3, "User", "用户"),
+        ] {
+            fields = fields.child(self.host_field(index, en, zh, cx));
+        }
+        content = content.child(fields).child(badge::section_heading(
+            text(cx, "Authentication", "认证"),
+            None,
+            cx,
+        ));
+        let mut choices = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
+        for (id, method_choice) in [
+            ("ssh-auth-agent", AuthMethod::Agent),
+            ("ssh-auth-key", AuthMethod::PrivateKey),
+            ("ssh-auth-password", AuthMethod::Password),
+        ] {
+            choices = choices.child(semantics::button(
+                Button::new(id)
+                    .label(auth_label(method_choice, cx))
+                    .selected(method == method_choice)
+                    .outline()
+                    .on_click(cx.listener(move |this, _, window, cx| {
+                        this.host_fields[5].update(cx, |state, cx| {
+                            state.set_value(method_choice.as_str(), window, cx)
+                        });
                         this.host_fields[7].update(cx, |state, cx| state.set_value("", window, cx));
+                        this.pending_test = None;
+                        this.saved_test = None;
+                        this.probe = None;
                         cx.notify();
                     })),
                 self.busy,
@@ -677,7 +1009,55 @@ impl RemoteView {
                 cx,
             ));
         }
+        content = content.child(choices);
+        if method == AuthMethod::PrivateKey {
+            content = content.child(self.host_field(6, "Private key path", "私钥路径", cx));
+        }
+        if method != AuthMethod::Agent {
+            content=content.child(self.host_field(7,if method==AuthMethod::Password {"Password"} else {"Key passphrase"},if method==AuthMethod::Password {"密码"} else {"私钥口令"},cx))
+                .child(div().text_size(theme::text_size(theme::META_SIZE)).text_color(cx.theme().muted_foreground)
+                    .child(text(cx,"Stored in the system credential store. A blank value keeps the saved credential for the same method; saved values are never shown.","凭据存入系统凭据库。认证方式不变时留空沿用已保存值；保存后不再回显。")));
+        }
+        content = content
+            .child(badge::section_heading(
+                text(cx, "Remote home", "远程主目录"),
+                None,
+                cx,
+            ))
+            .child(self.host_field(
+                4,
+                "Remote home (~ detects HOME)",
+                "远程主目录（~ 自动探测 HOME）",
+                cx,
+            ));
+        root = root.child(content);
         root
+    }
+    fn host_field(
+        &self,
+        index: usize,
+        en: &'static str,
+        zh: &'static str,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::Div {
+        div()
+            .flex()
+            .flex_col()
+            .gap(px(4.))
+            .w(px(if index == 6 || index == 4 { 420. } else { 240. }))
+            .max_w_full()
+            .child(
+                div()
+                    .text_size(theme::text_size(theme::META_SIZE))
+                    .text_color(cx.theme().muted_foreground)
+                    .child(text(cx, en, zh)),
+            )
+            .child(
+                Input::new(&self.host_fields[index])
+                    .id(SharedString::from(format!("ssh-host-field-{index}")))
+                    .aria_label(text(cx, en, zh))
+                    .disabled(self.busy),
+            )
     }
     fn render_selected_controls(
         &self,
@@ -685,43 +1065,27 @@ impl RemoteView {
         host: &Host,
         cx: &mut Context<Self>,
     ) -> gpui_kit::Div {
-        let edit_host = host.clone();
-        root = root.child(semantics::button(
-            Button::new("ssh-edit-host")
-                .label(text(cx, "Edit host", "编辑主机"))
-                .ghost()
-                .on_click(cx.listener(move |this, _, _, cx| {
-                    this.start(SshAction::HostDetails(edit_host.id.clone()), cx)
-                })),
-            self.busy,
-            false,
-            cx,
-        ));
-        root = root.child(semantics::button(
-            Button::new("ssh-delete-host")
-                .label(text(cx, "Delete host", "删除主机"))
-                .ghost()
-                .on_click(cx.listener(|this, _, _, cx| {
-                    this.delete_confirmation = true;
-                    cx.notify();
-                })),
-            self.busy,
-            false,
-            cx,
-        ));
         if self.delete_confirmation {
             let deleted = host.clone();
-            root = root.child(text(
-                cx,
-                "Delete this saved host? Remote files are retained.",
-                "删除此保存的主机？远程文件将保留。",
+            root = root.child(format!(
+                "{}: {}. {}",
+                text(cx, "Delete saved host", "删除保存的主机"),
+                host.name,
+                text(
+                    cx,
+                    "Stored credentials will be removed; remote files are retained.",
+                    "将清理已保存凭据，远程文件将保留。"
+                )
             ));
             root = root.child(semantics::button(
                 Button::new("ssh-cancel-delete")
                     .label(text(cx, "Cancel", "取消"))
                     .ghost()
-                    .on_click(cx.listener(|this, _, _, cx| {
+                    .on_click(cx.listener(|this, _, window, cx| {
                         this.delete_confirmation = false;
+                        if let Some(focus) = &this.decision_return {
+                            window.focus(focus, cx);
+                        }
                         cx.notify();
                     })),
                 self.busy,
@@ -795,16 +1159,23 @@ impl RemoteView {
                     stored
                 ));
             }
-            root = root.child(text(
+            root = root.child(if self.pending_test.is_some() || self.saved_test.is_some() { text(cx,
+                "Review the test connection's host key independently. Approval saves trust and continues the test; the current environment stays connected.",
+                "请通过独立渠道核对测试连接的主机密钥。确认后保存信任并继续测试，当前执行环境保持连接。") } else { text(
                     cx,
                     "The connection was closed for trust review. Verify this fingerprint through a separate trusted channel before saving it, then reconnect.",
                     "连接已断开以重新检查信任。保存前请通过独立可信渠道核对指纹，然后重新连接。",
-                ));
+                ) });
             root = root.child(semantics::button(
                 Button::new("ssh-confirm-trust")
                     .label(text(cx, "Trust this host key", "信任此主机密钥"))
                     .on_click(cx.listener(move |this, _, _, cx| {
-                        this.start(SshAction::Confirm(probe.challenge_id.clone()), cx)
+                        let action = if this.pending_test.is_some() || this.saved_test.is_some() {
+                            SshAction::ConfirmTest(probe.challenge_id.clone())
+                        } else {
+                            SshAction::Confirm(probe.challenge_id.clone())
+                        };
+                        this.start(action, cx)
                     })),
                 self.busy,
                 false,
@@ -817,6 +1188,7 @@ impl RemoteView {
                     .on_click(cx.listener(|this, _, _, cx| {
                         this.probe = None;
                         this.pending_test = None;
+                        this.saved_test = None;
                         cx.notify();
                     })),
                 self.busy,
@@ -832,9 +1204,10 @@ impl RemoteView {
         host: &Host,
         cx: &mut Context<Self>,
     ) -> gpui_kit::Div {
-        root=root.child(text(cx,"Remote source files may contain credentials. Load only when you intend to view plaintext. Other pages are Local-only in this release.","远程源文件可能包含凭据。仅在需要查看明文时读取；当前版本的其他页面仅支持本地环境。"));
+        root=root.child(text(cx,"Remote source files may contain credentials. Load only when you intend to view plaintext. Platform remote access is being introduced in later slices.","远程源文件可能包含凭据。仅在需要查看明文时读取；平台远程接入将在后续切片完成。"));
+        let mut files = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
         for (index, file) in ConfigFile::ALL.into_iter().enumerate() {
-            root = root.child(semantics::button(
+            files = files.child(semantics::button(
                 Button::new(SharedString::from(format!("ssh-file-{index}")))
                     .label(file.path())
                     .ghost()
@@ -846,6 +1219,7 @@ impl RemoteView {
                 cx,
             ));
         }
+        root = root.child(files);
         root = root.child(format!(
             "{}: {}",
             text(cx, "Selected file", "选中文件"),
@@ -950,7 +1324,7 @@ impl Render for RemoteView {
         {
             self.host_form(form, window, cx);
         }
-        if self.message == Some("ssh_document_ready") {
+        if std::mem::take(&mut self.restore_pending) || self.message == Some("ssh_document_ready") {
             self.restore(window, cx);
             self.message = None;
         }
@@ -960,19 +1334,95 @@ impl Render for RemoteView {
                     && self.services.ssh_connected(&host.id)
             });
         }
+        if self.delete_confirmation {
+            if std::mem::take(&mut self.decision_enter) {
+                let generation = self.generation;
+                let weak = cx.weak_entity();
+                window.on_next_frame(move |window, cx| {
+                    let _ = weak.update(cx, |this, cx| {
+                        if this.delete_confirmation && this.generation == generation {
+                            window.focus(&this.decision_focus, cx);
+                            window.focus_next(cx);
+                        }
+                    });
+                });
+            }
+            let decision = div()
+                .id("ssh-delete-confirmation")
+                .test_support()
+                .role(gpui_kit::Role::AlertDialog)
+                .aria_label(text(cx, "Delete saved SSH host", "删除保存的 SSH 主机"))
+                .flex()
+                .flex_col()
+                .gap(px(theme::CONTROL_GAP))
+                .p(px(theme::SECTION_GAP))
+                .track_focus(&self.decision_focus)
+                .children(self.selected.as_ref().map(|host| {
+                    self.render_selected_controls(
+                        div().flex().flex_col().gap(px(theme::CONTROL_GAP)),
+                        host,
+                        cx,
+                    )
+                }))
+                .on_key_down(
+                    cx.listener(|this, event: &gpui_kit::KeyDownEvent, window, cx| {
+                        if event.keystroke.key == "escape" {
+                            this.delete_confirmation = false;
+                            if let Some(focus) = &this.decision_return {
+                                window.focus(focus, cx);
+                            }
+                            cx.notify();
+                            cx.stop_propagation();
+                        }
+                    }),
+                );
+            return decision
+                .focus_trap("ssh-delete-trap", &self.decision_focus)
+                .into_any_element();
+        }
         let chinese = crate::locales::is_chinese(cx);
-        let mut root = div()
-            .flex()
-            .flex_col()
-            .gap(px(theme::CONTROL_GAP))
-            .child(text(cx, "SSH environments", "SSH 环境"));
+        for host in &self.hosts {
+            self.delete_handles
+                .entry(host.id.clone())
+                .or_insert_with(|| cx.focus_handle());
+        }
+        let mut root =
+            div()
+                .flex()
+                .flex_col()
+                .gap(px(theme::CONTROL_GAP))
+                .child(badge::section_heading(
+                    text(cx, "SSH hosts", "SSH 主机"),
+                    None,
+                    cx,
+                ));
         root = self.render_host_controls(root, cx);
         root = self.render_host_form(root, cx);
         if let Some(host) = &self.selected {
             root = self.render_selected_controls(root, host, cx);
-            root = self.render_connection(root, host, cx);
-            root = self.render_cli(root, cx);
-            root = self.render_document(root, host, cx);
+            if !self.shell_controlled {
+                root = self.render_connection(root, host, cx);
+            }
+            root = root.child(semantics::button(
+                Button::new("ssh-advanced")
+                    .label(text(
+                        cx,
+                        "Legacy remote files and CLI detection",
+                        "旧版远程文件与 CLI 检测",
+                    ))
+                    .ghost()
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.advanced = !this.advanced;
+                        cx.notify();
+                    })),
+                self.busy,
+                false,
+                cx,
+            ));
+            if self.advanced {
+                root = self.render_cli(root, cx);
+                root = self.render_document(root, host, cx);
+            }
         }
         root = self.render_trust(root, cx);
         if self.busy && !self.detecting {
@@ -994,7 +1444,22 @@ impl Render for RemoteView {
         if let Some(code) = self.message {
             root = root.child(message(code, chinese));
         }
-        root
+        if self.host_saved_notice {
+            root = root.child(text(
+                cx,
+                "Host saved. Set it as current explicitly to use its configuration.",
+                "主机已保存。需要显式设为当前才会使用其配置。",
+            ));
+        }
+        root.into_any_element()
+    }
+}
+
+fn auth_label(method: AuthMethod, cx: &gpui_kit::App) -> &'static str {
+    match method {
+        AuthMethod::Agent => "SSH agent",
+        AuthMethod::PrivateKey => text(cx, "Private key", "私钥路径"),
+        AuthMethod::Password => text(cx, "Password", "密码"),
     }
 }
 
@@ -1226,6 +1691,9 @@ mod tests {
             assert!(view.read(cx).connected);
             assert!(root.path().join("ssh.locks").is_dir());
             window.render_frame(cx);
+            if window.try_find("ssh-read").is_none() {
+                window.click("ssh-advanced", cx);
+            }
             window.click("ssh-read", cx);
         })
         .unwrap();

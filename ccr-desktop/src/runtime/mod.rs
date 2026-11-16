@@ -214,6 +214,10 @@ pub struct Services {
 }
 
 impl Services {
+    pub(crate) fn allow_fixture_settings(&self, requested: bool) -> bool {
+        requested
+            && matches!(&self.source, ConfigSource::Fixture { registry, profiles, .. } if registry.is_absolute() && profiles.is_absolute())
+    }
     /// Snapshot the shell-selected environment before queuing a request.
     pub fn environment(&self) -> EnvironmentId {
         self.environment
@@ -414,6 +418,33 @@ mod tests {
             ]),
             Ok(LaunchMode::App(ConfigSource::Fixture { .. }))
         ));
+    }
+    #[test]
+    fn native_settings_capture_requires_an_explicit_isolated_fixture() {
+        let owner = ccr_app::runtime::RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+        let root = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
+        let local = Services::new(owner.handle(), ConfigSource::Local);
+        assert!(!local.allow_fixture_settings(true));
+        let fixture = Services::new(
+            owner.handle(),
+            ConfigSource::Fixture {
+                profiles: root.path().join("profiles.toml"),
+                registry: root.path().join("registry.toml"),
+                delay: Duration::ZERO,
+            },
+        );
+        assert!(!fixture.allow_fixture_settings(false));
+        assert!(fixture.allow_fixture_settings(true));
+        let relative = Services::new(
+            owner.handle(),
+            ConfigSource::Fixture {
+                profiles: "profiles.toml".into(),
+                registry: "registry.toml".into(),
+                delay: Duration::ZERO,
+            },
+        );
+        assert!(!relative.allow_fixture_settings(true));
+        owner.shutdown();
     }
     #[test]
     fn insights_launch_requires_all_explicit_absolute_roots() {

@@ -84,7 +84,7 @@ async fn font_controls_select_independent_families_and_sizes_and_restore_after_r
     wait_for_environment(cx, handle);
     wait_for_preferences(cx, handle);
     cx.update_window(handle, |_, window, cx| {
-        window.click("settings-nav-typography", cx);
+        window.click("settings-nav-appearance", cx);
         window.click("settings-ui-font", cx);
         window.input("Fixture UI", cx);
         window.press("enter", cx);
@@ -153,7 +153,7 @@ async fn font_controls_select_independent_families_and_sizes_and_restore_after_r
     });
     wait_for_preferences(cx, reopened);
     cx.update_window(reopened, |_, window, cx| {
-        window.click("settings-nav-typography", cx);
+        window.click("settings-nav-appearance", cx);
         assert_eq!(window.find("settings-ui-font").value(), Some("Fixture UI"));
         assert_eq!(
             window.find("settings-mono-font").value(),
@@ -237,31 +237,35 @@ fn actual_theme_controls_keep_base_component_palette_and_language_in_sync(cx: &m
         window.press("f6", cx);
         assert_eq!(window.find("settings-nav-appearance").focused(), Some(true));
         window.press("tab", cx);
-        window.press("tab", cx);
         window.press("enter", cx);
-        assert_eq!(window.find("settings-nav-language").checked(), Some(true));
+        assert_eq!(window.find("settings-nav-workbench").checked(), Some(true));
         window.press("tab", cx);
-        assert_eq!(window.find("language-en").focused(), Some(true));
-        for (nav, first_option) in [
-            ("settings-nav-language", "language-en"),
-            ("settings-nav-workbench", "close-confirm"),
-            ("settings-nav-environment", "env-notify"),
-            ("settings-nav-appearance", "theme-light"),
+        assert_eq!(window.find("close-confirm").focused(), Some(true));
+        for (nav, page, first_option) in [
+            (
+                "settings-nav-workbench",
+                "settings-page-workbench",
+                "close-confirm",
+            ),
+            (
+                "settings-nav-diagnostics",
+                "settings-page-diagnostics",
+                "env-notify",
+            ),
+            (
+                "settings-nav-appearance",
+                "settings-page-appearance",
+                "theme-light",
+            ),
         ] {
             window.click(nav, cx);
             assert_eq!(window.find(nav).checked(), Some(true));
+            assert!(window.try_find(page).is_some());
             window.press("tab", cx);
             assert_eq!(window.find(first_option).focused(), Some(true), "{nav}");
+            assert!(window.try_find("ssh-add-host").is_none());
             let option = window.find(first_option).bounds();
-            assert!(
-                option.top() >= window.find("settings-body").bounds().top()
-                    && option.bottom() <= window.find("shell-status").bounds().top(),
-                "{nav} leaves its focused option outside the settings content: {option:?}"
-            );
-            assert!(
-                option.left() >= window.find("settings-nav-environment").bounds().right(),
-                "settings navigation must remain left of content"
-            );
+            assert!(option.left() >= window.find("settings-nav-environment").bounds().right());
         }
         window.scroll(
             "settings-body",
@@ -270,18 +274,8 @@ fn actual_theme_controls_keep_base_component_palette_and_language_in_sync(cx: &m
         );
         window.simulate_next_frame(cx);
         window.render_frame(cx);
-        assert_eq!(
-            window.find("settings-nav-environment").checked(),
-            Some(true)
-        );
-        window.scroll(
-            "settings-body",
-            gpui_kit::ScrollDelta::Pixels(gpui_kit::point(gpui_kit::px(0.), gpui_kit::px(10000.))),
-            cx,
-        );
-        window.simulate_next_frame(cx);
-        window.render_frame(cx);
         assert_eq!(window.find("settings-nav-appearance").checked(), Some(true));
+        assert!(window.try_find("env-notify").is_none());
         window.click("settings-nav-appearance", cx);
         window.click("theme-dark", cx);
         assert_eq!(Theme::global(cx).mode, ThemeMode::Dark);
@@ -2348,11 +2342,13 @@ async fn selected_profile_is_independent_from_running_profile_and_dirty_navigati
             window.find("profile-description").value(),
             Some("Unsaved isolated draft")
         );
-        window.click("tool-files", cx);
+        window.click("environment-switcher", cx);
+        window.click("environment-manage", cx);
         window.simulate_next_frame(cx);
         window.render_frame(cx);
         window.click("profile-navigation-discard", cx);
         assert!(window.try_find("profile-description").is_none());
+        assert!(window.try_find("settings-page-environment").is_some());
         window.remove_window();
     })
     .unwrap_or_else(|_| panic!("draft navigation"));

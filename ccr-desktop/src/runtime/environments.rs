@@ -45,9 +45,11 @@ pub enum SshAction {
     HostDetails(String),
     SaveHost(HostInput),
     TestConnection(HostInput),
+    TestHost(String),
     DeleteHost(String),
     Probe(String),
     Confirm(String),
+    ConfirmTest(String),
     Connect(String),
     Disconnect,
     Read(String, ConfigFile),
@@ -156,8 +158,10 @@ impl Services {
                         &action,
                         SshAction::Probe(_)
                             | SshAction::TestConnection(_)
+                            | SshAction::TestHost(_)
                             | SshAction::Connect(_)
                             | SshAction::Confirm(_)
+                            | SshAction::ConfirmTest(_)
                             | SshAction::Read(_, _)
                             | SshAction::Save(_, _)
                             | SshAction::DetectCli(_)
@@ -167,6 +171,13 @@ impl Services {
                 }
                 let owner = services.ssh_workspace()?;
                 match action {
+                    SshAction::TestHost(id) => owner
+                        .test_connection(owner.host_details(&id)?, cancel.clone())
+                        .await
+                        .map(|probe| match probe {
+                            Some(probe) => SshResult::Probe(probe),
+                            None => SshResult::Tested,
+                        }),
                     SshAction::TestConnection(input) => owner
                         .test_connection(input, cancel.clone())
                         .await
@@ -174,7 +185,7 @@ impl Services {
                             Some(probe) => SshResult::Probe(probe),
                             None => SshResult::Tested,
                         }),
-                    SshAction::Hosts => owner.hosts().map(SshResult::Hosts),
+                    SshAction::Hosts => owner.management_hosts().await.map(SshResult::Hosts),
                     SshAction::HostDetails(id) => {
                         owner.host_details(&id).map(SshResult::HostDetails)
                     }
@@ -190,6 +201,10 @@ impl Services {
                     }
                     SshAction::Confirm(id) => owner
                         .confirm(&id, cancel.clone())
+                        .await
+                        .map(|()| SshResult::Confirmed),
+                    SshAction::ConfirmTest(id) => owner
+                        .confirm_test(&id, cancel.clone())
                         .await
                         .map(|()| SshResult::Confirmed),
                     SshAction::Connect(id) => owner

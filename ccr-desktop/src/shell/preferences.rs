@@ -69,6 +69,16 @@ impl Shell {
                     Some(super::window_state::placement(window.window_bounds()));
                 self.restore_environment(value.environment.clone(), window, cx);
                 self.apply_preferences(value, window, cx);
+                // 仅显式隔离 fixture 可在偏好与启动环境恢复后直达设置，用于原生截图。
+                if std::mem::take(&mut self.fixture_settings) {
+                    self.go(
+                        super::Destination::Settings,
+                        super::Lens::Primary,
+                        window,
+                        cx,
+                    );
+                    self.environments.update(cx, |view, cx| view.refresh(cx));
+                }
             }
             Err(_) => {
                 self.preferences_failed = true;
@@ -85,6 +95,7 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         self.preference = value.theme;
+        self.settings_nav.active = value.settings_tab;
         self.typography = value.typography;
         self.close_guard.confirm.set(value.confirm_quit);
         cx.set_global(value.language);
@@ -148,6 +159,7 @@ impl Shell {
 
     pub(super) fn preference_snapshot(&self, cx: &Context<Self>) -> DesktopPreferences {
         DesktopPreferences {
+            settings_tab: self.settings_nav.active,
             environment: self.active_environment.id.clone(),
             theme: self.preference,
             language: *cx.global::<Language>(),

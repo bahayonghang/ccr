@@ -43,6 +43,116 @@ async fn connect(owner: &Workspace) {
 }
 
 #[tokio::test]
+async fn temporary_test_trust_preserves_the_current_session_and_one_use_rules() {
+    let (root, owner, transport) = fixture();
+    connect(&owner).await;
+    let input = owner.host_details("two").unwrap();
+    let challenge = owner
+        .test_connection(input.clone(), CancellationToken::new())
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(owner.connected("one"));
+    owner
+        .confirm_test(&challenge.challenge_id, CancellationToken::new())
+        .await
+        .unwrap();
+    assert!(owner.connected("one"));
+    assert_eq!(
+        owner
+            .confirm_test(&challenge.challenge_id, CancellationToken::new())
+            .await,
+        Err("ssh_challenge_invalid")
+    );
+    assert!(
+        owner
+            .test_connection(input.clone(), CancellationToken::new())
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert!(owner.connected("one"));
+    assert_eq!(transport.handshakes(), 2);
+    let before = std::fs::read(root.path().join("known_hosts")).unwrap();
+    transport.change_key();
+    assert!(matches!(
+        owner.test_connection(input, CancellationToken::new()).await,
+        Err("ssh_host_key_mismatch")
+    ));
+    assert_eq!(
+        std::fs::read(root.path().join("known_hosts")).unwrap(),
+        before
+    );
+    assert!(owner.connected("one"));
+}
+
+#[tokio::test]
+async fn saving_host_does_not_read_an_unrelated_unavailable_credential() {
+    let (_root, owner, _transport) = fixture();
+    let mut other = owner.host_details("two").unwrap();
+    other.auth_method = AuthMethod::Password;
+    owner.save_host(other).await.unwrap();
+    let store = owner.credentials.0.as_ref().unwrap();
+    let entry = store.build("CCR SSH", "two:ssh-secret", None).unwrap();
+    entry
+        .as_any()
+        .downcast_ref::<keyring_core::mock::Cred>()
+        .unwrap()
+        .set_error(keyring_core::Error::Invalid(
+            "synthetic".into(),
+            "fixture unavailable".into(),
+        ));
+    let mut first = owner.host_details("one").unwrap();
+    first.name = "Updated fixture".into();
+    let saved = owner.save_host(first).await.unwrap();
+    assert_eq!(saved.name, "Updated fixture");
+    assert_eq!(owner.host_details("one").unwrap().name, "Updated fixture");
+    assert!(
+        matches!(
+            entry.get_password(),
+            Err(keyring_core::Error::Invalid(_, _))
+        ),
+        "unrelated credential failure must remain unconsumed"
+    );
+}
+
+#[tokio::test]
+async fn legacy_host_metadata_projects_authentication_without_mutating_the_database() {
+    let root = tempfile::tempdir().unwrap();
+    let database = root.path().join("legacy.db");
+    let connection = rusqlite::Connection::open(&database).unwrap();
+    connection.execute_batch("CREATE TABLE ssh_hosts (id TEXT PRIMARY KEY, name TEXT, host TEXT, port INTEGER, username TEXT, identity_file TEXT, remote_home TEXT, created_at TEXT, updated_at TEXT, last_connected_at TEXT);
+        INSERT INTO ssh_hosts VALUES ('agent','Agent fixture','agent.fixture.invalid',22,'fixture',NULL,'~','2026-11-16T00:00:00Z','2026-11-16T00:00:00Z',NULL);
+        INSERT INTO ssh_hosts VALUES ('key','Key fixture','key.fixture.invalid',2222,'fixture','C:/synthetic/key','~','2026-11-16T00:00:00Z','2026-11-16T00:00:00Z',NULL);").unwrap();
+    drop(connection);
+    let before = std::fs::read(&database).unwrap();
+    let (owner, _) = Workspace::fixture(database.clone(), root.path().join("known_hosts"));
+    let hosts = owner.management_hosts().await.unwrap();
+    assert_eq!(hosts.len(), 2);
+    assert_eq!(
+        hosts
+            .iter()
+            .find(|host| host.id == "agent")
+            .unwrap()
+            .auth_method,
+        AuthMethod::Agent
+    );
+    assert_eq!(
+        hosts
+            .iter()
+            .find(|host| host.id == "key")
+            .unwrap()
+            .auth_method,
+        AuthMethod::PrivateKey
+    );
+    assert_eq!(std::fs::read(&database).unwrap(), before);
+    let connection = rusqlite::Connection::open(&database).unwrap();
+    connection.execute_batch("ALTER TABLE ssh_hosts ADD COLUMN auth_method TEXT; UPDATE ssh_hosts SET auth_method='invalid';").unwrap();
+    drop(connection);
+    assert!(matches!(owner.hosts(), Err("ssh_invalid_target")));
+}
+
+#[tokio::test]
 async fn home_is_validated_cached_per_session_and_explicit_override_has_priority() {
     let (_root, owner, transport) = fixture();
     connect(&owner).await;

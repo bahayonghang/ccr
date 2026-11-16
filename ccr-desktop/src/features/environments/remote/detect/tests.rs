@@ -28,12 +28,15 @@ fn show(window: &mut Window, id: SharedString, cx: &mut gpui_kit::App) {
     for _ in 0..10 {
         window.render_frame(cx);
         let bounds = window.find(id.clone()).bounds();
-        let viewport = window.find("page-settings").bounds();
+        let viewport = window
+            .try_find("settings-body")
+            .map(|node| node.bounds())
+            .unwrap_or_else(|| window.find("page-settings").bounds());
         if bounds.top() >= viewport.top() && bounds.bottom() <= viewport.bottom() {
             return;
         }
         window.scroll(
-            "page-settings",
+            "settings-body",
             ScrollDelta::Pixels(point(
                 px(0.),
                 px(if bounds.top() < viewport.top() {
@@ -127,6 +130,7 @@ async fn connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigat
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-settings", cx);
+        window.click("settings-nav-environment", cx);
     })
     .unwrap();
     let host_id = SharedString::from(format!("ssh-host-{}", host.id));
@@ -137,6 +141,9 @@ async fn connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigat
     cx.update_window(handle, |_, window, cx| {
         show(window, host_id.clone(), cx);
         window.click(host_id, cx);
+        if window.try_find("ssh-cli-detect").is_none() {
+            window.click("ssh-advanced", cx);
+        }
         show(window, "ssh-cli-detect".into(), cx);
         window.click("ssh-cli-detect", cx);
         assert!(transport.cli_requests().is_empty());
@@ -147,8 +154,8 @@ async fn connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigat
                 .unwrap()
                 .contains("Connect and verify")
         );
-        show(window, "ssh-probe".into(), cx);
-        window.click("ssh-probe", cx);
+        show(window, "ssh-connect".into(), cx);
+        window.click("ssh-connect", cx);
     })
     .unwrap();
     cx.wait_for(handle, Duration::from_secs(10), |window, _| {
@@ -167,6 +174,9 @@ async fn connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigat
     cx.update_window(handle, |_, window, cx| {
         show(window, "ssh-connect".into(), cx);
         window.click("ssh-connect", cx);
+        if window.try_find("ssh-cli-detect").is_none() {
+            window.click("ssh-advanced", cx);
+        }
     })
     .unwrap();
     cx.wait_for(handle, Duration::from_secs(10), |window, _| {
@@ -178,6 +188,9 @@ async fn connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigat
     .await;
     assert!(workspace.connected(&host.id));
     cx.update_window(handle, |_, window, cx| {
+        if window.try_find("ssh-cli-detect").is_none() {
+            window.click("ssh-advanced", cx);
+        }
         show(window, "ssh-cli-detect".into(), cx);
         window.click("ssh-cli-detect", cx);
         assert_eq!(
@@ -217,6 +230,9 @@ async fn connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigat
     .unwrap();
     transport.fail("detect");
     cx.update_window(handle, |_, window, cx| {
+        if window.try_find("ssh-cli-detect").is_none() {
+            window.click("ssh-advanced", cx);
+        }
         show(window, "ssh-cli-detect".into(), cx);
         window.click("ssh-cli-detect", cx);
         assert!(window.try_find("ssh-cli-claude").is_none());
@@ -233,6 +249,9 @@ async fn connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigat
     cx.update_window(handle, |_, window, cx| {
         show(window, "ssh-connect".into(), cx);
         window.click("ssh-connect", cx);
+        if window.try_find("ssh-cli-detect").is_none() {
+            window.click("ssh-advanced", cx);
+        }
     })
     .unwrap();
     cx.wait_for(handle, Duration::from_secs(10), |window, _| {
@@ -243,6 +262,9 @@ async fn connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigat
     })
     .await;
     cx.update_window(handle, |_, window, cx| {
+        if window.try_find("ssh-cli-detect").is_none() {
+            window.click("ssh-advanced", cx);
+        }
         show(window, "ssh-cli-detect".into(), cx);
         window.click("ssh-cli-detect", cx);
     })
@@ -263,6 +285,9 @@ async fn connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigat
             Some(true)
         );
         assert!(window.try_find("ssh-cli-claude").is_none());
+        if window.try_find("ssh-cli-detect").is_none() {
+            window.click("ssh-advanced", cx);
+        }
         assert!(
             window
                 .find("ssh-cli-status")
@@ -270,10 +295,14 @@ async fn connected_cli_controls_keep_paths_scoped_and_clear_on_error_and_navigat
                 .unwrap()
                 .contains("have not been checked")
         );
+        if window.try_find("ssh-cli-detect").is_none() {
+            window.click("ssh-advanced", cx);
+        }
         show(window, "ssh-cli-detect".into(), cx);
         window.click("ssh-cli-detect", cx);
         window.click("nav-dashboard", cx);
         window.click("nav-settings", cx);
+        window.click("settings-nav-environment", cx);
     })
     .unwrap();
     cx.background_executor
@@ -313,6 +342,7 @@ fn late_cli_results_cannot_rebind_a_left_or_changed_host(cx: &mut TestAppContext
             view.selected = Some(Host {
                 id: "old".into(),
                 name: "Synthetic".into(),
+                ..Default::default()
             });
             view.generation = 10;
             view.detecting = true;
@@ -338,6 +368,7 @@ fn late_cli_results_cannot_rebind_a_left_or_changed_host(cx: &mut TestAppContext
             view.selected = Some(Host {
                 id: "other".into(),
                 name: "Synthetic other".into(),
+                ..Default::default()
             });
             view.cli_finished(view.generation, "old", &rows, cx);
             assert!(view.cli.is_none());

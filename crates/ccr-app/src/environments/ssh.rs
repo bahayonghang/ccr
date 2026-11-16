@@ -27,10 +27,16 @@ pub(crate) use environment_io::IoSession;
 use transport::{Connection, RusshTransport, Transport, bounded};
 pub type Error = &'static str;
 type RunFuture<'a, T> = Pin<Box<dyn Future<Output = Result<T, Error>> + Send + 'a>>;
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Host {
     pub id: String,
     pub name: String,
+    pub host: String,
+    pub port: u16,
+    pub user: String,
+    pub auth_method: AuthMethod,
+    pub last_connected_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub credentials_missing: bool,
 }
 #[derive(Clone, Default)]
 pub struct HostInput {
@@ -145,16 +151,56 @@ impl Workspace {
         if !path.try_exists().map_err(|_| "ssh_database_unavailable")? {
             return Ok(Vec::new());
         }
-        ssh_repo::list_hosts(&self.connection(false)?)
+        let connection = self.connection(false)?;
+        let has_auth_method = connection
+            .query_row(
+                "SELECT count(*) FROM pragma_table_info('ssh_hosts') WHERE name = 'auth_method'",
+                [],
+                |row| row.get::<_, u32>(0),
+            )
+            .map_err(|_| "ssh_database_unavailable")?
+            > 0;
+        ssh_repo::list_hosts(&connection)
             .map(|rows| {
                 rows.into_iter()
-                    .map(|row| Host {
-                        id: row.id,
-                        name: row.name,
+                    .map(|row| {
+                        Ok(Host {
+                            // v18 之前的只读列表按同一迁移规则投影，不为查看列表创建或迁移数据库。
+                            auth_method: if has_auth_method {
+                                AuthMethod::parse(
+                                    &ssh_repo::auth_method(&connection, &row.id)
+                                        .map_err(|_| "ssh_database_unavailable")?,
+                                )?
+                            } else if row
+                                .identity_file
+                                .as_deref()
+                                .is_some_and(|path| !path.trim().is_empty())
+                            {
+                                AuthMethod::PrivateKey
+                            } else {
+                                AuthMethod::Agent
+                            },
+                            id: row.id,
+                            name: row.name,
+                            host: row.host,
+                            port: row.port,
+                            user: row.username,
+                            last_connected_at: row.last_connected_at,
+                            credentials_missing: false,
+                        })
                     })
-                    .collect()
+                    .collect::<Result<Vec<_>, Error>>()
             })
-            .map_err(|_| "ssh_database_unavailable")
+            .map_err(|_| "ssh_database_unavailable")?
+    }
+    /// Read host metadata and credential availability without exposing secrets.
+    pub async fn management_hosts(&self) -> Result<Vec<Host>, Error> {
+        let mut hosts = self.hosts()?;
+        for host in &mut hosts {
+            host.credentials_missing = host.auth_method == AuthMethod::Password
+                && self.credentials.get(&host.id).await?.is_none();
+        }
+        Ok(hosts)
     }
     fn host(&self, id: &str) -> Result<SshHost, Error> {
         ssh_repo::get_host(&self.connection(false)?, id)
@@ -288,6 +334,12 @@ impl Workspace {
         Ok(Host {
             id: row.id,
             name: row.name,
+            host: row.host,
+            port: row.port,
+            user: row.username,
+            auth_method: input.auth_method,
+            last_connected_at: row.last_connected_at,
+            credentials_missing: false,
         })
     }
     pub async fn delete_host(&self, id: &str) -> Result<(), Error> {
@@ -402,11 +454,29 @@ impl Workspace {
         challenge_id: &str,
         cancel: CancellationToken,
     ) -> Result<(), Error> {
+        self.confirm_challenge(challenge_id, cancel, true).await
+    }
+    /// Trust a temporary test connection without changing the current session.
+    pub async fn confirm_test(
+        &self,
+        challenge_id: &str,
+        cancel: CancellationToken,
+    ) -> Result<(), Error> {
+        self.confirm_challenge(challenge_id, cancel, false).await
+    }
+    async fn confirm_challenge(
+        &self,
+        challenge_id: &str,
+        cancel: CancellationToken,
+        disconnect: bool,
+    ) -> Result<(), Error> {
         let _guard = bounded(cancel.clone(), async {
             Ok(self.authentication.lock().await)
         })
         .await?;
-        self.clear().await;
+        if disconnect {
+            self.clear().await;
+        }
         if cancel.is_cancelled() {
             return Err("ssh_cancelled");
         }

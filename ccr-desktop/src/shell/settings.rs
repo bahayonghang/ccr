@@ -1,7 +1,7 @@
 use super::{Destination, Lens, Shell, semantics};
 use crate::{
     locales::{Language, text},
-    runtime::preferences::{DesktopPreferences, TypographyPreferences},
+    runtime::preferences::{DesktopPreferences, SettingsTab as Section, TypographyPreferences},
     theme::{self, Preference},
 };
 use gpui_kit::{
@@ -21,59 +21,46 @@ use gpui_kit::{
     px,
 };
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum Section {
-    Appearance,
-    Typography,
-    Language,
-    Workbench,
-    Environment,
-}
-
 impl Section {
-    const ALL: [Self; 5] = [
+    const ALL: [Self; 4] = [
         Self::Appearance,
-        Self::Typography,
-        Self::Language,
         Self::Workbench,
         Self::Environment,
+        Self::Diagnostics,
     ];
 
     fn label(self, cx: &App) -> &'static str {
         match self {
             Self::Appearance => text(cx, "Appearance", "外观"),
-            Self::Typography => text(cx, "Fonts & sizes", "字体与字号"),
-            Self::Language => text(cx, "Language", "语言"),
             Self::Workbench => text(cx, "Workbench preferences", "工作台偏好"),
-            Self::Environment => text(cx, "Diagnostics & environment", "诊断与环境"),
+            Self::Environment => text(cx, "Execution environment", "执行环境"),
+            Self::Diagnostics => text(cx, "Diagnostics", "诊断"),
         }
     }
 
     fn icon(self) -> IconName {
         match self {
             Self::Appearance => IconName::Sun,
-            Self::Typography => IconName::Type,
-            Self::Language => IconName::Globe,
             Self::Workbench => IconName::Settings2,
-            Self::Environment => IconName::Info,
+            Self::Environment => IconName::Server,
+            Self::Diagnostics => IconName::Info,
         }
     }
 
     fn nav_id(self) -> &'static str {
         match self {
             Self::Appearance => "settings-nav-appearance",
-            Self::Typography => "settings-nav-typography",
-            Self::Language => "settings-nav-language",
             Self::Workbench => "settings-nav-workbench",
             Self::Environment => "settings-nav-environment",
+            Self::Diagnostics => "settings-nav-diagnostics",
         }
     }
 }
 
 pub(super) struct Navigation {
-    active: Section,
+    pub(super) active: Section,
+    focus: FocusHandle,
     scroll: ScrollHandle,
-    anchors: [FocusHandle; 5],
     fonts: [Entity<SelectState<SearchableVec<FontChoice>>>; 2],
     language: Language,
 }
@@ -146,8 +133,8 @@ impl Navigation {
         });
         Self {
             active: Section::Appearance,
+            focus: cx.focus_handle().tab_stop(false),
             scroll: ScrollHandle::new(),
-            anchors: std::array::from_fn(|_| cx.focus_handle().tab_stop(false)),
             fonts,
             language: *cx.global::<Language>(),
         }
@@ -180,35 +167,39 @@ impl Navigation {
 }
 
 impl Shell {
-    fn follow_settings_scroll(&self, window: &mut Window, cx: &mut Context<Self>) {
-        let weak = cx.weak_entity();
-        window.on_next_frame(move |_, cx| {
-            let _ = weak.update(cx, |this, cx| {
-                if this.destination != Destination::Settings {
-                    return;
-                }
-                let scroll = &this.settings_nav.scroll;
-                let index = if scroll.max_offset().y > px(0.)
-                    && scroll.offset().y <= -scroll.max_offset().y + px(1.)
-                {
-                    Section::ALL.len() - 1
-                } else {
-                    scroll.top_item().min(Section::ALL.len() - 1)
-                };
-                if this.settings_nav.active != Section::ALL[index] {
-                    this.settings_nav.active = Section::ALL[index];
-                    cx.notify();
-                }
+    pub(super) fn locate(&mut self, section: Section, window: &mut Window, cx: &mut Context<Self>) {
+        if self.settings_nav.active == section {
+            window.focus(&self.settings_nav.focus, cx);
+            return;
+        }
+        if self.settings_nav.active == Section::Environment
+            && self.remote.read(cx).has_environment_draft(cx)
+        {
+            self.navigation_generation += 1;
+            self.navigation_decision = Some(super::navigation_guard::Decision {
+                settings_tab: Some(section),
+                destination: Destination::Settings,
+                lens: Lens::Primary,
+                generation: self.navigation_generation,
+                enter: true,
+                return_focus: window.focused(cx),
             });
-        });
-    }
-
-    fn locate(&mut self, section: Section, window: &mut Window, cx: &mut Context<Self>) {
+            cx.notify();
+            return;
+        }
+        if self.settings_nav.active == Section::Environment {
+            self.remote.update(cx, |view, cx| {
+                view.discard_for_environment_switch(window, cx)
+            });
+        }
+        let mut value = self.preference_snapshot(cx);
+        value.settings_tab = section;
         self.settings_nav.active = section;
         self.settings_nav
             .scroll
-            .scroll_to_top_of_item(section as usize);
-        window.focus(&self.settings_nav.anchors[section as usize], cx);
+            .set_offset(gpui_kit::point(px(0.), px(0.)));
+        self.save_preferences(value, window, cx);
+        window.focus(&self.settings_nav.focus, cx);
         cx.notify();
     }
 
@@ -218,6 +209,10 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         self.go(Destination::Settings, Lens::Primary, window, cx);
+        if let Some(decision) = &mut self.navigation_decision {
+            decision.settings_tab = Some(Section::Environment);
+            return;
+        }
         let shell = cx.weak_entity();
         window.on_next_frame(move |window, cx| {
             let _ = shell.update(cx, |this, cx| {
@@ -245,6 +240,9 @@ impl Shell {
             text(cx, "English", "中文")
         );
         let mut nav = div()
+            .id("settings-tabs")
+            .role(gpui_kit::Role::TabList)
+            .aria_label(text(cx, "Settings pages", "设置分页"))
             .flex()
             .flex_col()
             .w(px(theme::SETTINGS_NAV_WIDTH))
@@ -254,6 +252,8 @@ impl Shell {
             let active = self.settings_nav.active == section;
             nav = nav.child(
                 control(section.nav_id(), section.label(cx), active, cx)
+                    .role(gpui_kit::Role::Tab)
+                    .aria_selected(active)
                     .min_h(px(40.))
                     .justify_start()
                     .px(px(theme::SECTION_GAP))
@@ -272,58 +272,71 @@ impl Shell {
                     ),
             );
         }
-        let mut content = div()
+        let section = self.settings_nav.active;
+        let mut panel = div()
+            .id(SharedString::from(format!(
+                "settings-page-{}",
+                section.as_str()
+            )))
+            .test_support()
+            .role(gpui_kit::Role::TabPanel)
+            .aria_label(section.label(cx))
+            .track_focus(&self.settings_nav.focus)
+            .flex_shrink_0()
+            .min_w_0()
+            .flex()
+            .flex_col()
+            .p(px(theme::SECTION_GAP))
+            .gap(px(theme::SECTION_GAP))
+            .child(
+                div()
+                    .text_size(theme::text_size(theme::SECTION_TITLE_SIZE))
+                    .font_weight(FontWeight::SEMIBOLD)
+                    .child(section.label(cx)),
+            );
+        panel = match section {
+            Section::Appearance => panel
+                .child(self.theme_choices(cx))
+                .child(super::badge::section_heading(
+                    text(cx, "Fonts & sizes", "字体与字号"),
+                    None,
+                    cx,
+                ))
+                .child(self.typography_controls(cx))
+                .child(super::badge::section_heading(
+                    text(cx, "Language", "语言"),
+                    None,
+                    cx,
+                ))
+                .child(self.language_choices(cx)),
+            Section::Workbench => panel.child(self.workbench_controls(cx)),
+            Section::Environment => {
+                self.environments
+                    .update(cx, |view, _| view.diagnostics = false);
+                self.remote.update(cx, |view, cx| {
+                    view.set_connection_status(self.active_environment.state.label(cx), cx)
+                });
+                panel
+                    .child(self.environments.clone())
+                    .child(self.remote.clone())
+            }
+            Section::Diagnostics => {
+                self.environments
+                    .update(cx, |view, _| view.diagnostics = true);
+                panel.child(self.environments.clone())
+            }
+        };
+        let content = div()
             .id("settings-body")
+            .track_scroll(&self.settings_nav.scroll)
             .test_support()
             .min_h_0()
             .min_w_0()
             .flex_1()
             .overflow_y_scroll()
-            .track_scroll(&self.settings_nav.scroll)
             .flex()
             .flex_col()
-            .gap(px(theme::SECTION_GAP))
-            .on_scroll_wheel(
-                cx.listener(|this, _, window, cx| this.follow_settings_scroll(window, cx)),
-            )
-            .on_key_down(
-                cx.listener(|this, event: &gpui_kit::KeyDownEvent, window, cx| {
-                    if matches!(
-                        event.keystroke.key.as_str(),
-                        "up" | "down" | "pageup" | "pagedown" | "home" | "end"
-                    ) {
-                        this.follow_settings_scroll(window, cx);
-                    }
-                }),
-            );
-        for section in Section::ALL {
-            let mut panel = div()
-                .track_focus(&self.settings_nav.anchors[section as usize])
-                .flex_shrink_0()
-                .min_w_0()
-                .flex()
-                .flex_col()
-                .p(px(theme::SECTION_GAP))
-                .gap(px(theme::SECTION_GAP))
-                .border_b_1()
-                .border_color(cx.theme().border)
-                .child(
-                    div()
-                        .text_size(crate::theme::text_size(theme::SECTION_TITLE_SIZE))
-                        .font_weight(FontWeight::SEMIBOLD)
-                        .child(section.label(cx)),
-                );
-            panel = match section {
-                Section::Appearance => panel.child(self.theme_choices(cx)),
-                Section::Typography => panel.child(self.typography_controls(cx)),
-                Section::Language => panel.child(self.language_choices(cx)),
-                Section::Workbench => panel.child(self.workbench_controls(cx)),
-                Section::Environment => panel
-                    .child(self.environments.clone())
-                    .child(self.remote.clone()),
-            };
-            content = content.child(panel);
-        }
+            .child(panel);
         div()
             .size_full()
             .flex()
@@ -483,7 +496,7 @@ impl Shell {
                 ),
                 cx,
             ))
-            .child(semantics::button(
+            .child(choice_row().child(semantics::button(
                 Button::new("settings-fonts-reset")
                     .label(text(cx, "Reset fonts and sizes", "恢复默认字体与字号"))
                     .ghost()
@@ -495,7 +508,7 @@ impl Shell {
                 !self.preferences_loaded || self.preferences_closing,
                 false,
                 cx,
-            ))
+            )))
     }
 
     fn font_size_control(

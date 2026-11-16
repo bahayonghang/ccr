@@ -5,7 +5,7 @@ use ccr_app::{
     runtime::RuntimeOwner,
 };
 use gpui_kit::test::{TestAppContextExt, TestWindowExt};
-use gpui_kit::{Bounds, TestAppContext, WindowBounds, WindowOptions, size};
+use gpui_kit::{Bounds, SharedString, TestAppContext, WindowBounds, WindowOptions, size};
 use std::{sync::Arc, time::Duration};
 
 struct Fixture {
@@ -143,12 +143,12 @@ fn show(window: &mut Window, id: &str, cx: &mut gpui_kit::App) {
         let bounds = window
             .find(gpui_kit::SharedString::from(id.to_owned()))
             .bounds();
-        let viewport = window.find("page-settings").bounds();
+        let viewport = window.find("settings-body").bounds();
         if bounds.top() >= viewport.top() && bounds.bottom() <= viewport.bottom() {
             return;
         }
         window.scroll(
-            "page-settings",
+            "settings-body",
             gpui_kit::ScrollDelta::Pixels(gpui_kit::point(
                 px(0.),
                 px(if bounds.top() < viewport.top() {
@@ -161,6 +161,499 @@ fn show(window: &mut Window, id: &str, cx: &mut gpui_kit::App) {
         );
     }
     panic!("control outside settings viewport");
+}
+
+fn enter_host_field(window: &mut Window, index: usize, value: &str, cx: &mut gpui_kit::App) {
+    let id = format!("ssh-host-field-{index}");
+    show(window, &id, cx);
+    window.click(gpui_kit::SharedString::from(id), cx);
+    window.press("ctrl-a", cx);
+    window.input(value, cx);
+}
+
+async fn open_host_settings(
+    cx: &mut TestAppContext,
+    handle: gpui_kit::AnyWindowHandle,
+    shell: &Entity<Shell>,
+) {
+    cx.update_window(handle, |_, window, cx| {
+        window.click("nav-settings", cx);
+        window.click("settings-nav-environment", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        !shell.read(cx).remote.read(cx).is_busy()
+    })
+    .await;
+}
+
+#[gpui_kit::test]
+async fn settings_tabs_keep_secret_drafts_until_explicit_discard_and_persist_the_page(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let fixture = Fixture::new(true).await;
+    fixture.preferences(false);
+    let (handle, shell) = fixture.open(cx);
+    ready(cx, handle, &shell).await;
+    open_host_settings(cx, handle, &shell).await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("ssh-add-host", cx);
+        show(window, "ssh-auth-password", cx);
+        window.click("ssh-auth-password", cx);
+        enter_host_field(window, 7, "synthetic-unsaved-secret", cx);
+        window.click("settings-nav-diagnostics", cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert_eq!(
+            window.find("profile-navigation-cancel").focused(),
+            Some(true)
+        );
+        window.click("profile-navigation-cancel", cx);
+        assert!(window.try_find("ssh-host-form").is_some());
+        assert!(shell.read(cx).remote.read(cx).has_environment_draft(cx));
+        window.click("settings-nav-diagnostics", cx);
+        window.click("profile-navigation-discard", cx);
+        assert!(window.try_find("settings-page-diagnostics").is_some());
+        assert!(window.try_find("ssh-host-form").is_none());
+        assert!(!shell.read(cx).remote.read(cx).has_environment_draft(cx));
+        window.click("nav-dashboard", cx);
+        window.click("nav-settings", cx);
+        assert!(window.try_find("settings-page-diagnostics").is_some());
+        window.click("environment-switcher", cx);
+        window.click("environment-manage", cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert!(window.try_find("settings-page-environment").is_some());
+    })
+    .unwrap();
+    let path = fixture.root.path().join("desktop-gpui/preferences.json");
+    cx.wait_for(handle, Duration::from_secs(10), |_, _| {
+        std::fs::read(&path)
+            .ok()
+            .and_then(|v| serde_json::from_slice::<serde_json::Value>(&v).ok())
+            .is_some_and(|v| v["settings_tab"] == "environment")
+    })
+    .await;
+    cx.update_window(handle, |_, window, _| window.remove_window())
+        .unwrap();
+    let (reopened, reopened_shell) = fixture.open(cx);
+    ready(cx, reopened, &reopened_shell).await;
+    cx.update_window(reopened, |_, window, cx| {
+        window.click("nav-settings", cx);
+        assert!(window.try_find("settings-page-environment").is_some());
+        window.remove_window();
+    })
+    .unwrap();
+    fixture
+        .runtime
+        .shutdown_after(fixture.services.disconnect_ssh());
+}
+
+#[gpui_kit::test]
+async fn settings_repairs_missing_credentials_and_requires_local_before_current_host_changes(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let fixture = Fixture::new(true).await;
+    let mut input = fixture.workspace.host_details(&fixture.host.id).unwrap();
+    input.auth_method = ccr_app::environments::ssh::AuthMethod::Password;
+    assert!(matches!(
+        action(
+            &fixture.services,
+            EnvironmentId::Local("local".into()),
+            SshAction::SaveHost(input)
+        )
+        .await
+        .as_ref(),
+        Completion::Success(_)
+    ));
+    fixture.preferences(true);
+    let (handle, shell) = fixture.open(cx);
+    ready(cx, handle, &shell).await;
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        shell.read(cx).active_environment.state == ConnectionState::Credentials
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("environment-repair-credentials", cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert!(window.try_find("settings-page-environment").is_some());
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        !shell.read(cx).remote.read(cx).is_busy()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click(
+            SharedString::from(format!("ssh-host-{}", fixture.host.id)),
+            cx,
+        );
+        window.click("ssh-edit-host", cx);
+        window.click("ssh-delete-host", cx);
+        assert!(window.try_find("ssh-confirm-delete").is_none());
+        assert!(window.try_find("ssh-host-form").is_none());
+        window.click("ssh-local", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        !shell.read(cx).active_environment.is_ssh() && !shell.read(cx).active_environment.switching
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        show(window, "ssh-edit-host", cx);
+        window.click("ssh-edit-host", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("ssh-host-field-7").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        enter_host_field(window, 7, "synthetic-repaired-password", cx);
+        show(window, "ssh-host-save", cx);
+        window.click("ssh-host-save", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        !shell.read(cx).remote.read(cx).is_busy()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        assert!(!shell.read(cx).remote.read(cx).hosts()[0].credentials_missing);
+        assert!(window.try_find("ssh-host-field-7").is_none());
+        show(window, "ssh-connect", cx);
+        window.click("ssh-connect", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        shell.read(cx).active_environment.state == ConnectionState::Connected
+            && shell.read(cx).active_environment.is_ssh()
+    })
+    .await;
+    assert!(fixture.workspace.connected(&fixture.host.id));
+    assert_eq!(fixture.transport.handshakes(), 1);
+    fixture
+        .runtime
+        .shutdown_after(fixture.services.disconnect_ssh());
+}
+
+#[gpui_kit::test]
+async fn settings_create_test_edit_and_delete_another_host_preserves_the_current_session(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let fixture = Fixture::new(true).await;
+    fixture.preferences(true);
+    let (handle, shell) = fixture.open(cx);
+    ready(cx, handle, &shell).await;
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        shell.read(cx).active_environment.state == ConnectionState::Connected
+    })
+    .await;
+    open_host_settings(cx, handle, &shell).await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("ssh-add-host", cx);
+        for (index, value) in [
+            (0, "Deploy fixture"),
+            (1, "deploy.fixture.invalid"),
+            (2, "2202"),
+            (3, "fixture"),
+        ] {
+            enter_host_field(window, index, value, cx);
+        }
+        show(window, "ssh-host-test", cx);
+        window.click("ssh-host-test", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("ssh-confirm-trust").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        show(window, "ssh-confirm-trust", cx);
+        window.click("ssh-confirm-trust", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        !shell.read(cx).remote.read(cx).is_busy()
+    })
+    .await;
+    assert!(fixture.workspace.connected(&fixture.host.id));
+    assert_eq!(fixture.transport.handshakes(), 2);
+    cx.update_window(handle, |_, window, cx| {
+        show(window, "ssh-host-save", cx);
+        window.click("ssh-host-save", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        shell.read(cx).remote.read(cx).hosts().len() == 2
+            && !shell.read(cx).remote.read(cx).is_busy()
+    })
+    .await;
+    let other = cx.update(|cx| {
+        shell
+            .read(cx)
+            .remote
+            .read(cx)
+            .hosts()
+            .iter()
+            .find(|h| h.id != fixture.host.id)
+            .unwrap()
+            .clone()
+    });
+    cx.update_window(handle, |_, window, cx| {
+        show(window, "ssh-edit-host", cx);
+        window.click("ssh-edit-host", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("ssh-host-form").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        enter_host_field(window, 0, "Deploy fixture edited", cx);
+        show(window, "ssh-auth-key", cx);
+        window.click("ssh-auth-key", cx);
+        enter_host_field(window, 6, "C:/synthetic/fixture-key", cx);
+        show(window, "ssh-host-save", cx);
+        window.click("ssh-host-save", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        !shell.read(cx).remote.read(cx).is_busy()
+    })
+    .await;
+    let details = fixture.workspace.host_details(&other.id).unwrap();
+    assert_eq!(
+        details.identity_file.as_deref(),
+        Some("C:/synthetic/fixture-key")
+    );
+    assert_eq!(
+        details.auth_method,
+        ccr_app::environments::ssh::AuthMethod::PrivateKey
+    );
+    assert!(fixture.workspace.connected(&fixture.host.id));
+    cx.update_window(handle, |_, window, cx| {
+        show(window, "ssh-delete-host", cx);
+        window.click("ssh-delete-host", cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert_eq!(window.find("ssh-cancel-delete").focused(), Some(true));
+        window.press("tab", cx);
+        assert_eq!(window.find("ssh-confirm-delete").focused(), Some(true));
+        window.press("escape", cx);
+        assert!(window.try_find("ssh-confirm-delete").is_none());
+        assert_eq!(window.find("ssh-delete-host").focused(), Some(true));
+        window.click("ssh-delete-host", cx);
+        window.click("ssh-confirm-delete", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        shell.read(cx).remote.read(cx).hosts().len() == 1
+            && !shell.read(cx).remote.read(cx).is_busy()
+    })
+    .await;
+    assert!(fixture.workspace.host_details(&other.id).is_err());
+    assert!(fixture.workspace.connected(&fixture.host.id));
+    cx.update(|cx| {
+        assert_eq!(
+            shell.read(cx).active_environment.id,
+            EnvironmentId::Ssh(fixture.host.id.clone())
+        )
+    });
+    fixture
+        .runtime
+        .shutdown_after(fixture.services.disconnect_ssh());
+}
+
+#[gpui_kit::test]
+async fn queued_host_management_is_drained_before_connecting_the_managed_host(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    for delete in [false, true] {
+        let fixture = Fixture::new(true).await;
+        fixture.preferences(false);
+        let (handle, shell) = fixture.open(cx);
+        ready(cx, handle, &shell).await;
+        open_host_settings(cx, handle, &shell).await;
+        cx.update_window(handle, |_, window, cx| {
+            window.click(
+                SharedString::from(format!("ssh-host-{}", fixture.host.id)),
+                cx,
+            );
+            if delete {
+                window.click("ssh-delete-host", cx);
+            } else {
+                window.click("ssh-edit-host", cx);
+            }
+        })
+        .unwrap();
+        if !delete {
+            cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+                window.try_find("ssh-host-form").is_some()
+            })
+            .await;
+            cx.update_window(handle, |_, window, cx| {
+                enter_host_field(window, 0, "Queued stale edit", cx)
+            })
+            .unwrap();
+        }
+        let mut releases = Vec::new();
+        let mut blockers = Vec::new();
+        let (started_tx, started_rx) = std::sync::mpsc::channel();
+        for index in 0..ccr_app::runtime::BLOCKING_CONCURRENCY {
+            let (release_tx, release_rx) = std::sync::mpsc::channel();
+            releases.push(release_tx);
+            let started = started_tx.clone();
+            blockers.push(
+                fixture
+                    .services
+                    .executor
+                    .read(
+                        RequestKey {
+                            environment: EnvironmentId::Local("isolated-pool-blocker".into()),
+                            platform: Platform::Claude,
+                            generation: index as u64,
+                            request_id: index as u64,
+                        },
+                        move |_, _| {
+                            started.send(()).unwrap();
+                            let _ = release_rx.recv_timeout(Duration::from_secs(20));
+                            Ok::<_, ()>(())
+                        },
+                    )
+                    .unwrap(),
+            );
+        }
+        for _ in 0..ccr_app::runtime::BLOCKING_CONCURRENCY {
+            started_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+        }
+        cx.update_window(handle, |_, window, cx| {
+            if delete {
+                window.click("ssh-confirm-delete", cx);
+            } else {
+                show(window, "ssh-host-save", cx);
+                window.click("ssh-host-save", cx);
+            }
+            assert!(
+                fixture
+                    .services
+                    .executor
+                    .environment_has_jobs(&EnvironmentId::Local("local".into())),
+                "management work must belong to the environment being drained"
+            );
+            window.click("environment-switcher", cx);
+            window.click(
+                SharedString::from(format!("environment-host-{}", fixture.host.id)),
+                cx,
+            );
+            window.click("environment-switch-discard", cx);
+            assert!(shell.read(cx).active_environment.switching);
+            assert_eq!(fixture.transport.handshakes(), 0);
+        })
+        .unwrap();
+        for release in releases {
+            let _ = release.send(());
+        }
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+            shell.read(cx).active_environment.state == ConnectionState::Connected
+                && shell.read(cx).active_environment.is_ssh()
+        })
+        .await;
+        assert_eq!(
+            fixture
+                .workspace
+                .host_details(&fixture.host.id)
+                .unwrap()
+                .name,
+            "Build fixture"
+        );
+        assert!(fixture.workspace.connected(&fixture.host.id));
+        assert_eq!(fixture.transport.handshakes(), 1);
+        cx.update_window(handle, |_, window, _| window.remove_window())
+            .unwrap();
+        drop(blockers);
+        fixture
+            .runtime
+            .shutdown_after(fixture.services.disconnect_ssh());
+    }
+}
+
+#[gpui_kit::test]
+async fn cancelling_or_discarding_a_saved_host_test_clears_its_challenge_without_disconnect(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let fixture = Fixture::new(true).await;
+    let other = action(
+        &fixture.services,
+        EnvironmentId::Local("local".into()),
+        SshAction::SaveHost(HostInput {
+            name: "Untrusted fixture".into(),
+            host: "untrusted.fixture.invalid".into(),
+            user: "fixture".into(),
+            port: 22,
+            remote_home: "~".into(),
+            ..Default::default()
+        }),
+    )
+    .await;
+    let Completion::Success(SshResult::HostSaved(other)) = other.as_ref() else {
+        panic!("saved fixture")
+    };
+    fixture.preferences(true);
+    let (handle, shell) = fixture.open(cx);
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        shell.read(cx).preferences_loaded
+            && shell.read(cx).remote.read(cx).hosts().len() == 2
+            && shell.read(cx).active_environment.state == ConnectionState::Connected
+    })
+    .await;
+    open_host_settings(cx, handle, &shell).await;
+    cx.update_window(handle, |_, window, cx| {
+        show(window, &format!("ssh-host-{}", other.id), cx);
+        window.click(SharedString::from(format!("ssh-host-{}", other.id)), cx);
+        show(window, "ssh-test-host", cx);
+        window.click("ssh-test-host", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("ssh-reject-trust").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        show(window, "ssh-reject-trust", cx);
+        window.click("ssh-reject-trust", cx);
+        assert!(!shell.read(cx).remote.read(cx).has_environment_draft(cx));
+        window.click("settings-nav-diagnostics", cx);
+        assert!(window.try_find("settings-page-diagnostics").is_some());
+        window.click("settings-nav-environment", cx);
+        show(window, "ssh-test-host", cx);
+        window.click("ssh-test-host", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("ssh-reject-trust").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("settings-nav-diagnostics", cx);
+        window.click("profile-navigation-discard", cx);
+        assert!(!shell.read(cx).remote.read(cx).has_environment_draft(cx));
+        assert!(window.try_find("settings-page-diagnostics").is_some());
+        window.click("nav-dashboard", cx);
+        assert!(window.try_find("profile-navigation-confirmation").is_none());
+    })
+    .unwrap();
+    assert!(fixture.workspace.connected(&fixture.host.id));
+    assert_eq!(fixture.transport.handshakes(), 1);
+    fixture
+        .runtime
+        .shutdown_after(fixture.services.disconnect_ssh());
 }
 async fn ready(cx: &mut TestAppContext, handle: gpui_kit::AnyWindowHandle, shell: &Entity<Shell>) {
     cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
