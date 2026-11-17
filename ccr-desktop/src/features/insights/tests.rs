@@ -193,9 +193,9 @@ async fn rendered_usage_controls_read_fixture_filters_and_keep_exact_costs(
     let owner = RuntimeOwner::new().unwrap();
     let root = tempfile::tempdir().unwrap();
     let paths = create_projection_db(&root.path().join("llmusage"));
-    let pool = create_pool(&paths.db_path, None).unwrap();
+    let connection = rusqlite::Connection::open(&paths.db_path).unwrap();
     seed_bucket(
-        &pool.get().unwrap(),
+        &connection,
         &SeedBucket {
             cost_with_cache_usd: 0.123456789,
             pricing_status: "static".into(),
@@ -203,7 +203,7 @@ async fn rendered_usage_controls_read_fixture_filters_and_keep_exact_costs(
             ..Default::default()
         },
     );
-    drop(pool);
+    connection.close().unwrap();
     let before = std::fs::read(&paths.db_path).unwrap();
     let (handle, view) = cx.update(|cx| {
         gpui_kit::init(cx);
