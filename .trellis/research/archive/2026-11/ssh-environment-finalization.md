@@ -1,10 +1,80 @@
 # SSH 执行环境本地实施记录归档
 
+## 2026-11-17 授权补验：当前交付与终态边界
+
+本节是后来获得明确授权后执行的补验；[本轮入口](../../../../outputs/ssh-checks/205/completion/current-authorized-run.txt) 指向 `outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754`，下称“当前证据根”。[逐阶段记录](../../../../outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754/progress.md) 保留首次失败、退修及后续通过的顺序。后面的 2026-11-16 原轮次及旧 Session 177 仅描述当时事实，不代表当前状态。
+
+当前分支为 `feature/ssh-environment`，最终产品/测试 HEAD 为 `3ebfbadaa509db4a73d6195fa6e778eef3b2b137`。S1 已按原生输入＋fixture 的明确边界验收；S2 真实资源 60/60、S3 新 nonce 独立 66/66、S4 Standards 0 / Spec 0，且该源码 HEAD 的协调者独立 11 项门禁全部 exit 0。**本轮最终完整 `just ci` 由协调者在所有 tracked 提交完成后冻结新 HEAD 运行，实际终态以最终收据为准。** 本文与新 journal 是 S5 文档交付，不提前宣称最终集成、归档终态或父任务完成。
+
+最终集成和本地归档终态以当前证据根的 `final-integration-receipt.json`、`archive-receipt.json` 为准，由协调者在本次文档提交后生成。本地归档不等于关闭父票。协调者在 **2026-11-17T09:38:40.878Z** 通过 GitHub connector 只读 REST 查询：[状态收据](../../../../outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754/github-state-before-final-ci.json) 中 #205 OPEN、#206–#214 CLOSED；最终 CI 后仍需再次只读核验。
+
+### 授权变化与精确历史整改
+
+- 后续明确授权涵盖私有远端 nonce 设施、精确历史元数据整改及仅操作本轮 own PID/窗口的 Win32/UIA 工具；原 prompt 本身不授权任意主机、个人配置或其他窗口。[权限收据](../../../../outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754/permissions.json) 为准。
+- 用户本轮明确“不用管 webdev”，按 WebDAV **`excluded_by_user`** 记录：不是 passed，不再作为本轮阻断，也未为其新增服务或依赖。
+- 已授权并执行仅 `303c898e`、`12e741a2`、`5d908cb6` 三项 author/committer 名称和邮箱整改，共 19 OID 映射。原 HEAD `7c2f3677a46d07c2a0ef09fe01e5c7dbaa4faad8` 映射为 `b3f0dbab17c87fc44ad45581cc9bf73b695cbe63`；原源码 `173c9f0b6d75cff5179a3942c90d3b4f586ef0fa` 映射为 `654862f97251a0cb5dde89302c0b6d94ad09cb6e`。树、消息、时间戳、非目标身份、其他 refs、index 与五个原脏文件均保持；目标身份合规检查为 true。旧 objects/reflog 保留，不复制旧个人值。[执行与逐 OID 核验](../../../../outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754/history-execution-receipt.json) 保存完整映射。
+- 上述三项元数据阻断已解决；这不自动证明所有公开发布条件满足。本阶段不再改历史，不 push、PR、merge、删分支或修改 dev/main、全局 Git/主机设置。
+
+### 新增代码、回归与门禁来源
+
+相对整改后基点 `b3f0dbab17c87fc44ad45581cc9bf73b695cbe63`，产品/测试共 5 提交、12 文件；author/committer 与规定 footer 合规布尔均已由协调者独立核验：
+
+| 提交 | 交付与证据边界 |
+| --- | --- |
+| `aa34e28e6a2efebfd724ee8d1fad4ca9199032ae` | exec 发起后失权统一保留 `CleanupFailed`；执行前拒绝仍为零命令，不借用或撤销替换 session。IO 17、remote_activity 20 窄测通过，并补 owning 契约。 |
+| `5d0e2e2356dc392463611daf005726aa84efd454` | 用量 fixture 明确单 Connection seed、close 后才取源文件 baseline；保留原全文件 byte 断言。 |
+| `55a164ed9db1ccf28edce72710aff67fa4c6114c` | 修复离线 Recovery 早返回隐藏既有安装/导入状态：只读 retained owner，保留 Busy、取消、导航后状态和自动终态通知，不创建 owner/IO 或加载旧 report/plan；叶层按当前环境过滤。 |
+| `8e297eba5dba10cd29e770bcf73b8e8a2c7e0944` | 导入展示、取消入口和终态 refresh 限定当前环境；raw shared owner/global Busy 保持，文案明确当前执行环境，安装取消卡保持紧凑。 |
+| `3ebfbadaa509db4a73d6195fa6e778eef3b2b137` | 仅 cfg(test) 只读观测与 owning 回归等待真实 view snapshot/loading、确认帧就绪；不改变 shipping UI、原预算或默认并行。 |
+
+协调者在最终产品/测试 HEAD `3ebfbadaa509db4a73d6195fa6e778eef3b2b137` 新跑的 [11 项独立门禁](../../../../outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754/coordinator-final-source-gates.json) 全部 exit 0：根 `just version-check`、`just fmt-check`、`just lint-strict`、`just test`、`just audit`、`just ui-check`；`ccr-desktop` 下 `just desktop-fmt-check`、`just desktop-lint`、`just desktop-test`、`just desktop-test-ui`、`just desktop-audit`。完整命令、cwd、完整 HEAD、退出码、耗时和原始日志路径在收据中；这是独立子门禁结果，不能冒充本轮最终完整 CI。
+
+原 `aa34` 首轮 10/11：desktop-test 源 DB byte 断言失败，before 缺少六个 seed marker、after 出现；pool 生命周期 600 样本未复现的否定结果也保留，不能称为重复复现。`5d0e` [后续 11/11](../../../../outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754/coordinator-S3-final-gates.json) 才全部通过。`8e` 首轮 10/11 的 desktop-test-ui 失败及临时诊断保留；根因是 backend ready 早于 view receiver/loading/确认帧，而 Kit `disabled=None` 不能证明可操作。`3eb` 在原预算及默认并行下转绿，不将两轮首失败抹写为首次全绿。
+
+旧完整 `just ci` 只发生于原 `173c9f0b`，exit 0 / 1245.8 秒 / 17 阶段；[历史 lineage](../../../../outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754/history-ci-lineage.json) 仅证明它与元数据映射后 `654862f9` 的源树对应，不覆盖新增源码或五个用户未提交 Trellis 文件。旧 B 的 RustSec TLS EOF 与同 HEAD 窄重试通过仍是历史事实。本轮最终 CI 修复预算在 S5 交付时为 0/1；默认并行、独立 binding 导出、容量/阈值/超时及既有审计忽略均未放宽。
+
+### S1：原生输入、截图与 fixture 分层
+
+[11 类场景矩阵](../../../../outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754/native-S1/run-20261117-014949/scenario-matrix.md) 覆盖 Local/SSH 与失败停留、草稿/作业确认、保存 SSH 启动一次、离线独立页、迟到请求、同 host authority、安装 Busy/取消/导航/终态、每 host 隔离、Light/Dark、GPUI ImportOwner 和合成凭据修复。生产 GPUI 页面、请求及状态机由 ignored consumer 注入既有 Workspace fixture/transport；**不是实际远端 UI 联调**。真实 SSH/CLI 层由 S2/S3 单独证明，原始 Tauri registry 结果也不替代本组 GPUI ImportOwner。
+
+最终 consumer 对应 `3ebfbadaa509db4a73d6195fa6e778eef3b2b137`，185 个源文件/hash 与复制源已核，只有 `lib.rs`、`runtime/environments.rs`、`runtime/mod.rs` 三个既有 bootstrap/admission shim；main 原样。旧 5d/55a/8e 阶段图与失败逐项标源，不把它们全部写为 3eb 新图。[协调者 S1 验收](../../../../outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754/coordinator-S1-acceptance.json) 与 [source/cleanup 独立核验](../../../../outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754/coordinator-S1-source-cleanup-verification.json) 为最终依据。
+
+输入使用实际 UIA supported patterns、own HWND 标准 Win32 消息；317/319 的严格 own 前台键盘 SendInput 实际成功。UIA Invoke 成功布尔不等于业务生效，按可见像素和 backend 结果核销；没有验证全局物理 pointer/hit-test，也未放宽输入守卫。[精确输入 API](../../../../outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754/native-S1/run-20261117-014949/input-method-summary.json) 保留各项边界。WGC `CreateForWindow` 每次前后限定 own PID/HWND，未捕全桌面或操纵其他窗口。
+
+[85 图查看与 hash 清单](../../../../outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754/native-S1/run-20261117-014949/viewed-images.json) 中 85 张均实际 view：83 张可用 WGC，2 张早期黑图明确拒绝。协调者亲自 view 8 张，审查者另 view 278/292/306/319。关键最终图 278 Dark 取消中、282 capture-only 自动 Failed、292 Light 终态、306 cleanup 后自动 B Connected；没有用额外 UIA/Refresh 冒充终态自动通知。A/B 用量种子原本同 41 requests/841 tokens，不凭相同数值证明隔离；数据隔离使用 `HOST_A`/`HOST_B`、草稿、请求路径与 authority。
+
+合成凭据修复显示缺失→输入掩码→保存后提示消失→重开空白；UIA 无 Value/Text 读取 pattern，但 **IsPassword 为 false**，不声称完整 accessibility 验收通过。运行证据四处合成 canary 是捕获后才 mask，[redaction 收据](../../../../outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754/native-S1/run-20261117-014949/redaction-receipt.json) 保留前后 hash；fixture 源码合成字面值有意留作复现。真实凭据未使用，不将本轮写成“所有日志始终落盘前脱敏”。[精确清理](../../../../outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754/native-S1/run-20261117-014949/cleanup-receipt.json) 后 TEMP nonce 根 140 文件已删、10 个登记进程均独立确认不存在，全部工具/exe/lock 与图片 hash 已核。
+
+### S2/S3：真实资源、失败终态与管理恢复
+
+| 阶段 | 已独立验收范围 | 实际边界 |
+| --- | --- | --- |
+| S2 | [60/60 收据](../../../../outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754/coordinator-S2-acceptance.json)：direct 28、authentication 25、rotation 6、credential cleanup 1；真实 Windows 系统 keyring、三认证、信任/密钥轮换、HOME、SFTP CAS/完整备份/原子替换及恢复、顺序双端点。 | 两个逻辑端点位于同一物理 Linux 机，不代表两物理机或其他 OS。应用取消/断线后真实父子孙仍存活，独立管理通道按 nonce/PID/starttime 精确恢复后才证明退出。 |
+| S3 | [新 nonce 独立 66/66 收据](../../../../outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754/coordinator-S3-acceptance.json)：真实 llmusage 2.1.0 投影 1 event/120 tokens；WAL、平台与 7/30/90 日期、schema/link/integrity、NDJSON、取消、私有快照与清理。实施者亦为 66/66。 | 真实 CLI/Python/SFTP 数据与时序/依赖/网络/cleanup fault shim 分层。原 Tauri owner 和 S1 GPUI owner 分别记证据；静态合成 seed 留在 ignored 证据目录，不是用户数据或运行时 cache。 |
+
+取消标志、channel 关闭或本地进程数都不能证明远端树退出。真实树仍活时应用返回 fail-closed `CleanupFailed`；失权快照不借新 app session 下载、发布或清理。只有后来授权的独立管理通道，依据精确 nonce、PID/starttime 和对象清单，证明遗留已回收；**管理恢复成功不等于应用已杀进程树**。S2 本轮根、凭据/keys/DB/trust/locks、server/manager 与依赖均精确回收；S3 私有 Rust/Cargo/依赖也全部回收，新独立 run 删除 24,285 对象，server/installer exit 0，独立查询 server/manager 身份均消失，本地 key/cache/trust/locks 均不存在。
+
+S3 协调者首次独立 `run-20261117-011806` 在 live 前因响应文件 PermissionError 失败，原日志保留；cleanup/service exit 0、精确 root/PID 消失已有独立证据。ignored 桥修复只在同 UUID/原 deadline 重试文件操作，不重发 mutation；随后新 nonce `run-20261117-013821` 才 66/66 通过。首次空 bootstrap `004025` 的本地 receipt 异常有成功 cleanup 调用路径依据，但没有单独精确路径二次查询，这个证据局限继续保留。
+
+Windows 深 264 字符 output cache 触发既有 ACL error 123，短 142 字符路径可用；本轮采用短 TEMP 隔离，未扩改通用 writer。Pageant、未实测私钥变体、其他 native OS、真实远端 UI 及全局物理 pointer 未验证，不能推及这些范围。WebDAV 仍是用户排除项，既不计 passed 也不计本轮阻断。
+
+### S4、S5 与后续唯一入口
+
+[S4 单一只读报告](../../../../outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754/S4/review.md) 对 `b3f0dbab…3ebfbada` 的 Standards 0、Spec 0，[协调者核销](../../../../outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754/coordinator-S4-acceptance.json) 确认无产品退修；审查者未派生、未改文件、未执行新门禁。现有 [execution-environment 契约](../../../spec/ccr-app/backend/execution-environment.md) 已准确包含失权清理、离线 retained owner 和按当前环境展示的边界，S5 不重复新增规则。
+
+S5 仅更新本主题并追加新 journal/index，保留旧 Session 177。按当前 help 执行 recorder `--no-commit --topic` 时，既有 journal-1 的两条 Session 28 使其在写前 exit 1，journal/index 零写；保留失败收据及旧记录，核写前 hash 后以明确的 append-only 手工 fallback 追加唯一 Session 178 和对应索引，不冒称脚本成功。只 stage 本组必要文档，五个原脏文件字节和 dev/main 保持，输出/截图继续 ignored、不 force-add。文档读回、真实相对 Markdown 链接、scoped diff、秘密/路径审计、fallback 与提交核验落在当前证据根 `S5/`；全局原 AGENTS EOF 空行不在本组修复范围。
+
+协调者下一步在所有 tracked 提交后冻结 HEAD，运行最终完整 `just ci`、只读复核 GitHub/保护 refs/五原脏/署名，然后生成最终集成与归档收据。当前没有未确认的本轮运行设施遗留；上述未测/证据限制仍需如实报告。#205 保持 OPEN，不把本次文档提交写成父任务验收完成。
+
+## 2026-11-16 原轮次历史（仅为当时事实）
+
+以下保留原轮次记录；其资源缺失、工具阻断、未改历史和元数据阻断描述仅适用于 2026-11-16，当时尚未获得后来授权。当前状态由前节及当前证据根收据覆盖，不静默改写原失败。
+
 日期：2026-11-16（执行时本地日期）。范围：[实施规格 #205](https://github.com/bahayonghang/ccr/issues/205) 的本轮本地验收分类与归档；GitHub Issues 继续作为任务源，mini-trellis 不驱动任务。
 
 本轮没有新增产品、测试、依赖、执行脚本或门禁改动，只整理归档和 journal。S1–S4 的交付与协调者核销已完成；**父任务验收未完成，#205 保持 OPEN，#206–#214 保持 CLOSED**。最终提交、工作区、GitHub 状态及归档终态由协调者在本地提交后核验，以 `outputs/ssh-checks/205/finalization/final-integration-receipt.json` 和 `archive-receipt.json` 为准；本文不提前声明这些收据已生成。
 
-## 代码交付与验证基线
+### 代码交付与验证基线
 
 源码与既有测试/CI HEAD：`173c9f0b6d75cff5179a3942c90d3b4f586ef0fa`。以下是本轮开始前已经完成的 A/B/C，不是本轮新增提交：
 
@@ -22,7 +92,7 @@
 
 旧 B 首次 audit 因 RustSec 拉取 TLS EOF 失败、同 HEAD 窄重试通过的事实和原日志均保留，不改写为首次全绿。本轮最终 CI 修复轮为 0/1；与更早轮次的修复预算分开记账。默认并行、独立 binding 导出、预算/容量/阈值及既有审计忽略未改变。
 
-## 本轮逐组结论与证据层级
+### 本轮逐组结论与证据层级
 
 | 阶段 | 本轮实际结果 | 证据 |
 | --- | --- | --- |
@@ -35,7 +105,7 @@
 
 S1 只做静态隔离路径审计，没有完成动态准备或启动。普通 fixture 不自动发现本机 Insights，但两个 catalog 参数不足以证明所有页面已经完成动态隔离；普通启动也没有可连接 SSH/远端安装注入入口。不把这些验收设施缺口写成产品失败或静态审计通过即原生通过。
 
-## 自主决策、失败事实与恢复
+### 自主决策、失败事实与恢复
 
 - 原生管道失败后不重复同类探测、不修改系统设置、不自建 UIA/管道替代控制器，也不扩产品 fixture 只为截成功图。
 - 缺资源逐项阻断，不读取保存主机、agent、keyring、个人配置或真实私钥推定授权。复用充分覆盖的旧协议/fixture 证据，不重复 mock，不为制造提交寻找缺陷。
@@ -44,7 +114,7 @@ S1 只做静态隔离路径审计，没有完成动态准备或启动。普通 f
 - 初次恢复 wrapper 的 GBK/UTF-8 解码失败及后续独立重跑、S4 日志匹配器大小写误判及窄更正均保留原记录，属于证据工具问题，不是产品/门禁失败或 CI 修复轮。
 - T3 重启取消原 S5；协调者先确认无主题/journal/提交/Git 锁/相关在途命令，再恢复未写入的 S5，未重做 S1–S4。见 [恢复检查](../../../../outputs/ssh-checks/205/finalization/restart-20261116-2243.json)。
 
-## 未通过与后续入口
+### 未通过与后续入口
 
 原生交互/浅深截图、真实 SSH/OS agent/keyring、SFTP 权限与原子替换、两主机顺序切换、远端 CLI/Python/schema/WAL/日期对照、外部 WebDAV、真实 nonce 进程树退出、精确私有快照清理及跨 OS 验收均未完成。获得明确授权的独立资产后，沿用 [真实资源清单](../../../../outputs/ssh-checks/205/next-session/real-host-checklist.md)；先记录前像和精确对象，逐对象验证恢复。
 

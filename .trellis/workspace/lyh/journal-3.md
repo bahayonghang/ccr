@@ -1877,3 +1877,45 @@ Topics: [.trellis/research/archive/2026-11/ssh-environment-finalization.md](../.
 ### Next Steps
 
 - 恢复原生控制并在明确授权资产上执行真机清单，确认远端树/私有对象清理与跨OS验收；历史署名阻断未解决，#205验收未完成。
+
+
+## Session 178: SSH授权补验与本地归档准备（#205）
+
+**Date**: 2026-11-17
+**Task**: SSH授权补验与本地归档准备（#205）
+**Branch**: `feature/ssh-environment`
+
+### Summary
+
+记录2026-11-17后来授权的真实资源与原生补验：S1原生输入+fixture 11类、S2真实60/60、S3新nonce独立66/66、3eb源码独立11门禁全0、S4 Standards/Spec零发现；最终完整CI与本地归档终态以协调者在文档提交后生成的收据为准，#205仍OPEN。
+Topics: [.trellis/research/archive/2026-11/ssh-environment-finalization.md](../../research/archive/2026-11/ssh-environment-finalization.md)
+
+记录方式：当前 recorder 使用 `--no-commit --topic` 后因 journal-1 既有两条 Session 28 在写前拒绝（exit 1），journal/index 零写；核写前 hash 后手工追加本 Session 178 与索引，保留旧记录及失败收据。
+
+### Main Changes
+
+- 更新既有归档主题，当前授权事实置前，保留2026-11-16原轮次与旧Session177；精确历史整改已完成，WebDAV excluded_by_user。
+- 明确原生输入API/85图实际查看/185源与3shim、fixture和真实CLI分层、应用CleanupFailed与独立管理恢复，以及未测和证据限制。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `aa34e28e6a2efebfd724ee8d1fad4ca9199032ae` | fix(ssh): 🐛 保留执行后失权的清理失败状态 |
+| `5d0e2e2356dc392463611daf005726aa84efd454` | test(桌面): 🧪 关闭用量夹具写连接后采样源文件 |
+| `55a164ed9db1ccf28edce72710aff67fa4c6114c` | fix(SSH): 🐛 离线保留安装和用量作业状态 |
+| `8e297eba5dba10cd29e770bcf73b8e8a2c7e0944` | fix(用量): 🐛 按当前环境展示同步状态与操作 |
+| `3ebfbadaa509db4a73d6195fa6e778eef3b2b137` | test(SSH): 🧪 等待安装视图就绪后操作控件 |
+
+### Testing
+
+- [OK] 复核3eb完整HEAD的协调者独立11/11门禁，未将旧173c完整CI作为本轮最终CI；S4两轴均0发现。
+- [OK] S5主题读回、29个真实相对链接、scoped diff、秘密/路径审计通过；旧主题正文仅调整历史小节标题层级，原五脏与dev/main保持。
+
+### Status
+
+文档已记账；最终集成与本地归档终态以协调者收据为准。
+
+### Next Steps
+
+- 协调者在全部tracked提交后冻结HEAD运行最终完整just ci，复核GitHub/署名/保护状态并生成final-integration-receipt.json与archive-receipt.json；不关闭#205。
