@@ -582,6 +582,61 @@ async fn ssh_snapshot_read_cancellation_joins_helper_then_cleans_without_revokin
 }
 
 #[tokio::test]
+async fn ssh_snapshot_started_on_old_authority_cannot_use_or_revoke_reconnected_session() {
+    use ccr_app::usage::import::remote::Snapshot;
+    let f = Fixture::new().await;
+    f.usage(19);
+    let io = f
+        .services
+        .remote_configuration_io(&f.key(1).environment)
+        .unwrap();
+    let helper = f.transport.hold_next_exec();
+    let cache = f.root.path().join("stale-helper-usage-cache");
+    let task_io = io.clone();
+    let task_cache = cache.clone();
+    let task = tokio::spawn(async move {
+        Snapshot::capture(&task_io, &task_cache, CancellationToken::new()).await
+    });
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while !f
+            .transport
+            .batches()
+            .iter()
+            .any(|batch| batch.starts_with("exec 'python3' '-c'"))
+        {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    assert!(!task.is_finished());
+    f.workspace.disconnect().await;
+    f.workspace
+        .connect(&f.id, CancellationToken::new())
+        .await
+        .unwrap();
+    let current = f
+        .services
+        .remote_configuration_io(&f.key(2).environment)
+        .unwrap();
+    let before = f.transport.batches().len();
+    helper.notify_one();
+    assert!(task.await.unwrap().is_err());
+    assert!(io.check_authority().is_err());
+    assert!(current.check_authority().is_ok());
+    assert!(f.workspace.connected(&f.id));
+    assert_eq!(f.transport.batches().len(), before);
+    assert!(
+        !f.transport
+            .batches()
+            .iter()
+            .any(|batch| batch.starts_with("get-session ") && batch.contains(".ccr-snapshot-"))
+    );
+    assert!(!cache.exists());
+    f.finish().await;
+}
+
+#[tokio::test]
 async fn ssh_sessions_use_remote_sources_large_payload_mtime_export_and_fail_closed_actions() {
     let f = Fixture::new().await;
     let mut content = "{\"type\":\"session_meta\",\"payload\":{\"id\":\"remote-codex\",\"timestamp\":\"2026-11-01T00:00:00Z\",\"cwd\":\"/work/remote\"}}\n{\"type\":\"response_item\",\"payload\":{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"remote transcript\"}]}}\n".to_string();
