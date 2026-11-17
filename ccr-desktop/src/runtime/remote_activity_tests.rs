@@ -1119,6 +1119,144 @@ async fn ssh_sqlite_session_snapshot_rejects_same_size_rewrite_and_live_sidecars
 }
 
 #[tokio::test]
+async fn ssh_install_cancel_retains_busy_and_terminal_after_authority_is_revoked() {
+    for reconnect_during_cleanup in [false, true] {
+        let f = Fixture::new().await;
+        f.transport.set_cli_output("cargo", "/usr/bin/cargo");
+        f.transport
+            .set_exec_output("'uname' '-s'", true, "Linux\n", "");
+        let command = "'/usr/bin/cargo' 'install' '--locked' 'llmusage'";
+        f.transport.set_exec_output(command, true, "installed", "");
+        let requests = install::InstallRequests::new(&f.services);
+        done(requests.query(f.key(1), install::Query::Check).unwrap()).await;
+        let plan = done(requests.query(f.key(2), install::Query::Plan).unwrap()).await;
+        let Completion::Success(snapshot) = plan.as_ref() else {
+            panic!("plan failed")
+        };
+        let Some(ccr_cli::services::install_types::PlanOutcome::Plan(plan)) = &snapshot.plan else {
+            panic!("missing plan")
+        };
+        let retained = requests.observe();
+        f.transport.delay_cli(Duration::from_millis(250));
+        let release = f.transport.hold_disconnect();
+        let execution = requests.execute(f.key(3), plan.plan_id, true).unwrap();
+        let reached_exec = tokio::time::timeout(Duration::from_secs(10), async {
+            while !f
+                .transport
+                .batches()
+                .iter()
+                .any(|line| line == &format!("exec {command}"))
+            {
+                tokio::time::sleep(Duration::from_millis(1)).await;
+            }
+        })
+        .await;
+        assert!(
+            reached_exec.is_ok(),
+            "install batches: {:?}; terminal: {}",
+            f.transport.batches(),
+            execution.terminal().is_some()
+        );
+        requests.cancel(f.key(4)).unwrap();
+        tokio::time::timeout(Duration::from_secs(10), async {
+            while !f
+                .transport
+                .batches()
+                .iter()
+                .any(|line| line.starts_with("disconnect "))
+            {
+                tokio::time::sleep(Duration::from_millis(1)).await;
+            }
+        })
+        .await
+        .unwrap();
+        let retained_busy = retained.borrow().busy();
+        let revisit = install::InstallRequests::new(&f.services);
+        let revisit_busy = revisit.snapshot().busy();
+        let revisit_observer = revisit.observe();
+        let observer_busy = revisit_observer.borrow().busy();
+        let cancel_retained = revisit
+            .cancel(f.key(5))
+            .is_ok_and(|snapshot| snapshot.busy() && snapshot.cancel_requested);
+        let terminal_before_cleanup = execution.terminal().is_some();
+        let offline_execution_refused = matches!(
+            revisit.execute(f.key(6), plan.plan_id, true),
+            Err(install::Error::Unsupported)
+        );
+        f.services
+            .select_environment(EnvironmentId::Ssh("unrelated-host".into()));
+        let unrelated_idle =
+            !revisit.snapshot().busy() && revisit.snapshot().recent.terminal.is_none();
+        f.services
+            .select_environment(EnvironmentId::Ssh(f.id.clone()));
+        let reconnected_still_busy = if reconnect_during_cleanup {
+            f.transport.delay_cli(Duration::ZERO);
+            f.workspace
+                .connect(&f.id, CancellationToken::new())
+                .await
+                .unwrap();
+            revisit.snapshot().busy()
+                && matches!(
+                    revisit.execute(f.key(7), plan.plan_id, true),
+                    Err(install::Error::Busy)
+                )
+        } else {
+            true
+        };
+        release.notify_one();
+        let result = done(execution).await;
+        let original_terminal = retained.borrow().recent.terminal.clone();
+        let final_snapshot = revisit.snapshot();
+        let observed_terminal = revisit_observer.borrow().recent.terminal.clone();
+        let new_session_is_empty = !reconnect_during_cleanup
+            || (final_snapshot.detection.is_none()
+                && final_snapshot.plan.is_none()
+                && final_snapshot.recent.terminal.is_none());
+        let old_plan_refused = if reconnect_during_cleanup {
+            let old_plan = revisit.execute(f.key(8), plan.plan_id, true).unwrap();
+            matches!(
+                done(old_plan).await.as_ref(),
+                Completion::Failed(install::Error::PlanUnavailable)
+            )
+        } else {
+            true
+        };
+        f.finish().await;
+        assert!(retained_busy);
+        assert!(!terminal_before_cleanup);
+        assert!(
+            revisit_busy,
+            "navigation must retain an installation during cleanup"
+        );
+        assert!(observer_busy);
+        assert!(cancel_retained);
+        assert!(offline_execution_refused);
+        assert!(unrelated_idle);
+        assert!(reconnected_still_busy);
+        assert!(new_session_is_empty);
+        assert!(old_plan_refused);
+        assert!(
+            matches!(result.as_ref(), Completion::Success(snapshot) if matches!(snapshot.recent.terminal, Some(ccr_cli::services::install_types::InstallEvent::Failed { .. })))
+        );
+        assert!(matches!(
+            original_terminal,
+            Some(ccr_cli::services::install_types::InstallEvent::Failed { .. })
+        ));
+        assert!(matches!(
+            observed_terminal,
+            Some(ccr_cli::services::install_types::InstallEvent::Failed { .. })
+        ));
+        assert!(!final_snapshot.busy());
+        if !reconnect_during_cleanup {
+            assert!(matches!(
+                final_snapshot.recent.terminal,
+                Some(ccr_cli::services::install_types::InstallEvent::Failed { .. })
+            ));
+        }
+    }
+}
+
+#[tokio::test]
 async fn ssh_install_query_cancellation_joins_only_the_sent_probe_and_never_starts_followups() {
     let f = Fixture::new().await;
     f.transport.delay_cli(Duration::from_millis(100));

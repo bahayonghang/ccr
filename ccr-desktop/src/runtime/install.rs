@@ -220,12 +220,16 @@ impl InstallRequests {
                 && super::environments::owner_is_fixture_transport(&self.0))
     }
     pub fn observe(&self) -> watch::Receiver<Arc<Snapshot>> {
-        self.owner(&self.environment())
+        let environment = self.environment();
+        self.owner(&environment)
+            .or_else(|_| self.retained_owner(&environment))
             .unwrap_or_else(|_| Arc::new(InstallOwner::default()))
             .observe()
     }
     pub fn snapshot(&self) -> Arc<Snapshot> {
-        self.owner(&self.environment())
+        let environment = self.environment();
+        self.owner(&environment)
+            .or_else(|_| self.retained_owner(&environment))
             .map(|owner| owner.snapshot())
             .unwrap_or_else(|_| Arc::new(Snapshot::default()))
     }
@@ -405,12 +409,17 @@ impl InstallRequests {
         }).map_err(|_| Error::Operation)
     }
     pub fn cancel(&self, key: RequestKey) -> Result<Arc<Snapshot>, Error> {
-        if !self.supported(&key) {
-            return Err(Error::Unsupported);
-        }
+        let owner = if matches!(key.environment, ccr_app::runtime::EnvironmentId::Ssh(_)) {
+            self.retained_owner(&key.environment)?
+        } else {
+            if !self.supported(&key) {
+                return Err(Error::Unsupported);
+            }
+            self.owner(&key.environment)?
+        };
         // Cancellation remains reachable without another worker/admission slot.
         // The retained runner forwards this request and owns cleanup/terminal.
-        Ok(self.owner(&key.environment)?.publish(|state| {
+        Ok(owner.publish(|state| {
             if state.busy() {
                 state.cancel_requested = true;
             }

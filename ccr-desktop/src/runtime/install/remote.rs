@@ -127,6 +127,24 @@ impl InstallBackend for Backend {
     }
 }
 impl InstallRequests {
+    pub(super) fn retained_owner(
+        &self,
+        environment: &EnvironmentId,
+    ) -> Result<Arc<InstallOwner>, Error> {
+        match environment {
+            EnvironmentId::Local(_) => Ok(self.0.install.clone()),
+            EnvironmentId::Ssh(id) => self
+                .0
+                .install
+                .remote
+                .lock()
+                .map_err(|_| Error::Operation)?
+                .get(id)
+                .cloned()
+                .ok_or(Error::Unsupported),
+            _ => Err(Error::Unsupported),
+        }
+    }
     pub(super) fn owner(&self, environment: &EnvironmentId) -> Result<Arc<InstallOwner>, Error> {
         if matches!(environment, EnvironmentId::Local(_)) {
             return Ok(self.0.install.clone());
@@ -139,13 +157,18 @@ impl InstallRequests {
             return Err(Error::Unsupported);
         };
         let mut children = self.0.install.remote.lock().map_err(|_| Error::Operation)?;
-        if let Some(owner) = children.get(id)
-            && owner
+        if let Some(owner) = children.get(id) {
+            if owner
                 .io
                 .as_ref()
                 .is_some_and(|io| io.check_authority().is_ok())
-        {
-            return Ok(owner.clone());
+            {
+                return Ok(owner.clone());
+            }
+            // 重连不能替换仍在清理的旧会话作业，也不能续借其执行权限。
+            if owner.snapshot().busy() {
+                return Err(Error::Busy);
+            }
         }
         let mut owner =
             InstallOwner::with_service(InstallService::for_remote(Arc::new(Backend(io.clone()))));
