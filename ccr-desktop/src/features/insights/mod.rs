@@ -833,8 +833,8 @@ impl Render for InsightsView {
                         .text_color(cx.theme().muted_foreground)
                         .child(text(
                             cx,
-                            "Figures already stored in the local usage database.",
-                            "这些数字来自本机用量库，没有示例填充。",
+                            "Figures stored in the current execution environment's usage database.",
+                            "这些数字来自当前执行环境的用量库。",
                         )),
                 );
         }

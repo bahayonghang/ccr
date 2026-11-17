@@ -282,15 +282,17 @@ impl Render for InstallView {
                             .aria_label(status.clone())
                             .child(status),
                     )
-                    .child(semantics::button(
-                        Button::new("install-cancel")
-                            .label(text(cx, "Request cancellation", "请求取消"))
-                            .ghost()
-                            .on_click(cx.listener(|this, _, _, cx| this.cancel(cx))),
-                        !snapshot.busy() || snapshot.cancel_requested,
-                        false,
-                        cx,
-                    ));
+                    .child(
+                        div().flex().child(semantics::button(
+                            Button::new("install-cancel")
+                                .label(text(cx, "Request cancellation", "请求取消"))
+                                .ghost()
+                                .on_click(cx.listener(|this, _, _, cx| this.cancel(cx))),
+                            !snapshot.busy() || snapshot.cancel_requested,
+                            false,
+                            cx,
+                        )),
+                    );
                 if let Some(error) = snapshot.error.map(Error::message).or_else(|| {
                     matches!(snapshot.recent.terminal, Some(InstallEvent::Failed { .. }))
                         .then_some(Error::Operation.message())

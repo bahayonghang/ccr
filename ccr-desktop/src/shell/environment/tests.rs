@@ -919,14 +919,15 @@ async fn ssh_offline_retained_install_stays_visible_through_navigation_and_clean
         window.click("install-check", cx);
     })
     .unwrap();
-    cx.wait_for(handle, Duration::from_secs(5), |_, _| {
+    cx.wait_for(handle, Duration::from_secs(5), |window, _| {
         requests.snapshot().detection.is_some()
+            && window.find("install-plan").disabled() != Some(true)
     })
     .await;
     cx.update_window(handle, |_, window, cx| window.click("install-plan", cx))
         .unwrap();
-    cx.wait_for(handle, Duration::from_secs(5), |_, _| {
-        requests.snapshot().plan.is_some()
+    cx.wait_for(handle, Duration::from_secs(5), |window, _| {
+        requests.snapshot().plan.is_some() && window.find("install-review").disabled() != Some(true)
     })
     .await;
     // 只使用现有 transport 暂停点，放行执行前复核，保留真实安装 exec。

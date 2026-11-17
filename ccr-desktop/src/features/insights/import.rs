@@ -96,13 +96,14 @@ impl InsightsView {
                 cx.background_executor()
                     .timer(ccr_app::runtime::PROGRESS_INTERVAL)
                     .await;
-                let status = updates.borrow_and_update().status;
+                let snapshot = updates.borrow_and_update().clone();
                 if weak
                     .update(cx, |this, cx| {
                         if this.page == InsightsPage::Usage
                             && !this.requests.ssh_offline()
+                            && snapshot.environment.as_ref() == Some(&this.requests.environment())
                             && matches!(
-                                status,
+                                snapshot.status,
                                 Status::Finished | Status::Cancelled | Status::Failed(_)
                             )
                         {
@@ -150,11 +151,16 @@ impl InsightsView {
     ) -> impl IntoElement {
         let snapshot = self.requests.import_snapshot();
         let active = snapshot.status.active();
+        let snapshot = if snapshot.environment.as_ref() == Some(&self.requests.environment()) {
+            snapshot
+        } else {
+            Default::default()
+        };
         let mut status = if let Some(error) = self.import_error.filter(|_| !retained_only) {
             failure(error, cx).to_string()
         } else {
             match snapshot.status {
-                Status::Idle => text(cx, "Import uses the installed llmusage CLI and default local provider directories.", "导入使用已安装的 llmusage CLI 和默认本地会话来源目录。").to_string(),
+                Status::Idle => text(cx, "Import uses the installed llmusage CLI and default provider directories in the current execution environment.", "导入使用当前执行环境中已安装的 llmusage CLI 和默认会话来源目录。").to_string(),
                 Status::Queued => text(cx, "Usage import queued", "用量导入已排队").to_string(),
                 Status::Running => text(cx, "Usage import running; leaving this page keeps it running.", "正在导入用量，离开页面后仍继续运行。").to_string(),
                 Status::CancelRequested => text(cx, "Cancellation requested; waiting for process cleanup.", "已请求取消，正在等待进程清理。").to_string(),
@@ -221,26 +227,28 @@ impl InsightsView {
                     .children((!retained_only).then(|| {
                         semantics::button(
                             Button::new("insights-import")
-                                .label(text(cx, "Import local usage", "导入本地用量"))
+                                .label(text(cx, "Sync usage", "同步用量"))
                                 .on_click(cx.listener(|this, _, _, cx| this.start_import(cx))),
                             active,
                             active,
                             cx,
                         )
                     }))
-                    .child(semantics::button(
-                        Button::new("insights-import-cancel")
-                            .label(text(cx, "Cancel import", "取消导入"))
-                            .ghost()
-                            .on_click(cx.listener(|this, _, _, cx| {
-                                this.requests.cancel_import();
-                                this.import_error = None;
-                                cx.notify();
-                            })),
-                        !active || snapshot.status == Status::CancelRequested,
-                        false,
-                        cx,
-                    )),
+                    .children((snapshot.run > 0).then(|| {
+                        semantics::button(
+                            Button::new("insights-import-cancel")
+                                .label(text(cx, "Cancel import", "取消导入"))
+                                .ghost()
+                                .on_click(cx.listener(|this, _, _, cx| {
+                                    this.requests.cancel_import();
+                                    this.import_error = None;
+                                    cx.notify();
+                                })),
+                            !snapshot.status.active() || snapshot.status == Status::CancelRequested,
+                            false,
+                            cx,
+                        )
+                    })),
             )
             .child(
                 div()
