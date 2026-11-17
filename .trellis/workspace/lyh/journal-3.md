@@ -1843,3 +1843,37 @@ Topics: [.trellis/spec/ccr-cli/backend/profile-application-lifecycle.md](../../s
 ### Next Steps
 
 - 待用户确认后将本地 dev 分支推送至 origin/dev
+
+
+## Session 177: SSH本地实施记录归档（#205验收未完成）
+<!-- trellis-session: v=2 fp=066577e377be3a9d -->
+
+**Date**: 2026-11-16
+**Task**: SSH本地实施记录归档（#205验收未完成）
+**Branch**: `feature/ssh-environment`
+
+### Summary
+
+本轮仅归档文档，源码173c9f0b未变；S1原生工具受阻、S2/S3真实资源缺失，S4 clean review。复用同源码11门禁和17阶段CI，父任务#205保持OPEN；最终本地提交与归档终态以协调者收据为准。
+Topics: [.trellis/research/archive/2026-11/ssh-environment-finalization.md](../../research/archive/2026-11/ssh-environment-finalization.md)
+
+### Main Changes
+
+- 保存本轮证据分层、自主决策、恢复N/A及历史署名发布阻断；无新增产品或测试修改。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 复用源码HEAD173c9f0b的11门禁与just ci exit0（1245.8秒、17阶段）；本轮未重跑CI。
+- [OK] 归档主题已写入读回，9个现有本地Markdown链接有效；仅文档执行读回、链接、diff和署名检查。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 恢复原生控制并在明确授权资产上执行真机清单，确认远端树/私有对象清理与跨OS验收；历史署名阻断未解决，#205验收未完成。
