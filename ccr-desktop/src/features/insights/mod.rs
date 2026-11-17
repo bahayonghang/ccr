@@ -793,6 +793,16 @@ impl InsightsView {
 
 impl Render for InsightsView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        if self.requests.ssh_offline() {
+            return div()
+                .flex()
+                .flex_col()
+                .children(
+                    self.has_retained_import()
+                        .then(|| self.retained_import_controls(cx)),
+                )
+                .into_any_element();
+        }
         if self.surface == Surface::Sessions {
             return sessions::sessions(self, window, cx).into_any_element();
         }

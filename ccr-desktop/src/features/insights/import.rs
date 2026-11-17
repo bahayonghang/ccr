@@ -78,6 +78,15 @@ fn failure(error: Failure, cx: &gpui_kit::App) -> &'static str {
 }
 
 impl InsightsView {
+    pub fn has_retained_import(&self) -> bool {
+        let snapshot = self.requests.import_snapshot();
+        snapshot.run > 0 && snapshot.environment.as_ref() == Some(&self.requests.environment())
+    }
+    pub fn observe_retained_import(&mut self, cx: &mut Context<Self>) {
+        if self.import_task.is_none() && self.has_retained_import() {
+            self.observe_import(cx);
+        }
+    }
     pub(super) fn observe_import(&mut self, cx: &mut Context<Self>) {
         let mut updates = self.requests.observe_import();
         self.import_task = Some(cx.spawn(async move |weak, cx| {
@@ -91,6 +100,7 @@ impl InsightsView {
                 if weak
                     .update(cx, |this, cx| {
                         if this.page == InsightsPage::Usage
+                            && !this.requests.ssh_offline()
                             && matches!(
                                 status,
                                 Status::Finished | Status::Cancelled | Status::Failed(_)
@@ -128,9 +138,19 @@ impl InsightsView {
         cx.notify();
     }
     pub(super) fn import_controls(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        self.import_controls_inner(false, cx)
+    }
+    pub(super) fn retained_import_controls(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        self.import_controls_inner(true, cx)
+    }
+    fn import_controls_inner(
+        &self,
+        retained_only: bool,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
         let snapshot = self.requests.import_snapshot();
         let active = snapshot.status.active();
-        let mut status = if let Some(error) = self.import_error {
+        let mut status = if let Some(error) = self.import_error.filter(|_| !retained_only) {
             failure(error, cx).to_string()
         } else {
             match snapshot.status {
@@ -193,19 +213,21 @@ impl InsightsView {
             .flex()
             .flex_col()
             .gap(px(theme::CONTROL_GAP))
-            .child(self.import_scope_controls(active, cx))
+            .children((!retained_only).then(|| self.import_scope_controls(active, cx)))
             .child(
                 div()
                     .flex()
                     .gap(px(theme::CONTROL_GAP))
-                    .child(semantics::button(
-                        Button::new("insights-import")
-                            .label(text(cx, "Import local usage", "导入本地用量"))
-                            .on_click(cx.listener(|this, _, _, cx| this.start_import(cx))),
-                        active,
-                        active,
-                        cx,
-                    ))
+                    .children((!retained_only).then(|| {
+                        semantics::button(
+                            Button::new("insights-import")
+                                .label(text(cx, "Import local usage", "导入本地用量"))
+                                .on_click(cx.listener(|this, _, _, cx| this.start_import(cx))),
+                            active,
+                            active,
+                            cx,
+                        )
+                    }))
                     .child(semantics::button(
                         Button::new("insights-import-cancel")
                             .label(text(cx, "Cancel import", "取消导入"))
@@ -225,6 +247,7 @@ impl InsightsView {
                     .id("insights-import-status")
                     .test_support()
                     .role(gpui_kit::Role::Status)
+                    .aria_label(status.clone())
                     .text_size(crate::theme::text_size(theme::META_SIZE))
                     .child(status),
             )

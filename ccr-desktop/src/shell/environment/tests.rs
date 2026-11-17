@@ -756,6 +756,323 @@ async fn ready(cx: &mut TestAppContext, handle: gpui_kit::AnyWindowHandle, shell
 }
 
 #[gpui_kit::test]
+async fn ssh_offline_retained_import_stays_visible_through_navigation_and_cleanup(
+    cx: &mut TestAppContext,
+) {
+    use crate::runtime::insights::{InsightsRequests, import::Status};
+    cx.executor().allow_parking();
+    let fixture = Fixture::new(true).await;
+    fixture.preferences(true);
+    fixture
+        .transport
+        .set_cli_output("llmusage", "/usr/bin/llmusage");
+    fixture.transport.set_exec_output(
+        "'env' 'RUST_LOG=off' 'NO_COLOR=1' '/usr/bin/llmusage' '--home' '/home/fixture/.llmusage' 'sync' '--json-events' '--recent-days' '30'",
+        true,
+        "{\"event\":\"progress\",\"source\":\"codex\",\"files_scanned\":1,\"records_imported\":1,\"current_file\":null}\n{\"event\":\"finished\",\"summary\":{\"sources\":1,\"total_seen\":1,\"total_inserted\":1}}\n",
+        "",
+    );
+    fixture
+        .transport
+        .delay_exec_terminal(Duration::from_secs(30));
+    let requests = InsightsRequests::new(&fixture.services);
+    let (handle, shell) = fixture.open(cx);
+    ready(cx, handle, &shell).await;
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        shell.read(cx).active_environment.state == ConnectionState::Connected
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("nav-usage", cx);
+        window.click("insights-import", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, _| {
+        requests.import_snapshot().status == Status::Running
+    })
+    .await;
+    let cleanup = fixture.transport.hold_disconnect();
+    cx.update_window(handle, |_, window, cx| {
+        window.click("insights-import-cancel", cx)
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(5), |_, cx| {
+        shell.read(cx).active_environment.state == ConnectionState::Unreachable
+    })
+    .await;
+    assert_eq!(requests.import_snapshot().status, Status::CancelRequested);
+    let before = fixture.transport.batches();
+    let cancelling_visible = cx
+        .update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.try_find("insights-import-status").is_some()
+                && window
+                    .find("insights-import-status")
+                    .label()
+                    .is_some_and(|s| s.contains("Cancellation requested"))
+                && window.try_find("environment-retry").is_some()
+                && window.try_find("insights-import").is_none()
+        })
+        .unwrap();
+    cx.update_window(handle, |_, window, cx| {
+        window.click("nav-settings", cx);
+        window.click("nav-usage", cx);
+    })
+    .unwrap();
+    let after_navigation = cx
+        .update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.try_find("insights-import-status").is_some()
+                && window
+                    .find("insights-import-status")
+                    .label()
+                    .is_some_and(|s| s.contains("Cancellation requested"))
+        })
+        .unwrap();
+    assert_eq!(
+        fixture.transport.batches(),
+        before,
+        "retained status must issue no SSH I/O"
+    );
+    cleanup.notify_one();
+    cx.wait_for(handle, Duration::from_secs(10), |_, _| {
+        !requests.import_snapshot().status.active()
+    })
+    .await;
+    let terminal_visible = cx
+        .update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.try_find("insights-import-status").is_some()
+                && window
+                    .find("insights-import-status")
+                    .label()
+                    .is_some_and(|s| s.contains("cleanup failed"))
+        })
+        .unwrap();
+    assert_eq!(
+        requests.import_snapshot().status,
+        Status::Failed(crate::runtime::insights::import::Failure::CleanupFailed)
+    );
+    let other = EnvironmentId::Ssh("00000000-0000-4000-8000-000000000002".into());
+    cx.update_window(handle, |_, window, cx| {
+        shell.update(cx, |this, cx| {
+            this.request_environment(other.clone(), window, cx)
+        });
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        shell.read(cx).active_environment.id == other
+            && shell.read(cx).active_environment.state == ConnectionState::Unreachable
+    })
+    .await;
+    let other_hidden = cx
+        .update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.try_find("insights-import-status").is_none()
+        })
+        .unwrap();
+    cx.update_window(handle, |_, window, _| window.remove_window())
+        .unwrap();
+    fixture
+        .runtime
+        .shutdown_after(fixture.services.disconnect_ssh());
+    assert!(
+        cancelling_visible,
+        "offline recovery hid the cancelling import"
+    );
+    assert!(
+        after_navigation,
+        "offline navigation hid the retained import"
+    );
+    assert!(terminal_visible, "offline recovery hid the import terminal");
+    assert!(other_hidden, "another host must not see this import");
+}
+
+#[gpui_kit::test]
+async fn ssh_offline_retained_install_stays_visible_through_navigation_and_cleanup(
+    cx: &mut TestAppContext,
+) {
+    use crate::runtime::install::InstallRequests;
+    cx.executor().allow_parking();
+    let fixture = Fixture::new(true).await;
+    fixture.preferences(true);
+    fixture.transport.set_cli_output("cargo", "/usr/bin/cargo");
+    fixture
+        .transport
+        .set_exec_output("'uname' '-s'", true, "Linux\n", "");
+    fixture.transport.set_exec_output(
+        "'/usr/bin/cargo' 'install' '--locked' 'llmusage'",
+        true,
+        "installed\n",
+        "",
+    );
+    let requests = InstallRequests::new(&fixture.services);
+    let (handle, shell) = fixture.open(cx);
+    ready(cx, handle, &shell).await;
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        shell.read(cx).active_environment.state == ConnectionState::Connected
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("nav-usage", cx);
+        window.click("tool-install", cx);
+        window.click("install-check", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(5), |_, _| {
+        requests.snapshot().detection.is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| window.click("install-plan", cx))
+        .unwrap();
+    cx.wait_for(handle, Duration::from_secs(5), |_, _| {
+        requests.snapshot().plan.is_some()
+    })
+    .await;
+    // 只使用现有 transport 暂停点，放行执行前复核，保留真实安装 exec。
+    let transport = fixture.transport.clone();
+    let gate = transport.hold_next_exec();
+    let mut count = transport
+        .batches()
+        .iter()
+        .filter(|s| s.starts_with("exec "))
+        .count();
+    let (held_tx, held_rx) = std::sync::mpsc::channel();
+    let controller = std::thread::spawn(move || {
+        let mut gate = gate;
+        let deadline = std::time::Instant::now() + Duration::from_secs(10);
+        while std::time::Instant::now() < deadline {
+            let batches = transport.batches();
+            let commands = batches
+                .iter()
+                .filter(|s| s.starts_with("exec "))
+                .collect::<Vec<_>>();
+            if commands.len() > count {
+                count = commands.len();
+                if commands
+                    .last()
+                    .unwrap()
+                    .contains("'/usr/bin/cargo' 'install'")
+                {
+                    held_tx.send(gate).unwrap();
+                    return;
+                }
+                std::thread::sleep(Duration::from_millis(2));
+                let next = transport.hold_next_exec();
+                gate.notify_one();
+                gate = next;
+            }
+            std::thread::sleep(Duration::from_millis(2));
+        }
+        gate.notify_one();
+        panic!("fixture installation did not reach exec");
+    });
+    cx.update_window(handle, |_, window, cx| {
+        window.click("install-review", cx);
+        window.click("install-decision-confirm", cx);
+    })
+    .unwrap();
+    let mut cargo = None;
+    cx.wait_for(handle, Duration::from_secs(10), |_, _| {
+        cargo = held_rx.try_recv().ok().or(cargo.take());
+        cargo.is_some() && requests.snapshot().running
+    })
+    .await;
+    controller.join().unwrap();
+    let cleanup = fixture.transport.hold_disconnect();
+    cx.update_window(handle, |_, window, cx| window.click("install-cancel", cx))
+        .unwrap();
+    cx.wait_for(handle, Duration::from_secs(5), |_, cx| {
+        shell.read(cx).active_environment.state == ConnectionState::Unreachable
+    })
+    .await;
+    assert!(requests.snapshot().busy() && requests.snapshot().cancel_requested);
+    let before = fixture.transport.batches();
+    let cancelling_visible = cx
+        .update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.try_find("install-status").is_some()
+                && window.find("install-status").label()
+                    == Some("Cancellation requested; waiting for cleanup")
+                && window.try_find("environment-retry").is_some()
+                && window.try_find("install-review").is_none()
+        })
+        .unwrap();
+    cx.update_window(handle, |_, window, cx| {
+        window.click("nav-settings", cx);
+        window.click("nav-usage", cx);
+        window.click("tool-install", cx);
+    })
+    .unwrap();
+    let after_navigation = cx
+        .update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.try_find("install-status").is_some()
+                && window.find("install-status").label()
+                    == Some("Cancellation requested; waiting for cleanup")
+        })
+        .unwrap();
+    assert_eq!(
+        fixture.transport.batches(),
+        before,
+        "retained status must issue no SSH I/O"
+    );
+    cleanup.notify_one();
+    cargo.unwrap().notify_one();
+    cx.wait_for(handle, Duration::from_secs(10), |_, _| {
+        !requests.snapshot().busy()
+    })
+    .await;
+    let terminal_visible = cx
+        .update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.try_find("install-status").is_some()
+                && window.find("install-status").label() == Some("Failed")
+        })
+        .unwrap();
+    assert!(matches!(
+        requests.snapshot().recent.terminal,
+        Some(ccr_cli::services::install_types::InstallEvent::Failed { .. })
+    ));
+    let other = EnvironmentId::Ssh("00000000-0000-4000-8000-000000000002".into());
+    cx.update_window(handle, |_, window, cx| {
+        shell.update(cx, |this, cx| {
+            this.request_environment(other.clone(), window, cx)
+        });
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        shell.read(cx).active_environment.id == other
+            && shell.read(cx).active_environment.state == ConnectionState::Unreachable
+    })
+    .await;
+    let other_hidden = cx
+        .update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.try_find("install-status").is_none()
+        })
+        .unwrap();
+    cx.update_window(handle, |_, window, _| window.remove_window())
+        .unwrap();
+    fixture
+        .runtime
+        .shutdown_after(fixture.services.disconnect_ssh());
+    assert!(
+        cancelling_visible,
+        "offline recovery hid the cancelling installation"
+    );
+    assert!(
+        after_navigation,
+        "offline navigation hid the retained installation"
+    );
+    assert!(
+        terminal_visible,
+        "offline recovery hid the installation terminal"
+    );
+    assert!(other_hidden, "another host must not see this installation");
+}
+
+#[gpui_kit::test]
 async fn ssh_configuration_tabs_load_remote_data_while_later_capabilities_stay_closed(
     cx: &mut TestAppContext,
 ) {

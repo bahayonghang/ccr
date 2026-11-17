@@ -45,7 +45,7 @@ async fn import_controls_reject_fixture_then_reattach_and_cancel_retained_work(
     let (handle, view) = cx.update(|cx| {
         gpui_kit::init(cx);
         gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
-            cx.new(|cx| InsightsView::new(services, window, cx))
+            cx.new(|cx| InsightsView::new(services.clone(), window, cx))
         })
         .unwrap()
     });
@@ -104,6 +104,14 @@ async fn import_controls_reject_fixture_then_reattach_and_cancel_retained_work(
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         assert!(window.try_find("insights-import-status").is_some());
+        services.select_environment(ccr_app::runtime::EnvironmentId::Ssh("another-host".into()));
+        view.update(cx, |this, cx| this.suspend(cx));
+        window.render_frame(cx);
+        assert!(
+            window.try_find("insights-import-status").is_none(),
+            "standalone offline view exposed another environment's import"
+        );
+        assert!(window.try_find("insights-import").is_none());
         window.remove_window();
     })
     .unwrap();

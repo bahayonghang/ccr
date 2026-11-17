@@ -219,6 +219,20 @@ impl InstallRequests {
             && !(matches!(self.environment(), ccr_app::runtime::EnvironmentId::Ssh(_))
                 && super::environments::owner_is_fixture_transport(&self.0))
     }
+    pub fn ssh_offline(&self) -> bool {
+        matches!(self.environment(), ccr_app::runtime::EnvironmentId::Ssh(id) if !self.0.ssh_connected(&id))
+    }
+    /// Observe only a previously retained owner; never capture replacement I/O.
+    pub fn retained_snapshot(&self) -> Option<Arc<Snapshot>> {
+        self.retained_owner(&self.environment())
+            .ok()
+            .map(|owner| owner.snapshot())
+    }
+    pub fn observe_retained(&self) -> Option<watch::Receiver<Arc<Snapshot>>> {
+        self.retained_owner(&self.environment())
+            .ok()
+            .map(|owner| owner.observe())
+    }
     pub fn observe(&self) -> watch::Receiver<Arc<Snapshot>> {
         let environment = self.environment();
         self.owner(&environment)

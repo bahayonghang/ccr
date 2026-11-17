@@ -478,6 +478,15 @@ impl Shell {
             && (!self.remote_configuration_destination()
                 || self.active_environment.state != environment::ConnectionState::Connected)
         {
+            if self.destination == Destination::Usage && self.lens == Lens::Install {
+                self.install
+                    .update(cx, |view, cx| view.refresh_retained(cx));
+            } else if (self.destination == Destination::Usage && self.lens == Lens::Primary)
+                || self.lens == Lens::Usage
+            {
+                self.insights
+                    .update(cx, |view, cx| view.observe_retained_import(cx));
+            }
             return;
         }
         if self.active_environment.is_ssh()
@@ -1037,6 +1046,15 @@ impl Shell {
                 .child(self.environment_recovery(cx)).into_any_element();
             }
             if self.active_environment.state != environment::ConnectionState::Connected {
+                let installation = (self.destination == Destination::Usage
+                    && self.lens == Lens::Install
+                    && self.install.read(cx).has_retained_status())
+                .then(|| self.install.clone());
+                let import = (((self.destination == Destination::Usage
+                    && self.lens == Lens::Primary)
+                    || self.lens == Lens::Usage)
+                    && self.insights.read(cx).has_retained_import())
+                .then(|| self.insights.clone());
                 return div()
                     .p(px(theme::CONTENT_PADDING))
                     .flex()
@@ -1049,6 +1067,8 @@ impl Shell {
                         "连接当前 SSH 主机后读取其配置。",
                     ))
                     .child(self.environment_recovery(cx))
+                    .children(installation)
+                    .children(import)
                     .children((self.lens == Lens::Profiles).then(|| {
                         let platform = self.platform().unwrap_or(Platform::Claude);
                         semantics::button(

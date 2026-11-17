@@ -404,6 +404,9 @@ impl InsightsRequests {
     pub fn environment(&self) -> ccr_app::runtime::EnvironmentId {
         self.services.environment()
     }
+    pub fn ssh_offline(&self) -> bool {
+        matches!(self.environment(), ccr_app::runtime::EnvironmentId::Ssh(id) if !self.services.ssh_connected(&id))
+    }
     pub fn scoped(mut self, platform: Option<ccr_app::runtime::Platform>) -> Self {
         self.services = self.services.scoped(platform);
         self
