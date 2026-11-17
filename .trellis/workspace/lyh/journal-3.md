@@ -1919,3 +1919,33 @@ Topics: [.trellis/research/archive/2026-11/ssh-environment-finalization.md](../.
 ### Next Steps
 
 - 协调者在全部tracked提交后冻结HEAD运行最终完整just ci，复核GitHub/署名/保护状态并生成final-integration-receipt.json与archive-receipt.json；不关闭#205。
+
+
+## Session 179: SSH关闭核验依据与公开收口准备（#205）
+
+**Date**: 2026-11-17
+**Task**: SSH关闭核验依据与公开收口准备（#205）
+**Branch**: `feature/ssh-environment`
+
+### Summary
+
+A核销父规格§2至§6及九票26条AC，无产品改动、阻断或必需证据缺口；B独立只读Standards 0 / Spec 0、closure_ready=true。最终GitHub状态、评论与closed_at以本轮 `outputs/ssh-checks/205/closure/run-20261117-080548/closure-receipt.json` 的独立实读为准，本条不预写CLOSED。
+Topics: [.trellis/research/archive/2026-11/ssh-environment-finalization.md](../../research/archive/2026-11/ssh-environment-finalization.md)
+
+### Main Changes
+
+- 本轮关闭核销依据置前，保留旧主题与Session177/178；当前用户已明确授权满足条件后发表评论并以completed实际关闭。
+- recorder使用 `--no-commit --topic` 仍因journal-1旧Session28重复在写前exit1，workspace Markdown零写；写前字节CAS后手工append-only追加唯一179和对应index，保留失败收据，不冒称脚本成功。
+
+### Testing
+
+- 复用产品/测试 `3ebfbadaa509db4a73d6195fa6e778eef3b2b137` 独立11门禁全部exit0，以及 `77aa5719966fc876d96193d5ac4a2494dcc1effa` 完整just ci exit0、1131.402秒、17/17阶段；输入/原日志hash已核，新文档HEAD未重跑CI。
+- 本轮仅文档读回、链接/scoped diff和保护状态核验；S1原生+fixture、S2真实60/60、S3独立66/66及恢复/未测边界见主题；WebDAV额外生产验收excluded_by_user。
+
+### Status
+
+关闭依据已核销，文档提交后由协调者完成公开评论、completed关闭、独立回读与关票收据；未push/PR/merge，无新产品提交或运行设施。
+
+### Next Steps
+
+- 协调者核最终HEAD/原五脏/refs/署名与评论，执行已授权公开动作并在ignored收据记录实际终态，不再安排关票后tracked提交。

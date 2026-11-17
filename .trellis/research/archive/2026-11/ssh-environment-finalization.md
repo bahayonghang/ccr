@@ -1,5 +1,29 @@
 # SSH 执行环境本地实施记录归档
 
+## 2026-11-17 关闭核验：本轮条件已核销
+
+本节是用户明确授权实际关闭 [#205](https://github.com/bahayonghang/ccr/issues/205) 后的当前依据，覆盖下方旧轮次“保持 OPEN”“验收未完成”和最终 CI 尚待执行的时态；旧正文及 Session177/178 保留当时日期语境。本轮按 A→B→C 串行核销，不再执行已完成的九票或历史整改。最终 GitHub `state`、`state_reason`、`closed_at` 与评论 URL 只以 `outputs/ssh-checks/205/closure/run-20261117-080548/closure-receipt.json` 的独立实读为准；本节写入时，公开评论与关闭动作尚待协调者执行，未提前声明 CLOSED。
+
+### 关闭条款与复用依据
+
+- [A 关闭矩阵](../../../../outputs/ssh-checks/205/closure/run-20261117-080548/closure-matrix.md) 已逐条核销父规格 §2 至 §6 和九票全部 26 条 AC：`blocking_defect=0`、`required_evidence_gap=0`，无需产品改动。实现、owning 回归、原协议日志、截图与实跑 HEAD 均逐项对应，不以子票 CLOSED 代替验收。
+- [B 单一独立只读审查](../../../../outputs/ssh-checks/205/closure/run-20261117-080548/B/review.md) 为 clean，Standards 0 / Spec 0、`closure_ready=true`。session UUID authority、retained owner/global Busy、当前环境展示、SQL/协议 owner、预算与审计例外保持；B 没有修改文件、构建、测试或 SSH/UI 操作。
+- 产品/测试源码仍为 `3ebfbadaa509db4a73d6195fa6e778eef3b2b137`，协调者在该 HEAD 独立运行的 11 项门禁全部 exit 0。随后三文档提交 `77aa5719966fc876d96193d5ac4a2494dcc1effa` 的完整 `just ci` 已实际通过：exit 0、1131.402 秒、17/17 阶段，最终修复轮 0/1，见 [原最终集成收据](../../../../outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754/final-integration-receipt.json)。旧 `173c` CI 仅保留历史 lineage，不冒充该次完整 CI。
+- 本轮 A/C 仅核销和关闭文档，没有产品、测试、依赖、tracked 执行脚本或门禁改动。[协调者输入/日志/引用核验](../../../../outputs/ssh-checks/205/closure/run-20261117-080548/coordinator-integrity-A-accepted.json) 确认源码、原五脏与 CI 输入相同，11 门禁日志和完整 CI 日志 hash 对应，故按本轮授权复用上述结果；新文档 HEAD 未新跑 CI，最终冻结输入由协调者复核。[独立源码核验](../../../../outputs/ssh-checks/205/closure/run-20261117-080548/coordinator-A-evidence-verification-normalized.json) 对 30 个文件保留 raw SHA 与 Git 规范化 blob 比较；两项 CRLF/LF 差异不是源码漂移，首轮验证器误判也保留。
+
+### 交付证据、恢复与保留限制
+
+- S1 是生产 GPUI 的原生输入加 fixture：11 类场景，85 图实际查看、83 可用 WGC / 2 黑图拒绝，原协调者亲看 8 图；本轮协调者另看 3 图。它不代表真实远端 UI 一体联调或全局物理 pointer/hit-test。#209 两图、#210 八图确有公开 GitHub 附件，A 本轮重新 GET 10/10 为 200/PNG 且 hash 相同，仍标原拍摄 HEAD。
+- S2 真实 SSH、Windows keyring、认证、信任、HOME、SFTP/备份/原子替换等独立 60/60；S3 新随机设施的真实 llmusage 2.1.0、1 event/120 tokens、WAL/schema/平台日期、取消与私有快照等独立 66/66。A/B 实读原日志 126 个 passed checkpoint；真实协议/CLI、故障 shim、原 Tauri owner 与 GPUI fixture 分层。
+- 三目标历史身份整改已按用户精确授权完成，19 OID 映射的 tree/message/timestamps 保留；旧 objects/reflog 保留，旧公开评论的“三条署名未修”仅是旧轮次事实。本轮不再改写历史。
+- 应用不能证明远端树退出时保留 `CleanupFailed`，失权对象不借新 app session 清理；独立管理恢复不等于应用杀树成功。已知 S1/S2/S3 运行设施有精确恢复收据，未确认对象为空，本轮没有新设施。首次空 bootstrap 的本地 ValueError 发生于管理成功响应后的记账，仍保留缺独立二次精确查询的证据限制，不将其改写为查询通过。
+- 生产 HTTPS WebDAV 的额外真机验收维持 `excluded_by_user`，不计通过或本轮阻断；原 `ccr-sync` v2/显式 v1、冲突/force、部分发布、备份恢复 fixture 仍已核。活跃 SQLite 同步、SSH WebDAV 解绑/legacy clear、纯空目标新建、会话克隆/回收站/恢复、多主机并发、WSL 切换及 Tauri russh 沿用既有接受边界。
+- 继续未测：其他 native OS、Pageant/部分私钥格式的额外实体互通、真实远端 UI、物理 pointer、长 profile/重定向根与完整辅助功能。深 264 字符 ACL 失败来自 ignored 验收路径，默认本 profile cache 约 160 字符且失败不发布；UIA `IsPassword=false` 与无 Value/Text 读 pattern、像素掩码/保存清空分别记录。四处合成工具 canary 曾事后 mask，不声称始终落盘前脱敏。上述逐项理由在关闭矩阵保留，未豁免真实功能缺陷。
+
+### 本轮文档与公开收口
+
+C 仅更新本主题并追加唯一 Session179 与对应 index，保留旧 journal 前缀。当前 recorder 使用 `--no-commit --topic` 后仍因旧 Session28 重复在写前 exit 1，workspace Markdown 零写；确认写前字节 CAS 后已用 append-only 手工 fallback 完成179与索引，失败和方式保存在本轮 `C/recorder-receipt.json`、`C/recorder-manual-fallback-receipt.json`，没有修改旧编号或保护脚本，也未冒称 recorder 成功。公开评论草稿仅在本机 ignored 输出，由协调者填最终 HEAD、敏感信息审查与确定性标记后发布；随后以 completed 关闭、回读 GitHub 并生成关票收据。本轮本地提交不包含原五脏、outputs 或截图，未 push/PR/merge，dev/main 与保护 refs 保持；本地证据不伪装成公开链接。
+
 ## 2026-11-17 授权补验：当前交付与终态边界
 
 本节是后来获得明确授权后执行的补验；[本轮入口](../../../../outputs/ssh-checks/205/completion/current-authorized-run.txt) 指向 `outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754`，下称“当前证据根”。[逐阶段记录](../../../../outputs/ssh-checks/205/completion/run-20261116-230934/authorized-20261116-234754/progress.md) 保留首次失败、退修及后续通过的顺序。后面的 2026-11-16 原轮次及旧 Session 177 仅描述当时事实，不代表当前状态。
