@@ -43,6 +43,10 @@ pub struct InstallView {
     focus: FocusHandle,
 }
 impl InstallView {
+    #[cfg(test)]
+    pub(crate) fn observed_state(&self) -> (&Snapshot, bool) {
+        (&self.snapshot, self.loading)
+    }
     pub fn has_environment_draft(&self) -> bool {
         self.decision.is_some()
     }

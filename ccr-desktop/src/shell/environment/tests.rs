@@ -919,15 +919,16 @@ async fn ssh_offline_retained_install_stays_visible_through_navigation_and_clean
         window.click("install-check", cx);
     })
     .unwrap();
-    cx.wait_for(handle, Duration::from_secs(5), |window, _| {
-        requests.snapshot().detection.is_some()
-            && window.find("install-plan").disabled() != Some(true)
+    cx.wait_for(handle, Duration::from_secs(5), |_, cx| {
+        let (snapshot, loading) = shell.read(cx).install.read(cx).observed_state();
+        snapshot.detection.is_some() && !loading
     })
     .await;
     cx.update_window(handle, |_, window, cx| window.click("install-plan", cx))
         .unwrap();
-    cx.wait_for(handle, Duration::from_secs(5), |window, _| {
-        requests.snapshot().plan.is_some() && window.find("install-review").disabled() != Some(true)
+    cx.wait_for(handle, Duration::from_secs(5), |_, cx| {
+        let (snapshot, loading) = shell.read(cx).install.read(cx).observed_state();
+        snapshot.plan.is_some() && !loading
     })
     .await;
     // 只使用现有 transport 暂停点，放行执行前复核，保留真实安装 exec。
@@ -970,13 +971,15 @@ async fn ssh_offline_retained_install_stays_visible_through_navigation_and_clean
     });
     cx.update_window(handle, |_, window, cx| {
         window.click("install-review", cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
         window.click("install-decision-confirm", cx);
     })
     .unwrap();
     let mut cargo = None;
-    cx.wait_for(handle, Duration::from_secs(10), |_, _| {
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
         cargo = held_rx.try_recv().ok().or(cargo.take());
-        cargo.is_some() && requests.snapshot().running
+        cargo.is_some() && shell.read(cx).install.read(cx).observed_state().0.running
     })
     .await;
     controller.join().unwrap();
