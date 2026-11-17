@@ -24,6 +24,7 @@ and the implementation slices #206–#214. Fixture evidence is distinct from rea
 - Writes serialize per path, compare the captured version, finish the preimage backup, upload a UUID sibling and require `posix-rename@openssh.com`. Unsupported atomic replacement fails closed. This is a pre-save version check, not server-side atomic CAS against unrelated external clients.
 - Configuration reads/writes retain 2MiB limits. Session reads have a separate 64MiB limit. Ordinary read cancellation joins the issued operation within its original ten-second deadline; successful read cancellation does not disconnect a shared session. Unconfirmed cleanup revokes only the captured session.
 - Exec cancellation/transport failure is fail-closed and cannot claim the remote process tree exited without proof. Shut down SSH before the application runtime.
+- Authority rejected before exec issues no command. If authority is lost after exec starts, its result cannot confirm side-effect or private-object cleanup; report cleanup failure without borrowing or revoking a replacement session.
 
 ## Sync and usage owner boundaries
 

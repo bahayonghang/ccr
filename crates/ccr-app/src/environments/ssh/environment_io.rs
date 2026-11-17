@@ -316,9 +316,11 @@ impl Workspace {
         }
         match result {
             Ok(output) => {
-                self.check_io(authority)?;
+                // 已执行命令的结果失权后不能交付；其副作用或私有对象清理仍未确认。
+                self.check_io(authority).map_err(|_| "ssh_cleanup_failed")?;
                 Ok((output.success, output.stdout, output.stderr))
             }
+            Err("ssh_session_changed" | "ssh_not_connected") => Err("ssh_cleanup_failed"),
             Err(error) => Err(error),
         }
     }

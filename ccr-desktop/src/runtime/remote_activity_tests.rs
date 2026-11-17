@@ -358,11 +358,10 @@ async fn ssh_usage_missing_cli_snapshot_cleanup_and_old_authority_fail_closed() 
         .await
         .unwrap();
     let before = f.transport.batches().len();
-    assert!(
-        Snapshot::capture(&io, &f.root.path().join("cache"), CancellationToken::new())
-            .await
-            .is_err()
-    );
+    assert!(matches!(
+        Snapshot::capture(&io, &f.root.path().join("cache"), CancellationToken::new()).await,
+        Err(LlmusageAdapterError::Cli(_))
+    ));
     assert_eq!(f.transport.batches().len(), before);
     f.finish().await;
 }
@@ -621,7 +620,10 @@ async fn ssh_snapshot_started_on_old_authority_cannot_use_or_revoke_reconnected_
         .unwrap();
     let before = f.transport.batches().len();
     helper.notify_one();
-    assert!(task.await.unwrap().is_err());
+    assert!(matches!(
+        task.await.unwrap(),
+        Err(ccr_app::usage::import::error::LlmusageAdapterError::CleanupFailed(_))
+    ));
     assert!(io.check_authority().is_err());
     assert!(current.check_authority().is_ok());
     assert!(f.workspace.connected(&f.id));

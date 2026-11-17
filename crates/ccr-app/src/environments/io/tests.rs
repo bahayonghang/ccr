@@ -583,7 +583,7 @@ async fn remote_process_uses_descriptor_budget_including_beyond_connect_timeout(
 
 #[tokio::test(start_paused = true)]
 async fn delayed_remote_completion_or_cancellation_cannot_publish_or_revoke_new_session() {
-    for cancelled in [false, true] {
+    for (cancelled, reconnect) in [(false, false), (false, true), (true, true)] {
         let h = Harness::new(true).await;
         let (workspace, transport) = h.remote.as_ref().unwrap();
         transport.set_exec_output("'fixture-tool'", true, "old connection output", "");
@@ -611,18 +611,30 @@ async fn delayed_remote_completion_or_cancellation_cannot_publish_or_revoke_new_
         let EnvironmentId::Ssh(id) = &h.io.environment else {
             panic!()
         };
-        workspace
-            .connect(id, CancellationToken::new())
-            .await
-            .unwrap();
+        workspace.disconnect().await;
+        if reconnect {
+            workspace
+                .connect(id, CancellationToken::new())
+                .await
+                .unwrap();
+        }
         if cancelled {
             cancel.cancel();
         }
         let result = task.await.unwrap();
         assert!(
-            matches!(result, Err(Error::Ssh(code)) if code == if cancelled { "ssh_cancelled" } else { "ssh_session_changed" })
+            matches!(result, Err(Error::Ssh(code)) if code == if cancelled { "ssh_cancelled" } else { "ssh_cleanup_failed" })
         );
-        assert!(workspace.connected(id));
+        assert_eq!(workspace.connected(id), reconnect);
+        let before = transport.batches().len();
+        let descriptor = ProcessDescriptor::usage_snapshot();
+        let rejected =
+            h.io.execute(&descriptor, "fixture-tool", &[], CancellationToken::new())
+                .await;
+        assert!(
+            matches!(rejected, Err(Error::Ssh(code)) if code == if reconnect { "ssh_session_changed" } else { "ssh_not_connected" })
+        );
+        assert_eq!(transport.batches().len(), before);
     }
 }
 
