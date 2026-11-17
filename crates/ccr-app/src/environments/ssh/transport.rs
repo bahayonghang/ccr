@@ -424,10 +424,10 @@ impl Connection for LiveConnection {
                 if !version.extensions.contains_key("posix-rename@openssh.com") {
                     return Err("ssh_write_outcome_unknown");
                 }
+                ensure_unlinked(&raw, &path).await?;
                 Ok(raw)
             })
             .await?;
-            ensure_unlinked(&raw, &path).await?;
             let stage = path
                 .with_suffix(&format!(".ccr-tmp-{}", uuid::Uuid::new_v4()))
                 .map_err(|_| "ssh_invalid_remote_path")?;

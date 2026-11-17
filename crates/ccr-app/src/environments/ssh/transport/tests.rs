@@ -3,6 +3,8 @@ use super::*;
 use base64::Engine;
 use russh::client::Handler;
 
+mod upload;
+
 #[tokio::test]
 async fn callback_rejects_probe_and_changed_keys_and_preserves_openssh_fingerprint() {
     let mut bytes = Vec::new();
