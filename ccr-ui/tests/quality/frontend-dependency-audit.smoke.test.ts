@@ -1,9 +1,14 @@
+import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 import {
   collectAdvisories,
   validateAllowlist,
   validateAuditReport,
 } from '../../scripts/audit-dependencies.mjs'
+import auditPolicy from '../../scripts/frontend-audit-allowlist.json'
+
+const requireFromUi = createRequire(import.meta.url)
 
 const exception = {
   id: 'GHSA-mh99-v99m-4gvg',
@@ -61,5 +66,27 @@ describe('frontend dependency audit policy', () => {
         severity: 'high',
       }),
     ])
+  })
+
+  it('covers every locked picomatch version in the temporary exception', () => {
+    const lockfile = readFileSync(requireFromUi.resolve('../../bun.lock'), 'utf8')
+    const resolvedVersions = new Set(
+      Array.from(lockfile.matchAll(/:\s*\["picomatch@([^"]+)"/g), ([, version]) => version),
+    )
+    const picomatchException = auditPolicy.exceptions.find(({ package: name }) => name === 'picomatch')
+
+    expect(picomatchException).toBeDefined()
+    expect(resolvedVersions).toEqual(new Set(picomatchException?.patchedVersions))
+  })
+
+  it.each(['micromatch', 'tinyglobby', 'vite'])('blocks repeating extglobs for %s', (consumer) => {
+    const requireFromConsumer = createRequire(requireFromUi.resolve(consumer))
+    const match = requireFromConsumer('picomatch') as (pattern: string) => (input: string) => boolean
+
+    expect(() => match('+(draft|final).md')).toThrow('Repeating extglobs are disabled by CCR')
+    expect(() => match('*(draft|final).md')).toThrow('Repeating extglobs are disabled by CCR')
+    expect(match('@(draft|final).md')('final.md')).toBe(true)
+    expect(match('**/*.ts')('src/main.ts')).toBe(true)
+    expect(match('**/*.ts')('src/main.js')).toBe(false)
   })
 })
