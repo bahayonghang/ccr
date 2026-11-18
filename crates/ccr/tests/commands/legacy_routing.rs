@@ -14,7 +14,7 @@ struct LegacyRoutingFixture {
 
 impl LegacyRoutingFixture {
     fn new() -> Self {
-        let temp_dir = tempfile::tempdir().unwrap();
+        let temp_dir = crate::command_tempdir().unwrap();
         let home = temp_dir.path().join("home");
         let root = home.join(".ccr");
         fs::create_dir_all(&root).unwrap();
