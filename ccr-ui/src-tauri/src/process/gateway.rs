@@ -36,6 +36,7 @@ impl ProcessGateway {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn sidecar_identity_is_captured_from_tauri_consumer() {
         let context = sidecar_context();
@@ -52,5 +53,44 @@ mod tests {
             option_env!("CCR_SIDECAR_SHA256")
         );
         assert_eq!(context.allow_development, cfg!(debug_assertions));
+    }
+
+    #[test]
+    fn command_uses_the_detected_cli_path() {
+        let fixture = tempfile::tempdir().expect("fixture");
+        let program = fixture.path().join("fixture-ccr");
+        let descriptor =
+            ProcessDescriptor::cli_probe("ccr", &program, std::time::Duration::from_secs(1))
+                .expect("supported CLI");
+
+        let command = ProcessGateway::command(&descriptor).expect("construct command");
+        assert_eq!(command.as_std().get_program(), program.as_os_str());
+    }
+
+    #[tokio::test]
+    async fn execute_reports_a_missing_detected_cli() {
+        let fixture = tempfile::tempdir().expect("fixture");
+        let program = fixture.path().join("missing-ccr");
+        let descriptor =
+            ProcessDescriptor::cli_probe("ccr", &program, std::time::Duration::from_secs(1))
+                .expect("supported CLI");
+
+        let error = ProcessGateway::execute(&descriptor, &[])
+            .await
+            .expect_err("the fixture executable does not exist");
+        assert!(error.starts_with("cli_probe_spawn_failed:"), "{error}");
+    }
+
+    #[test]
+    fn oauth_url_policy_rejects_unrelated_hosts() {
+        assert_eq!(
+            ProcessGateway::open_oauth_url("https://example.invalid/oauth/authorize"),
+            Err("oauth_url_not_allowed".into())
+        );
+    }
+
+    #[test]
+    fn port_lookup_without_candidates_returns_no_owned_processes() {
+        assert!(ProcessGateway::owned_processes_for_port(&[], 1455).is_empty());
     }
 }
