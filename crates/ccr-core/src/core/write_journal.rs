@@ -319,84 +319,103 @@ pub mod fault {
 mod tests {
     use super::*;
     use crate::core::guarded_write::{WriteOptions, delete_guarded, write_guarded};
+    use crate::core::lock::LockManager;
+
+    fn with_test_locks(root: &Path, test: impl FnOnce()) {
+        LockManager::with_scoped_directory(&root.join("locks"), || {
+            test();
+            Ok(())
+        })
+        .unwrap();
+    }
 
     #[test]
     fn journal_restores_repeated_write_delete_and_recreate() {
         let temp = tempfile::tempdir().unwrap();
-        let path = temp.path().join("file");
-        std::fs::write(&path, b"before").unwrap();
-        let journal = WriteJournal::begin(std::slice::from_ref(&path)).unwrap();
-        write_guarded(&path, b"first", &WriteOptions::default()).unwrap();
-        delete_guarded(&path).unwrap();
-        write_guarded(&path, b"recreated", &WriteOptions::default()).unwrap();
-        assert!(journal.rollback().is_empty());
-        assert_eq!(std::fs::read(path).unwrap(), b"before");
+        with_test_locks(temp.path(), || {
+            let path = temp.path().join("file");
+            std::fs::write(&path, b"before").unwrap();
+            let journal = WriteJournal::begin(std::slice::from_ref(&path)).unwrap();
+            write_guarded(&path, b"first", &WriteOptions::default()).unwrap();
+            delete_guarded(&path).unwrap();
+            write_guarded(&path, b"recreated", &WriteOptions::default()).unwrap();
+            assert!(journal.rollback().is_empty());
+            assert_eq!(std::fs::read(path).unwrap(), b"before");
+        });
     }
 
     #[test]
     fn journal_removes_new_file_and_keeps_unlisted_file() {
         let temp = tempfile::tempdir().unwrap();
-        let path = temp.path().join("new");
-        let other = temp.path().join("other");
-        let journal = WriteJournal::begin(std::slice::from_ref(&path)).unwrap();
-        write_guarded(&path, b"new", &WriteOptions::default()).unwrap();
-        write_guarded(&other, b"outside", &WriteOptions::default()).unwrap();
-        assert!(journal.rollback().is_empty());
-        assert!(!path.exists());
-        assert!(other.exists());
+        with_test_locks(temp.path(), || {
+            let path = temp.path().join("new");
+            let other = temp.path().join("other");
+            let journal = WriteJournal::begin(std::slice::from_ref(&path)).unwrap();
+            write_guarded(&path, b"new", &WriteOptions::default()).unwrap();
+            write_guarded(&other, b"outside", &WriteOptions::default()).unwrap();
+            assert!(journal.rollback().is_empty());
+            assert!(!path.exists());
+            assert!(other.exists());
+        });
     }
 
     #[test]
     fn journal_external_change_blocks_further_write_and_compensation() {
         let temp = tempfile::tempdir().unwrap();
-        let path = temp.path().join("file");
-        std::fs::write(&path, b"before").unwrap();
-        let journal = WriteJournal::begin(std::slice::from_ref(&path)).unwrap();
-        write_guarded(&path, b"ours", &WriteOptions::default()).unwrap();
-        std::fs::write(&path, b"external").unwrap();
-        assert!(write_guarded(&path, b"again", &WriteOptions::default()).is_err());
-        assert!(journal.verify().is_err());
-        assert_eq!(journal.rollback(), vec![absolute(&path).unwrap()]);
-        assert_eq!(std::fs::read(path).unwrap(), b"external");
+        with_test_locks(temp.path(), || {
+            let path = temp.path().join("file");
+            std::fs::write(&path, b"before").unwrap();
+            let journal = WriteJournal::begin(std::slice::from_ref(&path)).unwrap();
+            write_guarded(&path, b"ours", &WriteOptions::default()).unwrap();
+            std::fs::write(&path, b"external").unwrap();
+            assert!(write_guarded(&path, b"again", &WriteOptions::default()).is_err());
+            assert!(journal.verify().is_err());
+            assert_eq!(journal.rollback(), vec![absolute(&path).unwrap()]);
+            assert_eq!(std::fs::read(path).unwrap(), b"external");
+        });
     }
 
     #[test]
     fn journal_scope_unwind_restores_and_rejects_nested_scope() {
         let temp = tempfile::tempdir().unwrap();
-        let path = temp.path().join("file");
-        std::fs::write(&path, b"before").unwrap();
-        let result = std::panic::catch_unwind(|| {
-            let _journal = WriteJournal::begin(std::slice::from_ref(&path)).unwrap();
-            assert!(WriteJournal::begin(std::slice::from_ref(&path)).is_err());
-            write_guarded(&path, b"changed", &WriteOptions::default()).unwrap();
-            panic!("synthetic interrupted scope");
+        with_test_locks(temp.path(), || {
+            let path = temp.path().join("file");
+            std::fs::write(&path, b"before").unwrap();
+            let result = std::panic::catch_unwind(|| {
+                let _journal = WriteJournal::begin(std::slice::from_ref(&path)).unwrap();
+                assert!(WriteJournal::begin(std::slice::from_ref(&path)).is_err());
+                write_guarded(&path, b"changed", &WriteOptions::default()).unwrap();
+                panic!("synthetic interrupted scope");
+            });
+            assert!(result.is_err());
+            assert!(!is_active());
+            assert_eq!(std::fs::read(path).unwrap(), b"before");
         });
-        assert!(result.is_err());
-        assert!(!is_active());
-        assert_eq!(std::fs::read(path).unwrap(), b"before");
     }
 
     #[cfg(feature = "test-support")]
     #[test]
     fn journal_restores_post_publish_failure() {
         let temp = tempfile::tempdir().unwrap();
-        let path = temp.path().join("file");
-        std::fs::write(&path, b"before").unwrap();
-        let journal = WriteJournal::begin(std::slice::from_ref(&path)).unwrap();
-        let mut once = true;
-        let _fault = fault::install_after_publish(move |_| {
-            if once {
-                once = false;
-                return Err(CcrError::FileIoError(
-                    "synthetic directory sync failure".into(),
-                ));
-            }
-            Ok(())
+        with_test_locks(temp.path(), || {
+            let path = temp.path().join("file");
+            std::fs::write(&path, b"before").unwrap();
+            let journal = WriteJournal::begin(std::slice::from_ref(&path)).unwrap();
+            let mut once = true;
+            let _fault = fault::install_after_publish(move |_| {
+                if once {
+                    once = false;
+                    return Err(CcrError::FileIoError(
+                        "synthetic directory sync failure".into(),
+                    ));
+                }
+                Ok(())
+            });
+            assert!(write_guarded(&path, b"published", &WriteOptions::default()).is_err());
+            assert_eq!(std::fs::read(&path).unwrap(), b"published");
+            assert!(journal.rollback().is_empty());
+            assert_eq!(std::fs::read(path).unwrap(), b"before");
         });
-        assert!(write_guarded(&path, b"published", &WriteOptions::default()).is_err());
-        assert_eq!(std::fs::read(&path).unwrap(), b"published");
-        assert!(journal.rollback().is_empty());
-        assert_eq!(std::fs::read(path).unwrap(), b"before");
     }
 
     #[cfg(windows)]
@@ -404,50 +423,53 @@ mod tests {
     fn journal_restores_deleted_windows_dacl() {
         use crate::core::atomic_writer::{AtomicWriter, capture_windows_dacl};
         let temp = tempfile::tempdir().unwrap();
-        let path = temp.path().join("file");
-        AtomicWriter::new(&path)
-            .secret(true)
-            .write(b"before")
-            .unwrap();
-        // A inherited directory ACL differs from AtomicWriter's private default.
-        let inherited = temp.path().join("inherited");
-        std::fs::write(&inherited, b"fixture").unwrap();
-        let original = capture_windows_dacl(&inherited).unwrap();
-        crate::core::atomic_writer::apply_windows_dacl(&path, &original).unwrap();
-        let original = capture_windows_dacl(&path).unwrap();
-        let journal = WriteJournal::begin(std::slice::from_ref(&path)).unwrap();
-        delete_guarded(&path).unwrap();
-        assert!(journal.rollback().is_empty());
-        assert!(
-            capture_windows_dacl(&path).unwrap() == original,
-            "Original DACL must be restored"
-        );
-        assert_eq!(std::fs::read(path).unwrap(), b"before");
+        with_test_locks(temp.path(), || {
+            let path = temp.path().join("file");
+            AtomicWriter::new(&path)
+                .secret(true)
+                .write(b"before")
+                .unwrap();
+            // A inherited directory ACL differs from AtomicWriter's private default.
+            let inherited = temp.path().join("inherited");
+            std::fs::write(&inherited, b"fixture").unwrap();
+            let original = capture_windows_dacl(&inherited).unwrap();
+            crate::core::atomic_writer::apply_windows_dacl(&path, &original).unwrap();
+            let original = capture_windows_dacl(&path).unwrap();
+            let journal = WriteJournal::begin(std::slice::from_ref(&path)).unwrap();
+            delete_guarded(&path).unwrap();
+            assert!(journal.rollback().is_empty());
+            assert!(
+                capture_windows_dacl(&path).unwrap() == original,
+                "Original DACL must be restored"
+            );
+            assert_eq!(std::fs::read(path).unwrap(), b"before");
+        });
     }
 
     #[cfg(windows)]
     #[test]
     fn journal_restores_deleted_windows_readonly() {
         let temp = tempfile::tempdir().unwrap();
-        let path = temp.path().join("file");
-        std::fs::write(&path, b"before").unwrap();
-        let writable = std::fs::metadata(&path).unwrap().permissions();
-        let mut readonly = writable.clone();
-        readonly.set_readonly(true);
-        std::fs::set_permissions(&path, readonly).unwrap();
-        let journal = WriteJournal::begin(std::slice::from_ref(&path)).unwrap();
-        delete_guarded(&path).unwrap();
-        assert!(journal.rollback().is_empty());
-        assert!(std::fs::metadata(&path).unwrap().permissions().readonly());
-        assert_eq!(std::fs::read(&path).unwrap(), b"before");
-        std::fs::set_permissions(&path, writable).unwrap();
+        with_test_locks(temp.path(), || {
+            let path = temp.path().join("file");
+            std::fs::write(&path, b"before").unwrap();
+            let writable = std::fs::metadata(&path).unwrap().permissions();
+            let mut readonly = writable.clone();
+            readonly.set_readonly(true);
+            std::fs::set_permissions(&path, readonly).unwrap();
+            let journal = WriteJournal::begin(std::slice::from_ref(&path)).unwrap();
+            delete_guarded(&path).unwrap();
+            assert!(journal.rollback().is_empty());
+            assert!(std::fs::metadata(&path).unwrap().permissions().readonly());
+            assert_eq!(std::fs::read(&path).unwrap(), b"before");
+            std::fs::set_permissions(&path, writable).unwrap();
+        });
     }
 
     #[cfg(windows)]
     #[test]
     fn journal_rollback_obeys_windows_alias_leaf_lock() {
         use crate::core::guarded_write::lock_resource_name;
-        use crate::core::lock::LockManager;
         use crate::test_support::TestLockDirEnv;
         use std::sync::mpsc;
         use std::time::Duration;
@@ -498,7 +520,6 @@ mod tests {
     #[test]
     fn guarded_write_obeys_windows_alias_leaf_lock() {
         use crate::core::guarded_write::{lock_resource_name, write_guarded_versioned};
-        use crate::core::lock::LockManager;
         use crate::test_support::TestLockDirEnv;
         use std::time::Duration;
 
@@ -540,19 +561,21 @@ mod tests {
     #[test]
     fn journal_covers_windows_case_and_verbatim_aliases() {
         let temp = tempfile::tempdir().unwrap();
-        let path = temp.path().join("mixedCase");
-        std::fs::write(&path, b"before").unwrap();
-        let journal = WriteJournal::begin(std::slice::from_ref(&path)).unwrap();
-        let alias = PathBuf::from(
-            std::fs::canonicalize(&path)
-                .unwrap()
-                .to_string_lossy()
-                .to_uppercase(),
-        );
-        assert!(contains(&alias));
-        write_guarded(&alias, b"ours", &WriteOptions::default()).unwrap();
-        assert!(journal.rollback().is_empty());
-        assert_eq!(std::fs::read(path).unwrap(), b"before");
+        with_test_locks(temp.path(), || {
+            let path = temp.path().join("mixedCase");
+            std::fs::write(&path, b"before").unwrap();
+            let journal = WriteJournal::begin(std::slice::from_ref(&path)).unwrap();
+            let alias = PathBuf::from(
+                std::fs::canonicalize(&path)
+                    .unwrap()
+                    .to_string_lossy()
+                    .to_uppercase(),
+            );
+            assert!(contains(&alias));
+            write_guarded(&alias, b"ours", &WriteOptions::default()).unwrap();
+            assert!(journal.rollback().is_empty());
+            assert_eq!(std::fs::read(path).unwrap(), b"before");
+        });
     }
 
     #[cfg(unix)]
@@ -560,48 +583,54 @@ mod tests {
     fn journal_restores_deleted_unix_mode() {
         use std::os::unix::fs::PermissionsExt;
         let temp = tempfile::tempdir().unwrap();
-        let path = temp.path().join("file");
-        std::fs::write(&path, b"before").unwrap();
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o400)).unwrap();
-        let journal = WriteJournal::begin(std::slice::from_ref(&path)).unwrap();
-        delete_guarded(&path).unwrap();
-        assert!(journal.rollback().is_empty());
-        assert_eq!(
-            std::fs::metadata(&path).unwrap().permissions().mode() & 0o777,
-            0o400
-        );
+        with_test_locks(temp.path(), || {
+            let path = temp.path().join("file");
+            std::fs::write(&path, b"before").unwrap();
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o400)).unwrap();
+            let journal = WriteJournal::begin(std::slice::from_ref(&path)).unwrap();
+            delete_guarded(&path).unwrap();
+            assert!(journal.rollback().is_empty());
+            assert_eq!(
+                std::fs::metadata(&path).unwrap().permissions().mode() & 0o777,
+                0o400
+            );
+        });
     }
 
     #[test]
     fn journal_rejects_source_change_before_first_write() {
         let temp = tempfile::tempdir().unwrap();
-        let path = temp.path().join("source");
-        std::fs::write(&path, b"prepared").unwrap();
-        let token = content_version_token(b"prepared");
-        std::fs::write(&path, b"external").unwrap();
-        let journal = WriteJournal::begin(std::slice::from_ref(&path)).unwrap();
-        journal.expect_version(&path, token).unwrap();
-        assert!(journal.verify().is_err());
-        assert!(write_guarded(&path, b"ours", &WriteOptions::default()).is_err());
-        assert!(journal.rollback().is_empty());
-        assert_eq!(std::fs::read(path).unwrap(), b"external");
+        with_test_locks(temp.path(), || {
+            let path = temp.path().join("source");
+            std::fs::write(&path, b"prepared").unwrap();
+            let token = content_version_token(b"prepared");
+            std::fs::write(&path, b"external").unwrap();
+            let journal = WriteJournal::begin(std::slice::from_ref(&path)).unwrap();
+            journal.expect_version(&path, token).unwrap();
+            assert!(journal.verify().is_err());
+            assert!(write_guarded(&path, b"ours", &WriteOptions::default()).is_err());
+            assert!(journal.rollback().is_empty());
+            assert_eq!(std::fs::read(path).unwrap(), b"external");
+        });
     }
 
     #[test]
     fn journal_uses_relative_paths_and_does_not_cross_threads() {
         let temp = tempfile::tempdir_in(std::env::current_dir().unwrap()).unwrap();
-        let path = temp.path().join("file");
-        let relative = path
-            .strip_prefix(std::env::current_dir().unwrap())
-            .unwrap()
-            .to_owned();
-        std::fs::write(&path, b"before").unwrap();
-        let journal = WriteJournal::begin(std::slice::from_ref(&relative)).unwrap();
-        std::thread::spawn(|| assert!(!is_active())).join().unwrap();
-        write_guarded(&relative, b"ours", &WriteOptions::default()).unwrap();
-        journal.verify().unwrap();
-        assert!(journal.rollback().is_empty());
-        assert_eq!(std::fs::read(path).unwrap(), b"before");
+        with_test_locks(temp.path(), || {
+            let path = temp.path().join("file");
+            let relative = path
+                .strip_prefix(std::env::current_dir().unwrap())
+                .unwrap()
+                .to_owned();
+            std::fs::write(&path, b"before").unwrap();
+            let journal = WriteJournal::begin(std::slice::from_ref(&relative)).unwrap();
+            std::thread::spawn(|| assert!(!is_active())).join().unwrap();
+            write_guarded(&relative, b"ours", &WriteOptions::default()).unwrap();
+            journal.verify().unwrap();
+            assert!(journal.rollback().is_empty());
+            assert_eq!(std::fs::read(path).unwrap(), b"before");
+        });
     }
 
     #[test]
