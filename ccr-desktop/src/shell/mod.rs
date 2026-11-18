@@ -4,6 +4,7 @@ mod close;
 #[cfg(test)]
 mod close_tests;
 mod command_state;
+mod environment;
 mod navigation_guard;
 pub(crate) mod page_header;
 mod platform_navigation;
@@ -102,6 +103,7 @@ pub struct Shell {
     resources: Entity<crate::features::resources::ResourcesView>,
     mcp: Entity<crate::features::mcp::McpView>,
     jobs: Entity<crate::features::jobs::JobsView>,
+    _jobs_navigation: Subscription,
     install: Entity<crate::features::install::InstallView>,
     monitoring: Entity<crate::features::monitoring::MonitoringView>,
     checkin: Entity<crate::features::checkin::CheckinView>,
@@ -110,7 +112,10 @@ pub struct Shell {
     workbench: Entity<crate::features::workbench::WorkbenchView>,
     environments: Entity<crate::features::environments::EnvironmentView>,
     remote: Entity<crate::features::environments::remote::RemoteView>,
+    active_environment: environment::ActiveEnvironment,
+    _environment_request: Subscription,
     _remote_observation: Subscription,
+    _configuration_observation: Subscription,
     destination: Destination,
     lens: Lens,
     settings_nav: settings::Navigation,
@@ -129,6 +134,7 @@ pub struct Shell {
     _window_bounds: Subscription,
     reveal_preferences_after_save: bool,
     fixture: bool,
+    fixture_settings: bool,
     slow_fixture: bool,
     brand: std::sync::Arc<gpui_kit::Image>,
     clock: Entity<status::Clock>,
@@ -145,6 +151,11 @@ pub struct Shell {
 }
 
 impl Shell {
+    #[cfg(test)]
+    pub(crate) fn mcp_for_test(&self) -> Entity<crate::features::mcp::McpView> {
+        self.mcp.clone()
+    }
+
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
         Self::build(services, None, window, cx)
     }
@@ -191,6 +202,9 @@ impl Shell {
             }
         });
         let activation = cx.observe_window_activation(window, |this, window, cx| {
+            if !window.is_window_active() {
+                this.close_environment_menu(false, window, cx);
+            }
             if window.is_window_active() && window.focused(cx).is_none() {
                 this.focus_main(window, cx);
             }
@@ -198,16 +212,48 @@ impl Shell {
         let remote = cx.new(|cx| {
             crate::features::environments::remote::RemoteView::new(services.clone(), window, cx)
         });
+        remote.update(cx, |view, _| view.shell_controlled = true);
+        let environment_request = cx.subscribe(
+            &remote,
+            |this, _, event: &crate::features::environments::remote::EnvironmentRequest, cx| {
+                // 原生事件回到 shell 后，复用统一的草稿与作业确认。
+                this.active_environment.menu = false;
+                this.active_environment.pending_request = Some(event.0.clone());
+                cx.notify();
+            },
+        );
         let remote_observation = cx.observe(&remote, |_, _, cx| cx.notify());
         let window_bounds = cx.observe_window_bounds(window, |this, window, cx| {
             this.window_bounds_changed(window, cx);
         });
         let weak_shell = cx.weak_entity();
         let lens_bar = cx.new(|cx| page_header::LensBar::new(weak_shell, cx));
+        let configurations =
+            cx.new(|cx| ConfigurationApp::new_deferred(services.clone(), window, cx));
+        let mut history_visible = false;
+        let configuration_observation =
+            cx.observe(&configurations, move |_, configurations, cx| {
+                let visible = configurations.read(cx).showing_history(cx);
+                if visible != history_visible {
+                    history_visible = visible;
+                    cx.notify();
+                }
+            });
+        let jobs = cx.new(|cx| crate::features::jobs::JobsView::new(services.clone(), window, cx));
+        let jobs_navigation = cx.subscribe_in(
+            &jobs,
+            window,
+            |this, _, _: &crate::features::jobs::InstallRequested, window, cx| {
+                this.go(Destination::Usage, Lens::Install, window, cx)
+            },
+        );
         let mut shell = Self {
+            active_environment: environment::ActiveEnvironment::new(services.clone(), window, cx),
+            _environment_request: environment_request,
             remote,
             _remote_observation: remote_observation,
-            configurations: cx.new(|cx| ConfigurationApp::new(services.clone(), window, cx)),
+            configurations,
+            _configuration_observation: configuration_observation,
             commands: cx.new(|cx| CommandState::new(&services, window, cx)),
             converter: cx
                 .new(|cx| crate::features::converter::Converter::new(services.clone(), window, cx)),
@@ -221,7 +267,8 @@ impl Shell {
                 crate::features::resources::ResourcesView::new(services.clone(), window, cx)
             }),
             mcp: cx.new(|cx| crate::features::mcp::McpView::new(services.clone(), window, cx)),
-            jobs: cx.new(|cx| crate::features::jobs::JobsView::new(services.clone(), window, cx)),
+            jobs,
+            _jobs_navigation: jobs_navigation,
             install: cx
                 .new(|cx| crate::features::install::InstallView::new(services.clone(), window, cx)),
             monitoring: cx.new(|cx| {
@@ -255,6 +302,9 @@ impl Shell {
             _window_bounds: window_bounds,
             reveal_preferences_after_save: false,
             fixture: services.is_fixture(),
+            fixture_settings: services.allow_fixture_settings(
+                std::env::var_os("CCR_FIXTURE_SETTINGS").is_some_and(|value| value == "1"),
+            ),
             slow_fixture: services.is_slow_fixture(),
             brand: std::sync::Arc::new(gpui_kit::Image::from_bytes(
                 gpui_kit::ImageFormat::Png,
@@ -286,7 +336,8 @@ impl Shell {
             Some(preferences) => shell.accept_loaded_preferences(preferences, window, cx),
             None => shell.load_preferences(window, cx),
         }
-        shell.overview.update(cx, |view, cx| view.refresh(cx));
+        shell.remote.update(cx, |view, cx| view.refresh(cx));
+
         shell
     }
 
@@ -358,12 +409,17 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        self.close_environment_menu(false, window, cx);
         if self.destination == destination && self.lens == lens {
             return;
         }
         self.navigation_generation += 1;
-        if self.lens == Lens::Profiles && self.configurations.read(cx).has_dirty_draft(cx) {
+        if (self.lens == Lens::Profiles && self.configurations.read(cx).has_dirty_draft(cx))
+            || (self.destination == Destination::Settings
+                && self.remote.read(cx).has_environment_draft(cx))
+        {
             self.navigation_decision = Some(navigation_guard::Decision {
+                settings_tab: None,
                 destination,
                 lens,
                 generation: self.navigation_generation,
@@ -374,22 +430,26 @@ impl Shell {
             return;
         }
         if self.destination == Destination::Settings && destination != Destination::Settings {
-            self.remote
-                .update(cx, |view, cx| view.clear_cli_on_leave(cx));
+            self.remote.update(cx, |view, cx| {
+                view.discard_for_environment_switch(window, cx)
+            });
         }
         self.destination = destination;
         self.lens = lens;
-        if !self.remote.read(cx).is_remote() {
-            self.park(window, cx);
-        }
+        self.park(window, cx);
         self.activate(window, cx);
         cx.notify();
     }
 
     fn park(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.commands.update(cx, |view, cx| view.suspend(cx));
+        self.checkin.update(cx, |view, cx| view.suspend(cx));
+        self.environments.update(cx, |view, cx| view.suspend(cx));
+        self.park_environment(window, cx);
+    }
+    fn park_environment(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.configurations
             .update(cx, |view, cx| view.leave(window, cx));
-        self.commands.update(cx, |view, cx| view.suspend(cx));
         self.converter.update(cx, |view, cx| view.leave(window, cx));
         self.platforms.update(cx, |view, cx| view.leave(window, cx));
         self.insights.update(cx, |view, cx| view.suspend(cx));
@@ -398,18 +458,44 @@ impl Shell {
         self.jobs.update(cx, |view, cx| view.suspend(cx));
         self.install.update(cx, |view, cx| view.suspend(cx));
         self.monitoring.update(cx, |view, cx| view.suspend(cx));
-        self.checkin.update(cx, |view, cx| view.suspend(cx));
         self.sync.update(cx, |view, cx| view.suspend(cx));
         self.overview.update(cx, |view, cx| view.suspend(cx));
         self.workbench.update(cx, |view, cx| view.suspend(cx));
-        self.environments.update(cx, |view, cx| view.suspend(cx));
     }
 
     fn activate(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if !self.preferences_loaded || self.active_environment.switching {
+            return;
+        }
         if self.destination == Destination::Settings {
             self.remote.update(cx, |view, cx| view.refresh(cx));
         }
-        if self.remote.read(cx).is_remote() {
+        if self.lens == Lens::Profiles && self.configurations.read(cx).showing_history(cx) {
+            return;
+        }
+        if self.active_environment.is_ssh()
+            && !self.independent_destination()
+            && (!self.remote_configuration_destination()
+                || self.active_environment.state != environment::ConnectionState::Connected)
+        {
+            if self.destination == Destination::Usage && self.lens == Lens::Install {
+                self.install
+                    .update(cx, |view, cx| view.refresh_retained(cx));
+            } else if (self.destination == Destination::Usage && self.lens == Lens::Primary)
+                || self.lens == Lens::Usage
+            {
+                self.insights
+                    .update(cx, |view, cx| view.observe_retained_import(cx));
+            }
+            return;
+        }
+        if self.active_environment.is_ssh()
+            && self.lens == Lens::Primary
+            && (self.platform().is_some() || self.destination == Destination::Dashboard)
+        {
+            let scope = self.platform();
+            self.overview
+                .update(cx, |view, cx| view.open_remote(scope, cx));
             return;
         }
         match self.lens {
@@ -534,9 +620,20 @@ impl Shell {
     }
 
     fn focus_main(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.remote.read(cx).is_remote() {
+        if self.active_environment.is_ssh()
+            && !self.independent_destination()
+            && !self.remote_configuration_destination()
+        {
             window.focus(&self.main_focus, cx);
             window.focus_next(cx);
+            return;
+        }
+        if self.active_environment.is_ssh()
+            && self.lens == Lens::Primary
+            && (self.platform().is_some() || self.destination == Destination::Dashboard)
+        {
+            self.overview
+                .update(cx, |view, cx| view.focus_main(window, cx));
             return;
         }
         match self.lens {
@@ -807,13 +904,25 @@ impl Shell {
     }
 
     fn toolbar(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
-        if self.remote.read(cx).is_remote() {
+        if self.active_environment.is_ssh()
+            && !self.independent_destination()
+            && self.destination != Destination::Commands
+            && self.destination != Destination::McpManager
+            && self.destination != Destination::Usage
+            && self.platform().is_none()
+        {
             return None;
         }
         if self.platform().is_some() {
             return Some(self.lens_bar.clone().into_any_element());
         }
-        if self.embeds_lens() {
+        if self.embeds_lens()
+            && !(self.destination == Destination::McpManager
+                && self.active_environment.is_ssh()
+                && (self.active_environment.state != environment::ConnectionState::Connected
+                    || self.active_environment.switching)
+                && self.lens == Lens::Primary)
+        {
             return None;
         }
         let mut capsule = page_header::capsule(cx);
@@ -825,8 +934,8 @@ impl Shell {
 
     /// Lens options for the current destination: grouped platform tabs, or the
     /// capsule options of a non-platform destination.
-    fn lens_items(&self, cx: &gpui_kit::App) -> Option<Vec<LensItem>> {
-        let remote = self.remote.read(cx).is_remote();
+    fn lens_items(&self, _cx: &gpui_kit::App) -> Option<Vec<LensItem>> {
+        let remote = self.active_environment.is_ssh();
         Some(match self.destination {
             // 平台目的地在远程环境下也保留分组 tab；其余目的地远程时不渲染胶囊。
             Destination::ClaudeCode
@@ -834,7 +943,15 @@ impl Shell {
             | Destination::Grok
             | Destination::OpenCode
             | Destination::Antigravity => self.platform_items(),
-            _ if remote => return None,
+            _ if remote
+                && !self.independent_destination()
+                && self.destination != Destination::McpManager
+                && self.destination != Destination::Commands
+                && self.destination != Destination::Usage
+                && self.destination != Destination::Dashboard =>
+            {
+                return None;
+            }
             Destination::Commands => vec![
                 ("tool-catalog", Lens::Primary, "Command catalog", "命令目录"),
                 (
@@ -880,13 +997,109 @@ impl Shell {
     }
 
     fn body(&self, cx: &mut Context<Self>) -> AnyElement {
-        if self.remote.read(cx).is_remote() && self.destination != Destination::Settings {
-            return div().p(px(theme::CONTENT_PADDING)).flex().flex_col().gap(px(theme::CONTROL_GAP))
-                .child(self.remote.read(cx).status())
-                .child(text(cx,"This page uses local CCR services and is unavailable in SSH environments. Open Settings to edit remote configuration over SFTP or return to Local.","此页面依赖本地 CCR 服务，在 SSH 环境不可用。请打开设置，通过 SFTP 编辑远程配置，或返回本地环境。"))
-                .child(semantics::button(Button::new("remote-open-settings").label(text(cx,"Open environment settings","打开环境设置")).ghost().on_click(cx.listener(|this,_,window,cx|this.open_environment_settings(window,cx))),false,false,cx)).into_any_element();
+        if !self.preferences_loaded && self.destination != Destination::Settings {
+            return div()
+                .p(px(24.))
+                .flex()
+                .flex_col()
+                .gap(px(12.))
+                .child(text(
+                    cx,
+                    "Waiting for desktop preferences to resolve the execution environment.",
+                    "正在等待桌面偏好，以确定当前执行环境。",
+                ))
+                .children(self.preferences_failed.then(|| {
+                    semantics::button(
+                        Button::new("environment-preferences-retry")
+                            .label(text(cx, "Retry loading preferences", "重试加载偏好"))
+                            .ghost()
+                            .on_click(
+                                cx.listener(|this, _, window, cx| {
+                                    this.load_preferences(window, cx)
+                                }),
+                            ),
+                        false,
+                        false,
+                        cx,
+                    )
+                }))
+                .into_any_element();
+        }
+        if self.lens == Lens::Profiles && self.configurations.read(cx).showing_history(cx) {
+            return self.configurations.clone().into_any_element();
+        }
+        if self.active_environment.switching && !self.independent_destination() {
+            return div()
+                .p(px(24.))
+                .child(text(
+                    cx,
+                    "Waiting for previous jobs to finish cleanup…",
+                    "正在等待上一环境的作业完成清理…",
+                ))
+                .into_any_element();
+        }
+        if self.active_environment.is_ssh() && !self.independent_destination() {
+            if !self.remote_configuration_destination() {
+                return div().p(px(theme::CONTENT_PADDING)).flex().flex_col().gap(px(theme::CONTROL_GAP))
+                .child(self.environment_status(cx))
+                .child(text(cx,"Remote access is not available on this page yet. The selected SSH environment is retained; no local data is shown.","此页面尚未支持远程。当前 SSH 环境仍被保留，不显示本地数据。"))
+                .child(self.environment_recovery(cx)).into_any_element();
+            }
+            if self.active_environment.state != environment::ConnectionState::Connected {
+                let installation = (self.destination == Destination::Usage
+                    && self.lens == Lens::Install
+                    && self.install.read(cx).has_retained_status())
+                .then(|| self.install.clone());
+                let import = (((self.destination == Destination::Usage
+                    && self.lens == Lens::Primary)
+                    || self.lens == Lens::Usage)
+                    && self.insights.read(cx).has_retained_import())
+                .then(|| self.insights.clone());
+                return div()
+                    .p(px(theme::CONTENT_PADDING))
+                    .flex()
+                    .flex_col()
+                    .gap(px(theme::CONTROL_GAP))
+                    .child(self.environment_status(cx))
+                    .child(text(
+                        cx,
+                        "Connect the current SSH host to load its configuration.",
+                        "连接当前 SSH 主机后读取其配置。",
+                    ))
+                    .child(self.environment_recovery(cx))
+                    .children(installation)
+                    .children(import)
+                    .children((self.lens == Lens::Profiles).then(|| {
+                        let platform = self.platform().unwrap_or(Platform::Claude);
+                        semantics::button(
+                            Button::new("profile-history")
+                                .label(text(
+                                    cx,
+                                    "Operation records (all platforms)",
+                                    "操作记录（跨平台）",
+                                ))
+                                .ghost()
+                                .on_click(cx.listener(move |this, _, window, cx| {
+                                    this.configurations.update(cx, |view, cx| {
+                                        view.open_history(platform, window, cx)
+                                    });
+                                    cx.notify();
+                                })),
+                            false,
+                            false,
+                            cx,
+                        )
+                    }))
+                    .into_any_element();
+            }
         }
 
+        if self.active_environment.is_ssh()
+            && self.lens == Lens::Primary
+            && (self.platform().is_some() || self.destination == Destination::Dashboard)
+        {
+            return self.overview.clone().into_any_element();
+        }
         match self.lens {
             Lens::Extensions => self.resources.clone().into_any_element(),
             Lens::Providers | Lens::Models => self.platforms.clone().into_any_element(),
@@ -1066,7 +1279,12 @@ impl Render for Shell {
                 .child(format!("CCR {}", env!("CARGO_PKG_VERSION"))),
         );
         let tools = self.toolbar(cx);
-        let body = if self.navigation_decision.is_some() {
+        if let Some(id) = self.active_environment.pending_request.take() {
+            self.request_environment(id, window, cx);
+        }
+        let body = if let Some(panel) = self.environment_panel(window, cx) {
+            panel
+        } else if self.navigation_decision.is_some() {
             self.confirm_navigation(window, cx)
         } else {
             self.body(cx)
@@ -1082,32 +1300,10 @@ impl Render for Shell {
             page = page.child(tools);
         }
         let content = page.child(div().flex_1().min_h_0().child(body));
-        let remote_status = self.remote.read(cx).status();
-        let status = if self.remote.read(cx).is_remote() {
-            remote_status.as_str()
-        } else if self.slow_fixture {
-            text(
-                cx,
-                "Local · Demo data · Controlled slow read",
-                "本地 · 演示数据 · 受控慢读取",
-            )
-        } else if self.fixture {
-            text(cx, "Local · Demo data", "本地 · 演示数据")
-        } else if self.overview.read(cx).requests_configured() {
-            text(
-                cx,
-                "Local · Usage source configured",
-                "本地 · 已配置用量来源",
-            )
-        } else {
-            text(
-                cx,
-                "Local · No usage source configured",
-                "本地 · 未配置用量来源",
-            )
-        };
+        let status = self.environment_status(cx);
         let workspace = div()
             .id("application-sheet")
+            .relative()
             .flex_1()
             .min_w_0()
             .h_full()
@@ -1139,7 +1335,7 @@ impl Render for Shell {
                     .id("shell-status")
                     .test_support()
                     .role(gpui_kit::Role::Status)
-                    .aria_label(status)
+                    .aria_label(status.clone())
                     .track_focus(&self.status_focus)
                     .tab_stop(true)
                     .h(px(theme::STATUS_HEIGHT))
@@ -1152,8 +1348,9 @@ impl Render for Shell {
                     .focus(|style| style.border_color(cx.theme().ring))
                     .text_size(crate::theme::text_size(theme::META_SIZE))
                     .text_color(cx.theme().muted_foreground)
-                    .child(self.status_contents(status, cx)),
+                    .child(self.status_contents(&status, cx)),
             );
+        let workspace = workspace.children(self.environment_menu(window, cx));
         let frame = div()
             .id("application-frame")
             .size_full()
@@ -1165,7 +1362,18 @@ impl Render for Shell {
             .text_size(cx.theme().font_size)
             .on_key_down(
                 cx.listener(|this, event: &gpui_kit::KeyDownEvent, window, cx| {
+                    if event.keystroke.key == "escape"
+                        && (this.active_environment.menu
+                            || this.active_environment.pending.is_some()
+                            || this.active_environment.probe.is_some())
+                    {
+                        this.dismiss_environment(window, cx);
+                        cx.notify();
+                        cx.stop_propagation();
+                        return;
+                    }
                     if event.keystroke.key == "f6" {
+                        this.close_environment_menu(true, window, cx);
                         this.region(event.keystroke.modifiers.shift, window, cx);
                         cx.stop_propagation();
                     }

@@ -1,5 +1,6 @@
 //! Local session usage, separate from llmusage and remote account quota.
 use super::*;
+use ccr_app::environments::EnvironmentPolicy;
 use ccr_codex::services::{CodexRollingUsage, CodexScanDiagnostics, CodexUsageService};
 use chrono::{DateTime, Utc};
 use std::path::Path;
@@ -98,8 +99,8 @@ impl Services {
         &self,
         key: RequestKey,
     ) -> Result<TaskSubscription<Report, Error>, AdmissionError> {
-        let supported =
-            matches!(key.environment, EnvironmentId::Local(_)) && key.platform == Platform::Codex;
+        let supported = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok()
+            && key.platform == Platform::Codex;
         let source = self.source.clone();
         self.executor.read(key, move |_, _| {
             if !supported {

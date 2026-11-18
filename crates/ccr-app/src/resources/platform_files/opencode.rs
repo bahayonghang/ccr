@@ -481,6 +481,13 @@ pub struct PluginFile {
     pub size: u64,
 }
 /// Metadata-only inventory: plugin code is never read or executed.
+/// Match plugin code extensions without opening or executing their contents.
+pub fn is_plugin_extension(extension: &str) -> bool {
+    matches!(
+        extension.to_ascii_lowercase().as_str(),
+        "js" | "cjs" | "mjs" | "ts"
+    )
+}
 pub fn list_plugins(directory: &std::path::Path) -> Result<Vec<PluginFile>, super::Error> {
     use super::Error;
     super::check_path(directory)?;
@@ -502,12 +509,7 @@ pub fn list_plugins(directory: &std::path::Path) -> Result<Vec<PluginFile>, supe
             || !path
                 .extension()
                 .and_then(|ext| ext.to_str())
-                .is_some_and(|ext| {
-                    matches!(
-                        ext.to_ascii_lowercase().as_str(),
-                        "js" | "cjs" | "mjs" | "ts"
-                    )
-                })
+                .is_some_and(is_plugin_extension)
         {
             continue;
         }

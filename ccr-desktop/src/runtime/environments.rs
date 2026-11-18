@@ -1,6 +1,6 @@
 //! Environment reads stay on the blocking worker. Render does not spawn processes.
 use super::Services;
-use ccr_app::environments::{EnvironmentReport, InspectOptions, admit_local_only};
+use ccr_app::environments::{EnvironmentPolicy, EnvironmentReport, InspectOptions};
 use ccr_app::runtime::{AdmissionError, EnvironmentId, RequestKey, TaskSubscription};
 
 pub fn load(
@@ -11,7 +11,7 @@ pub fn load(
     let live = !services.is_fixture();
     let delay = services.fixture_delay();
     services.executor.read(key, move |cancel, _| {
-        admit_local_only(&environment)?;
+        EnvironmentPolicy::Independent.admit(&environment)?;
         // Fixture delay is cancellable QA only. A live read does not sleep here.
         if !delay.is_zero() {
             let deadline = std::time::Instant::now() + delay;
@@ -36,7 +36,7 @@ pub fn load(
     })
 }
 
-use ccr_app::environments::ssh::{ConfigFile, Document, Host, HostInput, Probe, Workspace};
+use ccr_app::environments::ssh::{Host, HostInput, Probe, Workspace};
 use ccr_app::runtime::Completion;
 use std::sync::Arc;
 
@@ -44,13 +44,14 @@ pub enum SshAction {
     Hosts,
     HostDetails(String),
     SaveHost(HostInput),
+    TestConnection(HostInput),
+    TestHost(String),
     DeleteHost(String),
     Probe(String),
     Confirm(String),
+    ConfirmTest(String),
     Connect(String),
     Disconnect,
-    Read(String, ConfigFile),
-    Save(Document, String),
     DetectCli(String),
 }
 pub enum SshResult {
@@ -60,12 +61,21 @@ pub enum SshResult {
     HostDeleted,
     Probe(Probe),
     Connected,
+    Tested,
     Disconnected,
     Confirmed,
-    Document(Document),
     CliDetected(Vec<ccr_app::environments::ssh::CliStatus>),
 }
 impl Services {
+    /// Release the persistent SSH connection before the owning runtime stops.
+    pub async fn disconnect_ssh(&self) {
+        if let Some(owner) = self.ssh.get() {
+            owner.disconnect().await;
+        }
+    }
+    pub fn ssh_connected(&self, id: &str) -> bool {
+        self.ssh.get().is_some_and(|owner| owner.connected(id))
+    }
     fn ssh_workspace(&self) -> Result<Arc<Workspace>, &'static str> {
         if self.source.is_benchmark() {
             return Err("ssh_fixture_offline");
@@ -89,7 +99,13 @@ impl Services {
                 (Some(database), root.join("ssh/known_hosts"))
             }
         };
-        let owner = Arc::new(Workspace::new(database, known_hosts));
+        let owner = Workspace::new(database, known_hosts);
+        let owner = if self.is_fixture() {
+            owner.with_mock_credentials()?
+        } else {
+            owner
+        };
+        let owner = Arc::new(owner);
         let _ = self.ssh.set(owner);
         self.ssh.get().cloned().ok_or("ssh_database_unavailable")
     }
@@ -119,11 +135,9 @@ impl Services {
         self.executor.job(key, move |cancel, _| {
             let work = async {
                 let target = match &action {
-                    SshAction::Probe(id)
-                    | SshAction::Connect(id)
-                    | SshAction::Read(id, _)
-                    | SshAction::DetectCli(id) => Some(id),
-                    SshAction::Save(document, _) => Some(&document.environment),
+                    SshAction::Probe(id) | SshAction::Connect(id) | SshAction::DetectCli(id) => {
+                        Some(id)
+                    }
                     _ => None,
                 };
                 if let Some(target) = target
@@ -138,10 +152,11 @@ impl Services {
                     && matches!(
                         &action,
                         SshAction::Probe(_)
+                            | SshAction::TestConnection(_)
+                            | SshAction::TestHost(_)
                             | SshAction::Connect(_)
                             | SshAction::Confirm(_)
-                            | SshAction::Read(_, _)
-                            | SshAction::Save(_, _)
+                            | SshAction::ConfirmTest(_)
                             | SshAction::DetectCli(_)
                     )
                 {
@@ -149,7 +164,21 @@ impl Services {
                 }
                 let owner = services.ssh_workspace()?;
                 match action {
-                    SshAction::Hosts => owner.hosts().map(SshResult::Hosts),
+                    SshAction::TestHost(id) => owner
+                        .test_connection(owner.host_details(&id)?, cancel.clone())
+                        .await
+                        .map(|probe| match probe {
+                            Some(probe) => SshResult::Probe(probe),
+                            None => SshResult::Tested,
+                        }),
+                    SshAction::TestConnection(input) => owner
+                        .test_connection(input, cancel.clone())
+                        .await
+                        .map(|probe| match probe {
+                            Some(probe) => SshResult::Probe(probe),
+                            None => SshResult::Tested,
+                        }),
+                    SshAction::Hosts => owner.management_hosts().await.map(SshResult::Hosts),
                     SshAction::HostDetails(id) => {
                         owner.host_details(&id).map(SshResult::HostDetails)
                     }
@@ -167,22 +196,18 @@ impl Services {
                         .confirm(&id, cancel.clone())
                         .await
                         .map(|()| SshResult::Confirmed),
+                    SshAction::ConfirmTest(id) => owner
+                        .confirm_test(&id, cancel.clone())
+                        .await
+                        .map(|()| SshResult::Confirmed),
                     SshAction::Connect(id) => owner
                         .connect(&id, cancel.clone())
                         .await
                         .map(|()| SshResult::Connected),
-                    SshAction::Disconnect => {
-                        owner.disconnect().await;
-                        Ok(SshResult::Disconnected)
-                    }
-                    SshAction::Read(id, file) => owner
-                        .read(&id, file, cancel.clone())
+                    SshAction::Disconnect => owner
+                        .disconnect_checked()
                         .await
-                        .map(SshResult::Document),
-                    SshAction::Save(document, content) => owner
-                        .save(&document, &content, cancel.clone())
-                        .await
-                        .map(SshResult::Document),
+                        .map(|()| SshResult::Disconnected),
                     SshAction::DetectCli(_) => owner
                         .detect_cli(&cli_authority.ok_or("ssh_not_connected")??, cancel.clone())
                         .await
@@ -211,7 +236,7 @@ impl Services {
     }
 }
 
-fn owner_is_fixture_transport(services: &Services) -> bool {
+pub(super) fn owner_is_fixture_transport(services: &Services) -> bool {
     #[cfg(test)]
     {
         services.ssh.get().is_some_and(|owner| owner.is_fixture())
@@ -256,6 +281,7 @@ mod ssh_tests {
                     port: 22,
                     user: "fixture".into(),
                     remote_home: "~".into(),
+                    ..Default::default()
                 }),
             )
             .unwrap_or_else(|_| panic!("save admission"));

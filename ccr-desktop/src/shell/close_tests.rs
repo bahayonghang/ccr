@@ -3,7 +3,7 @@
 use super::Shell;
 use crate::runtime::{Services, profiles::tests::fixture};
 use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, RuntimeOwner};
-use gpui_kit::test::TestWindowExt;
+use gpui_kit::test::{TestAppContextExt, TestWindowExt};
 use gpui_kit::{
     AppContext, Bounds, TestAppContext, VisualTestContext, WindowBounds, WindowOptions, px, size,
 };
@@ -59,6 +59,30 @@ fn wait_closed(cx: &mut TestAppContext, handle: gpui_kit::AnyWindowHandle) {
     }
 }
 
+fn reveal_setting(window: &mut gpui_kit::Window, id: &'static str, cx: &mut gpui_kit::App) {
+    for _ in 0..12 {
+        window.render_frame(cx);
+        let bounds = window.find(id).bounds();
+        let viewport = window.find("settings-body").bounds();
+        if bounds.top() >= viewport.top() && bounds.bottom() <= viewport.bottom() {
+            return;
+        }
+        window.scroll(
+            "settings-body",
+            gpui_kit::ScrollDelta::Pixels(gpui_kit::point(
+                px(0.),
+                px(if bounds.top() < viewport.top() {
+                    240.
+                } else {
+                    -240.
+                }),
+            )),
+            cx,
+        );
+    }
+    panic!("setting is outside the page viewport: {id}");
+}
+
 #[gpui_kit::test]
 fn quit_action_and_saved_preferences_share_the_window_close_policy(cx: &mut TestAppContext) {
     cx.executor().allow_parking();
@@ -75,6 +99,13 @@ fn quit_action_and_saved_preferences_share_the_window_close_policy(cx: &mut Test
         cx.update_window(handle, |_, window, cx| {
             window.render_frame(cx);
             window.click("nav-settings", cx);
+        })
+        .unwrap();
+        wait_for(cx, handle, "preferences resolved", |window| {
+            window.try_find("preferences-status").is_none()
+        });
+        cx.update_window(handle, |_, window, cx| {
+            window.click("settings-nav-appearance", cx)
         })
         .unwrap();
         wait_for(
@@ -124,7 +155,9 @@ fn quit_action_and_saved_preferences_share_the_window_close_policy(cx: &mut Test
                     gpui_kit::component::ThemeMode::Dark,
                     "the theme click must reach the preference control"
                 );
+                reveal_setting(window,"language-zh",cx);
                 window.click("language-zh", cx);
+                window.click("settings-nav-workbench", cx);
                 assert!(matches!(
                     cx.global::<crate::locales::Language>(),
                     crate::locales::Language::Chinese
@@ -138,12 +171,12 @@ fn quit_action_and_saved_preferences_share_the_window_close_policy(cx: &mut Test
                 );
                 assert_eq!(
                     shell.read(cx).preferences_generation,
-                    3,
-                    "all three clicks must submit their preference snapshots"
+                    4,
+                    "theme, language, selected tab and close policy must each submit their preference snapshot"
                 );
             })
             .unwrap();
-            wait_for(cx, handle, "three preference writes complete", |window| {
+            wait_for(cx, handle, "four preference writes complete", |window| {
                 assert!(
                     window.try_find("preferences-retry").is_none(),
                     "preference persistence failed"
@@ -159,6 +192,7 @@ fn quit_action_and_saved_preferences_share_the_window_close_policy(cx: &mut Test
             assert_eq!(value["confirm_quit"], false);
         } else {
             cx.update_window(handle, |_, window, cx| {
+                window.click("settings-nav-workbench", cx);
                 assert_eq!(
                     gpui_kit::component::Theme::global(cx).mode,
                     gpui_kit::component::ThemeMode::Dark
@@ -228,7 +262,12 @@ async fn window_bounds_are_saved_before_close_and_restored_by_the_launch_path(
         window.render_frame(cx);
         window.click("nav-settings", cx);
         window.click("theme-dark", cx);
+        window.click("settings-nav-appearance", cx);
+        window.render_frame(cx);
+        assert!(window.find("language-zh").visible());
+        reveal_setting(window, "language-zh", cx);
         window.click("language-zh", cx);
+        window.click("settings-nav-workbench", cx);
     })
     .unwrap();
     wait_for(cx, handle, "theme and language saved", |window| {
@@ -322,14 +361,14 @@ async fn window_bounds_are_saved_before_close_and_restored_by_the_launch_path(
 }
 
 #[gpui_kit::test]
-fn preference_retry_recovers_the_failed_read_or_write(cx: &mut TestAppContext) {
+async fn preference_retry_recovers_the_failed_read_or_write(cx: &mut TestAppContext) {
     cx.executor().allow_parking();
     let (root, source) = fixture();
     let path = root.path().join("desktop-gpui/preferences.json");
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(&path, b"{broken").unwrap();
     let owner = RuntimeOwner::new().unwrap();
-    let (handle, _) = cx.update(|cx| {
+    let (handle, shell) = cx.update(|cx| {
         gpui_kit::init(cx);
         gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
             cx.new(|cx| Shell::new(Services::new(owner.handle(), source), window, cx))
@@ -352,11 +391,15 @@ fn preference_retry_recovers_the_failed_read_or_write(cx: &mut TestAppContext) {
             Some("Reload preferences")
         );
         window.click("preferences-retry", cx);
+        assert!(shell.read(cx).preferences_busy);
+        assert!(!shell.read(cx).preferences_loaded);
     })
     .unwrap();
-    wait_for(cx, handle, "reload", |w| {
-        w.find("theme-dark").disabled() != Some(true)
-    });
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        let state = shell.read(cx);
+        state.preferences_loaded && !state.preferences_busy && !state.preferences_failed
+    })
+    .await;
     std::fs::write(&path, b"{broken").unwrap();
     cx.update_window(handle, |_, window, cx| window.click("theme-dark", cx))
         .unwrap();
@@ -372,7 +415,7 @@ fn preference_retry_recovers_the_failed_read_or_write(cx: &mut TestAppContext) {
     })
     .unwrap();
     wait_for(cx, handle, "retry write", |w| {
-        w.find("preferences-reveal").disabled() != Some(true)
+        w.try_find("preferences-status").is_none()
     });
     let persisted: serde_json::Value =
         serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();

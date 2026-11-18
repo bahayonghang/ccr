@@ -161,7 +161,7 @@ async fn remote_and_unconfigured_reads_fail_closed_without_creating_paths(
         )
         .unwrap();
     assert!(
-        matches!(read.next().await,Some(TaskEvent::Terminal(result)) if matches!(result.as_ref(),Completion::Failed(InsightsError::LocalOnly)))
+        matches!(read.next().await,Some(TaskEvent::Terminal(result)) if matches!(result.as_ref(),Completion::Failed(InsightsError::Remote)))
     );
     let mut read = requests
         .load(

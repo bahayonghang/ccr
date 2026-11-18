@@ -271,7 +271,9 @@ Agent 会话页自上而下：
 
 ### 全局设置
 
-页头下方使用固定在左的页内锚点导航，右侧保持连续长页与独立纵向滚动。模块依次为外观、字体与字号、语言、工作台偏好、诊断与环境；点击滚动定位并将焦点交给对应标题锚点，手动滚动更新高亮，保留环境深链与稳定控件 id。最小受支持窗口中仍保持左侧导航，不退回顶部 2×2。短选项与字体控件按内容或有界宽度排布，不均分整屏。所有设置区块仍在长页内，不能改为只渲染选中模块。
+页头下方固定左侧 tab 导航，右侧一次只渲染选中的独立页面：外观（主题、字体与字号、语言）、工作台偏好、执行环境、诊断。tab 选择写入桌面偏好，执行环境入口直接打开该 tab；超高内容仅在页面内部纵向滚动，不再滚动定位或跟随高亮。保留稳定控件 id。短选项与字体控件按内容或有界宽度排布，不均分整屏。
+
+执行环境页保留本机与默认不探测的 WSL 结果。SSH 主机卡片显示名称、连接地址、认证方式、当前执行环境标记、连接状态和最近连接时间；操作横排并可换行。管理选中与当前执行环境分离，「设为当前」和「使用本地环境」均走外壳统一切换。当前 SSH 主机编辑、删除或修复凭据前，先显式切回本地，保存后再显式设为当前；测试使用独立临时连接。新建与编辑按连接、认证、远程主目录分组，认证用选项切换，凭据保存后清空且不回显。未保存草稿离页或跳 tab 先确认。远程设置通过平台设置 tab 管理，执行环境页只保留主机管理与次级 CLI 检测。诊断页只放本机托盘、窗口隐藏与恢复、系统通知能力与发送通知。
 
 ### Platform workbench and navigation
 
@@ -325,7 +327,7 @@ The brand row embeds the generated app PNG with its original colors and alpha;
 the Windows executable embeds the matching existing ICO as resource ID 1.
 The status bar keeps the actual environment/source label, a matching state dot,
 four numbered route shortcuts and a local HH:mm clock refreshed every 30 seconds.
-The source dot means configured, never connected or successfully read.
+The status bar names the sole current execution environment. Local displays Ready. Its dot and text show not connected, connecting, connected, unreachable, host key approval required, or credentials missing. Connection failure retains the selected SSH host; it never exposes local destination data. The source configuration indicator inside local Overview still means configured, not successful data retrieval.
 
 平台目的地固定捕获的平台与环境。唯一 h1 为当前 tab 名，平台作为小号上下文；页头只含当前页动作。导航是按任务分组的文字 tab，选中项使用 reading pill、primary 文字与 toggled 语义，组间 16px 与装饰 hairline，组名只作无障碍名称。
 

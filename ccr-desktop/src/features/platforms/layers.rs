@@ -1,12 +1,13 @@
 //! Metadata-only source inventory. No managed layer is an editable document.
 use super::*;
-use ccr_app::platform_settings::layers::{Layer, State};
+use crate::runtime::platforms::layers::SourceLayer;
+use ccr_app::platform_settings::layers::State;
 
 pub(super) struct LayersView {
     services: Services,
     platform: Platform,
     project: Entity<InputState>,
-    pub(super) rows: Vec<Layer>,
+    pub(super) rows: Vec<SourceLayer>,
     task: Option<Task<()>>,
     generation: u64,
     pub(super) busy: bool,
@@ -45,19 +46,12 @@ impl LayersView {
         self.generation += 1;
         let generation = self.generation;
         let project = self.project.read(cx).value().trim().to_string();
-        let project = (!project.is_empty()).then(|| std::path::PathBuf::from(project));
+        let project = (!project.is_empty()).then_some(project);
         self.rows.clear();
         self.message = None;
         self.busy = true;
         let key = RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.services.environment(),
             platform: self.platform,
             generation,
             request_id: generation,
@@ -104,7 +98,12 @@ impl LayersView {
         let path = row
             .path
             .as_ref()
-            .map(|path| path.display().to_string())
+            .map(|path| match path {
+                ccr_app::environments::io::EnvironmentPath::Local(path) => {
+                    path.display().to_string()
+                }
+                ccr_app::environments::io::EnvironmentPath::Ssh(path) => path.as_str().to_owned(),
+            })
             .unwrap_or_else(|| text(cx, "No project path captured", "未捕获项目路径").into());
         let label = match row.id.as_str() {
             "managed" => text(cx, "Managed policy", "托管策略").to_string(),

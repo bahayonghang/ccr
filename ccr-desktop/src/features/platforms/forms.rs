@@ -52,6 +52,15 @@ fn label(en: &'static str, cx: &gpui_kit::App) -> &'static str {
     text(cx, en, zh)
 }
 impl SettingsForm {
+    pub fn has_changes(&self, cx: &gpui_kit::App) -> bool {
+        self.fields.iter().any(|field| {
+            if field.choices.is_empty() {
+                field.input.read(cx).value().as_str() != field.initial
+            } else {
+                field.selected != field.initial
+            }
+        })
+    }
     pub fn new() -> Self {
         Self { fields: Vec::new() }
     }

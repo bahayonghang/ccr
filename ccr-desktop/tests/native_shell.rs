@@ -10,6 +10,29 @@ use gpui_kit::test::{TestAppContextExt, TestWindowExt};
 use gpui_kit::{AppContext, TestAppContext, WindowOptions};
 use std::time::{Duration, Instant};
 
+fn wait_for_environment(cx: &mut TestAppContext, handle: gpui_kit::AnyWindowHandle) {
+    let deadline = Instant::now() + Duration::from_secs(10);
+    loop {
+        cx.run_until_parked();
+        let ready = cx
+            .update_window(handle, |_, window, cx| {
+                window.render_frame(cx);
+                !window
+                    .find("shell-status")
+                    .label()
+                    .unwrap_or_default()
+                    .contains("Loading execution environment")
+            })
+            .unwrap_or_else(|e| panic!("environment startup: {e}"));
+        if ready {
+            break;
+        }
+        assert!(Instant::now() < deadline, "environment startup timed out");
+        cx.executor().advance_clock(Duration::from_millis(10));
+        std::thread::yield_now();
+    }
+}
+
 fn wait_for_preferences(cx: &mut TestAppContext, handle: gpui_kit::AnyWindowHandle) {
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
@@ -58,9 +81,10 @@ async fn font_controls_select_independent_families_and_sizes_and_restore_after_r
         })
         .unwrap_or_else(|e| panic!("window: {e}"))
     });
+    wait_for_environment(cx, handle);
     wait_for_preferences(cx, handle);
     cx.update_window(handle, |_, window, cx| {
-        window.click("settings-nav-typography", cx);
+        window.click("settings-nav-appearance", cx);
         window.click("settings-ui-font", cx);
         window.input("Fixture UI", cx);
         window.press("enter", cx);
@@ -129,7 +153,7 @@ async fn font_controls_select_independent_families_and_sizes_and_restore_after_r
     });
     wait_for_preferences(cx, reopened);
     cx.update_window(reopened, |_, window, cx| {
-        window.click("settings-nav-typography", cx);
+        window.click("settings-nav-appearance", cx);
         assert_eq!(window.find("settings-ui-font").value(), Some("Fixture UI"));
         assert_eq!(
             window.find("settings-mono-font").value(),
@@ -201,6 +225,7 @@ fn actual_theme_controls_keep_base_component_palette_and_language_in_sync(cx: &m
         })
         .unwrap_or_else(|e| panic!("window: {e}"))
     });
+    wait_for_environment(cx, handle);
     wait_for_preferences(cx, handle);
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
@@ -212,31 +237,35 @@ fn actual_theme_controls_keep_base_component_palette_and_language_in_sync(cx: &m
         window.press("f6", cx);
         assert_eq!(window.find("settings-nav-appearance").focused(), Some(true));
         window.press("tab", cx);
-        window.press("tab", cx);
         window.press("enter", cx);
-        assert_eq!(window.find("settings-nav-language").checked(), Some(true));
+        assert_eq!(window.find("settings-nav-workbench").checked(), Some(true));
         window.press("tab", cx);
-        assert_eq!(window.find("language-en").focused(), Some(true));
-        for (nav, first_option) in [
-            ("settings-nav-language", "language-en"),
-            ("settings-nav-workbench", "close-confirm"),
-            ("settings-nav-environment", "env-notify"),
-            ("settings-nav-appearance", "theme-light"),
+        assert_eq!(window.find("close-confirm").focused(), Some(true));
+        for (nav, page, first_option) in [
+            (
+                "settings-nav-workbench",
+                "settings-page-workbench",
+                "close-confirm",
+            ),
+            (
+                "settings-nav-diagnostics",
+                "settings-page-diagnostics",
+                "env-notify",
+            ),
+            (
+                "settings-nav-appearance",
+                "settings-page-appearance",
+                "theme-light",
+            ),
         ] {
             window.click(nav, cx);
             assert_eq!(window.find(nav).checked(), Some(true));
+            assert!(window.try_find(page).is_some());
             window.press("tab", cx);
             assert_eq!(window.find(first_option).focused(), Some(true), "{nav}");
+            assert!(window.try_find("ssh-add-host").is_none());
             let option = window.find(first_option).bounds();
-            assert!(
-                option.top() >= window.find("settings-body").bounds().top()
-                    && option.bottom() <= window.find("shell-status").bounds().top(),
-                "{nav} leaves its focused option outside the settings content: {option:?}"
-            );
-            assert!(
-                option.left() >= window.find("settings-nav-environment").bounds().right(),
-                "settings navigation must remain left of content"
-            );
+            assert!(option.left() >= window.find("settings-nav-environment").bounds().right());
         }
         window.scroll(
             "settings-body",
@@ -245,18 +274,8 @@ fn actual_theme_controls_keep_base_component_palette_and_language_in_sync(cx: &m
         );
         window.simulate_next_frame(cx);
         window.render_frame(cx);
-        assert_eq!(
-            window.find("settings-nav-environment").checked(),
-            Some(true)
-        );
-        window.scroll(
-            "settings-body",
-            gpui_kit::ScrollDelta::Pixels(gpui_kit::point(gpui_kit::px(0.), gpui_kit::px(10000.))),
-            cx,
-        );
-        window.simulate_next_frame(cx);
-        window.render_frame(cx);
         assert_eq!(window.find("settings-nav-appearance").checked(), Some(true));
+        assert!(window.try_find("env-notify").is_none());
         window.click("settings-nav-appearance", cx);
         window.click("theme-dark", cx);
         assert_eq!(Theme::global(cx).mode, ThemeMode::Dark);
@@ -345,6 +364,7 @@ fn f6_tab_navigation_does_not_intercept_search_editing(cx: &mut TestAppContext) 
         })
         .unwrap_or_else(|e| panic!("window: {e}"))
     });
+    wait_for_environment(cx, handle);
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         for preference in [
@@ -413,6 +433,8 @@ fn f6_tab_navigation_does_not_intercept_search_editing(cx: &mut TestAppContext) 
         window.press("f6", cx); // main -> status
         assert_eq!(window.find("shell-status").focused(), Some(true));
         window.press("tab", cx);
+        assert_eq!(window.find("environment-switcher").focused(), Some(true));
+        window.press("tab", cx);
         assert_eq!(window.find("status-overview").focused(), Some(true));
         window.press("f6", cx); // status -> navigation
         assert_eq!(window.find("nav-dashboard").focused(), Some(true));
@@ -464,6 +486,7 @@ fn navigation_clears_converter_plaintext_and_acknowledgement(cx: &mut TestAppCon
         })
         .unwrap_or_else(|_| panic!("window"))
     });
+    wait_for_environment(cx, handle);
     cx.update_window(handle,|_,window,cx|{
         window.render_frame(cx);window.click("nav-mcp-manager",cx);window.click("tool-converter",cx);window.click("converter-acknowledge",cx);
         let input=gpui_kit::base::test_support::snapshots(window).into_iter().find(|node|node.label()==Some("Source configuration")).unwrap_or_else(||panic!("source input"));
@@ -515,6 +538,7 @@ fn mcp_manager_and_converter_embed_the_lens_on_their_heading_row(cx: &mut TestAp
         })
         .unwrap_or_else(|e| panic!("window: {e}"))
     });
+    wait_for_environment(cx, handle);
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-mcp-manager", cx);
@@ -600,6 +624,7 @@ fn opaque_surface_quads_preserve_the_paper_corners(cx: &mut TestAppContext) {
         )
         .unwrap_or_else(|e| panic!("window: {e}"))
     });
+    wait_for_environment(cx, handle);
     wait_for_preferences(cx, handle);
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
@@ -712,6 +737,7 @@ fn overview_states_missing_usage_without_sample_numbers(cx: &mut TestAppContext)
         })
         .unwrap_or_else(|e| panic!("window: {e}"))
     });
+    wait_for_environment(cx, handle);
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         let status = window
@@ -821,6 +847,7 @@ fn overview_layout_matches_the_real_shell_chrome(cx: &mut TestAppContext) {
             )
             .unwrap_or_else(|e| panic!("window: {e}"))
         });
+        wait_for_environment(cx, handle);
         let deadline = Instant::now() + Duration::from_secs(30);
         loop {
             cx.run_until_parked();
@@ -906,6 +933,7 @@ fn workbench_navigation_exposes_thirteen_destinations(cx: &mut TestAppContext) {
         )
         .unwrap_or_else(|e| panic!("window: {e}"))
     });
+    wait_for_environment(cx, handle);
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         let settings = window.find("nav-settings").bounds();
@@ -1287,6 +1315,7 @@ fn narrow_codex_navigation_reveals_each_keyboard_selection(cx: &mut TestAppConte
         )
         .unwrap_or_else(|e| panic!("window: {e}"))
     });
+    wait_for_environment(cx, handle);
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-codex", cx);
@@ -1363,6 +1392,7 @@ async fn platform_workbench_is_default_and_scoped_navigation_keeps_platform(
         })
         .unwrap_or_else(|e| panic!("window: {e}"))
     });
+    wait_for_environment(cx, handle);
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-claude-code", cx);
@@ -1499,6 +1529,7 @@ async fn platform_workbench_claude_partial_costs_recover_and_link_to_daily_repor
         })
         .unwrap_or_else(|e| panic!("window: {e}"))
     });
+    wait_for_environment(cx, handle);
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-claude-code", cx);
@@ -1618,6 +1649,7 @@ async fn profile_pages_show_only_their_catalog(cx: &mut TestAppContext) {
         )
         .unwrap_or_else(|e| panic!("window: {e}"))
     });
+    wait_for_environment(cx, handle);
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         assert!(window.try_find("nav-converter").is_none());
@@ -1861,6 +1893,7 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
         })
         .unwrap_or_else(|e| panic!("window: {e}"))
     });
+    wait_for_environment(cx, handle);
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-claude-code", cx);
@@ -2185,6 +2218,7 @@ async fn selected_profile_is_independent_from_running_profile_and_dirty_navigati
         })
         .unwrap_or_else(|e| panic!("window: {e}"))
     });
+    wait_for_environment(cx, handle);
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-claude-code", cx);
@@ -2308,11 +2342,13 @@ async fn selected_profile_is_independent_from_running_profile_and_dirty_navigati
             window.find("profile-description").value(),
             Some("Unsaved isolated draft")
         );
-        window.click("tool-files", cx);
+        window.click("environment-switcher", cx);
+        window.click("environment-manage", cx);
         window.simulate_next_frame(cx);
         window.render_frame(cx);
         window.click("profile-navigation-discard", cx);
         assert!(window.try_find("profile-description").is_none());
+        assert!(window.try_find("settings-page-environment").is_some());
         window.remove_window();
     })
     .unwrap_or_else(|_| panic!("draft navigation"));
@@ -2347,6 +2383,7 @@ fn platform_tab_focus_survives_crossing_the_wide_layout_breakpoint(cx: &mut Test
         )
         .unwrap_or_else(|e| panic!("window: {e}"))
     });
+    wait_for_environment(cx, handle);
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-claude-code", cx);

@@ -74,6 +74,13 @@ pub(super) struct McpEditor {
 impl EventEmitter<EditorEvent> for McpEditor {}
 
 impl McpEditor {
+    #[cfg(test)]
+    pub(super) fn ready_for_input(&self) -> bool {
+        !self.busy
+            && (self.session.is_some() || self.copy_session.is_some())
+            && self.pending_form.is_none()
+    }
+
     pub fn new(
         services: Services,
         key: RequestKey,

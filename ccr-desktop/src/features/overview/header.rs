@@ -19,6 +19,30 @@ use gpui_kit::{
 
 impl OverviewView {
     fn status_text(&self, cx: &mut Context<Self>) -> String {
+        if matches!(
+            self.requests.environment(),
+            ccr_app::runtime::EnvironmentId::Ssh(_)
+        ) {
+            return if self.loading {
+                text(
+                    cx,
+                    "Reading current SSH environment…",
+                    "正在读取当前 SSH 环境…",
+                )
+                .into()
+            } else {
+                self.error
+                    .map(|error| service_error(cx, error))
+                    .unwrap_or_else(|| {
+                        text(
+                            cx,
+                            "Read-only SSH session snapshot and remote configuration facts",
+                            "SSH 只读会话快照与远端配置事实",
+                        )
+                    })
+                    .into()
+            };
+        }
         let state = if self.loading {
             Some(text(cx, "Reading local usage…", "正在读取本机用量…"))
         } else {
@@ -117,6 +141,10 @@ impl OverviewView {
     }
 
     pub(super) fn header(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let remote = matches!(
+            self.requests.environment(),
+            ccr_app::runtime::EnvironmentId::Ssh(_)
+        );
         let status = self.status_text(cx);
         let ink = if self.error.is_some() {
             cx.theme().warning
@@ -129,17 +157,21 @@ impl OverviewView {
             .flex_wrap()
             .items_center()
             .gap(px(theme::SECTION_GAP))
-            .child(
-                div()
-                    .id("overview-heading")
-                    .test_support()
-                    .role(gpui_kit::Role::Heading)
-                    .aria_level(1)
-                    .text_size(crate::theme::text_size(theme::TITLE_SIZE))
-                    .font_weight(gpui_kit::FontWeight::SEMIBOLD)
-                    .child(text(cx, "Overview", "运行概览")),
-            );
-        if let Some(lens) = &self.lens {
+            .when(!remote || self.remote_scope.is_none(), |title| {
+                title.child(
+                    div()
+                        .id("overview-heading")
+                        .test_support()
+                        .role(gpui_kit::Role::Heading)
+                        .aria_level(1)
+                        .text_size(crate::theme::text_size(theme::TITLE_SIZE))
+                        .font_weight(gpui_kit::FontWeight::SEMIBOLD)
+                        .child(text(cx, "Overview", "运行概览")),
+                )
+            });
+        if self.remote_scope.is_none()
+            && let Some(lens) = &self.lens
+        {
             title = title.child(lens.clone());
         }
         div()
@@ -160,11 +192,15 @@ impl OverviewView {
                             .flex()
                             .items_center()
                             .gap(px(theme::CONTROL_GAP))
-                            .child(self.windows(cx))
+                            .when(!remote, |row| row.child(self.windows(cx)))
                             .child(semantics::ghost_button(
                                 Button::new("overview-refresh")
                                     .icon(IconName::RefreshCw)
-                                    .label(text(cx, "Refresh", "刷新用量"))
+                                    .label(if remote {
+                                        text(cx, "Refresh SSH facts", "刷新 SSH 状态")
+                                    } else {
+                                        text(cx, "Refresh", "刷新用量")
+                                    })
                                     .on_click(cx.listener(|this, _, _, cx| this.refresh(cx))),
                                 self.loading || !self.requests.configured(),
                                 self.loading,

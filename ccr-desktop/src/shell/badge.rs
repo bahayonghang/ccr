@@ -317,6 +317,7 @@ mod tests {
         let shared = clicks.clone();
         let (handle, view) = cx.update(|cx| {
             gpui_kit::init(cx);
+            theme::init(cx);
             gpui_kit::open_window(WindowOptions::default(), cx, |_, cx| {
                 cx.new(|cx| Harness {
                     clicks: shared,

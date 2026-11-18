@@ -24,7 +24,7 @@ struct ProjectInitFixture {
 
 impl ProjectInitFixture {
     fn new() -> Self {
-        let temp = tempfile::tempdir().unwrap();
+        let temp = crate::command_tempdir().unwrap();
         let root = temp.path().to_path_buf();
         let project = root.join("project");
         let bin = root.join("bin");

@@ -1,4 +1,5 @@
 use super::*;
+use ccr_app::environments::EnvironmentPolicy;
 pub use ccr_app::usage::capabilities::Report;
 
 impl InsightsRequests {
@@ -7,7 +8,7 @@ impl InsightsRequests {
         key: RequestKey,
     ) -> Result<TaskSubscription<Report, InsightsError>, AdmissionError> {
         let paths = self.paths.clone();
-        let local = matches!(key.environment, EnvironmentId::Local(_));
+        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         let probe_cli = !self.services.is_fixture();
         self.services.executor.read(key, move |_, _| {
             if !local {

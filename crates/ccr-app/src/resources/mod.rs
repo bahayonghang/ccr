@@ -5,3 +5,5 @@ pub mod claude_files;
 pub mod platform_files;
 pub mod prompt_presets;
 pub mod system_prompts;
+
+pub mod environment;

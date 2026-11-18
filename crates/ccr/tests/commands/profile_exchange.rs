@@ -17,7 +17,7 @@ struct ProfileExchangeFixture {
 
 impl ProfileExchangeFixture {
     fn new() -> Self {
-        let temp_dir = tempfile::tempdir().unwrap();
+        let temp_dir = crate::command_tempdir().unwrap();
         let work_dir = temp_dir.path().join("work");
         let home = temp_dir.path().join("home");
         let root = home.join(".ccr");
@@ -35,7 +35,7 @@ impl ProfileExchangeFixture {
     }
 
     fn new_uninitialized() -> Self {
-        let temp_dir = tempfile::tempdir().unwrap();
+        let temp_dir = crate::command_tempdir().unwrap();
         let work_dir = temp_dir.path().join("work");
         let home = temp_dir.path().join("home");
         let root = home.join(".ccr");

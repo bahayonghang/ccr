@@ -1,6 +1,9 @@
 //! Explicit host facts. No process enumeration, CLI, network, or background timer.
 use crate::runtime::Services;
-use ccr_app::runtime::{AdmissionError, EnvironmentId, RequestKey, TaskSubscription};
+use ccr_app::environments::EnvironmentPolicy;
+#[cfg(test)]
+use ccr_app::runtime::EnvironmentId;
+use ccr_app::runtime::{AdmissionError, RequestKey, TaskSubscription};
 use chrono::{DateTime, Utc};
 use std::time::{Duration, Instant};
 
@@ -128,11 +131,11 @@ fn collect(cancelled: &impl Fn() -> bool) -> Result<Report, Error> {
 }
 
 fn permitted<T>(
-    environment: &EnvironmentId,
+    environment: &ccr_app::runtime::EnvironmentId,
     synthetic: bool,
     probe: impl FnOnce() -> Result<T, Error>,
 ) -> Result<T, Error> {
-    if !matches!(environment, EnvironmentId::Local(_)) {
+    if EnvironmentPolicy::LocalOnly.admit(environment).is_err() {
         return Err(Error::LocalOnly);
     }
     if synthetic {

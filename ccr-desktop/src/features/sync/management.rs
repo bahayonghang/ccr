@@ -122,7 +122,7 @@ impl SyncView {
                         this.start(Operation::PrepareClear { revision }, cx);
                     }
                 })),
-            blocked,
+            blocked || self.is_ssh(),
             false,
             cx,
         ));

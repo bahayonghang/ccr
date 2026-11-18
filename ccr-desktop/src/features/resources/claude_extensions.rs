@@ -19,6 +19,7 @@ use gpui_kit::{
 
 fn source_label(cx: &App, label: &str) -> &'static str {
     match label {
+        "Unsupported remote sources" => text(cx, "Unsupported remote sources", "不支持的远程来源"),
         extensions::SUBAGENTS => text(cx, "Subagents · user", "子代理 · 用户级"),
         extensions::SKILLS => text(cx, "Skills · user", "技能 · 用户级"),
         extensions::LEGACY_COMMANDS => {

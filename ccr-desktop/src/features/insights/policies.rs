@@ -26,6 +26,17 @@ pub(super) struct PoliciesView {
     return_focus: Option<FocusHandle>,
 }
 impl PoliciesView {
+    pub fn has_draft(&self, cx: &gpui_kit::App) -> bool {
+        !self.model.read(cx).value().is_empty() || !self.draft.read(cx).value().is_empty()
+    }
+    pub fn clear_environment(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.suspend(cx);
+        self.model.update(cx, |s, cx| s.set_value("", window, cx));
+        self.draft.update(cx, |s, cx| s.set_value("", window, cx));
+        self.output.update(cx, |s, cx| s.set_value("", window, cx));
+        self.pending_output = None;
+    }
+
     pub fn new(requests: InsightsRequests, window: &mut Window, cx: &mut Context<Self>) -> Self {
         Self {
             requests,
@@ -62,7 +73,7 @@ impl PoliciesView {
         }
         self.generation += 1;
         let key = RequestKey {
-            environment: EnvironmentId::Local("insights-explicit".into()),
+            environment: self.requests.environment(),
             platform: Platform::Claude,
             generation: self.generation,
             request_id: self.generation,

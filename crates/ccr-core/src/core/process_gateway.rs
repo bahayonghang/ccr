@@ -338,6 +338,7 @@ fn signal_macos_group_members(pgid: u32, signal: i32) -> io::Result<bool> {
 #[cfg(windows)]
 struct PlatformProcessTree {
     job: *mut std::ffi::c_void,
+    terminating: std::sync::Mutex<Vec<std::os::windows::io::OwnedHandle>>,
 }
 
 #[cfg(windows)]
@@ -438,7 +439,10 @@ impl PlatformProcessTree {
                 CloseHandle(job);
                 return Err(error);
             }
-            Ok(Self { job })
+            Ok(Self {
+                job,
+                terminating: std::sync::Mutex::new(Vec::new()),
+            })
         }
     }
 
@@ -488,19 +492,97 @@ impl PlatformProcessTree {
         if result == 0 {
             Err(io::Error::last_os_error())
         } else {
-            Ok(information.active_processes > 0)
+            // Job 计数可先归零，进程对象稍后才发出终止信号，不能提前声称清理完成。
+            Ok(information.active_processes > 0 || self.members_are_running()?)
         }
+    }
+
+    fn capture_members(&self) -> io::Result<()> {
+        use std::os::windows::io::FromRawHandle;
+        unsafe extern "system" {
+            fn QueryInformationJobObject(
+                job: *mut std::ffi::c_void,
+                class: i32,
+                information: *mut std::ffi::c_void,
+                length: u32,
+                returned: *mut u32,
+            ) -> i32;
+            fn OpenProcess(access: u32, inherit: i32, pid: u32) -> *mut std::ffi::c_void;
+        }
+        // usize 保证 ULONG_PTR 数组对齐；头部是两个 DWORD，随后是进程 ID。
+        let mut buffer = vec![0usize; 66];
+        loop {
+            // 安全：缓冲区可写且对齐，作业句柄由当前对象持有。
+            if unsafe {
+                QueryInformationJobObject(
+                    self.job,
+                    3,
+                    buffer.as_mut_ptr().cast(),
+                    std::mem::size_of_val(buffer.as_slice()) as u32,
+                    std::ptr::null_mut(),
+                )
+            } != 0
+            {
+                break;
+            }
+            let error = io::Error::last_os_error();
+            if error.raw_os_error() != Some(234) {
+                return Err(error);
+            }
+            buffer.resize(buffer.len() * 2, 0);
+        }
+        // 安全：成功的 JobObjectBasicProcessIdList 查询填充了头部与指定数量的 ID。
+        let pids = unsafe {
+            let count = *buffer.as_ptr().cast::<u32>().add(1) as usize;
+            std::slice::from_raw_parts(buffer.as_ptr().cast::<u8>().add(8).cast::<usize>(), count)
+        };
+        let mut handles = self.terminating.lock().unwrap_or_else(|p| p.into_inner());
+        for &pid in pids {
+            // 安全：只申请同步权限；句柄固定进程身份，后续 PID 复用不会改变等待对象。
+            let handle = unsafe { OpenProcess(0x0010_0000, 0, pid as u32) };
+            if handle.is_null() {
+                let error = io::Error::last_os_error();
+                if error.raw_os_error() == Some(87) {
+                    continue;
+                }
+                return Err(error);
+            }
+            handles.push(unsafe { std::os::windows::io::OwnedHandle::from_raw_handle(handle) });
+        }
+        Ok(())
+    }
+
+    fn members_are_running(&self) -> io::Result<bool> {
+        use std::os::windows::io::AsRawHandle;
+        unsafe extern "system" {
+            fn WaitForSingleObject(handle: *mut std::ffi::c_void, milliseconds: u32) -> u32;
+        }
+        for handle in self
+            .terminating
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .iter()
+        {
+            // 安全：同步句柄仍由当前作业持有；失败不能冒充进程已退出。
+            match unsafe { WaitForSingleObject(handle.as_raw_handle(), 0) } {
+                0 => {}
+                258 => return Ok(true),
+                _ => return Err(io::Error::last_os_error()),
+            }
+        }
+        Ok(false)
     }
 
     fn terminate(&self, exit_code: u32) -> io::Result<()> {
         unsafe extern "system" {
             fn TerminateJobObject(job: *mut std::ffi::c_void, exit_code: u32) -> i32;
         }
-        // SAFETY: this guard owns the live job handle.
+        let captured = self.capture_members();
+        // 安全：当前守卫拥有作业句柄；即使捕获失败仍须发出终止请求。
         if unsafe { TerminateJobObject(self.job, exit_code) } == 0 {
             Err(io::Error::last_os_error())
         } else {
-            Ok(())
+            captured
         }
     }
 }
@@ -685,6 +767,51 @@ mod tests {
 
     #[cfg(windows)]
     #[tokio::test]
+    async fn windows_cleanup_waits_for_captured_handles_after_job_count_reaches_zero() {
+        let mut process =
+            ManagedProcess::spawn(shell_command("sleep 30")).expect("managed fixture");
+        let mut pending =
+            ManagedProcess::spawn(shell_command("sleep 30")).expect("pending fixture");
+        // 用独立 fixture 模拟 Job 计数已移除、进程对象还未 signaled 的成员。
+        process
+            .tree
+            .terminating
+            .lock()
+            .expect("capture fixture handle")
+            .push(open_test_process(pending.pid()).expect("capture pending handle"));
+        process
+            .tree
+            .terminate_forceful(process.pid)
+            .expect("terminate job");
+        process.reap().await.expect("reap direct child");
+        assert!(
+            process
+                .tree
+                .is_running(process.pid)
+                .expect("check captured handles")
+        );
+        assert_eq!(
+            process
+                .confirm_tree_exit(tokio::time::Instant::now() + Duration::from_millis(30))
+                .await
+                .expect_err("live captured handle must not confirm cleanup")
+                .kind(),
+            io::ErrorKind::TimedOut
+        );
+        assert!(!process.tree_cleaned);
+        pending
+            .terminate_tree(Duration::from_secs(1))
+            .await
+            .expect("terminate pending fixture");
+        process
+            .confirm_tree_exit(tokio::time::Instant::now() + Duration::from_secs(1))
+            .await
+            .expect("confirm signaled handles");
+        assert!(process.tree_cleaned);
+    }
+
+    #[cfg(windows)]
+    #[tokio::test]
     async fn managed_process_terminates_windows_descendant_tree() {
         let temp = tempfile::tempdir().expect("tempdir");
         let pid_file = temp.path().join("grandchild.pid");
@@ -699,7 +826,24 @@ mod tests {
         let mut process = ManagedProcess::spawn(command).expect("managed parent");
 
         let grandchild_pid = wait_for_pid_file(&pid_file).await;
-        assert!(process_is_running(grandchild_pid));
+        // 固定原进程对象，避免清理后按 PID 再打开时命中系统复用的新进程。
+        let grandchild = open_test_process(grandchild_pid).expect("open fixture descendant");
+        assert!(process_handle_is_running(&grandchild));
+        unsafe extern "system" {
+            fn IsProcessInJob(
+                process: *mut std::ffi::c_void,
+                job: *mut std::ffi::c_void,
+                result: *mut i32,
+            ) -> i32;
+        }
+        use std::os::windows::io::AsRawHandle;
+        let mut in_job = 0;
+        // 安全：查询固定 fixture 句柄与仍由 ManagedProcess 持有的作业。
+        assert_ne!(
+            unsafe { IsProcessInJob(grandchild.as_raw_handle(), process.tree.job, &mut in_job) },
+            0
+        );
+        assert_ne!(in_job, 0, "fixture descendant escaped the managed job");
 
         process
             .terminate_tree(Duration::from_secs(1))
@@ -707,7 +851,21 @@ mod tests {
             .expect("terminate managed tree");
         tokio::time::sleep(Duration::from_millis(100)).await;
 
-        assert!(!process_is_running(grandchild_pid));
+        unsafe extern "system" {
+            fn GetExitCodeProcess(process: *mut std::ffi::c_void, code: *mut u32) -> i32;
+        }
+        let mut exit_code = 0;
+        // 安全：该 fixture 句柄已申请进程查询权限。
+        assert_ne!(
+            unsafe { GetExitCodeProcess(grandchild.as_raw_handle(), &mut exit_code) },
+            0
+        );
+        assert!(
+            !process_handle_is_running(&grandchild),
+            "descendant exit_code={exit_code}, job_running={:?}, cleaned={}",
+            process.tree.is_running(process.pid),
+            process.tree_cleaned
+        );
     }
 
     #[cfg(unix)]
@@ -1062,27 +1220,44 @@ mod tests {
 
     #[cfg(windows)]
     fn process_is_running(pid: u32) -> bool {
+        open_test_process(pid).is_some_and(|handle| process_handle_is_running(&handle))
+    }
+
+    #[cfg(windows)]
+    fn open_test_process(pid: u32) -> Option<std::os::windows::io::OwnedHandle> {
+        use std::os::windows::io::FromRawHandle;
         const SYNCHRONIZE: u32 = 0x0010_0000;
-        const WAIT_TIMEOUT: u32 = 258;
+        const PROCESS_QUERY_INFORMATION: u32 = 0x0400;
         unsafe extern "system" {
             fn OpenProcess(
                 desired_access: u32,
                 inherit_handle: i32,
                 process_id: u32,
             ) -> *mut std::ffi::c_void;
-            fn WaitForSingleObject(handle: *mut std::ffi::c_void, milliseconds: u32) -> u32;
-            fn CloseHandle(handle: *mut std::ffi::c_void) -> i32;
         }
-
-        // SAFETY: the opened synchronization handle is closed before returning.
+        // 安全：只打开同步和查询权限，非空句柄交给 OwnedHandle 唯一持有并关闭。
         unsafe {
-            let handle = OpenProcess(SYNCHRONIZE, 0, pid);
+            let handle = OpenProcess(SYNCHRONIZE | PROCESS_QUERY_INFORMATION, 0, pid);
             if handle.is_null() {
-                return false;
+                None
+            } else {
+                Some(std::os::windows::io::OwnedHandle::from_raw_handle(handle))
             }
-            let running = WaitForSingleObject(handle, 0) == WAIT_TIMEOUT;
-            CloseHandle(handle);
-            running
         }
+    }
+
+    #[cfg(windows)]
+    fn process_handle_is_running(handle: &std::os::windows::io::OwnedHandle) -> bool {
+        use std::os::windows::io::AsRawHandle;
+        unsafe extern "system" {
+            fn WaitForSingleObject(handle: *mut std::ffi::c_void, milliseconds: u32) -> u32;
+        }
+        // 安全：借用仍持有的同步句柄；查询失败不能冒充已退出。
+        let status = unsafe { WaitForSingleObject(handle.as_raw_handle(), 0) };
+        assert!(
+            status == 0 || status == 258,
+            "fixture process wait failed: {status}"
+        );
+        status == 258
     }
 }

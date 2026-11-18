@@ -17,6 +17,17 @@ use rusqlite::{Connection, params};
 
 use crate::AppPaths;
 
+/// Set a synthetic schema version without moving usage SQL into consumer tests.
+pub fn set_schema_version(paths: &AppPaths, version: i64) {
+    Connection::open(&paths.db_path)
+        .expect("fixture DB")
+        .execute(
+            "UPDATE meta SET value = ?1 WHERE key = 'schema_version'",
+            [version.to_string()],
+        )
+        .expect("fixture schema version");
+}
+
 /// Creates `llmusage.db` under `root` with the full projection schema and
 /// returns the matching [`AppPaths`]. The database starts empty; use the
 /// `seed_*` helpers to insert rows.

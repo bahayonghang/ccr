@@ -14,7 +14,7 @@ use crate::{
     shell::semantics,
     theme,
 };
-use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent};
+use ccr_app::runtime::{Completion, Platform, RequestKey, ResponseGate, TaskEvent};
 use folders::{FolderEditor, FolderTarget};
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::button::{Button, ButtonVariants};
@@ -56,6 +56,19 @@ pub struct SyncView {
 }
 
 impl SyncView {
+    fn is_ssh(&self) -> bool {
+        matches!(
+            self.services.environment(),
+            ccr_app::runtime::EnvironmentId::Ssh(_)
+        )
+    }
+    pub fn has_environment_draft(&self) -> bool {
+        self.editor.is_some()
+            || self.asset_editor.is_some()
+            || self.folder_editor.is_some()
+            || self.confirmation.is_some()
+            || self.management_confirmation.is_some()
+    }
     pub fn new(services: Services, _window: &mut Window, cx: &mut Context<Self>) -> Self {
         Self {
             operation: services.sync_operation_state(),
@@ -111,14 +124,7 @@ impl SyncView {
         self.folder_editor = None;
         self.generation += 1;
         let key = RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.services.environment(),
             platform: Platform::Claude,
             generation: self.generation,
             request_id: self.generation,
@@ -255,14 +261,7 @@ impl SyncView {
         }
         self.generation += 1;
         let key = RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.services.environment(),
             platform: Platform::Claude,
             generation: self.generation,
             request_id: self.generation,
@@ -450,11 +449,11 @@ impl Render for SyncView {
                     .child(text(cx, "Sync", "同步")),
             )
             .child({
-                let intro = text(
+                let intro = if self.is_ssh() { text(cx, "Sync files in the current SSH environment through the saved WebDAV account. Profile databases, disconnecting WebDAV and creating new empty destination directories are unavailable. Multi-file publication can partially complete and preserves remote backups.", "通过已保存的 WebDAV 账户同步当前 SSH 环境中的文件。方案数据库、解绑 WebDAV 和新建纯空目标目录尚不可用；多文件发布可能部分完成，并保留远端备份。") } else { text(
                     cx,
                     "Manage the canonical local WebDAV account and saved folders. Sensitive assets have a separate encrypted transfer below. Automatic sync is not enabled by this page.",
                     "管理本地规范 WebDAV 账户和已保存的文件夹。敏感资产使用下方独立加密传输，不会启用自动同步。",
-                );
+                ) };
                 div()
                     .id("sync-intro")
                     .test_support()

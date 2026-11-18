@@ -71,13 +71,22 @@ fn failure(error: Failure, cx: &gpui_kit::App) -> &'static str {
         ),
         Failure::Process => text(
             cx,
-            "Usage import failed. Check the installed llmusage CLI and local file access.",
-            "用量导入失败，请检查 llmusage CLI 和本地文件权限。",
+            "Usage import failed. Check the connection, llmusage and file access in the current execution environment. SSH snapshots also require Python3 with sqlite3.",
+            "用量导入失败，请检查连接、当前执行环境中的 llmusage 和文件权限；SSH 快照还需要带 sqlite3 的 Python3。",
         ),
     }
 }
 
 impl InsightsView {
+    pub fn has_retained_import(&self) -> bool {
+        let snapshot = self.requests.import_snapshot();
+        snapshot.run > 0 && snapshot.environment.as_ref() == Some(&self.requests.environment())
+    }
+    pub fn observe_retained_import(&mut self, cx: &mut Context<Self>) {
+        if self.import_task.is_none() && self.has_retained_import() {
+            self.observe_import(cx);
+        }
+    }
     pub(super) fn observe_import(&mut self, cx: &mut Context<Self>) {
         let mut updates = self.requests.observe_import();
         self.import_task = Some(cx.spawn(async move |weak, cx| {
@@ -87,12 +96,14 @@ impl InsightsView {
                 cx.background_executor()
                     .timer(ccr_app::runtime::PROGRESS_INTERVAL)
                     .await;
-                let status = updates.borrow_and_update().status;
+                let snapshot = updates.borrow_and_update().clone();
                 if weak
                     .update(cx, |this, cx| {
                         if this.page == InsightsPage::Usage
+                            && !this.requests.ssh_offline()
+                            && snapshot.environment.as_ref() == Some(&this.requests.environment())
                             && matches!(
-                                status,
+                                snapshot.status,
                                 Status::Finished | Status::Cancelled | Status::Failed(_)
                             )
                         {
@@ -117,7 +128,7 @@ impl InsightsView {
     fn start_import(&mut self, cx: &mut Context<Self>) {
         let result = self.requests.start_import_with_options(
             RequestKey {
-                environment: EnvironmentId::Local("insights-explicit".into()),
+                environment: self.requests.environment(),
                 platform: Platform::Claude,
                 generation: self.generation,
                 request_id: self.generation,
@@ -128,13 +139,28 @@ impl InsightsView {
         cx.notify();
     }
     pub(super) fn import_controls(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        self.import_controls_inner(false, cx)
+    }
+    pub(super) fn retained_import_controls(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        self.import_controls_inner(true, cx)
+    }
+    fn import_controls_inner(
+        &self,
+        retained_only: bool,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
         let snapshot = self.requests.import_snapshot();
         let active = snapshot.status.active();
-        let mut status = if let Some(error) = self.import_error {
+        let snapshot = if snapshot.environment.as_ref() == Some(&self.requests.environment()) {
+            snapshot
+        } else {
+            Default::default()
+        };
+        let mut status = if let Some(error) = self.import_error.filter(|_| !retained_only) {
             failure(error, cx).to_string()
         } else {
             match snapshot.status {
-                Status::Idle => text(cx, "Import uses the installed llmusage CLI and default local provider directories.", "导入使用已安装的 llmusage CLI 和默认本地会话来源目录。").to_string(),
+                Status::Idle => text(cx, "Import uses the installed llmusage CLI and default provider directories in the current execution environment.", "导入使用当前执行环境中已安装的 llmusage CLI 和默认会话来源目录。").to_string(),
                 Status::Queued => text(cx, "Usage import queued", "用量导入已排队").to_string(),
                 Status::Running => text(cx, "Usage import running; leaving this page keeps it running.", "正在导入用量，离开页面后仍继续运行。").to_string(),
                 Status::CancelRequested => text(cx, "Cancellation requested; waiting for process cleanup.", "已请求取消，正在等待进程清理。").to_string(),
@@ -193,38 +219,43 @@ impl InsightsView {
             .flex()
             .flex_col()
             .gap(px(theme::CONTROL_GAP))
-            .child(self.import_scope_controls(active, cx))
+            .children((!retained_only).then(|| self.import_scope_controls(active, cx)))
             .child(
                 div()
                     .flex()
                     .gap(px(theme::CONTROL_GAP))
-                    .child(semantics::button(
-                        Button::new("insights-import")
-                            .label(text(cx, "Import local usage", "导入本地用量"))
-                            .on_click(cx.listener(|this, _, _, cx| this.start_import(cx))),
-                        active,
-                        active,
-                        cx,
-                    ))
-                    .child(semantics::button(
-                        Button::new("insights-import-cancel")
-                            .label(text(cx, "Cancel import", "取消导入"))
-                            .ghost()
-                            .on_click(cx.listener(|this, _, _, cx| {
-                                this.requests.cancel_import();
-                                this.import_error = None;
-                                cx.notify();
-                            })),
-                        !active || snapshot.status == Status::CancelRequested,
-                        false,
-                        cx,
-                    )),
+                    .children((!retained_only).then(|| {
+                        semantics::button(
+                            Button::new("insights-import")
+                                .label(text(cx, "Sync usage", "同步用量"))
+                                .on_click(cx.listener(|this, _, _, cx| this.start_import(cx))),
+                            active,
+                            active,
+                            cx,
+                        )
+                    }))
+                    .children((snapshot.run > 0).then(|| {
+                        semantics::button(
+                            Button::new("insights-import-cancel")
+                                .label(text(cx, "Cancel import", "取消导入"))
+                                .ghost()
+                                .on_click(cx.listener(|this, _, _, cx| {
+                                    this.requests.cancel_import();
+                                    this.import_error = None;
+                                    cx.notify();
+                                })),
+                            !snapshot.status.active() || snapshot.status == Status::CancelRequested,
+                            false,
+                            cx,
+                        )
+                    })),
             )
             .child(
                 div()
                     .id("insights-import-status")
                     .test_support()
                     .role(gpui_kit::Role::Status)
+                    .aria_label(status.clone())
                     .text_size(crate::theme::text_size(theme::META_SIZE))
                     .child(status),
             )

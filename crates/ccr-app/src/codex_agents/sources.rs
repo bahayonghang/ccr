@@ -626,6 +626,7 @@ pub struct SourceStore {
     pub agents: AgentStore,
     client: reqwest::Client,
     network: bool,
+    target_root_label: Option<String>,
     revisions: HashMap<PathBuf, Snapshot>,
     pending: Vec<(Snapshot, Option<String>)>,
     #[cfg(any(test, feature = "test-fixtures"))]
@@ -637,6 +638,7 @@ impl SourceStore {
             agents,
             client,
             network: true,
+            target_root_label: None,
             revisions: HashMap::new(),
             pending: Vec::new(),
             #[cfg(any(test, feature = "test-fixtures"))]
@@ -648,10 +650,31 @@ impl SourceStore {
         store.network = false;
         store
     }
+    /// Preserve remote POSIX provenance while IO remains on a private captured root.
+    pub fn with_target_root_label(mut self, label: String) -> Self {
+        self.target_root_label = Some(label);
+        self
+    }
+    fn target_label(&self, path: &Path) -> Result<String, String> {
+        if let Some(root) = &self.target_root_label {
+            let leaf = path
+                .strip_prefix(&self.agents.global_agents)
+                .map_err(|_| "Invalid captured target")?
+                .to_str()
+                .ok_or("Invalid target name")?
+                .replace('\\', "/");
+            Ok(format!("{}/{leaf}", root.trim_end_matches('/')))
+        } else {
+            Ok(path.to_string_lossy().into_owned())
+        }
+    }
     fn tracked_path(&self, install: &CodexTrackedInstallEntry) -> Result<PathBuf, String> {
         let expected = agent_file_path(&self.agents.global_agents, &install.installed_name)?;
-        let actual = PathBuf::from(&install.target_path);
-        if actual != expected {
+        if if self.target_root_label.is_some() {
+            install.target_path != self.target_label(&expected)?
+        } else {
+            Path::new(&install.target_path) != expected
+        } {
             return Err("Tracked agent target is outside the captured agents directory".into());
         }
         Ok(expected)
@@ -1547,11 +1570,12 @@ impl SourceStore {
 
         let agents_dir = self.agents.global_agents.clone();
         let target_path = agent_file_path(&agents_dir, &target_name)?;
+        let target_label = self.target_label(&target_path)?;
         let mut installs = self.load_installs()?;
         let existing_install = installs
             .installs
             .iter_mut()
-            .find(|entry| entry.target_path == target_path.to_string_lossy());
+            .find(|entry| entry.target_path == target_label);
 
         self.snapshot(&target_path)?;
         if target_path.exists() {
@@ -1583,7 +1607,9 @@ impl SourceStore {
 
         let written_table = table.clone();
         let installed_raw = serialize_table(&table)?;
-        let record = record_from_table(&target_path, installed_raw.clone(), written_table, None);
+        let mut record =
+            record_from_table(&target_path, installed_raw.clone(), written_table, None);
+        record.path = target_label.clone();
         let installed_content_hash = hash_string(&installed_raw);
         let now = Utc::now().to_rfc3339();
 
@@ -1595,14 +1621,14 @@ impl SourceStore {
                 existing.source_blob_sha = agent.blob_sha.clone();
                 existing.source_content_hash = agent.content_hash.clone();
                 existing.installed_name = record.name.clone();
-                existing.target_path = target_path.to_string_lossy().to_string();
+                existing.target_path = target_label.clone();
                 existing.installed_content_hash = installed_content_hash;
                 existing.last_synced_at = Some(now.clone());
             }
             None => installs.installs.push(CodexTrackedInstallEntry {
                 id: format!(
                     "install_{}",
-                    hash_string(&format!("{}:{}", source.id, target_path.to_string_lossy()))
+                    hash_string(&format!("{}:{}", source.id, target_label))
                 ),
                 source_id: source.id.clone(),
                 repo_url: source.repo_url.clone(),
@@ -1610,7 +1636,7 @@ impl SourceStore {
                 source_blob_sha: agent.blob_sha.clone(),
                 source_content_hash: agent.content_hash.clone(),
                 installed_name: record.name.clone(),
-                target_path: target_path.to_string_lossy().to_string(),
+                target_path: target_label,
                 installed_content_hash,
                 last_synced_at: Some(now.clone()),
             }),

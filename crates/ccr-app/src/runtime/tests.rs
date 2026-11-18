@@ -11,6 +11,51 @@ fn key(generation: u64) -> RequestKey {
     }
 }
 
+#[test]
+fn environment_drain_waits_for_real_cleanup_and_keeps_independent_work() {
+    let owner = owner();
+    let runtime = owner.handle();
+    let (started_tx, started_rx) = mpsc::channel();
+    let (release_tx, release_rx) = mpsc::channel();
+    let mut job = runtime
+        .job(key(1), move |cancel, _| {
+            started_tx.send(()).unwrap();
+            while !cancel.is_cancelled() {
+                std::thread::sleep(Duration::from_millis(1));
+            }
+            // 收到取消不等于收尾完成，终态必须晚于清理。
+            release_rx.recv().unwrap();
+            Completion::<(), ()>::Cancelled
+        })
+        .unwrap();
+    started_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    let (independent_tx, independent_rx) = mpsc::channel();
+    let mut independent_key = key(1);
+    independent_key.environment = EnvironmentId::Local("application".into());
+    let independent = runtime
+        .job(independent_key, move |cancel, _| {
+            independent_rx.recv().unwrap();
+            assert!(!cancel.is_cancelled());
+            Completion::<(), ()>::Success(())
+        })
+        .unwrap();
+    owner.runtime.block_on(async {
+        let environment = key(1).environment;
+        let drain = runtime.drain_environment(&environment);
+        tokio::pin!(drain);
+        assert!(tokio::time::timeout(Duration::from_millis(30), &mut drain).await.is_err());
+        assert!(runtime.environment_has_jobs(&key(1).environment));
+        release_tx.send(()).unwrap();
+        tokio::time::timeout(Duration::from_secs(5), &mut drain).await.unwrap();
+        assert!(matches!(job.next().await,Some(TaskEvent::Terminal(value)) if *value==Completion::Cancelled));
+        assert!(!runtime.environment_has_jobs(&key(1).environment));
+        independent_tx.send(()).unwrap();
+        let mut independent=independent;
+        assert!(matches!(independent.next().await,Some(TaskEvent::Terminal(value)) if *value==Completion::Success(())));
+    });
+    owner.shutdown();
+}
+
 fn owner() -> RuntimeOwner {
     RuntimeOwner::new().unwrap_or_else(|error| panic!("runtime: {error}"))
 }

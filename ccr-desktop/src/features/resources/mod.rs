@@ -1,4 +1,6 @@
 //! Existing fixed instruction files, with a scoped plaintext edit session.
+#[cfg(test)]
+use ccr_app::runtime::EnvironmentId;
 pub mod claude_extensions;
 pub mod claude_files;
 pub mod codex_agents;
@@ -13,7 +15,7 @@ use crate::{
     shell::semantics,
     theme,
 };
-use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent};
+use ccr_app::runtime::{Completion, Platform, RequestKey, ResponseGate, TaskEvent};
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
     FocusTrapElement,
@@ -86,6 +88,14 @@ pub struct ResourcesView {
     template_cleanup: bool,
 }
 impl ResourcesView {
+    pub fn has_environment_draft(&self, cx: &gpui_kit::App) -> bool {
+        self.session.is_some()
+            || self.templates_open
+            || self.opencode.read(cx).blocks_switch()
+            || self.antigravity.read(cx).blocks_switch()
+            || self.claude.read(cx).blocks_switch()
+            || self.codex.read(cx).blocks_switch()
+    }
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let opencode = cx.new(|cx| {
             platform_files::PlatformFilesView::new(
@@ -327,14 +337,7 @@ impl ResourcesView {
         }
         self.generation += 1;
         let key = RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.services.environment(),
             platform: self.platform,
             generation: self.generation,
             request_id: self.generation,
@@ -470,7 +473,7 @@ impl Render for ResourcesView {
                 if event.keystroke.key == "escape" && this.decision.is_some() { this.dismiss(window, cx); cx.stop_propagation(); }
             }))
 
-            .child(div().flex_shrink_0().child(text(cx, "Local resources, original revision and managed backup. Remote environments do not fall back to Local.", "本地资源、原始版本与托管备份。远程环境不会回退本地。")));
+            .child(div().flex_shrink_0().child(text(cx, "Resources follow the current environment, with original revisions and preimage backups.", "资源随当前环境，保留原始版本与修改前备份。")));
         let mut platforms = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
         for (platform, name) in [
             (Platform::Claude, "Claude Code"),

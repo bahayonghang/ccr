@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-3.md`
-- **Total Sessions**: 176
-- **Last Active**: 2026-11-15
+- **Total Sessions**: 179
+- **Last Active**: 2026-11-17
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-3.md` | ~1845 | Active |
+| `journal-3.md` | ~1951 | Active |
 | `journal-2.md` | ~1982 | Archived |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
@@ -31,6 +31,9 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 179 | 2026-11-17 | SSH关闭核验依据与公开收口准备（#205） | - | `feature/ssh-environment` |
+| 178 | 2026-11-17 | SSH授权补验与本地归档准备（#205） | `aa34e28e6a2efebfd724ee8d1fad4ca9199032ae`, `5d0e2e2356dc392463611daf005726aa84efd454`, `55a164ed9db1ccf28edce72710aff67fa4c6114c`, `8e297eba5dba10cd29e770bcf73b8e8a2c7e0944`, `3ebfbadaa509db4a73d6195fa6e778eef3b2b137` | `feature/ssh-environment` |
+| 177 | 2026-11-16 | SSH本地实施记录归档（#205验收未完成） | - | `feature/ssh-environment` |
 | 176 | 2026-11-15 | 完成 #167 规划地图全系切片落地与全仓终验（#188～#194） | `e736c615ddbeb252db650602d7d20e18405b5a4c`, `6cea9c60dd1bdf55b0eb3cfc82fe19f5f65eac53`, `9345acaaf2d8c9c4b7c2e4fe3de19304754c8c69`, `0c46bff9721a6c12fa2698578b425b9683a2d0a4`, `bfd141705632afb9ca3f61c701d423fa62320c92`, `84e4386e2436590409ce2663ae4166aeaf39b627` | `dev` |
 | 175 | 2026-11-12 | 完成 GPUI 优化 Wayfinder 决策同步 | - | `dev` |
 | 174 | 2026-11-12 | GPUI 接入摘要、锚点设置与独立字体偏好落地 | - | `dev` |

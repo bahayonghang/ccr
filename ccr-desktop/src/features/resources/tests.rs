@@ -501,6 +501,7 @@ async fn claude_extensions_show_same_name_sources_and_gate_full_legacy_export(
     );
     let (handle, host) = cx.update(|cx| {
         gpui_kit::init(cx);
+        crate::theme::init(cx);
         gpui_kit::open_window(
             WindowOptions {
                 window_bounds: Some(gpui_kit::WindowBounds::Windowed(

@@ -10,11 +10,9 @@ Claude 页提供“配置集 / 配置目录”操作模式，共享列表并保�
 
 本地源码和导出文本仅在当前 feature 的临时实体中保存，取消或离开页面即清除；离开不把已开始的持久写入伪报为取消。转换页只预览现有 Claude Code JSON 与 Codex TOML 转换，不写文件或执行脚本。收藏/最近命令继续由 ccr-db owner 管理，未制造命令执行记录。
 
-设置中的 SSH 环境入口复用已有主机数据库与信任规则，支持管理主机、明确确认指纹、连接及取消，
-并通过 SFTP 编辑 Claude/Codex/Gemini/OpenCode 的固定配置源文件。保存前检查读取版本并创建远程备份；
-SFTP 不提供服务端原子 CAS，不能排除检查到 rename 之间的其他客户端写入。草稿按主机和文件保留，
-重新连接或改变信任后旧快照必须重读。选择 SSH 时其他 Local-only 页面明确不可用，不回落本地数据。
-WSL 接入延期，设置刷新不自动探测发行版。fixture 默认不允许 SSH 网络操作；真实 SSH 验收尚未运行。
+底部状态栏切换全局「当前执行环境」，保存本地或 SSH 主机选择；重启后对保存的 SSH 主机自动连接一次。连接失败仍停留在该主机，随环境页面显示原因与重试入口，不回落本地数据。全局设置分为外观、工作台偏好、执行环境、诊断四页；执行环境页管理主机、信任指纹以及 agent / 私钥 / 密码认证。密码与私钥口令只进入系统凭据库，不参与同步或导出。
+
+GPUI 使用 russh 持久连接与 SFTP，平台设置/方案/账户、指令/扩展、MCP、Agent 会话和命令/安装均通过已捕获的环境权限路由。尚不支持的细分操作明确拒绝；不把安装记录当作客户端已加载。SFTP 写入保留版本比较、前像备份与原子替换；服务端必须支持 `posix-rename@openssh.com`。它不提供服务端原子 CAS，不能排除比较到 rename 之间的外部写入。重连后旧请求和草稿快照不得取得新会话权限。Tauri 的系统 OpenSSH 实现保持独立。WSL 作为可切换环境仍延期，设置不自动探测发行版；fixture 不连接真实主机。
 
 平台页已接入固定路径下的设置字段补丁、原始版本源码编辑、Claude/Codex/Grok 账户与 OpenCode/Codex 供应商操作。用量与会话页通过共享应用层读取 Home/Usage 和归档会话，保留精确数值、过滤、分页与 provider fidelity。Codex OAuth 已接入共享控制器、手动回调和取消清理；用量导入已接入安装的 llmusage CLI、状态与取消，Codex quota 请求沿用现有服务并明确触发。fixture 拒绝真实导入及外部配额请求；真实认证、配额返回及新增操作的原生验收仍未完成，不能将页面可见视作完整能力通过。
 
@@ -129,6 +127,14 @@ just gpui-dev --fixture-profiles <absolute-fixture>/profiles.toml --fixture-regi
 指令文件入口已接入四个平台的固定用户文件，使用原始修订令牌保存、冲突保留草稿、离页清空临时明文。MCP 管理支持 Claude 用户/项目、Codex 和 Antigravity 的新增、编辑和删除，保存固定来源与原始版本，省略的凭据不被覆盖。OpenCode MCP 使用平台源文件编辑器；旧 Claude settings MCP 只读。
 
 同步页支持 WebDAV 设置、文件夹管理及连接测试、推送和拉取，复用现有同步服务和备份事务。普通文件夹按既有明文合同传输，界面提示内容范围；固定敏感资产已接通现有 v2 加密与备份，v1 明文仅在显式确认后导入本地。签到页提供服务商/账户管理、签到、余额和记录，凭据通过现有加密 owner 保存。任务离页后继续由应用持有，返回恢复结果；已接显式 CDK 充值、手工 WAF 管理/校验、记录筛选与账户月度数据；内嵌浏览器 WAF 登录仍受 WebView 依赖限制。
+
+SSH 同步读取该主机的 `~/.ccr/sync_folders.toml`，四个固定文件资产（Claude settings / CLAUDE.md、Codex config / AGENTS.md）通过私有暂存复用 `ccr-sync` 的 HTTPS、冲突和加密协议，再以 SFTP 版本比较、备份、原子替换写回该主机。普通文件夹限定在捕获的远程 HOME 内：portable 路径、最多 128 节点/12 层、每文件 2MiB/总计 16MiB。多文件发布保留已写文件的远端备份，失败会报告部分完成；不承诺跨文件事务。远端 `ccr-platforms` 以及包含 SQLite 数据库或 sidecar 的文件夹明确拒绝，缺少远端数据库事务 owner 时不覆盖活跃 `profiles.db`。SSH 下解绑 WebDAV/清理旧凭据尚不可用；新建纯空目标目录不支持。空来源目录可上传。以上限制不改变本地同步能力。
+
+SSH 用量显式调用该主机已安装的 `llmusage --home <远程HOME>/.llmusage sync --json-events`，缺 CLI 不运行本机工具。报告通过远端 Python3 标准 `sqlite3` 的只读 backup API 捕获 `~/.llmusage/llmusage.db`（包括已提交 WAL），经 SFTP 下载到按 host ID 隔离的本机私有临时缓存，再由 `ccr-usage` 只读投影。需要远端 Python3 带 sqlite3，根目录与源文件不得为符号链接。快照上限 64MiB，backup helper 最多 10 秒，下载绝对期限 10 分钟；取消后只等在途 SFTP 5 秒，无法证明清理时撤销原会话并报告失败。成功或失败都尝试精确清理远端快照，清理失败不发布缓存，可能需要在主机上手动清理残留 `.ccr-snapshot-*` 目录。本机临时缓存随请求释放。原配置与 Agent 会话预算不变。
+
+已发出的私有 backup helper 在原 10 秒期限内结束，以便取得精确清理路径；页面离开取消后不再下载或发布缓存，清理完成再确认取消，不因正常导航撤销共享 SSH 连接。尚未开始时取消不执行 helper。
+
+用量 schema 最低 10，提供商能力最低 14，兼容满足能力表的未来增量 schema；CCR 不迁移该数据库、不链接上游 llmusage Rust crate。NDJSON 使用原协议解析器与单行/尾部预算；`finished` 只是暂态，必须等远端 exec 和双流终态。远端执行取消或断线不能证明子进程树退出时报告 cleanup failure，不提前释放导入准入。未知用量与会话计数不显示为零，也不使用本机归档/Observer 填补。真实 SSH、系统凭据库交互、远端 Python/llmusage 版本、服务端原子 rename 与跨平台行为仍需真机验证。
 
 命令工作台支持前台/后台执行、help、请求取消和自动恢复观察；安装入口复用现有领域服务。fixture 模式只运行标明的合成子进程，默认拒绝同步、签到与 SSH 的真实网络。上述源码与 fixture 验证不能替代真实 sidecar、外部服务或原生操作验收。
 

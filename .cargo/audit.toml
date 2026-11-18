@@ -2,4 +2,6 @@
 # https://github.com/rustsec/rustsec/tree/main/cargo-audit
 
 [advisories]
-ignore = []
+# 2026-11-15：russh 0.65.1 锁定 rsa =0.10.0-rc.18；上游 warp-tech/russh #821
+# 已升级 rsa 0.10 但未发布。为保留 RSA 兼容性临时忽略；升级到含 #821 的发布版后删除。
+ignore = ["RUSTSEC-2023-0071"]

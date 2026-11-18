@@ -1,5 +1,6 @@
 //! Explicit captured-root budget/pricing commands. No upstream usage writes.
 use super::*;
+use ccr_app::environments::EnvironmentPolicy;
 
 use ccr_app::usage::policies;
 use ccr_core::core::lock::LockManager;
@@ -67,7 +68,7 @@ impl InsightsRequests {
             .source
             .benchmark()
             .map(|layout| layout.roots.locks.clone());
-        let local = matches!(key.environment, EnvironmentId::Local(_));
+        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         // Budget status constructs its existing cost tracker and may create the
         // explicit stats directory. Keep every command app-owned through completion.
         self.services.executor.job(key, move |_, _| {

@@ -25,7 +25,7 @@ fn open(
     cx: &mut TestAppContext,
     owner: &RuntimeOwner,
     root: &std::path::Path,
-) -> gpui_kit::AnyWindowHandle {
+) -> (gpui_kit::AnyWindowHandle, Entity<Shell>) {
     cx.update(|cx| {
         gpui_kit::init(cx);
         gpui_kit::open_window(
@@ -38,10 +38,18 @@ fn open(
                 ..Default::default()
             },
             cx,
-            |window, cx| cx.new(|cx| Shell::new(services(owner, root), window, cx)),
+            |window, cx| {
+                cx.new(|cx| {
+                    Shell::new_with_preferences(
+                        services(owner, root),
+                        Ok(Default::default()),
+                        window,
+                        cx,
+                    )
+                })
+            },
         )
         .unwrap()
-        .0
     })
 }
 
@@ -100,22 +108,129 @@ fn patch_id(window: &gpui_kit::Window) -> gpui_kit::ElementId {
         .unwrap()
         .clone()
 }
-async fn wait_for_editor(cx: &mut TestAppContext, handle: gpui_kit::AnyWindowHandle) {
-    cx.wait_for(handle, Duration::from_secs(5), |window, _| {
-        window
-            .try_find("mcp-editor-save")
-            .is_some_and(|node| node.disabled() != Some(true))
-    })
-    .await;
-    // Rendering the enabled Input updates its engine and queues a notification.
-    // Drain that update before exercising native pointer and keyboard handlers.
-    cx.run_until_parked();
-    cx.update_window(handle, |_, window, cx| {
+fn editor_ready(shell: &Entity<Shell>, cx: &gpui_kit::App) -> bool {
+    shell
+        .read(cx)
+        .mcp_for_test()
+        .read(cx)
+        .editor
+        .as_ref()
+        .is_some_and(|editor| editor.read(cx).ready_for_input())
+}
+async fn wait_for_editor(
+    cx: &mut TestAppContext,
+    handle: gpui_kit::AnyWindowHandle,
+    shell: &Entity<Shell>,
+) {
+    cx.wait_for(handle, Duration::from_secs(5), |window, cx| {
+        // Kit 的 disabled=None 不证明后台读取终态；先核对原会话与表单消费。
+        if !editor_ready(shell, cx) {
+            return false;
+        }
         if window.try_find("mcp-common-form").is_some() {
             window.click("mcp-editor-advanced", cx);
+            window.render_frame(cx);
         }
+        // Copy/Delete 没有补丁区；其余模式必须看到实际登记的文本框。
+        window.try_find("mcp-editor-advanced").is_none()
+            || gpui_kit::base::test_support::snapshots(window)
+                .iter()
+                .any(|node| node.label() == Some("MCP JSON patch"))
+    })
+    .await;
+    // 原生指针与键盘输入之前，消费文本引擎绘制产生的通知。
+    cx.run_until_parked();
+}
+
+#[gpui_kit::test]
+async fn editor_wait_requires_the_queued_source_and_registered_advanced_input(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let (handle, shell) = open(cx, &owner, root.path());
+    cx.update_window(handle, |_, window, cx| {
+        window.click("nav-mcp-manager", cx);
     })
     .unwrap();
+    cx.wait_for(handle, Duration::from_secs(5), |window, _| {
+        window.try_find("mcp-empty").is_some()
+    })
+    .await;
+
+    struct Gate(std::sync::Arc<(std::sync::Mutex<bool>, std::sync::Condvar)>);
+    impl Drop for Gate {
+        fn drop(&mut self) {
+            *self.0.0.lock().unwrap() = true;
+            self.0.1.notify_all();
+        }
+    }
+    let gate = Gate(Default::default());
+    let (started, starts) = std::sync::mpsc::sync_channel(ccr_app::runtime::BLOCKING_CONCURRENCY);
+    let mut blockers = Vec::new();
+    for request_id in 0..ccr_app::runtime::BLOCKING_CONCURRENCY {
+        let state = gate.0.clone();
+        let started = started.clone();
+        blockers.push(
+            owner
+                .handle()
+                .read(
+                    RequestKey {
+                        environment: ccr_app::runtime::EnvironmentId::Local("fixture".into()),
+                        platform: Platform::Claude,
+                        generation: 1,
+                        request_id: request_id as u64,
+                    },
+                    move |_, _| {
+                        started.send(()).unwrap();
+                        let mut released = state.0.lock().unwrap();
+                        while !*released {
+                            released = state.1.wait(released).unwrap();
+                        }
+                        Ok::<_, ()>(())
+                    },
+                )
+                .unwrap(),
+        );
+    }
+    for _ in 0..ccr_app::runtime::BLOCKING_CONCURRENCY {
+        starts.recv_timeout(Duration::from_secs(5)).unwrap();
+    }
+    cx.update_window(handle, |_, window, cx| {
+        window.click("mcp-add", cx);
+        window.click("mcp-open-editor", cx);
+        window.render_frame(cx);
+        assert!(!editor_ready(&shell, cx));
+        assert!(window.try_find("mcp-common-form").is_some());
+    })
+    .unwrap();
+    let waiting_was_pending = {
+        let mut waiting = std::pin::pin!(wait_for_editor(cx, handle, &shell));
+        let pending = std::future::poll_fn(|cx| {
+            std::task::Poll::Ready(std::future::Future::poll(waiting.as_mut(), cx).is_pending())
+        })
+        .await;
+        drop(gate);
+        if pending {
+            waiting.await;
+        }
+        pending
+    };
+    assert!(
+        waiting_was_pending,
+        "editor wait returned before its source read could run"
+    );
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(editor_ready(&shell, cx));
+        assert!(window.try_find("mcp-common-form").is_none());
+        assert_eq!(window.find(patch_id(window)).value(), Some("{}"));
+        window.remove_window();
+    })
+    .unwrap();
+    drop(blockers);
+    owner.shutdown();
 }
 /// 列表在编辑器打开时仍然可见；保存后要等编辑器关闭且重新读取出 `id`，
 /// 才说明写入已经完成并刷新了列表。
@@ -162,7 +277,7 @@ async fn mcp_page_lists_real_entries_and_hides_secret_fields(cx: &mut TestAppCon
     let root = tempfile::tempdir().unwrap();
     write_entries(root.path());
     let owner = RuntimeOwner::new().unwrap();
-    let handle = open(cx, &owner, root.path());
+    let (handle, _) = open(cx, &owner, root.path());
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-mcp-manager", cx);
@@ -263,7 +378,7 @@ async fn pane_priority_runs_batch_editor_sources_presets_then_detail_and_stays_m
     let root = tempfile::tempdir().unwrap();
     write_entries(root.path());
     let owner = RuntimeOwner::new().unwrap();
-    let handle = open(cx, &owner, root.path());
+    let (handle, shell) = open(cx, &owner, root.path());
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-mcp-manager", cx);
@@ -295,7 +410,7 @@ async fn pane_priority_runs_batch_editor_sources_presets_then_detail_and_stays_m
         window.click("mcp-open-editor", cx);
     })
     .unwrap();
-    wait_for_editor(cx, handle).await;
+    wait_for_editor(cx, handle, &shell).await;
     cx.update_window(handle, |_, window, cx| {
         assert!(window.try_find("mcp-editor").is_some());
         // 宽窗分栏：编辑器占据 pane，列表仍在左侧。
@@ -382,7 +497,16 @@ fn open_at(
                 ..Default::default()
             },
             cx,
-            |window, cx| cx.new(|cx| Shell::new(services(owner, root), window, cx)),
+            |window, cx| {
+                cx.new(|cx| {
+                    Shell::new_with_preferences(
+                        services(owner, root),
+                        Ok(Default::default()),
+                        window,
+                        cx,
+                    )
+                })
+            },
         )
         .unwrap()
         .0
@@ -415,7 +539,7 @@ async fn heading_lens_toolbar_counts_and_tags_follow_the_catalog(cx: &mut TestAp
     let root = tempfile::tempdir().unwrap();
     write_entries(root.path());
     let owner = RuntimeOwner::new().unwrap();
-    let handle = open(cx, &owner, root.path());
+    let (handle, _) = open(cx, &owner, root.path());
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-mcp-manager", cx);
@@ -551,7 +675,7 @@ async fn search_matches_commands_and_the_platform_capsule_intersects_it(cx: &mut
     let root = tempfile::tempdir().unwrap();
     write_entries(root.path());
     let owner = RuntimeOwner::new().unwrap();
-    let handle = open(cx, &owner, root.path());
+    let (handle, _) = open(cx, &owner, root.path());
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-mcp-manager", cx);
@@ -717,7 +841,7 @@ async fn batch_decisions_stay_inside_the_split_pane(cx: &mut TestAppContext) {
     let root = tempfile::tempdir().unwrap();
     write_entries(root.path());
     let owner = RuntimeOwner::new().unwrap();
-    let handle = open(cx, &owner, root.path());
+    let (handle, _) = open(cx, &owner, root.path());
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-mcp-manager", cx);
@@ -843,7 +967,7 @@ async fn mcp_page_with_no_files_stays_empty(cx: &mut TestAppContext) {
     cx.executor().allow_parking();
     let root = tempfile::tempdir().unwrap();
     let owner = RuntimeOwner::new().unwrap();
-    let handle = open(cx, &owner, root.path());
+    let (handle, _) = open(cx, &owner, root.path());
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-mcp-manager", cx);
@@ -877,7 +1001,7 @@ async fn preset_and_cross_source_copy_use_real_controls_and_keep_stored_credenti
     cx.executor().allow_parking();
     let root = tempfile::tempdir().unwrap();
     let owner = RuntimeOwner::new().unwrap();
-    let handle = open(cx, &owner, root.path());
+    let (handle, shell) = open(cx, &owner, root.path());
     let home = root.path().join(FIXTURE_DIR).join("home");
     let codex = home.join(".codex/config.toml");
     let claude = home.join(".claude.json");
@@ -900,7 +1024,7 @@ async fn preset_and_cross_source_copy_use_real_controls_and_keep_stored_credenti
         window.click("mcp-open-editor", cx);
     })
     .unwrap();
-    wait_for_editor(cx, handle).await;
+    wait_for_editor(cx, handle, &shell).await;
     cx.update_window(handle,|_,window,cx| {
         assert_eq!(window.find("mcp-name").value(),Some("fetch"));
         let initial:serde_json::Value=serde_json::from_str(window.find(patch_id(window)).value().unwrap()).unwrap();
@@ -927,7 +1051,7 @@ async fn preset_and_cross_source_copy_use_real_controls_and_keep_stored_credenti
         window.click("mcp-open-editor", cx);
     })
     .unwrap();
-    wait_for_editor(cx, handle).await;
+    wait_for_editor(cx, handle, &shell).await;
     cx.update_window(handle, |_, window, cx| {
         assert!(!labels(window).contains("copy-secret-sentinel"));
         let nodes = gpui_kit::base::test_support::snapshots(window);
@@ -970,7 +1094,7 @@ async fn mcp_native_actions_write_confirm_and_keep_conflicting_drafts(cx: &mut T
     cx.executor().allow_parking();
     let root = tempfile::tempdir().unwrap();
     let owner = RuntimeOwner::new().unwrap();
-    let handle = open(cx, &owner, root.path());
+    let (handle, shell) = open(cx, &owner, root.path());
     let path = root.path().join(FIXTURE_DIR).join("home/.claude.json");
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
@@ -986,7 +1110,7 @@ async fn mcp_native_actions_write_confirm_and_keep_conflicting_drafts(cx: &mut T
         window.click("mcp-open-editor", cx);
     })
     .unwrap();
-    wait_for_editor(cx, handle).await;
+    wait_for_editor(cx, handle, &shell).await;
     cx.update_window(handle, |_, window, cx| {
         window.click("mcp-name", cx);
         window.input("native-server", cx);
@@ -1022,7 +1146,7 @@ async fn mcp_native_actions_write_confirm_and_keep_conflicting_drafts(cx: &mut T
         window.click("mcp-edit", cx);
     })
     .unwrap();
-    wait_for_editor(cx, handle).await;
+    wait_for_editor(cx, handle, &shell).await;
     let mut external: serde_json::Value =
         serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
     external["external"] = serde_json::json!(true);
@@ -1055,7 +1179,7 @@ async fn mcp_native_actions_write_confirm_and_keep_conflicting_drafts(cx: &mut T
     cx.run_until_parked();
     cx.update_window(handle, |_, window, cx| window.click("mcp-edit", cx))
         .unwrap();
-    wait_for_editor(cx, handle).await;
+    wait_for_editor(cx, handle, &shell).await;
     cx.update_window(handle, |_, window, cx| {
         window.click(patch_id(window), cx);
         window.press("ctrl-a", cx);
@@ -1078,7 +1202,7 @@ async fn mcp_native_actions_write_confirm_and_keep_conflicting_drafts(cx: &mut T
         window.click("mcp-delete", cx);
     })
     .unwrap();
-    wait_for_editor(cx, handle).await;
+    wait_for_editor(cx, handle, &shell).await;
     cx.update_window(handle, |_, window, cx| {
         window.click("mcp-editor-save", cx);
         window.click("mcp-confirm-save", cx);

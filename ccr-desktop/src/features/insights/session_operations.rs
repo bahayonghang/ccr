@@ -29,6 +29,11 @@ pub(super) struct ViewState {
     restore_preparing: bool,
     restore_return_focus: Option<FocusHandle>,
 }
+impl ViewState {
+    pub(super) fn has_draft(&self) -> bool {
+        self.pending.is_some() || self.preview.is_some() || self.restore.is_some()
+    }
+}
 impl InsightsView {
     pub(super) fn session_ops_trash_open(&self) -> bool {
         self.session_ops.trash_open
@@ -130,7 +135,7 @@ impl InsightsView {
     }
     fn session_key(&self) -> RequestKey {
         RequestKey {
-            environment: EnvironmentId::Local("insights-explicit".into()),
+            environment: self.requests.environment(),
             platform: Platform::Codex,
             generation: self.generation,
             request_id: self.generation,
@@ -314,7 +319,11 @@ impl InsightsView {
                         .on_click(cx.listener(|this, _, _, cx| {
                             this.prepare_session_action(Action::Clone, cx)
                         })),
-                    active,
+                    active
+                        || matches!(
+                            self.requests.environment(),
+                            ccr_app::runtime::EnvironmentId::Ssh(_)
+                        ),
                     false,
                     cx,
                 ))
@@ -325,7 +334,11 @@ impl InsightsView {
                         .on_click(cx.listener(|this, _, _, cx| {
                             this.prepare_session_action(Action::Trash, cx)
                         })),
-                    active,
+                    active
+                        || matches!(
+                            self.requests.environment(),
+                            ccr_app::runtime::EnvironmentId::Ssh(_)
+                        ),
                     false,
                     cx,
                 ))

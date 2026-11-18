@@ -1,6 +1,9 @@
 //! Local MCP entries projected from configuration files the desktop already reads.
 //! Native mutations reuse source-bound shared policy and original-revision writes.
 //! Environment values, headers, arguments, URLs, and tokens are not copied out.
+use super::remote_resources::{self as remote, Remote};
+use ccr_app::environments::EnvironmentPolicy;
+use ccr_app::resources::environment::Family;
 
 mod batch;
 mod editor;
@@ -99,6 +102,7 @@ pub struct McpCatalog {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum McpError {
+    Remote(ccr_app::environments::io::Error),
     Unsupported,
     UnsupportedSource,
     UnsupportedCopy,
@@ -113,8 +117,9 @@ pub enum McpError {
 impl McpError {
     pub fn message(self) -> &'static str {
         match self {
+            Self::Remote(error) => remote::message(error),
             Self::Unsupported => {
-                "MCP files are read only for the local environment. / 只在本地环境读取 MCP 文件"
+                "MCP access is unavailable for the selected environment. / 所选环境不支持 MCP 访问"
             }
             Self::Storage => "Cannot read or save this MCP source. / 无法读取或保存此 MCP 来源",
             Self::UnsupportedSource => {
@@ -124,7 +129,7 @@ impl McpError {
                 "Invalid MCP patch. Use a JSON object with a command or URL and correctly typed fields. / MCP 补丁无效，请使用含命令或 URL 且字段类型正确的 JSON 对象"
             }
             Self::Scope => {
-                "Choose an existing absolute project directory. / 请选择已存在的绝对项目目录"
+                "Choose an absolute project directory in the current environment (POSIX for SSH). / 请选择当前环境中的项目绝对目录（SSH 使用 POSIX 路径）"
             }
             Self::Conflict => {
                 "The source changed. Your draft is retained. Close and reopen the editor before retrying. / 来源已被修改，草稿已保留；请关闭并重新打开编辑器后重试"
@@ -406,10 +411,20 @@ pub(crate) fn read_catalog(
     source: &ConfigSource,
     environment: &EnvironmentId,
 ) -> Result<McpCatalog, McpError> {
-    if !matches!(environment, EnvironmentId::Local(_)) {
+    read_catalog_at(source, environment, None)
+}
+fn read_catalog_at(
+    source: &ConfigSource,
+    environment: &EnvironmentId,
+    remote: Remote,
+) -> Result<McpCatalog, McpError> {
+    if remote.is_none() && EnvironmentPolicy::LocalOnly.admit(environment).is_err() {
         return Err(McpError::Unsupported);
     }
-    let roots = roots(source)?;
+    let roots = match &remote {
+        Some(remote) => super::remote_config::roots(&remote.mirror),
+        None => roots(source)?,
+    };
     let mut entries = Vec::new();
     let mut notes = Vec::new();
     push_file(
@@ -498,8 +513,48 @@ impl Services {
     ) -> Result<TaskSubscription<McpCatalog, McpError>, AdmissionError> {
         let source = self.source.clone();
         let environment = key.environment.clone();
-        self.executor.read(key, move |_, _| {
-            read_catalog_for_project(&source, &environment, project)
+        let io = self.resource_io(&key.environment);
+        self.executor.read(key, move |cancel, _| {
+            let remote =
+                remote::capture(io.clone(), Family::Mcp, Default::default(), cancel.clone())
+                    .map_err(McpError::Remote)?;
+            if remote.is_none() {
+                return read_catalog_for_project(&source, &environment, project);
+            }
+            let mut catalog = read_catalog_at(&source, &environment, remote)?;
+            if let Some(project) = project {
+                let io = io.map_err(McpError::Remote)?.ok_or(McpError::Unsupported)?;
+                let root =
+                    ccr_app::environments::ssh_security::RemotePosixPath::root(project.to_str())
+                        .map_err(|_| McpError::Scope)?;
+                let scoped = tokio::runtime::Handle::current()
+                    .block_on(io.for_project(root.clone(), cancel.clone()))
+                    .map_err(McpError::Remote)?;
+                let mirror = remote::capture(
+                    Ok(Some(scoped)),
+                    Family::McpProject,
+                    Default::default(),
+                    cancel,
+                )
+                .map_err(McpError::Remote)?
+                .ok_or(McpError::Unsupported)?;
+                let (mut entries, state) =
+                    load_entries(&mirror.root().join(".mcp.json"), |content| {
+                        top_level_json(content, McpSource::ProjectFile)
+                    });
+                for entry in &mut entries {
+                    entry.scope = McpScope::Project(root.as_str().into());
+                }
+                catalog.entries.extend(entries);
+                if let Some(note) = catalog
+                    .notes
+                    .iter_mut()
+                    .find(|note| note.source == McpSource::ProjectFile)
+                {
+                    note.state = state;
+                }
+            }
+            Ok(catalog)
         })
     }
 
@@ -509,9 +564,13 @@ impl Services {
     ) -> Result<TaskSubscription<McpCatalog, McpError>, AdmissionError> {
         let source = self.source.clone();
         let environment = key.environment.clone();
+        let io = self.resource_io(&key.environment);
         // The catalog covers every readable file. The key platform is only the request slot.
-        self.executor
-            .read(key, move |_, _| read_catalog(&source, &environment))
+        self.executor.read(key, move |cancel, _| {
+            let remote = remote::capture(io, Family::Mcp, Default::default(), cancel)
+                .map_err(McpError::Remote)?;
+            read_catalog_at(&source, &environment, remote)
+        })
     }
 }
 

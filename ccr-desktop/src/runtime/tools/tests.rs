@@ -45,7 +45,11 @@ fn tool_actions_reject_remote_fixture_and_unconfirmed_updates_before_admission()
     ] {
         assert_eq!(
             requests.perform(key(EnvironmentId::Ssh("test".into())), action, true),
-            Err(Error::LocalOnly)
+            Err(if matches!(action, Action::Versions | Action::UpdateCcr) {
+                Error::Operation
+            } else {
+                Error::LocalOnly
+            })
         );
         assert_eq!(
             requests.perform(key(EnvironmentId::Local("fixture".into())), action, true),

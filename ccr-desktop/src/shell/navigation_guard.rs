@@ -3,6 +3,7 @@ use super::*;
 use gpui_kit::component::FocusTrapElement;
 
 pub(super) struct Decision {
+    pub settings_tab: Option<crate::runtime::preferences::SettingsTab>,
     pub destination: Destination,
     pub lens: Lens,
     pub generation: u64,
@@ -46,11 +47,7 @@ impl Shell {
             .id("profile-navigation-confirmation")
             .test_support()
             .role(gpui_kit::Role::AlertDialog)
-            .aria_label(text(
-                cx,
-                "Discard unsaved profile draft?",
-                "丢弃未保存的方案草稿？",
-            ))
+            .aria_label(text(cx, "Discard unsaved draft?", "丢弃未保存的草稿？"))
             .p(px(24.))
             .flex()
             .flex_col()
@@ -92,6 +89,14 @@ impl Shell {
                                 if let Some(decision) = this.navigation_decision.take() {
                                     this.configurations
                                         .update(cx, |view, cx| view.leave(window, cx));
+                                    this.remote.update(cx, |view, cx| {
+                                        view.discard_for_environment_switch(window, cx)
+                                    });
+                                    if let Some(tab) = decision.settings_tab {
+                                        this.go(decision.destination, decision.lens, window, cx);
+                                        this.locate(tab, window, cx);
+                                        return;
+                                    }
                                     this.go(decision.destination, decision.lens, window, cx);
                                 }
                             })),

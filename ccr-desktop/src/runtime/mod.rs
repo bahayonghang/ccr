@@ -1,4 +1,6 @@
 //! Native adapter: explicit sources, typed read requests, no UI-thread I/O.
+use ccr_app::environments::EnvironmentPolicy;
+use ccr_app::runtime::EnvironmentId;
 pub mod benchmark;
 pub mod checkin;
 pub mod environments;
@@ -10,6 +12,10 @@ pub mod monitoring;
 pub mod platforms;
 pub mod preferences;
 pub mod profiles;
+#[cfg(test)]
+mod remote_activity_tests;
+mod remote_config;
+pub mod remote_resources;
 pub mod resources;
 pub mod sync;
 pub mod tools;
@@ -18,9 +24,7 @@ use std::{ffi::OsString, path::PathBuf, sync::Arc, time::Duration};
 
 use ccr_app::{
     config::{ConfigReadError, ConfigReadService, ConfigRow},
-    runtime::{
-        AdmissionError, EnvironmentId, Platform, RequestKey, RuntimeHandle, TaskSubscription,
-    },
+    runtime::{AdmissionError, Platform, RequestKey, RuntimeHandle, TaskSubscription},
 };
 
 #[derive(Clone)]
@@ -191,11 +195,13 @@ impl LaunchMode {
 
 #[derive(Clone)]
 pub struct Services {
+    environment: Arc<std::sync::Mutex<EnvironmentId>>,
     pub executor: RuntimeHandle,
     source: ConfigSource,
     pub(super) platform_scope: Option<ccr_app::runtime::Platform>,
     ui_state_cache: ui_state::ManagerCache,
     insights_paths: Option<insights::InsightsPaths>,
+    local_delivery_root: Option<PathBuf>,
     pub(super) usage_report_latency: Arc<std::sync::Mutex<ccr_app::monitoring::LatencyWindow>>,
     pub(super) platform_oauth: Arc<ccr_cli::application::codex_oauth::NativeSession>,
     pub(super) command_jobs: Arc<ccr_app::jobs::commands::CommandJobs>,
@@ -213,18 +219,44 @@ pub struct Services {
 }
 
 impl Services {
+    pub(crate) fn allow_fixture_settings(&self, requested: bool) -> bool {
+        requested
+            && matches!(&self.source, ConfigSource::Fixture { registry, profiles, .. } if registry.is_absolute() && profiles.is_absolute())
+    }
+    /// Snapshot the shell-selected environment before queuing a request.
+    pub fn environment(&self) -> EnvironmentId {
+        self.environment
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .clone()
+    }
+    pub(crate) fn select_environment(&self, environment: EnvironmentId) {
+        *self.environment.lock().unwrap_or_else(|p| p.into_inner()) = environment;
+    }
     /// Capture the destination separately from caller-supplied response identity.
     pub fn scoped(mut self, platform: Option<Platform>) -> Self {
         self.platform_scope = platform;
         self
     }
     pub fn new(executor: RuntimeHandle, source: ConfigSource) -> Self {
+        // 仅捕获本机交付目录，不创建目录、读取归档或把远端 HOME 当成本机路径。
+        let local_delivery_root = match &source {
+            ConfigSource::Local => std::env::var_os("USERPROFILE")
+                .filter(|path| !path.is_empty())
+                .or_else(|| std::env::var_os("HOME").filter(|path| !path.is_empty()))
+                .map(PathBuf::from),
+            ConfigSource::Fixture { registry, .. } => registry.parent().map(PathBuf::from),
+            ConfigSource::Benchmark(layout) => Some(layout.roots.home.clone()),
+        }
+        .filter(|path| path.is_absolute());
         Self {
+            environment: Arc::new(std::sync::Mutex::new(EnvironmentId::Local("local".into()))),
             executor,
             source,
             platform_scope: None,
             ui_state_cache: Default::default(),
             insights_paths: None,
+            local_delivery_root,
             usage_report_latency: Default::default(),
             platform_oauth: Default::default(),
             command_jobs: Default::default(),
@@ -297,8 +329,8 @@ impl Services {
         filter: String,
     ) -> Result<TaskSubscription<Arc<Vec<ConfigRow>>, ConfigReadError>, AdmissionError> {
         let source = self.source.clone();
-        let supported =
-            matches!(key.environment, EnvironmentId::Local(_)) && key.platform == Platform::Claude;
+        let supported = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok()
+            && key.platform == Platform::Claude;
         self.executor.read(key, move |cancel, _| {
             if !supported {
                 return Err(ConfigReadError::PlatformNotSupported(
@@ -402,6 +434,33 @@ mod tests {
             ]),
             Ok(LaunchMode::App(ConfigSource::Fixture { .. }))
         ));
+    }
+    #[test]
+    fn native_settings_capture_requires_an_explicit_isolated_fixture() {
+        let owner = ccr_app::runtime::RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+        let root = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
+        let local = Services::new(owner.handle(), ConfigSource::Local);
+        assert!(!local.allow_fixture_settings(true));
+        let fixture = Services::new(
+            owner.handle(),
+            ConfigSource::Fixture {
+                profiles: root.path().join("profiles.toml"),
+                registry: root.path().join("registry.toml"),
+                delay: Duration::ZERO,
+            },
+        );
+        assert!(!fixture.allow_fixture_settings(false));
+        assert!(fixture.allow_fixture_settings(true));
+        let relative = Services::new(
+            owner.handle(),
+            ConfigSource::Fixture {
+                profiles: "profiles.toml".into(),
+                registry: "registry.toml".into(),
+                delay: Duration::ZERO,
+            },
+        );
+        assert!(!relative.allow_fixture_settings(true));
+        owner.shutdown();
     }
     #[test]
     fn insights_launch_requires_all_explicit_absolute_roots() {

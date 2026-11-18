@@ -1,7 +1,10 @@
 //! Application-lifetime monitoring; captured main storage and a bounded safe memory feed.
+use ccr_app::environments::EnvironmentPolicy;
+#[cfg(test)]
+use ccr_app::runtime::EnvironmentId;
 pub mod system;
 use super::{ConfigSource, Services};
-use ccr_app::runtime::{AdmissionError, EnvironmentId, RequestKey, TaskSubscription};
+use ccr_app::runtime::{AdmissionError, RequestKey, TaskSubscription};
 use ccr_db::services::log_persistence::LogPersistenceService;
 use ccr_types::{MonitoringEntry, MonitoringFeedQuery, MonitoringLevel};
 use rusqlite::{Connection, OpenFlags};
@@ -318,6 +321,9 @@ fn payload_size(entry: &MonitoringEntry) -> usize {
 #[derive(Clone)]
 pub struct Requests(Services);
 impl Requests {
+    pub fn environment(&self) -> ccr_app::runtime::EnvironmentId {
+        self.0.environment()
+    }
     pub fn new(services: &Services) -> Self {
         Self(services.clone())
     }
@@ -328,7 +334,10 @@ impl Requests {
     ) -> Result<TaskSubscription<Arc<Report>, Error>, AdmissionError> {
         let services = self.0.clone();
         self.0.executor.read(key.clone(), move |_, _| {
-            if !matches!(key.environment, EnvironmentId::Local(_)) {
+            if EnvironmentPolicy::LocalOnly
+                .admit(&key.environment)
+                .is_err()
+            {
                 return Err(Error::LocalOnly);
             }
             let usage_report_latency = services

@@ -8,7 +8,7 @@ use crate::{
     shell::semantics,
     theme,
 };
-use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent};
+use ccr_app::runtime::{Completion, Platform, RequestKey, ResponseGate, TaskEvent};
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
     FocusTrapElement,
@@ -140,14 +140,7 @@ impl ClaudeResourcesView {
         }
         self.generation = self.generation.saturating_add(1);
         let key = RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.services.environment(),
             platform: Platform::Claude,
             generation: self.generation,
             request_id: self.generation,
@@ -288,10 +281,11 @@ fn notice_text(notice: &Notice, cx: &App) -> &'static str {
             "更改已保存，资源列表已刷新。",
         ),
         Notice::Error(error) => match error {
+            Error::Remote(error) => crate::runtime::remote_resources::message(*error),
             Error::Unsupported => text(
                 cx,
-                "These Claude resources are available only in Local.",
-                "这些 Claude 资源仅在本地环境可用。",
+                "This Claude resource action is unavailable in the selected scope.",
+                "所选作用域不支持此 Claude 资源操作。",
             ),
             Error::Invalid => text(
                 cx,
@@ -651,7 +645,7 @@ impl Render for ClaudeResourcesView {
                         .on_click(
                             cx.listener(move |this, _, _, cx| this.open(name.clone(), false, cx)),
                         ),
-                    self.busy,
+                    self.busy || row.unsupported,
                     false,
                     cx,
                 )),

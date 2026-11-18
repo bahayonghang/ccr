@@ -45,7 +45,7 @@ async fn import_controls_reject_fixture_then_reattach_and_cancel_retained_work(
     let (handle, view) = cx.update(|cx| {
         gpui_kit::init(cx);
         gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
-            cx.new(|cx| InsightsView::new(services, window, cx))
+            cx.new(|cx| InsightsView::new(services.clone(), window, cx))
         })
         .unwrap()
     });
@@ -85,6 +85,33 @@ async fn import_controls_reject_fixture_then_reattach_and_cancel_retained_work(
     );
     assert_eq!(requests.import_snapshot().options.recent_days, 7);
     cx.update_window(handle, |_, window, cx| {
+        let environment = services.environment();
+        services.select_environment(ccr_app::runtime::EnvironmentId::Local("other".into()));
+        window.render_frame(cx);
+        assert!(
+            window
+                .find("insights-import-status")
+                .label()
+                .is_some_and(|text| text.starts_with("Import uses")),
+            "another environment exposed the running import"
+        );
+        assert!(window.try_find("insights-import-cancel").is_none());
+        assert_eq!(requests.import_snapshot().status, Status::Running);
+        assert_eq!(
+            requests.start_import(RequestKey {
+                environment: services.environment(),
+                platform: Platform::Claude,
+                generation: 99,
+                request_id: 99,
+            }),
+            Err(crate::runtime::insights::import::Failure::Busy),
+            "display isolation must preserve global import admission"
+        );
+        services.select_environment(environment);
+        window.render_frame(cx);
+    })
+    .unwrap();
+    cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("insights-import-source", cx);
         window.render_frame(cx);
@@ -104,6 +131,27 @@ async fn import_controls_reject_fixture_then_reattach_and_cancel_retained_work(
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         assert!(window.try_find("insights-import-status").is_some());
+        let environment = services.environment();
+        services.select_environment(ccr_app::runtime::EnvironmentId::Local("other".into()));
+        window.render_frame(cx);
+        assert!(
+            window
+                .find("insights-import-status")
+                .label()
+                .is_some_and(|text| text.starts_with("Import uses")),
+            "another environment exposed the import terminal"
+        );
+        assert!(window.try_find("insights-import-cancel").is_none());
+        assert_eq!(requests.import_snapshot().status, Status::Cancelled);
+        services.select_environment(environment);
+        services.select_environment(ccr_app::runtime::EnvironmentId::Ssh("another-host".into()));
+        view.update(cx, |this, cx| this.suspend(cx));
+        window.render_frame(cx);
+        assert!(
+            window.try_find("insights-import-status").is_none(),
+            "standalone offline view exposed another environment's import"
+        );
+        assert!(window.try_find("insights-import").is_none());
         window.remove_window();
     })
     .unwrap();
@@ -119,7 +167,14 @@ async fn shell_usage_exposes_policy_writes_without_a_usage_database(cx: &mut Tes
     let (handle, _) = cx.update(|cx| {
         gpui_kit::init(cx);
         gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
-            cx.new(|cx| crate::shell::Shell::new(services(&owner, root.path()), window, cx))
+            cx.new(|cx| {
+                crate::shell::Shell::new_with_preferences(
+                    services(&owner, root.path()),
+                    Ok(Default::default()),
+                    window,
+                    cx,
+                )
+            })
         })
         .unwrap()
     });
@@ -186,9 +241,9 @@ async fn rendered_usage_controls_read_fixture_filters_and_keep_exact_costs(
     let owner = RuntimeOwner::new().unwrap();
     let root = tempfile::tempdir().unwrap();
     let paths = create_projection_db(&root.path().join("llmusage"));
-    let pool = create_pool(&paths.db_path, None).unwrap();
+    let connection = rusqlite::Connection::open(&paths.db_path).unwrap();
     seed_bucket(
-        &pool.get().unwrap(),
+        &connection,
         &SeedBucket {
             cost_with_cache_usd: 0.123456789,
             pricing_status: "static".into(),
@@ -196,7 +251,7 @@ async fn rendered_usage_controls_read_fixture_filters_and_keep_exact_costs(
             ..Default::default()
         },
     );
-    drop(pool);
+    connection.close().unwrap();
     let before = std::fs::read(&paths.db_path).unwrap();
     let (handle, view) = cx.update(|cx| {
         gpui_kit::init(cx);

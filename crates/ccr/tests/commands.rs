@@ -57,3 +57,16 @@ mod env;
 pub(crate) fn setup_ccr_test_env() -> env::CcrIntegrationTestEnv {
     env::CcrIntegrationTestEnv::new()
 }
+
+fn command_tempdir() -> std::io::Result<tempfile::TempDir> {
+    // macOS reports a temporary directory under the /var symlink. These fixtures
+    // need physical paths for guarded file access and rendered directory assertions.
+    #[cfg(unix)]
+    {
+        tempfile::tempdir_in(std::env::temp_dir().canonicalize()?)
+    }
+    #[cfg(not(unix))]
+    {
+        tempfile::tempdir()
+    }
+}

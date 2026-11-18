@@ -201,6 +201,20 @@ pub struct RuntimeHandle {
     admission: Arc<Semaphore>,
     blocking: Arc<Semaphore>,
     stopped: Arc<Mutex<bool>>,
+    environments: Arc<Mutex<Vec<EnvironmentTask>>>,
+}
+
+struct EnvironmentTask {
+    id: uuid::Uuid,
+    environment: EnvironmentId,
+    cancel: CancellationToken,
+    job: bool,
+}
+struct EnvironmentTaskGuard(Arc<Mutex<Vec<EnvironmentTask>>>, uuid::Uuid);
+impl Drop for EnvironmentTaskGuard {
+    fn drop(&mut self) {
+        lock(&self.0).retain(|task| task.id != self.1);
+    }
 }
 
 impl RuntimeOwner {
@@ -218,6 +232,7 @@ impl RuntimeOwner {
             admission: Arc::new(Semaphore::new(MAX_OPERATIONS)),
             blocking: Arc::new(Semaphore::new(BLOCKING_CONCURRENCY)),
             stopped: Arc::new(Mutex::new(false)),
+            environments: Default::default(),
         };
         Ok(Self { runtime, handle })
     }
@@ -227,9 +242,52 @@ impl RuntimeOwner {
     pub fn shutdown(self) {
         self.runtime.block_on(self.handle.shutdown());
     }
+    /// Drain jobs, then release persistent I/O before dropping the runtime.
+    pub fn shutdown_after(self, cleanup: impl std::future::Future<Output = ()>) {
+        self.runtime.block_on(self.handle.shutdown());
+        self.runtime.block_on(cleanup);
+    }
 }
 
 impl RuntimeHandle {
+    /// Drain without reserving a blocking worker or an admission permit.
+    pub fn begin_environment_drain(&self, environment: EnvironmentId) -> Receiver<()> {
+        let runtime = self.clone();
+        let (tx, rx) = async_channel::bounded(1);
+        self.tasks.spawn_on(
+            async move {
+                runtime.drain_environment(&environment).await;
+                let _ = tx.send(()).await;
+            },
+            &self.executor,
+        );
+        rx
+    }
+    /// Returns running or queued side effects for this exact environment.
+    pub fn environment_has_jobs(&self, environment: &EnvironmentId) -> bool {
+        lock(&self.environments)
+            .iter()
+            .any(|task| task.job && &task.environment == environment)
+    }
+    /// Requests cancellation and joins cleanup without publishing a false terminal.
+    /// Callers must first stop admitting work for the departing environment.
+    pub async fn drain_environment(&self, environment: &EnvironmentId) {
+        loop {
+            let pending = {
+                let tasks = lock(&self.environments);
+                let mut pending = false;
+                for task in tasks.iter().filter(|task| &task.environment == environment) {
+                    task.cancel.cancel();
+                    pending = true;
+                }
+                pending
+            };
+            if !pending {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    }
     pub fn active_tasks(&self) -> usize {
         self.tasks.len()
     }
@@ -330,6 +388,14 @@ impl RuntimeHandle {
             terminal: Mutex::new(None),
             cancel: self.shutdown.child_token(),
         });
+        let task_id = uuid::Uuid::new_v4();
+        lock(&self.environments).push(EnvironmentTask {
+            id: task_id,
+            environment: key.environment.clone(),
+            cancel: state.cancel.clone(),
+            job: !cancel_on_drop,
+        });
+        let environment_guard = EnvironmentTaskGuard(self.environments.clone(), task_id);
         let reporter = ProgressReporter(Arc::new(PendingProgress {
             value: Mutex::new(None),
             changed: Notify::new(),
@@ -340,6 +406,7 @@ impl RuntimeHandle {
         let executor = self.executor.clone();
         self.tasks.spawn_on(
             async move {
+                let _environment_guard = environment_guard;
                 let _admission = admission;
                 let permit = tokio::select! {
                     biased;

@@ -1,6 +1,6 @@
 //! Scoped conversion preview. It never applies files or executes generated commands.
 use crate::{locales::text, runtime::Services, shell::semantics, theme};
-use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, TaskEvent};
+use ccr_app::runtime::{Completion, Platform, RequestKey, TaskEvent};
 use ccr_db::{
     models::converter::{CliType, ConverterRequest},
     services::converter_service::ConfigConverter,
@@ -30,6 +30,9 @@ pub struct Converter {
     lens: Option<AnyView>,
 }
 impl Converter {
+    pub fn has_environment_draft(&self, cx: &gpui_kit::App) -> bool {
+        !self.input.read(cx).value().is_empty()
+    }
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
         Self {
             services,
@@ -75,7 +78,7 @@ impl Converter {
         self.generation += 1;
         let generation = self.generation;
         let key = RequestKey {
-            environment: EnvironmentId::Local("local".into()),
+            environment: ccr_app::runtime::EnvironmentId::Local("application".into()),
             platform: Platform::Claude,
             generation,
             request_id: generation,

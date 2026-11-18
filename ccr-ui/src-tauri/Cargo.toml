@@ -122,10 +122,6 @@ fs4 = "1.1.0"
 [target.'cfg(windows)'.dependencies]
 winreg = "0.56.0"
 
-# SSH 远程支持（Phase C2，暂未启用：russh 0.57 的 rand_core 预发布版与 ccr-db 冲突）
-# russh = "0.57.1"
-# russh-sftp = "2.1.1"
-
 # Same patch as the root workspace: r2d2_sqlite 0.35.0 cannot select rusqlite 0.41.
 [patch.crates-io]
 r2d2_sqlite = { path = "../../third_party/r2d2-sqlite" }

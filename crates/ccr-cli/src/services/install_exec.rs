@@ -54,6 +54,12 @@ fn process_spec(action: &InstallAction) -> ProcessSpec {
         },
     }
 }
+pub(crate) fn remote_invocation(
+    action: &InstallAction,
+) -> super::install_service::InstallInvocation {
+    let spec = process_spec(action);
+    super::install_service::InstallInvocation::new(spec.program, spec.args)
+}
 
 /// Spawn an install attempt and return a receiver for streamed events.
 ///

@@ -20,6 +20,14 @@ pub struct CliSession {
     environment: String,
     session_id: uuid::Uuid,
 }
+impl CliSession {
+    pub(super) fn from_io(environment: &str, session_id: uuid::Uuid) -> Self {
+        Self {
+            environment: environment.into(),
+            session_id,
+        }
+    }
+}
 
 fn path(bytes: &[u8]) -> Result<Option<String>, Error> {
     if bytes.len() > 4096 {
@@ -49,7 +57,36 @@ impl Workspace {
         authority: &CliSession,
         cancel: CancellationToken,
     ) -> Result<Vec<CliStatus>, Error> {
-        let _guard = self.serial.lock().await;
+        self.detect_tools(authority, &CLI_TOOLS, cancel).await
+    }
+    pub(crate) async fn detect_execution_cli(
+        &self,
+        authority: &CliSession,
+        cancel: CancellationToken,
+    ) -> Result<Vec<CliStatus>, Error> {
+        self.detect_tools(
+            authority,
+            &[
+                ("ccr", "ccr"),
+                ("llmusage", "llmusage"),
+                ("cargo", "cargo"),
+                ("brew", "brew"),
+                ("claude", "claude"),
+                ("codex", "codex"),
+                ("gemini", "agy"),
+                ("opencode", "opencode"),
+                ("grok", "grok"),
+            ],
+            cancel,
+        )
+        .await
+    }
+    async fn detect_tools(
+        &self,
+        authority: &CliSession,
+        tools: &[(&'static str, &'static str)],
+        cancel: CancellationToken,
+    ) -> Result<Vec<CliStatus>, Error> {
         if cancel.is_cancelled() {
             return Err("ssh_cancelled");
         }
@@ -59,18 +96,17 @@ impl Workspace {
         }
         let result = async {
             let mut rows = Vec::new();
-            for (name, tool) in CLI_TOOLS {
+            for &(name, tool) in tools {
                 if cancel.is_cancelled() {
                     return Err("ssh_cancelled");
                 }
-                let mut command = Self::target(&session.host)?
-                    .ssh_command(&self.known_hosts, 10)
-                    .map_err(|_| "ssh_invalid_target")?;
-                command.arg(format!("command -v {} || true", posix_single_quote(tool)));
-                let output = self
-                    .transport
-                    .run(command, ProcessDescriptor::openssh(), None, cancel.clone())
-                    .await?;
+                let output = transport::read_bounded(
+                    cancel.clone(),
+                    session
+                        .connection
+                        .exec(format!("command -v {} || true", posix_single_quote(tool))),
+                )
+                .await?;
                 if cancel.is_cancelled() {
                     return Err("ssh_cancelled");
                 }
@@ -89,8 +125,11 @@ impl Workspace {
             Ok(rows)
         }
         .await;
-        if result.is_err() {
-            self.clear();
+        if result
+            .as_ref()
+            .is_err_and(|error| *error != "ssh_cancelled")
+        {
+            let _ = self.revoke(session.session_id).await;
         }
         result
     }

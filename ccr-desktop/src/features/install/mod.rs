@@ -9,9 +9,7 @@ use crate::{
     shell::semantics,
     theme,
 };
-use ccr_app::runtime::{
-    Completion, EnvironmentId, Platform, RequestKey, TaskEvent, TaskSubscription,
-};
+use ccr_app::runtime::{Completion, Platform, RequestKey, TaskEvent, TaskSubscription};
 use ccr_cli::services::install_types::{
     DetectionResult, DurationClass, InstallEvent, PlanId, PlanOutcome, ProgressStage,
     UnsupportedReason,
@@ -45,6 +43,13 @@ pub struct InstallView {
     focus: FocusHandle,
 }
 impl InstallView {
+    #[cfg(test)]
+    pub(crate) fn observed_state(&self) -> (&Snapshot, bool) {
+        (&self.snapshot, self.loading)
+    }
+    pub fn has_environment_draft(&self) -> bool {
+        self.decision.is_some()
+    }
     pub fn new(services: Services, _: &mut Window, cx: &mut Context<Self>) -> Self {
         let tools = cx.new(|cx| tools::ToolsView::new(&services, cx));
         let requests = InstallRequests::new(&services);
@@ -73,29 +78,48 @@ impl InstallView {
     pub fn refresh(&mut self, cx: &mut Context<Self>) {
         self.tools.update(cx, |this, cx| this.refresh(cx));
         if self.observer.is_none() {
-            let mut updates = self.requests.observe();
-            self.snapshot = updates.borrow_and_update().clone();
-            let generation = self.generation;
-            self.observer = Some(cx.spawn(async move |weak, cx| {
-                while updates.changed().await.is_ok() {
-                    let snapshot = updates.borrow_and_update().clone();
-                    if weak
-                        .update(cx, |this, cx| {
-                            if this.generation == generation {
-                                this.snapshot = snapshot;
-                                cx.notify();
-                            }
-                        })
-                        .is_err()
-                    {
-                        break;
-                    }
-                }
-            }));
+            self.observe(self.requests.observe(), cx);
         } else {
             self.snapshot = self.requests.snapshot();
         }
         cx.notify();
+    }
+    pub fn has_retained_status(&self) -> bool {
+        self.requests.retained_snapshot().is_some_and(|snapshot| {
+            snapshot.busy() || snapshot.recent.terminal.is_some() || snapshot.error.is_some()
+        })
+    }
+    pub fn refresh_retained(&mut self, cx: &mut Context<Self>) {
+        if self.has_retained_status()
+            && self.observer.is_none()
+            && let Some(updates) = self.requests.observe_retained()
+        {
+            self.observe(updates, cx);
+        }
+    }
+    fn observe(
+        &mut self,
+        mut updates: tokio::sync::watch::Receiver<Arc<Snapshot>>,
+        cx: &mut Context<Self>,
+    ) {
+        self.snapshot = updates.borrow_and_update().clone();
+        let generation = self.generation;
+        self.observer = Some(cx.spawn(async move |weak, cx| {
+            while updates.changed().await.is_ok() {
+                let snapshot = updates.borrow_and_update().clone();
+                if weak
+                    .update(cx, |this, cx| {
+                        if this.generation == generation {
+                            this.snapshot = snapshot;
+                            cx.notify();
+                        }
+                    })
+                    .is_err()
+                {
+                    break;
+                }
+            }
+        }));
     }
     pub fn suspend(&mut self, cx: &mut Context<Self>) {
         self.tools.update(cx, |this, cx| this.suspend(cx));
@@ -113,14 +137,7 @@ impl InstallView {
     fn key(&mut self) -> RequestKey {
         self.request_id += 1;
         RequestKey {
-            environment: EnvironmentId::Local(
-                if self.requests.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.requests.environment(),
             platform: Platform::Claude,
             generation: self.generation,
             request_id: self.request_id,
@@ -211,6 +228,10 @@ impl InstallView {
         }
     }
     fn cancel(&mut self, cx: &mut Context<Self>) {
+        let Some(snapshot) = self.requests.retained_snapshot() else {
+            return;
+        };
+        self.snapshot = snapshot;
         if !self.snapshot.busy() || self.snapshot.cancel_requested {
             return;
         }
@@ -226,24 +247,68 @@ impl InstallView {
         cx.notify();
     }
 }
+fn install_status(snapshot: &Snapshot) -> &'static str {
+    if snapshot.cancel_requested && snapshot.busy() {
+        "Cancellation requested; waiting for cleanup / 已请求取消，等待清理"
+    } else if snapshot.queued {
+        "Queued / 等待执行"
+    } else if snapshot.running {
+        "Running / 正在安装"
+    } else {
+        match &snapshot.recent.terminal {
+            Some(InstallEvent::Succeeded { .. }) => "Succeeded / 安装成功",
+            Some(InstallEvent::Failed { .. }) => "Failed / 安装失败",
+            Some(InstallEvent::Cancelled { .. }) => "Cancelled after cleanup / 清理后已取消",
+            _ if snapshot.error.is_some() => "Failed / 安装失败",
+            _ => "No active installation / 当前无安装任务",
+        }
+    }
+}
 impl Render for InstallView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        if self.requests.ssh_offline() {
+            let snapshot = self.requests.retained_snapshot();
+            let mut retained = div()
+                .id("retained-install")
+                .test_support()
+                .flex()
+                .flex_col()
+                .gap(px(theme::CONTROL_GAP));
+            if let Some(snapshot) = snapshot {
+                let status = crate::locales::localized_line(cx, install_status(&snapshot));
+                retained = retained
+                    .child(text(cx, "Install llmusage", "安装 llmusage"))
+                    .child(
+                        div()
+                            .id("install-status")
+                            .test_support()
+                            .role(gpui_kit::Role::Status)
+                            .aria_label(status.clone())
+                            .child(status),
+                    )
+                    .child(
+                        div().flex().child(semantics::button(
+                            Button::new("install-cancel")
+                                .label(text(cx, "Request cancellation", "请求取消"))
+                                .ghost()
+                                .on_click(cx.listener(|this, _, _, cx| this.cancel(cx))),
+                            !snapshot.busy() || snapshot.cancel_requested,
+                            false,
+                            cx,
+                        )),
+                    );
+                if let Some(error) = snapshot.error.map(Error::message).or_else(|| {
+                    matches!(snapshot.recent.terminal, Some(InstallEvent::Failed { .. }))
+                        .then_some(Error::Operation.message())
+                }) {
+                    retained = retained.child(crate::locales::localized_line(cx, error));
+                }
+            }
+            return retained.into_any_element();
+        }
         let blocked = self.loading || self.snapshot.busy() || self.decision.is_some();
         let fixture = self.requests.is_fixture();
-        let state = if self.snapshot.cancel_requested && self.snapshot.busy() {
-            "Cancellation requested; waiting for cleanup / 已请求取消，等待清理"
-        } else if self.snapshot.queued {
-            "Queued / 等待执行"
-        } else if self.snapshot.running {
-            "Running / 正在安装"
-        } else {
-            match &self.snapshot.recent.terminal {
-                Some(InstallEvent::Succeeded { .. }) => "Succeeded / 安装成功",
-                Some(InstallEvent::Failed { .. }) => "Failed / 安装失败",
-                Some(InstallEvent::Cancelled { .. }) => "Cancelled after cleanup / 清理后已取消",
-                _ => "No active installation / 当前无安装任务",
-            }
-        };
+        let state = install_status(&self.snapshot);
         let mut root = div().id("native-install").test_support().track_focus(&self.focus).tab_stop(false)
             .flex().flex_col().size_full().overflow_y_scroll().p(px(theme::CONTENT_PADDING)).gap(px(theme::SECTION_GAP))
             .bg(cx.theme().background).text_color(cx.theme().foreground)
@@ -473,7 +538,7 @@ impl Render for InstallView {
                     ));
             }
         }
-        root.child(output)
+        root.child(output).into_any_element()
     }
 }
 

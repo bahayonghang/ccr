@@ -8,7 +8,7 @@ use crate::{
     shell::semantics,
     theme,
 };
-use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, TaskEvent};
+use ccr_app::runtime::{Completion, Platform, RequestKey, TaskEvent};
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
     ActiveTheme,
@@ -72,7 +72,7 @@ impl SystemView {
         self.report = None;
         self.error = None;
         let key = RequestKey {
-            environment: EnvironmentId::Local("monitoring-host".into()),
+            environment: self.services.environment(),
             platform: Platform::Claude,
             generation,
             request_id: generation,

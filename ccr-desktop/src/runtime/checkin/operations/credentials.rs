@@ -1,5 +1,6 @@
 //! Editor-scoped plaintext; never enters the retained management snapshot.
 use super::*;
+use ccr_app::environments::EnvironmentPolicy;
 use ccr_app::runtime::{AdmissionError, TaskSubscription};
 use ccr_core::Secret;
 
@@ -18,7 +19,9 @@ impl Services {
         key: RequestKey,
         account_id: String,
     ) -> Result<TaskSubscription<AccountCredentials, OperationError>, AdmissionError> {
-        let local = matches!(key.environment, EnvironmentId::Local(_));
+        let local = EnvironmentPolicy::Independent
+            .admit(&key.environment)
+            .is_ok();
         let source = self.source.clone();
         let owner = self.checkin_operations.clone();
         self.executor.read(key, move |cancel, _| {
@@ -197,7 +200,7 @@ mod tests {
             (
                 EnvironmentId::Ssh("fixture".into()),
                 account.id.clone(),
-                Some(OperationError::Unsupported),
+                None,
             ),
             (
                 EnvironmentId::Local("fixture".into()),

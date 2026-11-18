@@ -98,7 +98,7 @@
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.5",
-    "@typescript-eslint/parser": "^8.68.0",
+    "@typescript-eslint/parser": "^8.73.0",
     "@vitejs/plugin-react": "^6.1.1",
     "@vitest/coverage-v8": "^4.1.11",
     "dpdm": "^4.3.0",
@@ -115,16 +115,18 @@
     "stylelint-config-standard": "^40.0.0",
     "tailwindcss": "4.3.3",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.68.0",
+    "typescript-eslint": "^8.73.0",
     "vite": "8.2.4",
     "vitest": "^4.1.11"
   },
   "overrides": {
+    "glob": "14.0.6",
     "handlebars": "4.7.10"
   },
   "patchedDependencies": {
     "braces@3.0.3": "patches/braces@3.0.3.patch",
-    "minimatch@10.2.5": "patches/minimatch@10.2.5.patch",
-    "glob@13.0.6": "patches/glob@13.0.6.patch"
+    "picomatch@2.3.2": "patches/picomatch@2.3.2.patch",
+    "picomatch@4.0.4": "patches/picomatch@4.0.4.patch",
+    "picomatch@4.0.5": "patches/picomatch@4.0.5.patch"
   }
 }

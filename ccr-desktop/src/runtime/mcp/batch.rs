@@ -5,6 +5,7 @@ use super::{
     editor::{self, EditDocument},
     transfer,
 };
+use ccr_app::environments::EnvironmentPolicy;
 use ccr_app::{
     mcp_document::{self, EntryMutation},
     runtime::{AdmissionError, Completion, EnvironmentId, RequestKey, TaskSubscription},
@@ -104,6 +105,7 @@ impl McpEditSession {
     }
 }
 
+#[cfg(test)]
 fn prepare(
     services: &Services,
     environment: EnvironmentId,
@@ -111,7 +113,26 @@ fn prepare(
     targets: Vec<McpTarget>,
     replace: bool,
 ) -> Result<McpBatchSession, McpError> {
-    if !matches!(environment, EnvironmentId::Local(_)) {
+    prepare_remote(
+        services,
+        environment,
+        input,
+        targets,
+        replace,
+        Ok(None),
+        tokio_util::sync::CancellationToken::new(),
+    )
+}
+fn prepare_remote(
+    services: &Services,
+    environment: EnvironmentId,
+    input: BatchInput,
+    targets: Vec<McpTarget>,
+    replace: bool,
+    io: Result<Option<ccr_app::environments::io::EnvironmentIo>, ccr_app::environments::io::Error>,
+    cancel: tokio_util::sync::CancellationToken,
+) -> Result<McpBatchSession, McpError> {
+    if matches!(io, Ok(None)) && EnvironmentPolicy::LocalOnly.admit(&environment).is_err() {
         return Err(McpError::Unsupported);
     }
     if services.platform_scope.is_some() {
@@ -130,7 +151,13 @@ fn prepare(
             if targets.contains(&source) {
                 return Err(McpError::Invalid);
             }
-            let source = editor::begin(&services.source, &environment, source)?;
+            let source = editor::begin_remote(
+                &services.source,
+                &environment,
+                source,
+                io.clone(),
+                cancel.clone(),
+            )?;
             let entries = source.entries_for_copy()?;
             (Some(source), entries)
         }
@@ -152,7 +179,13 @@ fn prepare(
     let mut prepared = Vec::new();
     let mut preview = Vec::new();
     for target in targets {
-        let session = editor::begin(&services.source, &environment, target.clone());
+        let session = editor::begin_remote(
+            &services.source,
+            &environment,
+            target.clone(),
+            io.clone(),
+            cancel.clone(),
+        );
         let existing = session
             .as_ref()
             .map_err(|e| *e)
@@ -219,8 +252,10 @@ impl Services {
     ) -> Result<TaskSubscription<Arc<McpBatchSession>, McpError>, AdmissionError> {
         let services = self.clone();
         let environment = key.environment.clone();
-        self.executor.read(key, move |_, _| {
-            prepare(&services, environment, input, targets, replace).map(Arc::new)
+        let io = self.resource_io(&key.environment);
+        self.executor.read(key, move |cancel, _| {
+            prepare_remote(&services, environment, input, targets, replace, io, cancel)
+                .map(Arc::new)
         })
     }
 
@@ -259,12 +294,16 @@ impl Services {
                             destination.check_source(&config)?;
                         }
                         if let Some(source) = &session.source
-                            && !source.is_current()?
+                            && !source.is_current(cancel.clone())?
                         {
                             return Err(McpError::Conflict);
                         }
                         let destination = target.session.as_ref().map_err(|error| *error)?;
-                        destination.save_batch(&environment, &target.mutations)
+                        destination.save_batch_with_cancel(
+                            &environment,
+                            &target.mutations,
+                            cancel.clone(),
+                        )
                     })();
                     work.update(|snapshot| {
                         for row in &mut snapshot.rows[target.rows.clone()] {

@@ -322,6 +322,7 @@ async fn monitoring_projects_latency_and_retained_ssh_without_initializing_or_pr
                             port: 22,
                             user: "fixture".into(),
                             remote_home: "/fixture".into(),
+                            ..Default::default()
                         })
                         .await?;
                     let probe = setup.probe(&host.id, Default::default()).await?;
@@ -357,7 +358,17 @@ async fn monitoring_projects_latency_and_retained_ssh_without_initializing_or_pr
     assert!(ssh.connected(&host.id));
     assert_eq!(transport.cli_requests(), cli_before);
     assert_eq!(transport.batches(), batches_before);
-    ssh.disconnect().await;
+    let mut disconnect = services
+        .executor
+        .read(
+            key(EnvironmentId::Local("fixture-disconnect".into())),
+            move |_, _| {
+                tokio::runtime::Handle::current().block_on(ssh.disconnect());
+                Ok::<_, &'static str>(())
+            },
+        )
+        .unwrap();
+    while !matches!(disconnect.next().await, Some(TaskEvent::Terminal(_))) {}
     assert_eq!(read(&services).await.metrics.retained_ssh_sessions, 0);
     runtime.shutdown();
 }

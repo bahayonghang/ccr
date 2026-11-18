@@ -1,5 +1,8 @@
 //! Canonical local sync configuration and application-owned WebDAV operations.
+use ccr_app::environments::EnvironmentPolicy;
+use ccr_app::runtime::EnvironmentId;
 mod operations;
+mod remote;
 pub use operations::{
     AssetDirection, AssetRequest, FolderChange, FolderPatch, Operation, OperationKind,
     OperationState, PasswordUpdate, SettingsPatch, SyncOperations, SyncOutcome,
@@ -11,7 +14,7 @@ use ccr_core::core::log_redact::redact_log_text;
 use ccr_sync::{SyncFolderManager, SyncFoldersConfig};
 
 use super::{ConfigSource, Services};
-use ccr_app::runtime::{AdmissionError, EnvironmentId, RequestKey, TaskSubscription};
+use ccr_app::runtime::{AdmissionError, RequestKey, TaskSubscription};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SyncError {
@@ -30,11 +33,27 @@ pub enum SyncError {
     Interrupted,
     LegacyFolders,
     LegacyRemaining,
+    Remote,
+    RemoteDatabase,
+    RemotePartial,
+    RemoteEmptyDirectory,
 }
 
 impl SyncError {
     pub fn message(self) -> &'static str {
         match self {
+            Self::RemoteEmptyDirectory => {
+                "Creating a new empty directory through SSH sync is unavailable. No files were published. / SSH 同步不支持新建纯空目标目录，未发布任何文件。"
+            }
+            Self::Remote => {
+                "Cannot access sync data in this SSH session. Reconnect and retry. / 无法访问此 SSH 会话中的同步数据，请重连后重试。"
+            }
+            Self::RemoteDatabase => {
+                "SSH sync cannot safely replace profile databases without a remote transaction owner. This asset was not transferred. / 缺少远端事务所有者，SSH 同步不能安全替换方案数据库，此资产未传输。"
+            }
+            Self::RemotePartial => {
+                "SSH publication stopped after some files were written. Their preimage backups remain on the SSH host. / SSH 发布在部分文件写入后中止，原内容备份保留在 SSH 主机。"
+            }
             Self::LegacyRemaining => {
                 "Canonical WebDAV credentials were cleared, but legacy cleanup did not finish. Read the configuration and disconnect again."
             }
@@ -62,7 +81,7 @@ impl SyncError {
             }
             Self::Interrupted => "The sync worker stopped without a confirmed result.",
             Self::Unsupported => {
-                "Sync config is read only for the local environment. / 只在本地环境读取同步配置"
+                "This sync operation is unavailable in the current execution environment. / 当前执行环境不支持此同步操作。"
             }
             Self::Storage => {
                 "The local sync config path could not be resolved. / 无法定位本地同步配置"
@@ -233,10 +252,16 @@ impl Services {
         key: RequestKey,
     ) -> Result<TaskSubscription<SyncSnapshot, SyncError>, AdmissionError> {
         let source = self.source.clone();
-        let local = matches!(key.environment, EnvironmentId::Local(_));
-        self.executor.read(key, move |_, _| {
+        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
+        let remote = (!local).then(|| self.remote_configuration_io(&key.environment));
+        self.executor.read(key, move |cancel, _| {
             if !local {
-                return Err(SyncError::Unsupported);
+                let io = remote
+                    .ok_or(SyncError::Remote)?
+                    .map_err(|_| SyncError::Remote)?;
+                let handle =
+                    tokio::runtime::Handle::try_current().map_err(|_| SyncError::Remote)?;
+                return handle.block_on(remote::read(&io, cancel));
             }
             read_source(&source)
         })

@@ -62,7 +62,7 @@ async fn configuration_sources_are_discoverable_and_managed_layers_stay_read_onl
             layers[0]
                 .path
                 .as_ref()
-                .is_some_and(|path| path.starts_with(root.path()))
+                .is_some_and(|path| matches!(path, ccr_app::environments::io::EnvironmentPath::Local(path) if path.starts_with(root.path())))
         );
         // 配置来源是页内展开区：设置表单与保存仍在原位可用，展开区排在表单之后。
         assert!(window.try_find("platform-save").is_some());
@@ -255,6 +255,7 @@ fn confirmation_enters_after_callback_before_draw(cx: &mut TestAppContext) {
     );
     let snapshot = document.read().unwrap_or_else(|_| panic!("snapshot"));
     let session = Arc::new(PlatformSession {
+        remote: None,
         roots,
         document,
         snapshot,
@@ -396,6 +397,7 @@ async fn oauth_cancel_joins_fixture_cleanup_and_clears_callback_draft(cx: &mut T
     );
     let snapshot = document.read().unwrap_or_else(|_| panic!("snapshot"));
     let session = Arc::new(PlatformSession {
+        remote: None,
         roots,
         document,
         snapshot,
@@ -513,6 +515,7 @@ fn source_requires_acknowledgement_and_close_clears_secret_and_response_identity
     .unwrap_or_else(|_| panic!("fixture document"));
     let snapshot = document.read().unwrap_or_else(|_| panic!("snapshot"));
     let session = Arc::new(PlatformSession {
+        remote: None,
         roots,
         document,
         snapshot,
@@ -603,6 +606,7 @@ async fn opencode_theme_catalog_updates_real_draft_and_preserves_other_fields(
     );
     let snapshot = document.read().unwrap_or_else(|_| panic!("read"));
     let session = Arc::new(PlatformSession {
+        remote: None,
         roots,
         document,
         snapshot,
@@ -867,6 +871,7 @@ fn scope_session(
     );
     let snapshot = document.read().unwrap_or_else(|_| panic!("snapshot"));
     Arc::new(PlatformSession {
+        remote: None,
         roots,
         document,
         snapshot,
@@ -1116,6 +1121,7 @@ fn embedded_opencode_keeps_a_reachable_tui_document_entry(cx: &mut TestAppContex
     );
     let snapshot = document.read().unwrap_or_else(|_| panic!("read"));
     let session = Arc::new(PlatformSession {
+        remote: None,
         roots,
         document,
         snapshot,

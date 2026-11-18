@@ -53,6 +53,7 @@ fn open_view(
 ) -> (AnyWindowHandle, Entity<InsightsView>) {
     cx.update(|cx| {
         gpui_kit::init(cx);
+        theme::init(cx);
         let (handle, view) = gpui_kit::open_window(sized(width, height), cx, |window, cx| {
             cx.new(|cx| InsightsView::new(services, window, cx))
         })
@@ -71,7 +72,7 @@ fn open_shell(
     cx.update(|cx| {
         gpui_kit::init(cx);
         let (handle, shell) = gpui_kit::open_window(sized(width, height), cx, |window, cx| {
-            cx.new(|cx| Shell::new(services, window, cx))
+            cx.new(|cx| Shell::new_with_preferences(services, Ok(Default::default()), window, cx))
         })
         .unwrap();
         let insights = shell.read(cx).insights_view();

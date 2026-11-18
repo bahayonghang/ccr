@@ -1843,3 +1843,109 @@ Topics: [.trellis/spec/ccr-cli/backend/profile-application-lifecycle.md](../../s
 ### Next Steps
 
 - 待用户确认后将本地 dev 分支推送至 origin/dev
+
+
+## Session 177: SSH本地实施记录归档（#205验收未完成）
+<!-- trellis-session: v=2 fp=066577e377be3a9d -->
+
+**Date**: 2026-11-16
+**Task**: SSH本地实施记录归档（#205验收未完成）
+**Branch**: `feature/ssh-environment`
+
+### Summary
+
+本轮仅归档文档，源码173c9f0b未变；S1原生工具受阻、S2/S3真实资源缺失，S4 clean review。复用同源码11门禁和17阶段CI，父任务#205保持OPEN；最终本地提交与归档终态以协调者收据为准。
+Topics: [.trellis/research/archive/2026-11/ssh-environment-finalization.md](../../research/archive/2026-11/ssh-environment-finalization.md)
+
+### Main Changes
+
+- 保存本轮证据分层、自主决策、恢复N/A及历史署名发布阻断；无新增产品或测试修改。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Testing
+
+- [OK] 复用源码HEAD173c9f0b的11门禁与just ci exit0（1245.8秒、17阶段）；本轮未重跑CI。
+- [OK] 归档主题已写入读回，9个现有本地Markdown链接有效；仅文档执行读回、链接、diff和署名检查。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 恢复原生控制并在明确授权资产上执行真机清单，确认远端树/私有对象清理与跨OS验收；历史署名阻断未解决，#205验收未完成。
+
+
+## Session 178: SSH授权补验与本地归档准备（#205）
+
+**Date**: 2026-11-17
+**Task**: SSH授权补验与本地归档准备（#205）
+**Branch**: `feature/ssh-environment`
+
+### Summary
+
+记录2026-11-17后来授权的真实资源与原生补验：S1原生输入+fixture 11类、S2真实60/60、S3新nonce独立66/66、3eb源码独立11门禁全0、S4 Standards/Spec零发现；最终完整CI与本地归档终态以协调者在文档提交后生成的收据为准，#205仍OPEN。
+Topics: [.trellis/research/archive/2026-11/ssh-environment-finalization.md](../../research/archive/2026-11/ssh-environment-finalization.md)
+
+记录方式：当前 recorder 使用 `--no-commit --topic` 后因 journal-1 既有两条 Session 28 在写前拒绝（exit 1），journal/index 零写；核写前 hash 后手工追加本 Session 178 与索引，保留旧记录及失败收据。
+
+### Main Changes
+
+- 更新既有归档主题，当前授权事实置前，保留2026-11-16原轮次与旧Session177；精确历史整改已完成，WebDAV excluded_by_user。
+- 明确原生输入API/85图实际查看/185源与3shim、fixture和真实CLI分层、应用CleanupFailed与独立管理恢复，以及未测和证据限制。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `aa34e28e6a2efebfd724ee8d1fad4ca9199032ae` | fix(ssh): 🐛 保留执行后失权的清理失败状态 |
+| `5d0e2e2356dc392463611daf005726aa84efd454` | test(桌面): 🧪 关闭用量夹具写连接后采样源文件 |
+| `55a164ed9db1ccf28edce72710aff67fa4c6114c` | fix(SSH): 🐛 离线保留安装和用量作业状态 |
+| `8e297eba5dba10cd29e770bcf73b8e8a2c7e0944` | fix(用量): 🐛 按当前环境展示同步状态与操作 |
+| `3ebfbadaa509db4a73d6195fa6e778eef3b2b137` | test(SSH): 🧪 等待安装视图就绪后操作控件 |
+
+### Testing
+
+- [OK] 复核3eb完整HEAD的协调者独立11/11门禁，未将旧173c完整CI作为本轮最终CI；S4两轴均0发现。
+- [OK] S5主题读回、29个真实相对链接、scoped diff、秘密/路径审计通过；旧主题正文仅调整历史小节标题层级，原五脏与dev/main保持。
+
+### Status
+
+文档已记账；最终集成与本地归档终态以协调者收据为准。
+
+### Next Steps
+
+- 协调者在全部tracked提交后冻结HEAD运行最终完整just ci，复核GitHub/署名/保护状态并生成final-integration-receipt.json与archive-receipt.json；不关闭#205。
+
+
+## Session 179: SSH关闭核验依据与公开收口准备（#205）
+
+**Date**: 2026-11-17
+**Task**: SSH关闭核验依据与公开收口准备（#205）
+**Branch**: `feature/ssh-environment`
+
+### Summary
+
+A核销父规格§2至§6及九票26条AC，无产品改动、阻断或必需证据缺口；B独立只读Standards 0 / Spec 0、closure_ready=true。最终GitHub状态、评论与closed_at以本轮 `outputs/ssh-checks/205/closure/run-20261117-080548/closure-receipt.json` 的独立实读为准，本条不预写CLOSED。
+Topics: [.trellis/research/archive/2026-11/ssh-environment-finalization.md](../../research/archive/2026-11/ssh-environment-finalization.md)
+
+### Main Changes
+
+- 本轮关闭核销依据置前，保留旧主题与Session177/178；当前用户已明确授权满足条件后发表评论并以completed实际关闭。
+- recorder使用 `--no-commit --topic` 仍因journal-1旧Session28重复在写前exit1，workspace Markdown零写；写前字节CAS后手工append-only追加唯一179和对应index，保留失败收据，不冒称脚本成功。
+
+### Testing
+
+- 复用产品/测试 `3ebfbadaa509db4a73d6195fa6e778eef3b2b137` 独立11门禁全部exit0，以及 `77aa5719966fc876d96193d5ac4a2494dcc1effa` 完整just ci exit0、1131.402秒、17/17阶段；输入/原日志hash已核，新文档HEAD未重跑CI。
+- 本轮仅文档读回、链接/scoped diff和保护状态核验；S1原生+fixture、S2真实60/60、S3独立66/66及恢复/未测边界见主题；WebDAV额外生产验收excluded_by_user。
+
+### Status
+
+关闭依据已核销，文档提交后由协调者完成公开评论、completed关闭、独立回读与关票收据；未push/PR/merge，无新产品提交或运行设施。
+
+### Next Steps
+
+- 协调者核最终HEAD/原五脏/refs/署名与评论，执行已授权公开动作并在ignored收据记录实际终态，不再安排关票后tracked提交。

@@ -1,6 +1,9 @@
 //! Captured OpenCode/Antigravity directory resources; no current-directory fallback.
+#[cfg(test)]
 use super::roots;
+use crate::runtime::remote_resources::{self as remote, Remote};
 use crate::runtime::{ConfigSource, Services};
+use ccr_app::resources::environment::Family;
 use ccr_app::{
     resources::platform_files as files,
     runtime::{AdmissionError, Completion, EnvironmentId, Platform, RequestKey, TaskSubscription},
@@ -20,6 +23,7 @@ pub enum Scope {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
+    Remote(ccr_app::environments::io::Error),
     Unsupported,
     Invalid,
     Storage,
@@ -51,14 +55,27 @@ pub fn platform(kind: Kind) -> Platform {
     }
 }
 fn gate(key: &RequestKey, kind: Kind) -> Result<(), Error> {
-    if matches!(key.environment, EnvironmentId::Local(_)) && key.platform == platform(kind) {
+    if ccr_app::environments::EnvironmentPolicy::FollowsEnvironment
+        .admit(&key.environment)
+        .is_ok()
+        && key.platform == platform(kind)
+    {
         Ok(())
     } else {
         Err(Error::Unsupported)
     }
 }
+#[cfg(test)]
 fn store(source: &ConfigSource, kind: Kind, scope: &Scope) -> Result<files::Store, Error> {
-    let roots = roots(source).map_err(|_| Error::Storage)?;
+    store_at(source, kind, scope, &None)
+}
+fn store_at(
+    source: &ConfigSource,
+    kind: Kind,
+    scope: &Scope,
+    remote: &Remote,
+) -> Result<files::Store, Error> {
+    let roots = remote::roots(source, remote).map_err(|_| Error::Storage)?;
     let root = match scope {
         Scope::User => match kind {
             Kind::OpenCodeAgent => roots.home.join(".config/opencode/agents"),
@@ -68,6 +85,11 @@ fn store(source: &ConfigSource, kind: Kind, scope: &Scope) -> Result<files::Stor
             Kind::Extension => roots.home.join(".gemini/antigravity-cli/extensions"),
         },
         Scope::Project(project) => {
+            let project = if let Some(remote) = remote {
+                remote.root().to_path_buf()
+            } else {
+                project.clone()
+            };
             if kind == Kind::Extension {
                 return Err(Error::Unsupported);
             }
@@ -76,7 +98,7 @@ fn store(source: &ConfigSource, kind: Kind, scope: &Scope) -> Result<files::Stor
             }
             let canonical = project.canonicalize().map_err(|_| Error::Invalid)?;
             if let Some(layout) = source.benchmark() {
-                layout.check_path(project).map_err(|_| Error::UnsafePath)?;
+                layout.check_path(&project).map_err(|_| Error::UnsafePath)?;
             }
             if source.is_fixture()
                 && !source.is_benchmark()
@@ -103,6 +125,7 @@ fn store(source: &ConfigSource, kind: Kind, scope: &Scope) -> Result<files::Stor
 }
 #[derive(Clone)]
 pub struct Row {
+    pub unsupported: bool,
     pub key: String,
     pub path: String,
     pub bytes: u64,
@@ -111,6 +134,7 @@ pub struct Row {
     pub malformed: bool,
 }
 pub struct Session {
+    remote: Remote,
     file: files::Session,
     environment: EnvironmentId,
     pub kind: Kind,
@@ -118,7 +142,13 @@ pub struct Session {
 }
 impl Session {
     pub fn source_label(&self) -> String {
-        redact_log_text(&self.file.path().to_string_lossy())
+        redact_log_text(
+            &self
+                .remote
+                .as_ref()
+                .and_then(|r| r.label(self.file.path()).ok())
+                .unwrap_or_else(|| self.file.path().to_string_lossy().into_owned()),
+        )
     }
     pub fn initial_text(&self) -> String {
         if self.creating {
@@ -144,19 +174,43 @@ pub enum ReadResult {
     Listed(Vec<Row>),
     Opened(Arc<Session>),
 }
+#[cfg(test)]
 fn read(source: &ConfigSource, key: &RequestKey, request: Read) -> Result<ReadResult, Error> {
+    read_at(source, key, request, None)
+}
+fn read_at(
+    source: &ConfigSource,
+    key: &RequestKey,
+    request: Read,
+    remote: Remote,
+) -> Result<ReadResult, Error> {
     let (kind, scope) = match &request {
         Read::List { kind, scope } | Read::Open { kind, scope, .. } => (*kind, scope),
     };
     gate(key, kind)?;
-    let store = store(source, kind, scope)?;
+    if remote.is_none() && !matches!(key.environment, EnvironmentId::Local(_)) {
+        return Err(Error::Unsupported);
+    }
+    let store = store_at(source, kind, scope, &remote)?;
     match request {
-        Read::List { .. } => Ok(ReadResult::Listed(
-            store
+        Read::List { .. } => {
+            let mut rows: Vec<Row> = store
                 .list()?
                 .into_iter()
                 .map(|row| Row {
-                    path: redact_log_text(&store.directory().join(&row.key).to_string_lossy()),
+                    unsupported: false,
+                    path: redact_log_text(
+                        &remote
+                            .as_ref()
+                            .and_then(|r| r.label(&store.directory().join(&row.key)).ok())
+                            .unwrap_or_else(|| {
+                                store
+                                    .directory()
+                                    .join(&row.key)
+                                    .to_string_lossy()
+                                    .into_owned()
+                            }),
+                    ),
                     bytes: row.bytes,
                     key: row.key,
                     description: row
@@ -167,8 +221,20 @@ fn read(source: &ConfigSource, key: &RequestKey, request: Read) -> Result<ReadRe
                         .map(|v| redact_log_text(&v).chars().take(80).collect()),
                     malformed: row.malformed,
                 })
-                .collect(),
-        )),
+                .collect();
+            if let Some(remote) = &remote {
+                rows.extend(remote.unsupported.iter().map(|path| Row {
+                    key: path.clone(),
+                    path: path.clone(),
+                    bytes: 0,
+                    description: Some("Unsupported source / 不支持的来源".into()),
+                    version: None,
+                    malformed: false,
+                    unsupported: true,
+                }));
+            }
+            Ok(ReadResult::Listed(rows))
+        }
         Read::Open {
             kind,
             scope: _,
@@ -187,6 +253,7 @@ fn read(source: &ConfigSource, key: &RequestKey, request: Read) -> Result<ReadRe
             }
             Ok(ReadResult::Opened(Arc::new(Session {
                 file,
+                remote,
                 environment: key.environment.clone(),
                 kind,
                 creating,
@@ -241,6 +308,15 @@ impl Drop for Pending {
         }
     }
 }
+fn directory(kind: Kind) -> &'static str {
+    match kind {
+        Kind::OpenCodeAgent => ".config/opencode/agents",
+        Kind::OpenCodeCommand => ".config/opencode/commands",
+        Kind::OpenCodePlugin => ".config/opencode/plugins",
+        Kind::AntigravityCommand => ".gemini/commands",
+        Kind::Extension => ".gemini/antigravity-cli/extensions",
+    }
+}
 impl Services {
     pub fn platform_files_read(
         &self,
@@ -249,8 +325,105 @@ impl Services {
     ) -> Result<TaskSubscription<ReadResult, Error>, AdmissionError> {
         let source = self.source.clone();
         let run_key = key.clone();
-        self.executor
-            .read(key, move |_, _| read(&source, &run_key, request))
+        let io = self.resource_io(&key.environment);
+        self.executor.read(key, move |cancel, _| {
+            let (kind, scope, target) = match &request {
+                Read::List { kind, scope } => (*kind, scope, None),
+                Read::Open {
+                    kind, scope, name, ..
+                } => (*kind, scope, Some(name)),
+            };
+            let project = match scope {
+                Scope::User => None,
+                Scope::Project(path) => Some(path.as_path()),
+            };
+            let io = remote::project_io(io, project, cancel.clone()).map_err(Error::Remote)?;
+            if kind == Kind::OpenCodePlugin && io.is_some() {
+                let io = io.ok_or(Error::Unsupported)?;
+                if !matches!(request, Read::List { .. }) {
+                    return Err(Error::Unsupported);
+                }
+                let directory = if project.is_some() {
+                    ".opencode/plugins"
+                } else {
+                    ".config/opencode/plugins"
+                };
+                let mut rows = Vec::new();
+                for entry in tokio::runtime::Handle::current()
+                    .block_on(io.entries(directory, cancel.clone()))
+                    .map_err(Error::Remote)?
+                    .unwrap_or_default()
+                {
+                    let path = format!("{directory}/{}", entry.name);
+                    if rows.len() >= 1000 {
+                        return Err(Error::TooLarge);
+                    }
+                    if entry.kind == ccr_app::environments::io::EntryKind::Unsupported
+                        || ccr_app::environments::config_mirror::validate_materialized_paths([
+                            path.as_str()
+                        ])
+                        .is_err()
+                    {
+                        rows.push(Row {
+                            unsupported: true,
+                            key: entry.name,
+                            path,
+                            bytes: 0,
+                            description: Some("Unsupported source / 不支持的来源".into()),
+                            version: None,
+                            malformed: false,
+                        });
+                        continue;
+                    }
+                    if entry.kind != ccr_app::environments::io::EntryKind::File
+                        || !entry.name.rsplit_once('.').is_some_and(|(_, extension)| {
+                            files::opencode::is_plugin_extension(extension)
+                        })
+                    {
+                        continue;
+                    }
+                    let bytes = tokio::runtime::Handle::current()
+                        .block_on(io.metadata(&path, cancel.clone()))
+                        .map_err(Error::Remote)?
+                        .map(|m| m.0)
+                        .unwrap_or_default();
+                    let label = match io.roots().relative(&path).map_err(Error::Remote)? {
+                        ccr_app::environments::io::EnvironmentPath::Ssh(path) => {
+                            path.as_str().to_owned()
+                        }
+                        _ => return Err(Error::Unsupported),
+                    };
+                    rows.push(Row {
+                        unsupported: false,
+                        key: entry.name,
+                        path: label,
+                        bytes,
+                        description: None,
+                        version: None,
+                        malformed: false,
+                    });
+                }
+                return Ok(ReadResult::Listed(rows));
+            }
+            let mut targets = std::collections::BTreeSet::new();
+            if let Some(name) = target {
+                targets.insert(format!(
+                    "{}/{name}",
+                    if project.is_some() && platform(kind) == Platform::OpenCode {
+                        match kind {
+                            Kind::OpenCodeAgent => ".opencode/agents",
+                            Kind::OpenCodeCommand => ".opencode/commands",
+                            _ => return Err(Error::Unsupported),
+                        }
+                    } else {
+                        directory(kind)
+                    }
+                ));
+            }
+            let family = Family::PlatformFile(kind, project.is_some());
+            let remote = remote::capture(Ok(io), family, targets, cancel).map_err(Error::Remote)?;
+            read_at(&source, &run_key, request, remote)
+        })
     }
     pub fn platform_files_state(&self) -> Arc<OperationState> {
         self.platform_file_operations.updates.borrow().clone()
@@ -296,13 +469,17 @@ impl Services {
             finished: false,
         };
         self.executor
-            .job(key, move |_, _| {
+            .job(key, move |cancel, _| {
                 let mut pending = pending;
                 let result = match content {
                     Some(content) => session.file.save(&content).map(|_| Outcome::Saved),
                     None => session.file.delete().map(|_| Outcome::Deleted),
                 }
-                .map_err(Error::from);
+                .map_err(Error::from)
+                .and_then(|outcome| {
+                    remote::publish(&session.remote, cancel).map_err(Error::Remote)?;
+                    Ok(outcome)
+                });
                 owner.finish(result);
                 pending.finished = true;
                 match result {

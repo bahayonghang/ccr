@@ -8,13 +8,11 @@ use crate::{
 };
 use ccr_app::{
     config::ConfigRow,
-    runtime::{
-        AdmissionError, Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent,
-    },
+    runtime::{AdmissionError, Completion, Platform, RequestKey, ResponseGate, TaskEvent},
 };
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
-    ActiveTheme, Selectable,
+    ActiveTheme, Disableable, Selectable,
     button::{Button, ButtonVariants},
     input::{Input, InputEvent, InputState},
 };
@@ -28,6 +26,7 @@ use std::sync::Arc;
 
 pub struct ConfigurationApp {
     services: Services,
+    catalog_environment: ccr_app::runtime::EnvironmentId,
     rows: Arc<Vec<ConfigRow>>,
     all_rows: Arc<Vec<ConfigRow>>,
     provider_filter: Option<String>,
@@ -65,6 +64,16 @@ impl ConfigurationApp {
         self.generation
     }
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
+        Self::build(services, true, window, cx)
+    }
+    pub(crate) fn new_deferred(
+        services: Services,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Self {
+        Self::build(services, false, window, cx)
+    }
+    fn build(services: Services, load: bool, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let search = cx.new(|cx| {
             InputState::new(window, cx).placeholder(text(
                 cx,
@@ -94,6 +103,7 @@ impl ConfigurationApp {
             cx.notify();
         });
         let mut this = Self {
+            catalog_environment: services.environment(),
             services,
             rows: Arc::new(Vec::new()),
             all_rows: Arc::new(Vec::new()),
@@ -123,14 +133,46 @@ impl ConfigurationApp {
             #[cfg(test)]
             last_rendered_count: 0,
         };
-        this.refresh(cx);
+        if load {
+            this.refresh(cx);
+        }
         this
     }
     pub fn focus_main(&self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.showing_history(cx) {
+            let focus = self.tools.read(cx).output_focus(cx);
+            window.focus(&focus, cx);
+            return;
+        }
         window.focus(&self.search.read(cx).focus_handle(cx), cx);
+    }
+    pub fn showing_history(&self, cx: &gpui_kit::App) -> bool {
+        self.tools.read(cx).showing_history()
+    }
+    #[cfg(test)]
+    pub fn history_busy(&self, cx: &gpui_kit::App) -> bool {
+        self.tools.read(cx).busy()
+    }
+    pub fn open_history(
+        &mut self,
+        platform: Platform,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.suspend(cx);
+        self.platform = platform;
+        self.rows = Arc::new(Vec::new());
+        self.all_rows = Arc::new(Vec::new());
+        self.selected = None;
+        self.detail_open = false;
+        self.error = None;
+        self.tools
+            .update(cx, |tools, cx| tools.open_history(platform, window, cx));
+        cx.notify();
     }
     /// Navigation dismisses the read subscription, not the application-owned runner.
     pub fn suspend(&mut self, cx: &mut Context<Self>) {
+        self.generation += 1;
         self.read_task = None;
         self.gate.clear();
         self.loading = false;
@@ -162,15 +204,13 @@ impl ConfigurationApp {
     pub fn refresh(&mut self, cx: &mut Context<Self>) {
         self.read_task = None;
         self.generation += 1;
+        let environment = self.services.environment();
+        if self.catalog_environment != environment {
+            self.selected = None;
+        }
+        self.catalog_environment = environment.clone();
         let key = RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment,
             platform: self.platform,
             generation: self.generation,
             request_id: self.generation,
@@ -180,6 +220,7 @@ impl ConfigurationApp {
         self.error = None;
         // Drop the previous platform's rows before the next catalog returns.
         self.rows = Arc::new(Vec::new());
+        self.all_rows = Arc::new(Vec::new());
         self.detail_open = false;
         match self.services.profile_rows(key.clone(), String::new()) {
             Ok(mut subscription) => {
@@ -565,6 +606,52 @@ fn profile_details(row: &ConfigRow, cx: &gpui_kit::App) -> gpui_kit::Div {
 
 impl Render for ConfigurationApp {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        if self.showing_history(cx) {
+            let busy = self.tools.read(cx).busy();
+            return div()
+                .flex()
+                .flex_col()
+                .size_full()
+                .min_h_0()
+                .p(px(theme::CONTENT_PADDING))
+                .gap(px(theme::CONTROL_GAP))
+                .child(div().id("configuration-history").test_support().child(text(
+                    cx,
+                    "Application operation records · independent of the execution environment",
+                    "应用操作记录 · 不随执行环境切换",
+                )))
+                .child(
+                    div().flex().items_center().child(semantics::button(
+                        Button::new("configuration-history-back")
+                            .label(if busy {
+                                text(cx, "Reading operation records…", "正在读取操作记录…")
+                            } else {
+                                text(cx, "Back to profiles", "返回配置方案")
+                            })
+                            .disabled(busy)
+                            .ghost()
+                            .on_click(cx.listener(|this, _, window, cx| {
+                                this.tools
+                                    .update(cx, |tools, cx| tools.close_history(window, cx));
+                                let available = match this.services.environment() {
+                                    ccr_app::runtime::EnvironmentId::Local(_) => true,
+                                    ccr_app::runtime::EnvironmentId::Ssh(id) => {
+                                        this.services.ssh_connected(&id)
+                                    }
+                                    _ => false,
+                                };
+                                if available {
+                                    this.refresh(cx);
+                                }
+                                cx.notify();
+                            })),
+                        busy,
+                        busy,
+                        cx,
+                    )),
+                )
+                .child(self.tools.clone());
+        }
         let split = window.viewport_size().width >= px(theme::SPLIT_WIDTH);
         let muted = cx.theme().muted_foreground;
         let selected = self.selected.clone();
@@ -1071,6 +1158,58 @@ mod tests {
     use gpui_kit::test::TestWindowExt;
     use gpui_kit::{TestAppContext, WindowOptions};
     use std::time::Duration;
+    #[gpui_kit::test]
+    fn refresh_hides_previous_local_and_host_catalog_metadata_before_new_data_returns(
+        cx: &mut TestAppContext,
+    ) {
+        for previous in [
+            ccr_app::runtime::EnvironmentId::Local("old-local".into()),
+            ccr_app::runtime::EnvironmentId::Ssh("old-host".into()),
+        ] {
+            let root = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
+            let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+            let services = Services::new(
+                owner.handle(),
+                ConfigSource::Fixture {
+                    profiles: root.path().join("must-not-read.toml"),
+                    registry: root.path().join("registry.toml"),
+                    delay: Duration::ZERO,
+                },
+            );
+            services.select_environment(previous);
+            let (handle, view) = cx.update(|cx| {
+                gpui_kit::init(cx);
+                gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+                    cx.new(|cx| {
+                        let mut view = ConfigurationApp::new_deferred(services.clone(), window, cx);
+                        let mut cached = row(0);
+                        cached.provider = Some("previous-provider".into());
+                        cached.tags = Some(vec!["previous-tag".into()]);
+                        view.accept_rows(Arc::new(vec![cached]));
+                        view.selected = Some("profile-00000".into());
+                        view
+                    })
+                })
+                .unwrap_or_else(|_| panic!("window"))
+            });
+            cx.update_window(handle, |_, window, cx| {
+                window.render_frame(cx);
+                assert!(window.try_find("configuration-provider-0").is_some());
+                assert!(window.try_find("configuration-tag-0").is_some());
+                services
+                    .select_environment(ccr_app::runtime::EnvironmentId::Ssh("new-host".into()));
+                view.update(cx, |view, cx| view.refresh(cx));
+                window.render_frame(cx);
+                assert!(view.read(cx).all_rows.is_empty());
+                assert!(view.read(cx).selected.is_none());
+                assert!(window.try_find("configuration-provider-0").is_none());
+                assert!(window.try_find("configuration-tag-0").is_none());
+                window.remove_window();
+            })
+            .unwrap_or_else(|_| panic!("catalog transition"));
+            owner.shutdown();
+        }
+    }
     fn row(index: usize) -> ConfigRow {
         ConfigRow {
             version: "fixture-v1".into(),

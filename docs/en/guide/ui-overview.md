@@ -38,7 +38,15 @@ Use `bun run tauri:dev` when native windows and Tauri invokes are required. Plai
 
 Factory Droid is retained in the CLI as a compatibility adapter (`legacy_adapter`) and Qwen remains partial/stub support; the current router does not provide dedicated platform home pages for them. Use [Platform Support](/en/reference/platforms/) for platform status and the [UI Module Map](./ui-modules) for actual UI pages.
 
-## Data Boundary
+## Execution Environments In The Native GPUI Desktop
+
+The independent `ccr-desktop` (`ccr-gpui`) switches the active Local/SSH execution environment from the bottom status bar. Global Settings has Appearance, Workbench preferences, Execution environments, and Diagnostics pages. Platform configuration, MCP, Agent sessions, commands/installation, sync, and usage follow the selected environment. A failed connection retains the SSH selection and never falls back to local data. Check-ins and global settings remain available offline. Tauri keeps its separate system OpenSSH implementation.
+
+SSH usage requires installed llmusage and Python3 with sqlite3. Explicit imports run on that host. Reports use a read-only SQLite backup including committed WAL pages, downloaded over SFTP into a private snapshot (64MiB maximum, ten-minute transfer deadline), then schema/feature-gated by `ccr-usage`. CCR never migrates the remote database. Missing tools, disconnection, snapshot failure, or unconfirmed cleanup show unavailable data rather than local data or invented zeros.
+
+SSH WebDAV supports four fixed file assets and bounded ordinary folders within the captured remote HOME. Sensitive fixed assets retain v2 encryption. Remote profile databases/SQLite sidecars, WebDAV disconnect, and creating new empty destination directories remain unsupported. Multi-file publication can partially complete and retains remote preimage backups. Real-host and cross-platform acceptance require separate verification.
+
+## Tauri Data Boundary
 
 ```text
 Vue view/store

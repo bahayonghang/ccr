@@ -4,6 +4,7 @@ use super::InsightsPaths;
 use super::InsightsRequests;
 #[cfg(test)]
 use crate::runtime::ConfigSource;
+use ccr_app::environments::EnvironmentPolicy;
 use ccr_app::{
     runtime::{CancellationHandle, Completion, EnvironmentId, RequestKey},
     usage::import::{
@@ -243,11 +244,47 @@ impl InsightsRequests {
         if self.services.source.is_benchmark() {
             return Err(Failure::FixtureDisabled);
         }
-        options.recent_days = options.recent_days.max(1);
-        if !matches!(key.environment, EnvironmentId::Local(_)) {
-            return Err(Failure::LocalOnly);
+        // 清理期间 authority 可已撤销，导入准入仍属于旧 runner；先返回 Busy。
+        // 准备路径后仍在同一 owner 锁内二次检查，防止并发 start 都取得准入。
+        if self
+            .services
+            .usage_import
+            .state
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .snapshot
+            .status
+            .active()
+        {
+            return Err(Failure::Busy);
         }
-        let paths = self.paths.clone().ok_or(Failure::Unconfigured)?;
+        options.recent_days = options.recent_days.max(1);
+        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
+        let remote = if local {
+            None
+        } else {
+            Some(
+                self.services
+                    .remote_configuration_io(&key.environment)
+                    .map_err(|_| {
+                        if matches!(key.environment, EnvironmentId::Ssh(_)) {
+                            Failure::Process
+                        } else {
+                            Failure::LocalOnly
+                        }
+                    })?,
+            )
+        };
+        let paths = if local {
+            self.paths.clone().ok_or(Failure::Unconfigured)?
+        } else {
+            let root = self.remote_cache().map_err(|_| Failure::Unconfigured)?;
+            super::InsightsPaths {
+                usage_root: root.clone(),
+                provider_home: root.clone(),
+                archive_db: root.join("unavailable-archive.db"),
+            }
+        };
         if !paths.usage_root.is_absolute() || !paths.provider_home.is_absolute() {
             return Err(Failure::Unconfigured);
         }
@@ -261,17 +298,18 @@ impl InsightsRequests {
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         #[cfg(not(test))]
         let fixture_plan: Option<bool> = None;
-        if fixture && fixture_plan.is_none() {
+        if local && fixture && fixture_plan.is_none() {
             return Err(Failure::FixtureDisabled);
         }
-        if !fixture
+        if local
+            && !fixture
             && super::local_insights_paths()
                 .is_none_or(|local| local.provider_home != paths.provider_home)
         {
             return Err(Failure::SourceRoot);
         }
         #[cfg(test)]
-        if fixture {
+        if local && fixture {
             validate_fixture(&self.services.source, &paths)?;
         }
         let owner = self.services.usage_import.clone();
@@ -311,6 +349,54 @@ impl InsightsRequests {
                     .map_err(|_| LlmusageAdapterError::Cli("runtime unavailable".into()))
                     .and_then(|handle| {
                         handle.block_on(async {
+                            if let Some(io) = remote.as_ref() {
+                                let mut command = SyncCommandOptions {
+                                    source: options.source,
+                                    recent_days: Some(options.recent_days),
+                                    ..Default::default()
+                                };
+                                if io
+                                    .metadata(
+                                        ".ccr/analytics/provider_activation.jsonl",
+                                        cancel.clone(),
+                                    )
+                                    .await
+                                    .map_err(|_| {
+                                        LlmusageAdapterError::Cli("remote_provider_map".into())
+                                    })?
+                                    .is_some()
+                                    && let ccr_app::environments::io::EnvironmentPath::Ssh(path) =
+                                        io.roots()
+                                            .relative(".ccr/analytics/provider_activation.jsonl")
+                                            .map_err(|_| {
+                                                LlmusageAdapterError::Cli(
+                                                    "remote_provider_map".into(),
+                                                )
+                                            })?
+                                {
+                                    command.provider_map = Some(path.as_str().into());
+                                }
+                                let progress_owner = worker_owner.clone();
+                                let summary = ccr_app::usage::import::remote::run_sync(
+                                    io,
+                                    command,
+                                    cancel.clone(),
+                                    Arc::new(move |event| progress_owner.event(event)),
+                                )
+                                .await?;
+                                let _snapshot = ccr_app::usage::import::remote::Snapshot::capture(
+                                    io,
+                                    &requests
+                                        .remote_cache()
+                                        .map_err(|_| {
+                                            LlmusageAdapterError::Cli("remote_cache".into())
+                                        })?
+                                        .join("usage"),
+                                    cancel.clone(),
+                                )
+                                .await?;
+                                return Ok(summary);
+                            }
                             let observe = |event| {
                                 worker_owner.event(event);
                                 std::future::ready(Ok(()))
@@ -333,14 +419,14 @@ impl InsightsRequests {
                     worker_owner.update(|state| {
                         state.snapshot.total_seen = Some(summary.total_seen);
                         state.snapshot.records_imported = summary.total_inserted as u64;
-                        state.snapshot.tools = if options.includes_claude() {
+                        state.snapshot.tools = if local && options.includes_claude() {
                             ToolUpdate::Running
                         } else {
                             ToolUpdate::NotStarted
                         };
                     });
                     let tools =
-                        if options.includes_claude() {
+                        if local && options.includes_claude() {
                             Some(requests.ingest_observer_tools(&paths.provider_home, || {
                                 cancel.is_cancelled()
                             }))

@@ -1,5 +1,6 @@
 //! One captured Claude calendar/report context; SQL remains in ccr-usage.
 use super::*;
+use ccr_app::environments::EnvironmentPolicy;
 use ccr_app::usage::observer::subscription::SubscriptionDto;
 use chrono::Datelike;
 
@@ -55,7 +56,9 @@ impl InsightsRequests {
     ) -> Result<TaskSubscription<Arc<Report>, &'static str>, AdmissionError> {
         let requests = self.clone();
         self.services.executor.read(key.clone(), move |_, _| {
-            if !matches!(key.environment, EnvironmentId::Local(_))
+            if EnvironmentPolicy::LocalOnly
+                .admit(&key.environment)
+                .is_err()
                 || key.platform != ccr_app::runtime::Platform::Claude
             {
                 return Err("Unsupported Claude workbench scope / 不支持此 Claude 工作台作用域");

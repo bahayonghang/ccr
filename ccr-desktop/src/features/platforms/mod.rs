@@ -1,4 +1,6 @@
 //! Native platform settings, scoped source, accounts and OpenCode providers.
+#[cfg(test)]
+use ccr_app::runtime::EnvironmentId;
 mod diagnostics;
 mod forms;
 mod layers;
@@ -17,7 +19,7 @@ use crate::{
 };
 use ccr_app::{
     platform_settings::SaveOutcome,
-    runtime::{Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent},
+    runtime::{Completion, Platform, RequestKey, ResponseGate, TaskEvent},
 };
 use ccr_cli::application::codex_oauth::{NativePhase, NativeStatus};
 use gpui_kit::base::TestSupportExt;
@@ -97,6 +99,13 @@ pub struct PlatformsView {
     selected_account: Option<String>,
 }
 impl PlatformsView {
+    pub fn has_environment_draft(&self, cx: &gpui_kit::App) -> bool {
+        self.form.has_changes(cx)
+            || self.source_mode
+            || self.decision.is_some()
+            || !self.name.read(cx).value().is_empty()
+            || (self.advanced && self.content.read(cx).value().as_str() != "{}")
+    }
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let layers = cx.new(|cx| layers::LayersView::new(services.clone(), window, cx));
         Self {
@@ -220,14 +229,7 @@ impl PlatformsView {
         }
         self.generation += 1;
         let key = RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.services.environment(),
             platform: self.platform,
             generation: self.generation,
             request_id: self.generation,
@@ -265,7 +267,8 @@ impl PlatformsView {
                                     this.message = None;
                                 }
                                 Completion::Success(ResultValue::Saved(SaveOutcome::Conflict)) => this.message = Some("Source changed. Draft and original revision retained. Discard and reload before saving again. / 文件已变化，保留草稿和原始版本，请丢弃并重读".into()),
-                                Completion::Success(ResultValue::Saved(SaveOutcome::Saved { .. }) | ResultValue::AccountChanged { .. }) => {
+                                Completion::Success(ResultValue::SavedWithWarning { outcome: SaveOutcome::Conflict }) => this.message = Some("Source changed. Reload before saving again. / 文件已变化，请重新读取后保存。".into()),
+                                Completion::Success(ResultValue::Saved(SaveOutcome::Saved { .. }) | ResultValue::SavedWithWarning { outcome: SaveOutcome::Saved { .. } } | ResultValue::AccountChanged { .. }) => {
                                     // 已提交后必须重新读取，不能携旧版本重复提交。
                                     this.session = None;
                                     // 账户集合可能已变化（重命名、删除），旧选中项不再可信。
@@ -273,8 +276,14 @@ impl PlatformsView {
                                     this.pending_form = true;
                                     this.source_mode = false;
                                     this.pending_content = Some(String::new());
-                                    this.message = Some(if matches!(result.as_ref(), Completion::Success(ResultValue::AccountChanged { warning: true })) {
-                                        "Account operation committed, but authentication suppressors or diagnosis warnings remain. Reload and inspect existing CCR diagnosis before retrying. / 账户操作已提交，但仍有认证抑制源或诊断警告，请重读并检查 CCR 诊断。"
+                                    this.message = Some(if matches!(result.as_ref(), Completion::Success(ResultValue::SavedWithWarning { .. })) {
+                                        "Settings saved. The application operation record could not be saved; reload before another edit. / 设置已保存，但应用操作记录未保存，请重新读取后再编辑。"
+                                    } else if matches!(result.as_ref(), Completion::Success(ResultValue::AccountChanged { warning: true })) {
+                                        if matches!(this.services.environment(), ccr_app::runtime::EnvironmentId::Ssh(_)) {
+                                            "Operation committed, but authentication suppressors or operation-record warnings remain. Reload and inspect CCR before retrying. / 操作已提交，但仍有认证抑制源或操作记录警告，请重读并检查 CCR。"
+                                        } else {
+                                            "Account operation committed, but authentication suppressors or diagnosis warnings remain. Reload and inspect existing CCR diagnosis before retrying. / 账户操作已提交，但仍有认证抑制源或诊断警告，请重读并检查 CCR 诊断。"
+                                        }
                                     } else {
                                         "Operation committed. Reload to start a new edit session. / 操作已提交，请重新读取以开始新编辑"
                                     }.into());
@@ -362,14 +371,7 @@ impl PlatformsView {
     }
     fn oauth_key(&self) -> RequestKey {
         RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.services.environment(),
             platform: Platform::Codex,
             generation: self.oauth_generation,
             request_id: self.oauth_generation,
@@ -1024,6 +1026,12 @@ impl PlatformsView {
         cx: &mut Context<Self>,
         oauth_active: bool,
     ) -> gpui_kit::Stateful<gpui_kit::Div> {
+        if matches!(
+            self.services.environment(),
+            ccr_app::runtime::EnvironmentId::Ssh(_)
+        ) {
+            return root.child(text(cx, "Remote file accounts are available. Browser OAuth and local process diagnostics are not connected for SSH.", "可管理远程文件账户；浏览器 OAuth 与本机进程诊断尚未接入 SSH。"));
+        }
         if self.platform == Platform::Codex {
             let phase = self.oauth_status.as_ref().map(|status| status.phase);
             root = root.child(div().flex().flex_wrap().gap(px(theme::CONTROL_GAP))
@@ -1097,7 +1105,12 @@ impl PlatformsView {
                     Button::new("platform-account-save")
                         .label(text(cx, "Save current login", "保存当前登录"))
                         .on_click(cx.listener(|this, _, window, cx| {
-                            if this.platform == Platform::Codex {
+                            if this.platform == Platform::Codex
+                                && matches!(
+                                    this.services.environment(),
+                                    ccr_app::runtime::EnvironmentId::Local(_)
+                                )
+                            {
                                 this.review_codex_save(window, cx);
                                 return;
                             }
@@ -1399,6 +1412,16 @@ impl PlatformsView {
         blocked: bool,
         cx: &mut Context<Self>,
     ) -> gpui_kit::Stateful<gpui_kit::Div> {
+        if matches!(
+            self.services.environment(),
+            ccr_app::runtime::EnvironmentId::Ssh(_)
+        ) {
+            return root.child(text(
+                cx,
+                "Quota refresh is not connected for SSH.",
+                "配额刷新尚未接入 SSH。",
+            ));
+        }
         root = root.child(text(cx,"Quota fetch contacts the provider and may refresh saved credentials and quota history. Demo mode disables this action.","配额查询会连接供应方，并可能刷新已保存凭据和配额历史。演示模式禁用此操作。"));
         let selected = self.selected_account();
         let mut actions = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
@@ -1555,6 +1578,9 @@ impl PlatformsView {
                     false,
                     cx,
                 ));
+        }
+        if self.platform == Platform::Gemini && !self.source_mode {
+            return root;
         }
         if self.platform == Platform::OpenCode && self.surface == Surface::Tui && !self.source_mode
         {
@@ -1857,10 +1883,14 @@ impl Render for PlatformsView {
             root = root.child(tui);
         }
         // 配置来源是设置 tab 的页内开关，账户 tab 不显示。
-        if matches!(
-            self.platform,
-            Platform::Claude | Platform::Codex | Platform::Grok
-        ) && self.surface == Surface::Settings
+        if matches!(self.surface, Surface::Settings | Surface::LegacySettings)
+            && (matches!(
+                self.platform,
+                Platform::Claude | Platform::Codex | Platform::Grok
+            ) || matches!(
+                self.services.environment(),
+                ccr_app::runtime::EnvironmentId::Ssh(_)
+            ))
         {
             root = root.child(semantics::button(
                 Button::new("platform-show-layers")
@@ -1926,12 +1956,19 @@ impl Render for PlatformsView {
             if self.surface == Surface::Auth {
                 root = self.render_oauth(root, blocked, cx, oauth_active);
                 root = self.render_accounts(root, blocked, cx);
-                if self.platform == Platform::Codex {
+                if self.platform == Platform::Codex
+                    && matches!(
+                        self.services.environment(),
+                        ccr_app::runtime::EnvironmentId::Local(_)
+                    )
+                {
                     root = root.child(self.render_codex_diagnostics(window, cx));
                 }
             } else if self.surface == Surface::Models {
-                root = root.child(text(cx,"Local built-in and custom model catalog. This list does not establish provider availability.","本地内置与自定义模型目录。此列表不代表供应方可用性。"));
-            } else if self.platform != Platform::Gemini {
+                root = root.child(if session.remote.is_some() {
+                    text(cx,"Built-in models and this SSH host's custom model catalog. This list does not establish provider availability.","内置模型与此 SSH 主机的自定义模型目录。此列表不代表供应方可用性。")
+                } else { text(cx,"Local built-in and custom model catalog. This list does not establish provider availability.","本地内置与自定义模型目录。此列表不代表供应方可用性。") });
+            } else if self.platform != Platform::Gemini || session.remote.is_some() {
                 root = self.render_editor(root, blocked, cx);
             }
             // 运行设置文件里的供应商条目（OpenCode）单独归入供应商目录，不与运行设置合并。
@@ -1948,15 +1985,19 @@ impl Render for PlatformsView {
         } else if self.busy {
             root = root.child(text(
                 cx,
-                "Reading local settings. No result yet.",
-                "正在读取本地设置。还没有结果。",
+                "Reading current environment settings. No result yet.",
+                "正在读取当前执行环境的设置。还没有结果。",
             ));
         } else {
-            root = root.child(text(cx, "Load the selected local surface to begin. Fixture roots are isolated and visibly labeled by the shell.", "读取所选本地功能后开始。演示路径已隔离并由外壳标记。"));
+            root = root.child(text(
+                cx,
+                "Load settings from the current execution environment to begin.",
+                "读取当前执行环境的设置后开始。",
+            ));
         }
         // 配置来源是设置表单之后的页内只读展开区；表单与保存仍在原位可用。
         // 复用同一个 LayersView 实体，展开与收起不重建焦点所有者。
-        if self.layers_open && self.surface == Surface::Settings {
+        if self.layers_open && matches!(self.surface, Surface::Settings | Surface::LegacySettings) {
             root = root.child(self.layers.clone());
         }
         if let Some(message) = &self.message {

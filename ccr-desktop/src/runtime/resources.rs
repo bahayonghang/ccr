@@ -1,4 +1,7 @@
 //! Fixed resource targets on captured roots, using the shared guarded writer.
+use super::remote_resources::{self as remote, Remote};
+use ccr_app::environments::EnvironmentPolicy;
+use ccr_app::resources::environment::Family;
 pub mod claude_files;
 pub mod codex_agents;
 pub mod platform_files;
@@ -14,6 +17,7 @@ use std::{path::PathBuf, sync::Arc};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ResourceError {
+    Remote(ccr_app::environments::io::Error),
     Unsupported,
     Invalid,
     Storage,
@@ -21,6 +25,7 @@ pub enum ResourceError {
 impl ResourceError {
     pub fn message(self) -> &'static str {
         match self {
+            Self::Remote(error) => remote::message(error),
             Self::Unsupported => {
                 "This resource action is not supported in this environment or platform. / 此环境或平台不支持该资源操作"
             }
@@ -45,11 +50,20 @@ pub struct PromptRow {
 
 /// Scoped instruction text can contain private data and has no Debug/Serialize.
 pub struct PromptSession {
+    remote: Remote,
     roots: PlatformRoots,
     pub spec: PromptFileSpec,
     pub snapshot: Snapshot,
     environment: EnvironmentId,
     platform: Platform,
+}
+impl PromptSession {
+    pub fn source_label(&self) -> String {
+        self.remote
+            .as_ref()
+            .and_then(|remote| remote.label(&self.snapshot.source).ok())
+            .unwrap_or_else(|| self.snapshot.source.to_string_lossy().into_owned())
+    }
 }
 pub enum ResourceCommand {
     ListClaudeExtensions,
@@ -109,12 +123,25 @@ pub(super) fn roots(source: &ConfigSource) -> Result<PlatformRoots, ResourceErro
     }
 }
 
+#[cfg(test)]
 fn execute(
     source: &ConfigSource,
     key: &RequestKey,
     command: ResourceCommand,
 ) -> Result<ResourceResult, ResourceError> {
-    if !matches!(key.environment, EnvironmentId::Local(_)) {
+    execute_at(source, key, command, None)
+}
+fn execute_at(
+    source: &ConfigSource,
+    key: &RequestKey,
+    command: ResourceCommand,
+    remote: Remote,
+) -> Result<ResourceResult, ResourceError> {
+    if remote.is_none()
+        && EnvironmentPolicy::LocalOnly
+            .admit(&key.environment)
+            .is_err()
+    {
         return Err(ResourceError::Unsupported);
     }
     // Resolve capability before default roots, so unsupported targets cannot fall back.
@@ -125,21 +152,37 @@ fn execute(
             if key.platform != Platform::Claude {
                 return Err(ResourceError::Unsupported);
             }
-            let roots = roots(source)?;
-            Ok(ResourceResult::Extensions(
-                ccr_app::resources::claude_extensions::discover(
-                    &roots.claude.config_dir,
-                    &roots.claude.settings_file,
-                    &roots.ccr.join("backups/claude-resources"),
-                    &roots.locks,
-                ),
-            ))
+            let roots = remote::roots(source, &remote)?;
+            let mut sources = ccr_app::resources::claude_extensions::discover(
+                &roots.claude.config_dir,
+                &roots.claude.settings_file,
+                &roots.ccr.join("backups/claude-resources"),
+                &roots.locks,
+            );
+            if let Some(remote) = &remote
+                && !remote.unsupported.is_empty()
+            {
+                use ccr_app::resources::claude_extensions::{Entry, Source, State};
+                sources.push(Source {
+                    label: "Unsupported remote sources",
+                    state: State::Unsafe,
+                    entries: remote
+                        .unsupported
+                        .iter()
+                        .map(|path| Entry {
+                            text: path.clone(),
+                            same_name: None,
+                        })
+                        .collect(),
+                });
+            }
+            Ok(ResourceResult::Extensions(sources))
         }
         ResourceCommand::ExportClaudeLegacy { full } => {
             if key.platform != Platform::Claude {
                 return Err(ResourceError::Unsupported);
             }
-            let roots = roots(source)?;
+            let roots = remote::roots(source, &remote)?;
             ccr_app::resources::claude_extensions::legacy_export(&roots.claude.settings_file, full)
                 .map(|content| ResourceResult::LegacyExport { content, full })
                 .map_err(|_| ResourceError::Storage)
@@ -158,7 +201,7 @@ fn execute(
                 .map_err(|_| ResourceError::Storage)
         }
         ResourceCommand::ListPrompts => {
-            let roots = roots(source)?;
+            let roots = remote::roots(source, &remote)?;
             let rows = specs
                 .into_iter()
                 .map(|spec| {
@@ -173,7 +216,11 @@ fn execute(
                         filename: spec.filename,
                         exists: description["exists"].as_bool().unwrap_or(false),
                         size: description["size"].as_u64(),
-                        path,
+                        path: remote
+                            .as_ref()
+                            .and_then(|r| r.label(&path).ok())
+                            .map(PathBuf::from)
+                            .unwrap_or(path),
                     }
                 })
                 .collect();
@@ -184,7 +231,7 @@ fn execute(
                 .into_iter()
                 .find(|spec| spec.id == id)
                 .ok_or(ResourceError::Invalid)?;
-            let roots = roots(source)?;
+            let roots = remote::roots(source, &remote)?;
             let path = system_prompts::resolve_with_claude_root(
                 &spec,
                 &roots.home,
@@ -194,6 +241,7 @@ fn execute(
                 platform_settings::read_text(&path).map_err(|_| ResourceError::Storage)?;
             Ok(ResourceResult::Opened(Arc::new(PromptSession {
                 roots,
+                remote,
                 spec,
                 snapshot,
                 environment: key.environment.clone(),
@@ -284,14 +332,98 @@ fn save(
     })
 }
 
+fn run(
+    source: &ConfigSource,
+    key: &RequestKey,
+    command: ResourceCommand,
+    io: Result<Option<ccr_app::environments::io::EnvironmentIo>, ccr_app::environments::io::Error>,
+    cancel: tokio_util::sync::CancellationToken,
+) -> Result<ResourceResult, ResourceError> {
+    if matches!(command, ResourceCommand::ListPrompts)
+        && let Some(io) = io.clone().map_err(ResourceError::Remote)?
+    {
+        let specs = system_prompts::platform_specs(key.platform.short_name())
+            .map_err(|_| ResourceError::Unsupported)?;
+        let mut rows = Vec::new();
+        for spec in specs {
+            let relative = match spec.location {
+                system_prompts::PromptLocation::Claude => ".claude/CLAUDE.md",
+                system_prompts::PromptLocation::Codex => ".codex/AGENTS.md",
+                system_prompts::PromptLocation::Gemini => ".gemini/GEMINI.md",
+                system_prompts::PromptLocation::OpenCode => ".config/opencode/AGENTS.md",
+            };
+            let metadata = tokio::runtime::Handle::current()
+                .block_on(io.metadata(relative, cancel.clone()))
+                .map_err(ResourceError::Remote)?;
+            let path = match io
+                .roots()
+                .relative(relative)
+                .map_err(ResourceError::Remote)?
+            {
+                ccr_app::environments::io::EnvironmentPath::Ssh(path) => {
+                    PathBuf::from(path.as_str())
+                }
+                _ => return Err(ResourceError::Unsupported),
+            };
+            rows.push(PromptRow {
+                id: spec.id,
+                filename: spec.filename,
+                exists: metadata.is_some(),
+                size: metadata.map(|m| m.0),
+                path,
+            });
+        }
+        return Ok(ResourceResult::Prompts(rows));
+    }
+    let writing = matches!(
+        command,
+        ResourceCommand::SavePrompt { .. } | ResourceCommand::CreatePrompt { .. }
+    );
+    let remote = match &command {
+        ResourceCommand::SavePrompt { session, .. } | ResourceCommand::CreatePrompt { session } => {
+            session.remote.clone()
+        }
+        ResourceCommand::SaveClaudeLegacyExport { .. } => None,
+        _ => remote::capture(
+            io,
+            if matches!(command, ResourceCommand::ListClaudeExtensions) {
+                Family::Claude
+            } else if matches!(command, ResourceCommand::ExportClaudeLegacy { .. }) {
+                Family::ClaudeCollections
+            } else {
+                Family::Instruction(key.platform)
+            },
+            Default::default(),
+            cancel.clone(),
+        )
+        .map_err(ResourceError::Remote)?,
+    };
+    let result = execute_at(source, key, command, remote.clone())?;
+    if writing
+        && matches!(
+            result,
+            ResourceResult::Saved {
+                conflict: false,
+                ..
+            }
+        )
+    {
+        remote::publish(&remote, cancel).map_err(ResourceError::Remote)?;
+    }
+    Ok(result)
+}
 impl Services {
     pub fn resource_request(
         &self,
-        key: RequestKey,
+        mut key: RequestKey,
         command: ResourceCommand,
     ) -> Result<TaskSubscription<ResourceResult, ResourceError>, AdmissionError> {
+        if matches!(command, ResourceCommand::SaveClaudeLegacyExport { .. }) {
+            key.environment = EnvironmentId::Local("application".into());
+        }
         let source = self.source.clone();
         let run_key = key.clone();
+        let io = self.resource_io(&key.environment);
         if matches!(
             command,
             ResourceCommand::ListPrompts
@@ -299,14 +431,15 @@ impl Services {
                 | ResourceCommand::ListClaudeExtensions
                 | ResourceCommand::ExportClaudeLegacy { .. }
         ) {
-            self.executor
-                .read(key, move |_, _| execute(&source, &run_key, command))
+            self.executor.read(key, move |cancel, _| {
+                run(&source, &run_key, command, io, cancel)
+            })
         } else {
             self.executor.job(key, move |cancel, _| {
                 if cancel.is_cancelled() {
                     return Completion::Cancelled;
                 }
-                match execute(&source, &run_key, command) {
+                match run(&source, &run_key, command, io, cancel) {
                     Ok(value) => Completion::Success(value),
                     Err(error) => Completion::Failed(error),
                 }

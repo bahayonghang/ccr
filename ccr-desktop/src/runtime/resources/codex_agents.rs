@@ -1,5 +1,8 @@
 //! Captured-root Codex agent adapter. Writes and source jobs survive view detachment.
-use super::{ConfigSource, Services, roots};
+use super::{ConfigSource, Services};
+use crate::runtime::remote_resources::{self as remote, Remote};
+use ccr_app::environments::EnvironmentPolicy;
+use ccr_app::resources::environment::Family;
 use ccr_app::{
     codex_agents::{
         AgentStore, CodexAgentContextRequest, CodexAgentRecord,
@@ -37,8 +40,16 @@ impl Scope {
         }
     }
 }
+fn request_scope(scope: &Scope, remote: &Remote) -> Option<CodexAgentContextRequest> {
+    if let (Scope::Project(_), Some(remote)) = (scope, remote) {
+        Scope::Project(remote.root().into()).request()
+    } else {
+        scope.request()
+    }
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
+    Remote(ccr_app::environments::io::Error),
     Unsupported,
     Invalid,
     Storage,
@@ -67,9 +78,14 @@ fn error(value: String) -> Error {
         Error::Storage
     }
 }
-fn store(source: &ConfigSource, scope: &Scope) -> Result<AgentStore, Error> {
-    let roots = roots(source).map_err(|_| Error::Storage)?;
-    if let Scope::Project(path) = scope {
+fn store(source: &ConfigSource, scope: &Scope, remote: &Remote) -> Result<AgentStore, Error> {
+    let roots = remote::roots(source, remote).map_err(|_| Error::Storage)?;
+    if let Scope::Project(original) = scope {
+        let path = if let Some(remote) = remote {
+            remote.root()
+        } else {
+            original.as_path()
+        };
         if !path.is_absolute() {
             return Err(Error::Invalid);
         }
@@ -90,26 +106,36 @@ fn store(source: &ConfigSource, scope: &Scope) -> Result<AgentStore, Error> {
         backups: roots.ccr.join("backups/codex-agents"),
     })
 }
-fn sources(source: &ConfigSource) -> Result<SourceStore, Error> {
-    let agents = store(source, &Scope::Global)?;
+fn sources(source: &ConfigSource, remote: &Remote) -> Result<SourceStore, Error> {
+    let agents = store(source, &Scope::Global, remote)?;
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(30))
         .build()
         .map_err(|_| Error::Storage)?;
-    Ok(if source.is_fixture() {
+    let store = if source.is_fixture() {
         SourceStore::cached(agents, client)
     } else {
         SourceStore::new(agents, client)
+    };
+    Ok(if let Some(remote) = remote {
+        let label = remote
+            .label(&remote.root().join(".codex/agents"))
+            .map_err(Error::Remote)?;
+        store.with_target_root_label(label)
+    } else {
+        store
     })
 }
 #[derive(Clone)]
 pub struct AgentRow {
+    pub unsupported: bool,
     pub key: String,
     pub name: String,
     pub description: Option<String>,
     pub malformed: bool,
 }
 pub struct Session {
+    remote: Remote,
     environment: EnvironmentId,
     pub scope: Scope,
     pub name: String,
@@ -207,52 +233,74 @@ impl Drop for Pending {
     }
 }
 fn local(key: &RequestKey) -> Result<(), Error> {
-    if matches!(key.environment, EnvironmentId::Local(_)) && key.platform == Platform::Codex {
+    if EnvironmentPolicy::FollowsEnvironment
+        .admit(&key.environment)
+        .is_ok()
+        && key.platform == Platform::Codex
+    {
         Ok(())
     } else {
         Err(Error::Unsupported)
     }
 }
-async fn read(source: &ConfigSource, key: &RequestKey, request: Read) -> Result<ReadResult, Error> {
+async fn read(
+    source: &ConfigSource,
+    key: &RequestKey,
+    request: Read,
+    remote: Remote,
+) -> Result<ReadResult, Error> {
     local(key)?;
     match request {
         Read::List(scope) => {
-            let value = store(source, &scope)?
-                .list(scope.request())
+            let value = store(source, &scope, &remote)?
+                .list(request_scope(&scope, &remote))
                 .map_err(error)?;
             let rows: Vec<CodexAgentRecord> =
                 serde_json::from_value(value["agents"].clone()).map_err(|_| Error::Storage)?;
-            Ok(ReadResult::Agents(
-                rows.into_iter()
-                    .map(|r| AgentRow {
-                        key: r
-                            .file_name
-                            .strip_suffix(".toml")
-                            .unwrap_or(&r.file_name)
-                            .into(),
-                        name: redact_log_text(&r.name),
-                        description: r.description.map(|s| redact_log_text(&s)),
-                        malformed: r.parse_error.is_some(),
-                    })
-                    .collect(),
-            ))
+            let mut rows: Vec<AgentRow> = rows
+                .into_iter()
+                .map(|r| AgentRow {
+                    unsupported: false,
+                    key: r
+                        .file_name
+                        .strip_suffix(".toml")
+                        .unwrap_or(&r.file_name)
+                        .into(),
+                    name: redact_log_text(&r.name),
+                    description: r.description.map(|s| redact_log_text(&s)),
+                    malformed: r.parse_error.is_some(),
+                })
+                .collect();
+            if let Some(remote) = &remote {
+                rows.extend(remote.unsupported.iter().map(|path| AgentRow {
+                    key: path.clone(),
+                    name: format!("Unsupported source / 不支持的来源: {path}"),
+                    description: None,
+                    malformed: false,
+                    unsupported: true,
+                }));
+            }
+            Ok(ReadResult::Agents(rows))
         }
         Read::Open(scope, name) => {
-            let store = store(source, &scope)?;
-            let context = store.context(scope.request()).map_err(error)?;
+            let store = store(source, &scope, &remote)?;
+            let context = store
+                .context(request_scope(&scope, &remote))
+                .map_err(error)?;
             let snapshot = store.read(&context, &name).map_err(error)?;
             if !snapshot.exists {
                 return Err(Error::Invalid);
             }
             Ok(ReadResult::Opened(Arc::new(Session {
                 environment: key.environment.clone(),
+                remote,
                 scope,
                 name,
                 snapshot,
             })))
         }
         Read::Sources => {
-            let value = sources(source)?
+            let value = sources(source, &remote)?
                 .codex_list_agent_sources()
                 .await
                 .map_err(error)?;
@@ -261,7 +309,9 @@ async fn read(source: &ConfigSource, key: &RequestKey, request: Read) -> Result<
             Ok(ReadResult::Sources(response.sources))
         }
         Read::Catalog(id) => {
-            let value = sources(source)?.cached_catalog(&id).map_err(error)?;
+            let value = sources(source, &remote)?
+                .cached_catalog(&id)
+                .map_err(error)?;
             let response = serde_json::from_value(value).map_err(|_| Error::Storage)?;
             Ok(ReadResult::Catalog(Box::new(response)))
         }
@@ -275,8 +325,10 @@ fn validate_session(
     if session.environment != key.environment {
         return Err(Error::Invalid);
     }
-    let store = store(source, &session.scope)?;
-    let context = store.context(session.scope.request()).map_err(error)?;
+    let store = store(source, &session.scope, &session.remote)?;
+    let context = store
+        .context(request_scope(&session.scope, &session.remote))
+        .map_err(error)?;
     let current = store.read(&context, &session.name).map_err(error)?;
     if current.source != session.snapshot.source {
         return Err(Error::Invalid);
@@ -290,6 +342,7 @@ async fn mutate(
     source: &ConfigSource,
     key: &RequestKey,
     command: Mutation,
+    remote: Remote,
 ) -> Result<Outcome, Error> {
     local(key)?;
     match command {
@@ -298,9 +351,9 @@ async fn mutate(
             name,
             content,
         } => {
-            store(source, &scope)?
+            store(source, &scope, &remote)?
                 .add(
-                    scope.request(),
+                    request_scope(&scope, &remote),
                     name.clone(),
                     serde_json::json!({"rawToml":content,"name":name}),
                 )
@@ -310,7 +363,7 @@ async fn mutate(
         Mutation::Save { session, content } => {
             validate_session(source, key, &session)?
                 .update(
-                    session.scope.request(),
+                    request_scope(&session.scope, &session.remote),
                     session.name.clone(),
                     serde_json::json!({"rawToml":content}),
                     Some(&session.snapshot.token),
@@ -321,7 +374,7 @@ async fn mutate(
         Mutation::Delete(session) => {
             validate_session(source, key, &session)?
                 .delete(
-                    session.scope.request(),
+                    request_scope(&session.scope, &session.remote),
                     session.name.clone(),
                     Some(&session.snapshot.token),
                 )
@@ -331,7 +384,7 @@ async fn mutate(
         Mutation::Rename { session, name } => {
             validate_session(source, key, &session)?
                 .rename(
-                    session.scope.request(),
+                    request_scope(&session.scope, &session.remote),
                     session.name.clone(),
                     name,
                     Some(&session.snapshot.token),
@@ -345,11 +398,11 @@ async fn mutate(
             name,
         } => {
             let store = validate_session(source, key, &session)?;
-            let _ = self::store(source, &target)?;
+            let _ = self::store(source, &target, &remote)?;
             store
                 .copy(
-                    session.scope.request(),
-                    target.request(),
+                    request_scope(&session.scope, &session.remote),
+                    request_scope(&target, &remote),
                     session.name.clone(),
                     Some(name),
                     Some(&session.snapshot.token),
@@ -358,7 +411,7 @@ async fn mutate(
             Ok(Outcome::Copied)
         }
         Mutation::Source(action) => {
-            let mut store = sources(source)?;
+            let mut store = sources(source, &remote)?;
             match action {
                 SourceAction::Add(url) => {
                     store
@@ -413,8 +466,29 @@ impl Services {
     ) -> Result<TaskSubscription<ReadResult, Error>, AdmissionError> {
         let source = self.source.clone();
         let run_key = key.clone();
-        self.executor.read(key, move |_, _| {
-            tokio::runtime::Handle::current().block_on(read(&source, &run_key, request))
+        let io = self.resource_io(&key.environment);
+        self.executor.read(key, move |cancel, _| {
+            let project = match &request {
+                Read::List(Scope::Project(path)) | Read::Open(Scope::Project(path), _) => {
+                    Some(path.as_path())
+                }
+                _ => None,
+            };
+            let io = remote::project_io(io, project, cancel.clone()).map_err(Error::Remote)?;
+            let remote = remote::capture(
+                Ok(io),
+                if project.is_some() {
+                    Family::CodexProject
+                } else if matches!(request, Read::Sources | Read::Catalog(_)) {
+                    Family::Codex
+                } else {
+                    Family::CodexFiles
+                },
+                Default::default(),
+                cancel,
+            )
+            .map_err(Error::Remote)?;
+            tokio::runtime::Handle::current().block_on(read(&source, &run_key, request, remote))
         })
     }
     pub fn codex_agents_state(&self) -> Arc<OperationState> {
@@ -442,11 +516,94 @@ impl Services {
         };
         let source = self.source.clone();
         let run_key = key.clone();
+        let io = self.resource_io(&key.environment);
         self.executor
-            .job(key, move |_, _| {
+            .job(key, move |cancel, _| {
                 let mut pending = pending;
-                let result =
-                    tokio::runtime::Handle::current().block_on(mutate(&source, &run_key, command));
+                let result = (|| {
+                    if let Mutation::Copy {
+                        session,
+                        target,
+                        name,
+                    } = &command
+                        && let Some(source_remote) = &session.remote
+                    {
+                        validate_session(&source, &run_key, session)?;
+                        let project = match target {
+                            Scope::Project(path) => Some(path.as_path()),
+                            _ => None,
+                        };
+                        let target_io = remote::project_io(io.clone(), project, cancel.clone())
+                            .map_err(Error::Remote)?;
+                        let destination = remote::capture(
+                            Ok(target_io),
+                            if project.is_some() {
+                                Family::CodexProject
+                            } else if matches!(command, Mutation::Source(_)) {
+                                Family::Codex
+                            } else {
+                                Family::CodexFiles
+                            },
+                            Default::default(),
+                            cancel.clone(),
+                        )
+                        .map_err(Error::Remote)?
+                        .ok_or(Error::Unsupported)?;
+                        tokio::runtime::Handle::current()
+                            .block_on(source_remote.mirror.verify(cancel.clone()))
+                            .map_err(Error::Remote)?;
+                        let agent_store = store(&source, &session.scope, &session.remote)?;
+                        agent_store
+                            .copy(
+                                request_scope(&session.scope, &session.remote),
+                                Scope::Project(destination.root().into()).request(),
+                                session.name.clone(),
+                                Some(name.clone()),
+                                Some(&session.snapshot.token),
+                            )
+                            .map_err(error)?;
+                        remote::publish(&Some(destination), cancel).map_err(Error::Remote)?;
+                        return Ok(Outcome::Copied);
+                    }
+                    let remote = match &command {
+                        Mutation::Save { session, .. }
+                        | Mutation::Delete(session)
+                        | Mutation::Rename { session, .. }
+                        | Mutation::Copy { session, .. } => session.remote.clone(),
+                        _ => {
+                            let project = match &command {
+                                Mutation::Add {
+                                    scope: Scope::Project(path),
+                                    ..
+                                } => Some(path.as_path()),
+                                _ => None,
+                            };
+                            let io = remote::project_io(io, project, cancel.clone())
+                                .map_err(Error::Remote)?;
+                            remote::capture(
+                                Ok(io),
+                                if project.is_some() {
+                                    Family::CodexProject
+                                } else if matches!(command, Mutation::Source(_)) {
+                                    Family::Codex
+                                } else {
+                                    Family::CodexFiles
+                                },
+                                Default::default(),
+                                cancel.clone(),
+                            )
+                            .map_err(Error::Remote)?
+                        }
+                    };
+                    let result = tokio::runtime::Handle::current().block_on(mutate(
+                        &source,
+                        &run_key,
+                        command,
+                        remote.clone(),
+                    ))?;
+                    remote::publish(&remote, cancel).map_err(Error::Remote)?;
+                    Ok(result)
+                })();
                 owner.finish(result);
                 pending.finished = true;
                 match result {

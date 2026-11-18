@@ -755,6 +755,36 @@ pub fn restrict_owner_only(path: &Path) -> Result<()> {
     }
 }
 
+/// Restrict a newly created private workspace directory to the process user.
+/// Call before placing any secret files or SQLite sidecars inside it.
+pub fn restrict_owner_only_directory(path: &Path) -> Result<()> {
+    if !fs::symlink_metadata(path)?.is_dir() {
+        return Err(CcrError::ConfigError("private_directory_required".into()));
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(path, fs::Permissions::from_mode(0o700))?;
+        Ok(())
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt;
+        let file = fs::OpenOptions::new()
+            .access_mode(0x0004_0000 | 0x0002_0000 | 0x0010_0000 | 0x0000_0080)
+            .custom_flags(0x0200_0000)
+            .open(path)?;
+        super::atomic_writer::enforce_owner_only_windows_permissions(&file)?;
+        Ok(())
+    }
+    #[cfg(not(any(unix, windows)))]
+    {
+        Err(CcrError::ConfigError(
+            "private_directory_unsupported".into(),
+        ))
+    }
+}
+
 #[cfg(windows)]
 fn windows_is_owner_only(path: &Path) -> bool {
     let Ok(descriptor) = super::atomic_writer::capture_windows_dacl(path) else {
@@ -2113,5 +2143,28 @@ mod tests {
         }
         #[cfg(windows)]
         assert_windows_owner_only_dacl(&target);
+    }
+
+    #[test]
+    fn private_directory_has_owner_only_permissions_before_secret_materialization() {
+        let directory = tempdir().unwrap();
+        let target = directory.path().join("private-mirror");
+        fs::create_dir(&target).unwrap();
+        restrict_owner_only_directory(&target).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                fs::metadata(&target).unwrap().permissions().mode() & 0o777,
+                0o700
+            );
+        }
+        #[cfg(windows)]
+        assert_windows_owner_only_dacl(&target);
+        assert!(fs::read_dir(&target).unwrap().next().is_none());
+        let file = directory.path().join("not-a-directory");
+        fs::write(&file, "sentinel").unwrap();
+        assert!(restrict_owner_only_directory(&file).is_err());
+        assert_eq!(fs::read_to_string(&file).unwrap(), "sentinel");
     }
 }

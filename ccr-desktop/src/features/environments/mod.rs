@@ -5,12 +5,15 @@ use crate::{
     shell::semantics,
     theme,
 };
+#[cfg(test)]
+use ccr_app::environments::SshNames;
 use ccr_app::environments::{
     CapabilityState, ConnectFacts, EnvironmentReport, EnvironmentSurface, LOCAL_ONLY,
-    RunningEnvironment, ShellCapabilities, SshNames, WslExecProbe, WslProbe, read_local_source,
+    RunningEnvironment, ShellCapabilities, WslExecProbe, WslProbe, read_local_source,
 };
 use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent};
 use gpui_kit::base::TestSupportExt;
+use gpui_kit::component::ActiveTheme;
 use gpui_kit::component::button::{Button, ButtonVariants};
 use gpui_kit::{
     Context, InteractiveElement, IntoElement, ParentElement, Render, SharedString,
@@ -20,6 +23,7 @@ use gpui_kit::{
 const NOTIFICATION_TAG: &str = "ccr-gpui-environment";
 
 pub struct EnvironmentView {
+    pub(crate) diagnostics: bool,
     services: Services,
     report: Option<EnvironmentReport>,
     generation: u64,
@@ -36,6 +40,7 @@ impl EnvironmentView {
     pub fn new(services: Services, cx: &mut Context<Self>) -> Self {
         cx.set_app_identity("io.github.ccr.gpui", "CCR Desktop (GPUI)");
         Self {
+            diagnostics: false,
             services,
             report: None,
             generation: 0,
@@ -189,7 +194,7 @@ impl EnvironmentView {
 }
 
 fn home_environment() -> EnvironmentId {
-    EnvironmentId::Local("local".into())
+    EnvironmentId::Local("desktop-diagnostics".into())
 }
 
 fn environment_read_key(generation: u64) -> RequestKey {
@@ -328,6 +333,7 @@ pub(crate) fn ssh_trust_line(chinese: bool) -> &'static str {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn ssh_line(chinese: bool, names: &SshNames) -> String {
     match names {
         SshNames::NotConnected => {
@@ -508,20 +514,73 @@ impl Render for EnvironmentView {
         let local = match running {
             RunningEnvironment::Local => local_line(chinese, os),
         };
+        if self.diagnostics {
+            let mut column = div()
+                .id("env-diagnostics")
+                .test_support()
+                .flex()
+                .flex_col()
+                .gap(px(theme::SECTION_GAP));
+            if let Some(report) = &self.report {
+                let shell = shell_lines(chinese, report.shell);
+                column = column
+                    .child(line("env-tray-status", shell[0].clone()))
+                    .child(line("env-hide-status", shell[1].clone()))
+                    .child(line("env-notify-status", shell[2].clone()));
+            } else {
+                column = column.child(text(
+                    cx,
+                    "Diagnostics are not available yet.",
+                    "诊断结果尚未就绪。",
+                ));
+            }
+            if self.notification_requested {
+                column = column.child(line(
+                    "env-notify-posted",
+                    text(
+                        cx,
+                        "Notification request posted. Delivery is not confirmed.",
+                        "已提交系统通知请求。未能确认系统是否显示。",
+                    )
+                    .to_string(),
+                ));
+            }
+            return column.child(
+                div().flex().child(semantics::button(
+                    Button::new("env-notify")
+                        .label(text(cx, "Post a system notification", "发送系统通知"))
+                        .ghost()
+                        .on_click(cx.listener(|this, _, _, cx| this.post_notification(cx))),
+                    false,
+                    false,
+                    cx,
+                )),
+            );
+        }
         let mut column = div()
             .id("env-section")
             .test_support()
             .flex()
             .flex_col()
             .gap(px(theme::CONTROL_GAP))
-            .pt(px(theme::SECTION_GAP))
+            .p(px(theme::SECTION_GAP))
+            .border_1()
+            .border_color(cx.theme().border)
+            .rounded(px(theme::INPUT_RADIUS))
             .child(
                 div()
                     .id("env-heading")
                     .test_support()
                     .text_size(crate::theme::text_size(theme::TITLE_SIZE))
                     .font_weight(gpui_kit::FontWeight::SEMIBOLD)
-                    .child(text(cx, "Execution environment", "执行环境")),
+                    .child(text(cx, "Local environment", "本地环境")),
+            )
+            .child(
+                if matches!(self.services.environment(), EnvironmentId::Local(_)) {
+                    text(cx, "Current environment", "当前执行环境")
+                } else {
+                    ""
+                },
             )
             .child(line("env-local", local));
         if self.loading {
@@ -547,12 +606,7 @@ impl Render for EnvironmentView {
             ));
         } else if let Some(report) = &self.report {
             column = column.child(line("env-wsl", wsl_line(chinese, &report.wsl)));
-            column = column.child(line("env-ssh", ssh_line(chinese, &report.ssh)));
             column = column.child(line("env-ssh-trust", ssh_trust_line(chinese).to_string()));
-            let shell = shell_lines(chinese, report.shell);
-            column = column.child(line("env-tray-status", shell[0].clone()));
-            column = column.child(line("env-hide-status", shell[1].clone()));
-            column = column.child(line("env-notify-status", shell[2].clone()));
         }
         let slot = self.surface.visible();
         if let Some(draft) = slot.draft.filter(|value| !value.is_empty()) {
@@ -572,15 +626,7 @@ impl Render for EnvironmentView {
                 .to_string(),
             ));
         }
-        column.child(semantics::button(
-            Button::new("env-notify")
-                .label(text(cx, "Post a system notification", "发送系统通知"))
-                .ghost()
-                .on_click(cx.listener(|this, _, _, cx| this.post_notification(cx))),
-            false,
-            false,
-            cx,
-        ))
+        column
     }
 }
 

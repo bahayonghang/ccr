@@ -4,6 +4,314 @@ use ccr_app::runtime::{Platform, RuntimeOwner};
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
+struct SshFixture {
+    root: tempfile::TempDir,
+    owner: RuntimeOwner,
+    services: Services,
+    workspace: Arc<ccr_app::environments::ssh::Workspace>,
+    transport: Arc<ccr_app::environments::ssh::fixture::FixtureTransport>,
+    id: String,
+}
+impl SshFixture {
+    async fn new(url: &str) -> Self {
+        use ccr_app::environments::ssh::{HostInput, Workspace};
+        use tokio_util::sync::CancellationToken;
+        let root = tempfile::tempdir().unwrap();
+        let owner = RuntimeOwner::new().unwrap();
+        let mut services = Services::new(owner.handle(), source(root.path()));
+        services.sync_operations = Arc::new(SyncOperations {
+            loopback_fixture: true,
+            ..Default::default()
+        });
+        let (workspace, transport) =
+            Workspace::fixture(root.path().join("ssh.db"), root.path().join("known_hosts"));
+        let workspace = Arc::new(workspace);
+        services
+            .ssh
+            .set(workspace.clone())
+            .unwrap_or_else(|_| panic!("ssh owner"));
+        let host = workspace
+            .save_host(HostInput {
+                name: "Sync fixture".into(),
+                host: "sync.fixture.invalid".into(),
+                user: "fixture".into(),
+                port: 22,
+                remote_home: "/srv/sync".into(),
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+        let probe = workspace
+            .probe(&host.id, CancellationToken::new())
+            .await
+            .unwrap();
+        workspace
+            .confirm(&probe.challenge_id, CancellationToken::new())
+            .await
+            .unwrap();
+        workspace
+            .connect(&host.id, CancellationToken::new())
+            .await
+            .unwrap();
+        services.select_environment(EnvironmentId::Ssh(host.id.clone()));
+        let fixture = Self {
+            root,
+            owner,
+            services,
+            workspace,
+            transport,
+            id: host.id,
+        };
+        let mut config = SyncFoldersConfig::default();
+        config.webdav.enabled = true;
+        config.webdav.url = url.into();
+        config.webdav.username = "synthetic-user".into();
+        config.webdav.password = "synthetic-password".into();
+        config.folders.push(ccr_sync::SyncFolder {
+            name: "shared".into(),
+            description: String::new(),
+            local_path: "~/.claude/shared".into(),
+            remote_path: "/data/".into(),
+            enabled: true,
+            auto_sync: false,
+            exclude_patterns: Vec::new(),
+        });
+        fixture.set(".ccr/sync_folders.toml", &toml::to_string(&config).unwrap());
+        std::fs::write(
+            fixture.root.path().join("sync_folders.toml"),
+            "local poison",
+        )
+        .unwrap();
+        fixture
+    }
+    fn set(&self, path: &str, content: &str) {
+        self.transport.set_file(
+            "sync.fixture.invalid",
+            &format!("/srv/sync/{path}"),
+            content,
+        );
+    }
+    fn key(&self) -> RequestKey {
+        RequestKey {
+            environment: EnvironmentId::Ssh(self.id.clone()),
+            platform: Platform::Claude,
+            generation: 1,
+            request_id: 1,
+        }
+    }
+    fn revision(&self) -> String {
+        ccr_core::core::content_version_token(
+            self.transport
+                .file("sync.fixture.invalid", "/srv/sync/.ccr/sync_folders.toml")
+                .unwrap()
+                .as_bytes(),
+        )
+    }
+    async fn run(&self, operation: Operation) -> Result<SyncOutcome, SyncError> {
+        self.services.start_sync(self.key(), operation)?;
+        let mut updates = self.services.observe_sync();
+        tokio::time::timeout(Duration::from_secs(15), async {
+            while updates.borrow().busy {
+                updates.changed().await.unwrap();
+            }
+        })
+        .await
+        .unwrap();
+        self.services.sync_operation_state().result.clone().unwrap()
+    }
+    async fn finish(self) {
+        self.workspace.disconnect().await;
+        tokio::task::spawn_blocking(move || self.owner.shutdown())
+            .await
+            .unwrap();
+        assert_eq!(
+            std::fs::read_to_string(self.root.path().join("sync_folders.toml")).unwrap(),
+            "local poison"
+        );
+    }
+}
+
+#[tokio::test]
+async fn ssh_sync_sensitive_assets_use_original_envelope_and_remote_cas_backup() {
+    let (url, stored, server) = asset_server().await;
+    let f = SshFixture::new(&url).await;
+    f.set(
+        ".claude/settings.json",
+        "{\"apiKey\":\"synthetic-remote-secret\"}",
+    );
+    let request = |revision, direction| {
+        Operation::Assets(AssetRequest {
+            revision,
+            id: Some("claude-settings".into()),
+            direction,
+            force: true,
+            passphrase: Some(Secret::from("synthetic-passphrase")),
+            import_plaintext_v1: false,
+        })
+    };
+    assert!(
+        matches!(f.run(request(f.revision(), AssetDirection::Push)).await, Ok(SyncOutcome::Assets(rows)) if rows.len()==1 && rows[0].result.is_ok())
+    );
+    assert!(
+        !String::from_utf8_lossy(stored.lock().unwrap().as_ref().unwrap())
+            .contains("synthetic-remote-secret")
+    );
+    f.set(".claude/settings.json", "{\"changed\":true}");
+    assert!(
+        matches!(f.run(request(f.revision(), AssetDirection::Pull)).await, Ok(SyncOutcome::Assets(rows)) if rows[0].result.is_ok())
+    );
+    assert!(
+        f.transport
+            .file("sync.fixture.invalid", "/srv/sync/.claude/settings.json")
+            .unwrap()
+            .contains("synthetic-remote-secret")
+    );
+    assert!(
+        f.transport
+            .batches()
+            .iter()
+            .any(|batch| batch.starts_with("rename /srv/sync/.claude/settings.json.bak."))
+    );
+    assert_eq!(
+        f.run(request("stale".into(), AssetDirection::Push)).await,
+        Err(SyncError::Conflict)
+    );
+    let database = Operation::Assets(AssetRequest {
+        revision: f.revision(),
+        id: Some("ccr-platforms".into()),
+        direction: AssetDirection::Pull,
+        force: true,
+        passphrase: Some(Secret::from("synthetic-passphrase")),
+        import_plaintext_v1: false,
+    });
+    assert!(
+        matches!(f.run(database).await, Ok(SyncOutcome::Assets(rows)) if rows[0].result==Err(SyncError::RemoteDatabase))
+    );
+    server.abort();
+    f.finish().await;
+}
+
+async fn write_only_server() -> (
+    String,
+    Arc<Mutex<Vec<Vec<u8>>>>,
+    tokio::task::JoinHandle<()>,
+) {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    let requests = Arc::new(Mutex::new(Vec::new()));
+    let output = requests.clone();
+    let task = tokio::spawn(async move {
+        loop {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut request = Vec::new();
+            let mut chunk = [0; 4096];
+            let (end, length) = loop {
+                let size = socket.read(&mut chunk).await.unwrap();
+                assert!(size > 0);
+                request.extend_from_slice(&chunk[..size]);
+                if let Some(end) = request.windows(4).position(|b| b == b"\r\n\r\n") {
+                    let length = String::from_utf8_lossy(&request[..end])
+                        .lines()
+                        .find_map(|line| {
+                            let (key, value) = line.split_once(':')?;
+                            key.eq_ignore_ascii_case("content-length")
+                                .then(|| value.trim().parse::<usize>().unwrap())
+                        })
+                        .unwrap_or(0);
+                    break (end + 4, length);
+                }
+            };
+            while request.len() < end + length {
+                let size = socket.read(&mut chunk).await.unwrap();
+                assert!(size > 0);
+                request.extend_from_slice(&chunk[..size]);
+            }
+            assert!(request.starts_with(b"PUT ") || request.starts_with(b"MKCOL "));
+            output.lock().unwrap().push(request);
+            socket
+                .write_all(
+                    b"HTTP/1.1 201 Created\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+                )
+                .await
+                .unwrap();
+            socket.shutdown().await.unwrap();
+        }
+    });
+    (format!("http://{address}/"), requests, task)
+}
+
+#[tokio::test]
+async fn ssh_sync_ordinary_directory_empty_source_and_database_refusal_match_real_metadata() {
+    let (url, requests, server) = write_only_server().await;
+    let f = SshFixture::new(&url).await;
+    f.set(".claude/shared/notes.md", "remote folder input");
+    let io = f
+        .services
+        .remote_configuration_io(&f.key().environment)
+        .unwrap();
+    assert!(matches!(
+        io.metadata(".claude/shared", tokio_util::sync::CancellationToken::new())
+            .await,
+        Err(ccr_app::environments::io::Error::Ssh(
+            "ssh_invalid_remote_path"
+        ))
+    ));
+    assert_eq!(
+        f.run(Operation::Push {
+            revision: f.revision(),
+            folder: 0
+        })
+        .await,
+        Ok(SyncOutcome::Pushed)
+    );
+    assert!(
+        requests
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|request| String::from_utf8_lossy(request).contains("remote folder input"))
+    );
+    f.transport.set_directory("/srv/sync/.claude/empty");
+    let old = f.revision();
+    let change = FolderChange::Edit {
+        identity: ccr_core::core::content_version_token(b"shared"),
+        patch: FolderPatch {
+            name: None,
+            local_path: Some("~/.claude/empty".into()),
+            remote_path: None,
+        },
+    };
+    assert_eq!(
+        f.run(Operation::Folder {
+            revision: old,
+            change
+        })
+        .await,
+        Ok(SyncOutcome::FolderSaved)
+    );
+    assert_eq!(
+        f.run(Operation::Push {
+            revision: f.revision(),
+            folder: 0
+        })
+        .await,
+        Ok(SyncOutcome::Pushed)
+    );
+    f.set(".claude/empty/profiles.db", "must not rename live DB");
+    let before = requests.lock().unwrap().len();
+    assert_eq!(
+        f.run(Operation::Push {
+            revision: f.revision(),
+            folder: 0
+        })
+        .await,
+        Err(SyncError::RemoteDatabase)
+    );
+    assert_eq!(requests.lock().unwrap().len(), before);
+    server.abort();
+    f.finish().await;
+}
+
 fn source(root: &Path) -> ConfigSource {
     ConfigSource::Fixture {
         profiles: root.join("profiles.toml"),
@@ -163,7 +471,7 @@ fn operations_are_local_owned_and_fixture_network_is_refused_after_detach() {
                 revision: String::new()
             }
         ),
-        Err(SyncError::Unsupported)
+        Err(SyncError::Remote)
     );
     owner.shutdown();
     assert_eq!(

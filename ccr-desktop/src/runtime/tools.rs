@@ -1,7 +1,10 @@
 //! App-owned explicit tool operations. No probes or updates run while rendering.
 use super::Services;
+use ccr_app::environments::EnvironmentPolicy;
+#[cfg(test)]
+use ccr_app::runtime::EnvironmentId;
 use ccr_app::{
-    runtime::{Completion, EnvironmentId, RequestKey},
+    runtime::{Completion, RequestKey},
     tools::{self, CliVersion, bridge::SkillportAppStatus},
 };
 use std::sync::{Arc, Mutex};
@@ -39,12 +42,27 @@ impl Status {
 }
 #[derive(Clone, Debug, Default)]
 pub struct Snapshot {
+    pub environment: Option<ccr_app::runtime::EnvironmentId>,
     pub run: u64,
     pub action: Option<Action>,
     pub status: Status,
     pub versions: Vec<CliVersion>,
     pub bridge: Option<SkillportAppStatus>,
     pub update_output: Option<String>,
+}
+impl Snapshot {
+    pub fn belongs_to(&self, environment: &ccr_app::runtime::EnvironmentId) -> bool {
+        self.environment.as_ref().is_none_or(|captured| {
+            captured == environment
+                || matches!(
+                    (captured, environment),
+                    (
+                        ccr_app::runtime::EnvironmentId::Local(_),
+                        ccr_app::runtime::EnvironmentId::Local(_)
+                    )
+                )
+        })
+    }
 }
 pub struct Owner {
     state: Mutex<Snapshot>,
@@ -87,20 +105,46 @@ impl Drop for Pending {
 #[derive(Clone)]
 pub struct Requests(Services);
 impl Requests {
+    pub fn environment(&self) -> ccr_app::runtime::EnvironmentId {
+        self.0.environment()
+    }
     pub fn new(services: &Services) -> Self {
         Self(services.clone())
     }
     pub fn is_fixture(&self) -> bool {
         self.0.is_fixture()
+            && !(matches!(self.environment(), ccr_app::runtime::EnvironmentId::Ssh(_))
+                && super::environments::owner_is_fixture_transport(&self.0))
     }
     pub fn snapshot(&self) -> Arc<Snapshot> {
-        self.0.tools.updates.borrow().clone()
+        let snapshot = self.0.tools.updates.borrow().clone();
+        if !snapshot.belongs_to(&self.environment()) {
+            Arc::new(Snapshot::default())
+        } else {
+            snapshot
+        }
     }
     pub fn observe(&self) -> watch::Receiver<Arc<Snapshot>> {
         self.0.tools.updates.subscribe()
     }
     pub fn perform(&self, key: RequestKey, action: Action, confirmed: bool) -> Result<(), Error> {
-        if !matches!(key.environment, EnvironmentId::Local(_)) {
+        let remote = if matches!(key.environment, ccr_app::runtime::EnvironmentId::Ssh(_)) {
+            if !matches!(action, Action::Versions | Action::UpdateCcr) {
+                return Err(Error::LocalOnly);
+            }
+            Some(
+                self.0
+                    .remote_configuration_io(&key.environment)
+                    .map_err(|_| Error::Operation)?,
+            )
+        } else {
+            None
+        };
+        if remote.is_none()
+            && EnvironmentPolicy::LocalOnly
+                .admit(&key.environment)
+                .is_err()
+        {
             return Err(Error::LocalOnly);
         }
         #[cfg(test)]
@@ -129,6 +173,10 @@ impl Requests {
                 return Err(Error::Busy);
             }
             state.run += 1;
+            state.environment = Some(key.environment.clone());
+            state.versions.clear();
+            state.bridge = None;
+            state.update_output = None;
             state.action = Some(action);
             state.status = Status::Queued;
             match action {
@@ -165,7 +213,11 @@ impl Requests {
                 if cancel.is_cancelled() {
                     return Completion::Cancelled;
                 }
-                let result = run(action);
+                let result = if let Some(io) = remote {
+                    run_remote(io, action, cancel)
+                } else {
+                    run(action)
+                };
                 let failed = match &result {
                     Ok(Output::Updated(report)) => !report.success,
                     Err(_) => true,
@@ -219,6 +271,64 @@ enum Output {
     Bridge(SkillportAppStatus),
     Opened,
     Updated(tools::UpdateReport),
+}
+fn run_remote(
+    io: ccr_app::environments::io::EnvironmentIo,
+    action: Action,
+    cancel: tokio_util::sync::CancellationToken,
+) -> Result<Output, Error> {
+    let handle = tokio::runtime::Handle::try_current().map_err(|_| Error::Operation)?;
+    handle.block_on(async {
+        if action == Action::UpdateCcr {
+            return tools::update_ccr_remote(&io, cancel)
+                .await
+                .map(Output::Updated)
+                .map_err(|_| Error::Operation);
+        }
+        let tools = io
+            .detect_execution_cli(cancel.clone())
+            .await
+            .map_err(|_| Error::Operation)?;
+        let mut versions = Vec::new();
+        for tool in tools.iter().filter(|tool| {
+            matches!(
+                tool.name,
+                "ccr" | "claude" | "codex" | "gemini" | "grok" | "opencode"
+            )
+        }) {
+            let mut row = CliVersion {
+                platform: tool.name.into(),
+                installed: tool.installed,
+                version: None,
+                status: if tool.installed {
+                    "available"
+                } else {
+                    "not_installed"
+                },
+                elapsed_ms: 0,
+            };
+            if let Some(program) = &tool.path {
+                let output = io
+                    .probe(
+                        &ccr_app::jobs::process::ProcessDescriptor::ccr_version_probe(),
+                        program,
+                        &["--version".into()],
+                        cancel.clone(),
+                    )
+                    .await
+                    .map_err(|_| Error::Operation)?;
+                row.installed = output.success;
+                let safe = safe_output(&String::from_utf8_lossy(&output.stdout));
+                row.version = safe
+                    .lines()
+                    .find(|line| !line.trim().is_empty())
+                    .map(|line| line.chars().take(256).collect());
+                row.status = if output.success { "ok" } else { "error" };
+            }
+            versions.push(row);
+        }
+        Ok(Output::Versions(versions))
+    })
 }
 fn run(action: Action) -> Result<Output, Error> {
     match action {

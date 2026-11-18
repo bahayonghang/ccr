@@ -1,6 +1,7 @@
 //! Explicit, independent CCR main database and shared Claude Observer projections.
 use super::*;
 use crate::runtime::ConfigSource;
+use ccr_app::environments::EnvironmentPolicy;
 use ccr_app::usage::observer::{
     self as shared,
     subscription::{self, SubscriptionDto},
@@ -322,7 +323,7 @@ impl InsightsRequests {
         calls: bool,
     ) -> Result<TaskSubscription<Report, Error>, AdmissionError> {
         let requests = self.clone();
-        let local = matches!(key.environment, EnvironmentId::Local(_));
+        let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         self.services.executor.read(key, move |_, _| {
             if !local {
                 return Err(Error::LocalOnly);
@@ -348,7 +349,10 @@ impl InsightsRequests {
         expected: Option<SubscriptionDto>,
         proposed: SubscriptionDto,
     ) -> Result<(), Error> {
-        if !matches!(key.environment, EnvironmentId::Local(_)) {
+        if EnvironmentPolicy::LocalOnly
+            .admit(&key.environment)
+            .is_err()
+        {
             return Err(Error::LocalOnly);
         }
         let owner = self.services.observer.clone();

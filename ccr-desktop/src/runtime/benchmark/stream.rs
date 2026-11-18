@@ -1,12 +1,13 @@
 //! One retained, explicitly started S2 stream. No startup work is scheduled here.
 use super::Layout;
 use crate::runtime::Services;
+use ccr_app::environments::EnvironmentPolicy;
 use ccr_app::{
     benchmark::{
         Seed,
         s2::{self, Ack, Owner, Snapshot},
     },
-    runtime::{Completion, EnvironmentId, RequestKey},
+    runtime::{Completion, RequestKey},
 };
 use std::sync::{Arc, Mutex, MutexGuard};
 fn lock<T>(value: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -65,7 +66,10 @@ impl Services {
         Ok(snapshot)
     }
     pub fn benchmark_s2_start(&self, key: RequestKey) -> Result<Snapshot, &'static str> {
-        if !matches!(key.environment, EnvironmentId::Local(_)) {
+        if EnvironmentPolicy::LocalOnly
+            .admit(&key.environment)
+            .is_err()
+        {
             return Err("benchmark_s2_unavailable");
         }
         let adapter = self.s2_adapter()?;

@@ -1,13 +1,19 @@
 //! Fixed `wsl.exe` probes. Arguments are not taken from the renderer.
+#[cfg(windows)]
 use std::io::Read;
+#[cfg(windows)]
 use std::process::{Command, Stdio};
+#[cfg(windows)]
 use std::time::{Duration, Instant};
 
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
 
+#[cfg(windows)]
 const LIST_TIMEOUT: Duration = Duration::from_secs(20);
+#[cfg(windows)]
 const EXEC_TIMEOUT: Duration = Duration::from_secs(20);
+#[cfg(windows)]
 const MAX_OUTPUT: usize = 64 * 1024;
 
 #[derive(Debug)]
@@ -62,6 +68,7 @@ pub enum WslProbe {
     },
 }
 
+#[cfg(windows)]
 struct CommandOutput {
     success: bool,
     stdout: Vec<u8>,

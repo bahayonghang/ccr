@@ -90,6 +90,7 @@ fn row_summary(cx: &App, row: &BatchRow) -> String {
         BatchOutcome::Saved => text(cx, "Saved", "已保存"),
         BatchOutcome::NotRun => text(cx, "Not run", "未执行"),
         BatchOutcome::Failed(error) => match error {
+            McpError::Remote(error) => crate::runtime::remote_resources::message(error),
             McpError::Conflict => text(cx, "Revision changed", "版本已变化"),
             McpError::Duplicate => text(cx, "Name exists", "名称已存在"),
             McpError::UnsupportedCopy => text(cx, "Unsupported options", "不兼容选项"),

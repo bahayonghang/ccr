@@ -70,6 +70,28 @@ fn error_text(error: Error, cx: &gpui_kit::App) -> &'static str {
     }
 }
 impl ObserverView {
+    pub fn has_draft(&self, cx: &gpui_kit::App) -> bool {
+        let defaults = self
+            .expected
+            .as_ref()
+            .map(|v| [v.mode.clone(), v.plan.clone(), v.monthly_usd.to_string()])
+            .unwrap_or_default();
+        self.fields
+            .iter()
+            .zip(defaults)
+            .any(|(f, v)| f.read(cx).value().as_str() != v)
+    }
+    pub fn clear_environment(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.suspend(cx);
+        self.pending = None;
+        self.expected = None;
+        self.report = None;
+        for f in &self.fields {
+            f.update(cx, |s, cx| s.set_value("", window, cx));
+        }
+        self.output.update(cx, |s, cx| s.set_value("", window, cx));
+    }
+
     pub fn new(requests: InsightsRequests, window: &mut Window, cx: &mut Context<Self>) -> Self {
         Self {
             requests,
@@ -111,7 +133,7 @@ impl ObserverView {
     }
     fn key(&self) -> RequestKey {
         RequestKey {
-            environment: EnvironmentId::Local("insights-explicit".into()),
+            environment: self.requests.environment(),
             platform: Platform::Claude,
             generation: self.generation,
             request_id: self.generation,

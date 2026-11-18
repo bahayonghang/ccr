@@ -10,7 +10,7 @@ use crate::{
 };
 use ccr_app::{
     resources::prompt_presets::{Error, Mutation},
-    runtime::{Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent},
+    runtime::{Completion, Platform, RequestKey, ResponseGate, TaskEvent},
 };
 use ccr_skills::{PromptPreset, PromptTarget};
 use gpui_kit::base::TestSupportExt;
@@ -126,14 +126,7 @@ impl TemplatesView {
         }
         self.generation += 1;
         let key = RequestKey {
-            environment: EnvironmentId::Local(
-                if self.services.is_fixture() {
-                    "fixture"
-                } else {
-                    "local"
-                }
-                .into(),
-            ),
+            environment: self.services.environment(),
             platform: self.platform,
             generation: self.generation,
             request_id: self.generation,
@@ -259,6 +252,7 @@ impl Render for TemplatesView {
                 .on_click(cx.listener(|_, _, _, cx| cx.emit(TemplateEvent::Close))), blocked, false, cx));
         if let Some(error) = self.error {
             let label = match error {
+                Error::Remote(error) => crate::runtime::remote_resources::message(error),
                 Error::Conflict => text(
                     cx,
                     "The preset library changed. Your draft is retained. Close and reopen templates before retrying.",
