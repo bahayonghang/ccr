@@ -1,19 +1,18 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use super::*;
-use ccr_db::database::create_pool;
 use ccr_usage::{
     AppPaths, ReportTimezone, SourceKind,
     fixtures::{SeedBucket, create_projection_db, seed_bucket},
 };
 use chrono::NaiveDate;
+use rusqlite::Connection;
 
 #[test]
 fn report_preserves_provider_splits_pricing_and_complete_filter_without_writes() {
     let temp = tempfile::tempdir().unwrap();
     let paths = create_projection_db(temp.path());
-    let pool = create_pool(&paths.db_path, None).unwrap();
-    let conn = pool.get().unwrap();
+    let conn = Connection::open(&paths.db_path).unwrap();
     for (source, provider, date) in [
         ("codex", "openai", "2026-07-01T23:59:59Z"),
         ("codex", "", "2026-07-01T12:00:00Z"),
@@ -35,8 +34,8 @@ fn report_preserves_provider_splits_pricing_and_complete_filter_without_writes()
             },
         );
     }
+    // Close the sole fixture writer before taking the no-write baseline.
     drop(conn);
-    drop(pool);
     let before = std::fs::read(&paths.db_path).unwrap();
     let dashboard = ccr_usage::open_dashboard(paths.clone()).unwrap();
     let day = NaiveDate::from_ymd_opt(2026, 7, 1).unwrap();
@@ -88,7 +87,10 @@ fn report_preserves_provider_splits_pricing_and_complete_filter_without_writes()
             .any(|row| row.provider.is_none() && row.display_provider() == "unattributed")
     );
     drop(dashboard);
-    assert_eq!(before, std::fs::read(&paths.db_path).unwrap());
+    assert!(
+        before == std::fs::read(&paths.db_path).unwrap(),
+        "read-only report changed the fixture database"
+    );
 }
 #[test]
 fn empty_is_measured_zero_but_missing_is_error_and_reversed_bounds_are_rejected() {
@@ -119,8 +121,7 @@ fn empty_is_measured_zero_but_missing_is_error_and_reversed_bounds_are_rejected(
 fn captured_clock_controls_last24h_and_heatmap_without_changing_explicit_filter() {
     let temp = tempfile::tempdir().unwrap();
     let paths = create_projection_db(temp.path());
-    let pool = create_pool(&paths.db_path, None).unwrap();
-    let conn = pool.get().unwrap();
+    let conn = Connection::open(&paths.db_path).unwrap();
     for hour in [
         "1999-12-31T23:59:59Z",
         "2000-01-01T00:00:00Z",
@@ -136,7 +137,6 @@ fn captured_clock_controls_last24h_and_heatmap_without_changing_explicit_filter(
         );
     }
     drop(conn);
-    drop(pool);
     let dashboard = ccr_usage::open_dashboard(paths).unwrap();
     let at = chrono::DateTime::parse_from_rfc3339("2000-01-01T23:59:59Z")
         .unwrap()
