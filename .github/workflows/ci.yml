@@ -210,6 +210,13 @@ jobs:
       - name: Install just
         shell: bash
         run: bash scripts/ci/install_prebuilt_tool.sh just
+      - name: Resolve the macOS test temporary directory
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          # Guarded file tests reject linked ancestors, including macOS's /var alias.
+          physical_tmpdir="$(cd -P -- "${TMPDIR:-/tmp}" && pwd -P)"
+          printf 'TMPDIR=%s\n' "$physical_tmpdir" >> "$GITHUB_ENV"
       - name: Run parallel workspace tests
         run: just test
 
