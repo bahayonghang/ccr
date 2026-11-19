@@ -44,6 +44,7 @@ pub(super) fn outside_frame(shadows: [BoxShadow; 2]) -> Canvas<()> {
     .left(px(0.))
     .size_full()
 }
+
 /// Partition the device pixels outside a rounded frame into disjoint rectangles.
 /// Four cover the straight edges. At the corners, join consecutive pixel rows
 /// with the same chord so each clip covers as much of the native shadow as possible.
@@ -83,9 +84,29 @@ fn exterior_bands(
         top = bottom;
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn kit_retains_both_shadow_primitives_in_every_exterior_band() {
+        let viewport = gpui_kit::size(px(1280.), px(800.));
+        let material = theme::material(gpui_kit::component::ThemeMode::Dark, viewport);
+        let frame = Bounds::new(point(px(0.), px(0.)), gpui_kit::size(px(1240.), px(760.)));
+        exterior_bands(1240, 760, theme::SHEET_RADIUS, 20, |l, t, r, b| {
+            let clip = Bounds::from_corners(
+                point(px(l as f32), px(t as f32)),
+                point(px(r as f32), px(b as f32)),
+            );
+            for shadow in &material.shadow {
+                // GPUI's scene builder rejects a clipped shadow if its unblurred
+                // source misses the mask; the shader never sees its Gaussian tail.
+                let source = (frame + shadow.offset).dilate(shadow.spread_radius);
+                assert!(!source.intersect(&clip).is_empty(), "culled at {clip:?}");
+            }
+        });
+    }
 
     #[test]
     fn clips_both_straight_edges_and_round_corners_once_per_outside_pixel() {
