@@ -11,7 +11,7 @@ colors:
   text-muted: "#5C6B76"
   border-subtle: "#CEDBD5"
   border-control: "#787F89"
-  focus: "#156F4E"
+  focus: "#002015"
   success: "#166534"
   warning: "#92400E"
   danger: "#B91C1C"
@@ -24,7 +24,7 @@ colors:
   text-muted-dark: "#9FAFA9"
   border-subtle-dark: "#35474A"
   border-control-dark: "#737B86"
-  focus-dark: "#85D5B1"
+  focus-dark: "#9CE0C3"
   success-dark: "#86EFAC"
   warning-dark: "#FCD34D"
   danger-dark: "#FCA5A5"
@@ -119,15 +119,15 @@ spacing:
 
 ## Colors
 
-主操作、链接和焦点使用绿色（light #156f4e / dark #85d5b1），有独立对比文字色；明确输出使用紫色（light #6d4bd6 / dark #b9a4f4）。选中背景保持克制的实色阶，平台身份为小图标与文字，不给整个页面染色。success/warning/danger 仅表示真实状态，始终配文字或图标。上涨/下降不是成功/失败，不默认使用红绿。
+主操作和链接使用绿色（light #156f4e / dark #85d5b1），主操作有独立的对比文字色。明确输出使用紫色（light #6d4bd6 / dark #b9a4f4）。选中背景保持克制的实色阶，平台身份为小图标与文字，不给整个页面染色。success/warning/danger 仅表示真实状态，始终配文字或图标。上涨/下降不是成功/失败，不默认使用红绿。
 
-reading 是列表/输入的实色工作区，chrome 是侧栏导轨的半透明材质，sheet 是主纸面的半透明材质，elevated 是纸面的实色参照色，overlay 是实色弹层；neutral 仍是实色中性色阶，供页内 hover/读数井使用。使用色阶与空间分区，border-subtle 仅装饰分隔；需要表达控件边界时必须用 border-control。焦点使用 2px focus 环和 2px 间隔。
+reading 是列表/输入的实色工作区，chrome 是侧栏导轨的半透明材质，sheet 是主纸面的半透明材质，elevated 是纸面的实色参照色，overlay 是实色弹层；neutral 仍是实色中性色阶，供页内 hover/读数井使用。使用色阶与空间分区，border-subtle 仅装饰分隔；需要表达控件边界时必须用 border-control。focus 独立取 light #002015、dark #9CE0C3。Kit 组件按钮将该色以 50% 透明度画在背景上，状态栏等自绘控件使用实色边框。两种绘制路径均以最终可见的焦点环达到 3:1 为准。
 
 装饰 hairline 使用 border-subtle 的 light 24% / dark 35% alpha；需要辨识的输入与 tab 边界仍使用不透明 border-control。分段控件是内容宽度胶囊：tab-well 半透明凹槽容器加 1px highlight 亮边，选中项为浮起的实色 pill（light surface / dark overlay、轻阴影、primary semibold 文字），未选中项透明无边框；避免 ghost 的 selected 与纸面同色。选中文字对选中面至少 4.5:1；选中面与凹槽的色差很小，选中态由浮起阴影、主色文字、字重与 toggled 语义共同表达，不只靠颜色。
 
 状态语调（`theme::tone_colors`）共 neutral / success / warning / danger / info 五种，ink 分别取辅助文字与对应状态色。fill 是 ink 在 light 10% / dark 18%、edge 是 ink 在 light 24% / dark 32% 预合成到 reading 的不透明色，不构成额外半透明层，所以标签放在阅读面或纸面上文字都只落在 fill 上：ink 对 fill ≥4.5:1。标签不是控件，由文字识别状态，edge 与 hairline 同属装饰描边，不适用控件边界 3:1；描边加重会让标签读作可点击的描边按钮，削弱“直角标签不可点、pill 可点”的形状区分。平台身份色覆盖 claude / codex / grok / antigravity（gemini）/ opencode / kimi（kimi_code）/ pi，omp 及其他未列来源回落 muted；身份色只用于 8px 圆点、2px 细线与图表系列，不给面板染色。活动热力图（`theme::heat_level`）共 5 档：0 档是实色 neutral 格，1–4 档是 primary 以 25/45/70/100% 预合成到 reading 的不透明色，对 reading 的对比度逐档递增，第 4 档 ≥3:1。
 
-普通文字、辅助文字、状态文字与其允许背景达到 4.5:1，焦点与关键控件边界达到 3:1。半透明面按合成后颜色验收：在场景两端、中点、两个光斑峰值及叠加纸面阴影的最坏组合上分别合成后计算，正文 ≥12、辅助 ≥7、muted/主色/状态 ≥4.5、控件边界 ≥3。禁用文字保留可读对比度，通过禁用交互、图标与语义状态降低强调，不统一透明化整组内容。来源中的绿色/橙色已调暗以满足浅色正文对比度。
+半透明面按合成后的颜色验收。分别在渐变两端和中点叠加无光斑、薄荷峰值及淡紫峰值，计算正文 ≥12:1、次要正文 ≥7:1、弱化文字、主色和状态文字 ≥4.5:1、关键控件边界与焦点 ≥3:1。外阴影只覆盖框架之外。禁用文字保留可读对比度，通过禁用交互、图标与语义状态降低强调，不统一透明化整组内容。来源中的绿色/橙色已调暗以满足浅色正文对比度。
 
 ## Typography
 
@@ -247,13 +247,13 @@ Agent 会话页自上而下：
 
 ## Elevation & Depth
 
-材质是**已知静态场景上的半透明分层材质**。纸面背后的像素全部由本应用绘制，且只有低频内容：160deg 两色线性渐变场，以及两个静态柔光斑（GPUI 无 radial gradient，用透明圆形加同色大模糊阴影绘制）。对这种平滑内容再做高斯模糊，结果与原图的差异低于 8-bit 量化误差，所以 alpha<1 的面直接合成到场景上，像素上等价于 backdrop blur；这不需要背景采样 API，也不是“假玻璃开关”。成立条件在代码评审时强制执行：
+材质是**应用自绘静态场景上的半透明分层材质**。160° 两色线性渐变上叠两张径向渐变图。光心分别在视口的 (12%, 18%) 和 (88%, 85%)，半径取短边的 35%。每个主题缓存两张单帧图，同色从中心向外降至全透明。侧栏与纸面直接合成到这片低频场景上。原生取样以同坐标的场景 RGB 和填充 alpha 计算预期面色，每通道允许 2/255，涵盖场景读回到 8 位和混合写回的取整。这个误差预算只适用于本项合成测量。材质的使用条件如下。
 
 1. 半透明材质背后只能是场景（渐变与光斑），不能有文字、图标、图片、列表等高频内容。
 2. 不叠玻璃：侧栏 chrome 与主纸面 sheet 是并列兄弟，不互相嵌套；页内分段凹槽只是同一纸面上的浅色 tint，不是第二层材质。
 3. 承载正文的阅读面（表格、列表、输入、弹层、代码/导出区）一律实色。
 
-三档材质：scene（渐变 + 左上薄荷光斑 + 右下淡紫光斑，完全静态，无动画）；chrome（侧栏导轨，light 白 58% / dark #1d292c 55%，透出场景色）；sheet（主纸面，light 白 76% / dark #172225 86%）。两者都有 1px highlight 亮边（light 白 80% / dark 白 8%）与 inset 0 1px 顶部高光；整体框架外层一组漫射阴影 0/20/48 + 近影 0/2/6（light 5%+3%，dark 30%+18%）。GPUI 外阴影会延伸到半透明面下方，所以阴影透出的变暗也计入合成对比度的最坏背景。
+scene 提供静态光场。chrome 是侧栏填充（light 白 58% / dark #1d292c 55%），sheet 是主纸面填充（light 白 76% / dark #172225 86%）。两者都有 1px highlight 亮边（light 白 80% / dark 白 8%）与 inset 0 1px 顶部高光。共同框架的两层投影按“纵向位移 / GPUI blur_radius / spread_radius”分别为 20/48/21 和 2/6/3 逻辑像素（light 5% + 3%，dark 30% + 18%）。扩展源矩形使四边均能通过后端的预裁剪。绘制时按设备像素裁出圆角框架外部的不相交区域，保留四角投影和面内透色。
 
 侧栏左侧 20px 外角、纸面右侧 20px 外角，并列组成一个 20px 圆角框架；侧栏右边的亮边就是两者的分隔线。GPUI 的 overflow mask 为矩形，不能用父纸面圆角假定子背景会被圆角裁剪：直接接触纸面右上角的配置阅读面使用内侧 19px 背景角；28px 状态区不绘制背景，保持父纸面及其 20px 底角可见。其余密集控件角度、布局和滚动所有者不变。转换结果用紫色可见标签标明输出，代码正文保留阅读文字色，错误/成功状态仍使用独立语义色。
 
@@ -464,6 +464,8 @@ Claude 扩展的同名条目不合并：各来源下照常列出，在条目下�
 5. Significant change 后从真实窗口重新看第一屏：环境是否清楚、状态是否真实、主操作是否明确、是否新增无意义容器。
 
 ## Known Gaps and Native QA
+
+2026-11-19，[#217](https://github.com/bahayonghang/ccr/issues/217) 的背景光斑与外框投影已在同一 Windows 原生运行概览验收。中文 30 天演示数据，1280×800 逻辑像素，120 DPI。亮暗两组分别隔离了光斑和阴影，也在实际窗口验证了键盘切区、菜单关闭后的焦点返回。[前后图、像素剖面与逐项记录](../.trellis/research/archive/2026-11/gpui-airy-glass-217/native.md)
 
 03 已将语义 token 实现在 `src/theme.rs` 并通过 Kit Theme 同步 Base/Component；`src/shell/` 呈现已接入的 Local 配置、命令收藏/历史与会话内主题/语言设置。列表采用稳定领域 ID 的虚拟化，详情提供返回，F6/Tab 与编辑键分别处理。无持续装饰动画；按钮即时 pressed 色反馈，常用行操作不做缩放。
 
