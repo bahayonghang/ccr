@@ -205,6 +205,8 @@ pub struct Palette {
     pub muted: u32,
     pub subtle: u32,
     pub control: u32,
+    /// Kit paints its outer focus ring at half opacity over the surrounding surface.
+    pub focus: u32,
     pub primary: u32,
     pub primary_hover: u32,
     pub primary_active: u32,
@@ -238,6 +240,7 @@ pub fn palette(mode: ThemeMode) -> Palette {
             muted: 0x9fafa9,
             subtle: 0x35474a,
             control: 0x737b86,
+            focus: 0x9ce0c3,
             primary: 0x85d5b1,
             primary_hover: 0x9ce0c3,
             primary_active: 0x70c49f,
@@ -269,6 +272,7 @@ pub fn palette(mode: ThemeMode) -> Palette {
             muted: 0x5c6b76,
             subtle: 0xcedbd5,
             control: 0x787f89,
+            focus: 0x002015,
             primary: 0x156f4e,
             primary_hover: 0x146a4a,
             primary_active: 0x0f5d40,
@@ -647,7 +651,7 @@ fn apply_palette(cx: &mut App) {
         c.muted_foreground = color(p.muted);
         c.border = hairline(theme.mode);
         c.input = color(p.control);
-        c.ring = color(p.primary);
+        c.ring = color(p.focus);
         c.caret = color(p.text);
         c.popover = color(p.overlay);
         c.popover_foreground = color(p.text);
@@ -940,6 +944,84 @@ mod tests {
             assert_ne!(p.primary, p.success);
             assert_ne!(p.primary, p.output);
         }
+    }
+
+    #[gpui_kit::test]
+    fn painted_button_focus_ring_contrasts_on_workbench_surfaces(
+        cx: &mut gpui_kit::TestAppContext,
+    ) {
+        use gpui_kit::component::button::{Button, ButtonVariants};
+        use gpui_kit::test::TestWindowExt;
+        use gpui_kit::{AppContext, Context, IntoElement, ParentElement, Render, Styled, div};
+
+        struct FocusButton;
+        impl Render for FocusButton {
+            fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+                div()
+                    .p(px(16.))
+                    .child(Button::new("focus-probe").ghost().label("Focus"))
+            }
+        }
+
+        cx.update(gpui_kit::init);
+        let handle = cx.add_window(|_, _| FocusButton);
+        cx.update_window(*handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.focus_next(cx);
+            for (preference, mode) in [
+                (Preference::Light, ThemeMode::Light),
+                (Preference::Dark, ThemeMode::Dark),
+            ] {
+                apply(preference, window, cx);
+                window.render_frame(cx);
+                let button = window.find("focus-probe");
+                assert_eq!(button.focused(), Some(true));
+                let left = f32::from(button.bounds().left()) * window.scale_factor();
+                let ring = window
+                    .painted_quads()
+                    .into_iter()
+                    .find(|quad| {
+                        quad.border_widths.left.as_f32() > 0. && quad.bounds.left().as_f32() < left
+                    })
+                    .unwrap_or_else(|| panic!("missing outer focus ring"));
+                let p = palette(mode);
+                let mut surfaces = [
+                    p.surface,
+                    p.overlay,
+                    p.neutral,
+                    p.elevated,
+                    tab_selected(mode),
+                ]
+                .map(channels)
+                .to_vec();
+                surfaces.push(composite(channels(p.surface), p.material.tab_well));
+                for scene in scene_samples(mode) {
+                    let chrome = composite(scene, p.material.chrome);
+                    let sheet = composite(scene, p.material.sheet);
+                    surfaces.extend([chrome, sheet, composite(sheet, p.material.tab_well)]);
+                    surfaces.extend(
+                        [NAV_SELECTED_ALPHA, NAV_HOVER_ALPHA, NAV_PRESSED_ALPHA]
+                            .map(|a| composite(chrome, (p.surface, a))),
+                    );
+                }
+                for color in [ring.border_color, Theme::global(cx).ring] {
+                    let ink = gpui_kit::Rgba::from(color);
+                    let fg = [ink.r, ink.g, ink.b].map(|c| f64::from(c) * 255.);
+                    let alpha = f64::from(ink.a);
+                    for surface in &surfaces {
+                        let bg = surface.map(f64::round);
+                        let pixel =
+                            [0, 1, 2].map(|i| (fg[i] * alpha + bg[i] * (1. - alpha)).round());
+                        let ratio = contrast(pixel, bg);
+                        assert!(
+                            ratio >= 3.,
+                            "{mode:?}: focus {pixel:?} on {bg:?} = {ratio:.3}:1"
+                        );
+                    }
+                }
+            }
+        })
+        .unwrap_or_else(|e| panic!("focus test window: {e}"));
     }
 
     #[test]
