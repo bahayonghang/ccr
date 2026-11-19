@@ -1392,13 +1392,10 @@ impl Render for Shell {
     }
 }
 
-/// 静态柔光斑：透明圆加同色大模糊阴影；无 id/role，不进入无障碍树，也不接收指针。
-fn scene_glow(glow: &theme::Glow) -> gpui_kit::Div {
-    div()
+fn scene_glow(glow: &theme::Glow) -> gpui_kit::Img {
+    gpui_kit::img(glow.image.clone())
         .absolute()
         .left(glow.origin.x)
         .top(glow.origin.y)
         .size(glow.diameter)
-        .rounded_full()
-        .shadow(vec![glow.shadow.clone()])
 }
