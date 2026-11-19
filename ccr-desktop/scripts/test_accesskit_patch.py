@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -68,10 +69,10 @@ def main() -> int:
         # All production modules and CCR private regressions remain byte-identical.
         library = harness / "src/lib.rs"
         body = library.read_bytes()
-        entry = b"#[cfg(test)]\nmod tests;"
-        if body.count(entry) != 1:
+        body, entries = re.subn(rb"(?m)^#\[cfg\(test\)\]\r?\nmod tests;(?=\r?$)", b"", body)
+        if entries != 1:
             raise ValueError("Upstream test module entry changed; review the harness")
-        library.write_bytes(body.replace(entry, b"", 1))
+        library.write_bytes(body)
         (harness / "Cargo.toml").write_text(manifest, encoding="utf-8")
         shutil.copyfile(ROOT / "Cargo.lock", harness / "Cargo.lock")
 
