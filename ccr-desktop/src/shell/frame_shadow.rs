@@ -8,11 +8,7 @@ pub(super) fn outside_frame(shadows: [BoxShadow; 2]) -> Canvas<()> {
         |_, _, _| (),
         move |frame, (), window, _| {
             let scale = window.scale_factor();
-            // Match GPUI's fill bounds (nearest pixel, half toward zero).
-            let snap = |p: gpui_kit::Pixels| {
-                let n = f32::from(p) * scale;
-                ((n.abs() - 0.5).ceil().copysign(n)) as i32
-            };
+            let snap = |p| (f32::from(window.pixel_snap(p)) * scale).round() as i32;
             let x = snap(frame.left());
             let y = snap(frame.top());
             let radius = px(theme::SHEET_RADIUS);
