@@ -1,9 +1,10 @@
 //! The single native semantic token mapping from DESIGN.md.
 use gpui_kit::component::{Theme, ThemeMode};
 use gpui_kit::{
-    App, Background, BoxShadow, Hsla, Pixels, Point, Size, Window, linear_color_stop,
-    linear_gradient, point, px, rgb,
+    App, Background, BoxShadow, Hsla, Image, ImageFormat, Pixels, Point, Size, Window,
+    linear_color_stop, linear_gradient, point, px, rgb,
 };
+use std::sync::{Arc, OnceLock};
 
 pub const WINDOW_WIDTH: f32 = 1280.;
 pub const WINDOW_HEIGHT: f32 = 800.;
@@ -468,13 +469,32 @@ pub fn tabular_figures() -> gpui_kit::FontFeatures {
     TNUM.clone()
 }
 
-/// One static soft light spot, painted as a transparent circle with a large
-/// same-colour blur shadow (GPUI has no radial gradient).
+/// A static radial light over the scene, positioned in viewport pixels.
 #[derive(Clone)]
 pub struct Glow {
     pub origin: Point<Pixels>,
     pub diameter: Pixels,
-    pub shadow: BoxShadow,
+    pub image: Arc<Image>,
+}
+
+fn glow_images(mode: ThemeMode) -> &'static [Arc<Image>; 2] {
+    static LIGHT: OnceLock<[Arc<Image>; 2]> = OnceLock::new();
+    static DARK: OnceLock<[Arc<Image>; 2]> = OnceLock::new();
+    let cache = if mode.is_dark() { &DARK } else { &LIGHT };
+    cache.get_or_init(|| {
+        let tokens = palette(mode).material;
+        tokens.glows.map(|color| {
+            let alpha = tokens.glow_alpha;
+            let svg = format!(
+                r##"<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256">
+<defs><radialGradient id="glow">
+<stop offset="0" stop-color="#{color:06x}" stop-opacity="{alpha}"/>
+<stop offset="1" stop-color="#{color:06x}" stop-opacity="0"/>
+</radialGradient></defs><rect width="256" height="256" fill="url(#glow)"/></svg>"##
+            );
+            Arc::new(Image::from_bytes(ImageFormat::Svg, svg.into_bytes()))
+        })
+    })
 }
 
 /// Translucent layered material over the app-painted static low-frequency scene.
@@ -530,24 +550,16 @@ pub fn material(mode: ThemeMode, viewport: Size<Pixels>) -> Material {
     let p = palette(mode);
     let m = p.material;
     let (width, height) = (f32::from(viewport.width), f32::from(viewport.height));
-    // 光斑半径取视口短边的 0.35；圆盘半径 0.6、模糊 0.4，峰值柔和不出硬边。
-    let reach = width.min(height).max(1.) * 0.35;
-    let glow = |color: u32, (x, y): (f32, f32)| {
-        let radius = reach * 0.6;
-        Glow {
-            origin: point(px(width * x - radius), px(height * y - radius)),
-            diameter: px(radius * 2.),
-            shadow: BoxShadow::new(px(0.), px(0.), alpha((color, m.glow_alpha)))
-                .blur_radius(px(reach * 0.4)),
-        }
-    };
+    let radius = width.min(height).max(1.) * 0.35;
+    let [mint, lavender] = glow_images(mode);
     let black = Hsla::from(rgb(0));
     Material {
         scene: field(mode),
-        glows: [
-            glow(m.glows[0], (0.12, 0.18)),
-            glow(m.glows[1], (0.88, 0.85)),
-        ],
+        glows: [(mint, 0.12, 0.18), (lavender, 0.88, 0.85)].map(|(image, x, y)| Glow {
+            origin: point(px(width * x - radius), px(height * y - radius)),
+            diameter: px(radius * 2.),
+            image: image.clone(),
+        }),
         chrome: alpha(m.chrome),
         sheet: alpha(m.sheet),
         reading: rgb(p.surface).into(),
@@ -816,8 +828,72 @@ mod tests {
                 assert!(material.chrome.a < material.sheet.a);
                 assert_eq!(material.reading.a, 1., "reading surfaces stay opaque");
                 assert!(material.rim.inset && !material.shadow.iter().any(|s| s.inset));
-                for glow in &material.glows {
-                    assert!(glow.shadow.color.a > 0. && glow.shadow.blur_radius > px(0.));
+            }
+        }
+    }
+
+    #[test]
+    fn scene_glows_keep_their_centers_and_reach_after_resize() {
+        for mode in [ThemeMode::Light, ThemeMode::Dark] {
+            for (width, height, radius, centers) in [
+                (1280., 800., 280., [(153.6, 144.), (1126.4, 680.)]),
+                (960., 640., 224., [(115.2, 115.2), (844.8, 544.)]),
+            ] {
+                let material = material(mode, size(px(width), px(height)));
+                for (glow, (x, y)) in material.glows.iter().zip(centers) {
+                    assert_eq!(glow.diameter, px(radius * 2.));
+                    assert!((f32::from(glow.origin.x) + radius - x).abs() < 0.01);
+                    assert!((f32::from(glow.origin.y) + radius - y).abs() < 0.01);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn scene_glows_decode_to_a_single_fading_frame_in_each_theme() {
+        let renderer = gpui_kit::SvgRenderer::new(std::sync::Arc::new(()));
+        for (mode, peaks) in [
+            (
+                ThemeMode::Light,
+                [[219u8, 234, 191, 140], [245, 205, 217, 140]],
+            ),
+            (ThemeMode::Dark, [[64, 74, 31, 128], [102, 47, 58, 128]]),
+        ] {
+            let scene = material(mode, size(px(1280.), px(800.)));
+            for (glow, peak) in scene.glows.iter().zip(peaks) {
+                let frame = glow
+                    .image
+                    .to_image_data(renderer.clone())
+                    .unwrap_or_else(|e| panic!("glow decode: {e}"));
+                assert_eq!(frame.frame_count(), 1);
+                let size = frame.size(0);
+                assert_eq!(size.width, size.height);
+                let width = size.width.0 as usize;
+                let bytes = frame.as_bytes(0).unwrap_or_default();
+                let pixel = |x, y| &bytes[(y * width + x) * 4..][..4];
+                let mid = width / 2;
+                // GPUI yields unpremultiplied BGRA; allow the 8-bit conversion round trip.
+                assert!(
+                    pixel(mid, mid)
+                        .iter()
+                        .zip(peak)
+                        .all(|(a, b)| a.abs_diff(b) <= 3)
+                );
+                for axis in [false, true] {
+                    let alpha = |x| {
+                        if axis {
+                            pixel(x, mid)[3]
+                        } else {
+                            pixel(mid, x)[3]
+                        }
+                    };
+                    let profile =
+                        [mid, mid * 5 / 4, mid * 3 / 2, mid * 7 / 4, width - 1].map(alpha);
+                    assert!(
+                        profile.windows(2).all(|pair| pair[0] > pair[1]),
+                        "{profile:?}"
+                    );
+                    assert!(profile[4] <= 1, "{profile:?}");
                 }
             }
         }
