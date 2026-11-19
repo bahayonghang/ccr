@@ -566,8 +566,15 @@ pub fn material(mode: ThemeMode, viewport: Size<Pixels>) -> Material {
         highlight: alpha(m.highlight),
         rim: rim(mode),
         shadow: [
-            BoxShadow::new(px(0.), px(20.), black.opacity(m.shadow_alpha[0])).blur_radius(px(48.)),
-            BoxShadow::new(px(0.), px(2.), black.opacity(m.shadow_alpha[1])).blur_radius(px(6.)),
+            // GPUI culls against the source rectangle before blurring. Extend
+            // each source one pixel past its offset so all four exterior clips
+            // intersect it and retain the soft tail, including above the frame.
+            BoxShadow::new(px(0.), px(20.), black.opacity(m.shadow_alpha[0]))
+                .blur_radius(px(48.))
+                .spread_radius(px(21.)),
+            BoxShadow::new(px(0.), px(2.), black.opacity(m.shadow_alpha[1]))
+                .blur_radius(px(6.))
+                .spread_radius(px(3.)),
         ],
         inset: px(scene_inset(viewport)),
     }
