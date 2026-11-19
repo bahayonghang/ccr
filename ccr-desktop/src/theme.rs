@@ -763,7 +763,7 @@ mod tests {
         [0, 1, 2].map(|i| background[i] * (1. - alpha) + color[i] * alpha)
     }
 
-    /// 场景两端、中点、两个光斑峰值，以及叠加整组外阴影后的最坏背景。
+    /// 场景两端、中点，以及各自叠加两处光斑峰值。框架阴影只在面外。
     fn scene_samples(mode: ThemeMode) -> Vec<Rgb> {
         let p = palette(mode);
         let m = p.material;
@@ -774,12 +774,6 @@ mod tests {
         for glow in m.glows {
             samples.extend(base.map(|sample| composite(sample, (glow, m.glow_alpha))));
         }
-        let shadow = 1. - (1. - m.shadow_alpha[0]) * (1. - m.shadow_alpha[1]);
-        let shadowed: Vec<Rgb> = samples
-            .iter()
-            .map(|sample| composite(*sample, (0, shadow)))
-            .collect();
-        samples.extend(shadowed);
         samples
     }
 

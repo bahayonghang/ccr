@@ -5,6 +5,7 @@ mod close;
 mod close_tests;
 mod command_state;
 mod environment;
+mod frame_shadow;
 mod navigation_guard;
 pub(crate) mod page_header;
 mod platform_navigation;
@@ -1356,7 +1357,7 @@ impl Render for Shell {
             .size_full()
             .flex()
             .rounded(px(theme::SHEET_RADIUS))
-            .shadow(material.shadow.to_vec())
+            .relative()
             .text_color(cx.theme().foreground)
             .font(theme::body_font(cx))
             .text_size(cx.theme().font_size)
@@ -1379,6 +1380,7 @@ impl Render for Shell {
                     }
                 }),
             )
+            .child(frame_shadow::outside_frame(material.shadow))
             .child(navigation)
             .child(workspace);
         div()
