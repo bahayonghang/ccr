@@ -66,6 +66,8 @@ struct CurrentAuthDocuments {
 
 #[allow(dead_code)]
 pub struct AuthReadSnapshot {
+    /// Only one saved file matched the observed credentials.
+    pub unique_credential_name: Option<String>,
     pub auth_state: AuthState,
     pub login_state: LoginState,
     pub current_info: Option<CurrentAuthInfo>,
@@ -236,6 +238,12 @@ impl CodexAuthService {
         }
 
         let raw = self.load_auth_raw_map(&auth_path)?;
+        Self::parse_auth_documents(raw)
+    }
+
+    fn parse_auth_documents(
+        raw: serde_json::Map<String, serde_json::Value>,
+    ) -> Result<CurrentAuthDocuments> {
         let auth: CodexAuthJson = serde_json::from_value(serde_json::Value::Object(raw.clone()))
             .map_err(|e| CcrError::ConfigError(format!("解析 auth.json 失败: {}", e)))?;
 
@@ -519,8 +527,15 @@ impl CodexAuthService {
             return format!("len{len}");
         }
 
-        let prefix = &trimmed[..3];
-        let suffix = &trimmed[len - 3..];
+        let prefix: String = trimmed.chars().take(3).collect();
+        let suffix: String = trimmed
+            .chars()
+            .rev()
+            .take(3)
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+            .collect();
         format!("{prefix}..{suffix}:len{len}")
     }
 
@@ -534,71 +549,110 @@ impl CodexAuthService {
 
     /// 获取当前认证状态快照
     pub fn get_auth_state(&self) -> AuthState {
+        self.observe_auth_file().0
+    }
+
+    fn observe_auth_file(
+        &self,
+    ) -> (
+        AuthState,
+        Option<serde_json::Map<String, serde_json::Value>>,
+    ) {
         let store = match self.detect_credential_store() {
             Ok(store) => store,
             Err(error) => {
-                return AuthState {
-                    intent: AuthIntent::NoAuth,
-                    store: CredentialStoreKind::Auto,
-                    status: AuthStateStatus::Invalid,
-                    reason: match error {
-                        CcrError::ConfigError(reason) => reason,
-                        error => error.to_string(),
+                return (
+                    AuthState {
+                        intent: AuthIntent::NoAuth,
+                        store: CredentialStoreKind::Auto,
+                        status: AuthStateStatus::Invalid,
+                        reason: match error {
+                            CcrError::ConfigError(reason) => reason,
+                            error => error.to_string(),
+                        },
                     },
-                };
+                    None,
+                );
             }
         };
         if !Self::supports_managed_auth_accounts(store) {
-            return AuthState {
-                intent: AuthIntent::NoAuth,
-                store,
-                status: AuthStateStatus::Unsupported,
-                reason: format!(
-                    "当前凭据存储为 {}，CCR 不读取系统钥匙串/自动存储中的实际凭据",
-                    store.as_str()
-                ),
-            };
+            return (
+                AuthState {
+                    intent: AuthIntent::NoAuth,
+                    store,
+                    status: AuthStateStatus::Unsupported,
+                    reason: format!(
+                        "当前凭据存储为 {}，CCR 不读取系统钥匙串/自动存储中的实际凭据",
+                        store.as_str()
+                    ),
+                },
+                None,
+            );
         }
 
         let auth_path = self.auth_json_path();
 
         if !auth_path.exists() {
-            return AuthState {
-                intent: AuthIntent::NoAuth,
-                store,
-                status: AuthStateStatus::Missing,
-                reason: format!("{} 模式下未找到 auth.json", store.as_str()),
-            };
+            return (
+                AuthState {
+                    intent: AuthIntent::NoAuth,
+                    store,
+                    status: AuthStateStatus::Missing,
+                    reason: format!("{} 模式下未找到 auth.json", store.as_str()),
+                },
+                None,
+            );
         }
 
         let raw = match self.load_auth_raw_map(&auth_path) {
             Ok(raw) => raw,
             Err(e) => {
-                return AuthState {
-                    intent: AuthIntent::NoAuth,
-                    store,
-                    status: AuthStateStatus::Invalid,
-                    reason: format!("auth.json 无法解析: {e}"),
-                };
+                return (
+                    AuthState {
+                        intent: AuthIntent::NoAuth,
+                        store,
+                        status: AuthStateStatus::Invalid,
+                        reason: format!("auth.json 无法解析: {e}"),
+                    },
+                    None,
+                );
             }
         };
 
-        Self::build_auth_state_from_raw(store, &raw)
+        (Self::build_auth_state_from_raw(store, &raw), Some(raw))
     }
 
     pub fn read_auth_snapshot(&self) -> Result<AuthReadSnapshot> {
-        let auth_state = self.get_auth_state();
+        let (auth_state, raw) = self.observe_auth_file();
         let registry = self.load_registry()?;
 
-        let current_info = if auth_state.status == AuthStateStatus::Valid {
-            let docs = self.load_current_auth_documents()?;
-            Some(self.build_current_auth_info_from_documents(&auth_state, &docs)?)
-        } else {
-            None
-        };
-
-        let current_account_name =
-            self.matched_saved_account_name(&registry, current_info.as_ref());
+        let (current_info, current_account_name, unique_credential_name) =
+            if auth_state.status == AuthStateStatus::Valid {
+                let docs = Self::parse_auth_documents(
+                    raw.ok_or_else(|| CcrError::ConfigError("缺少运行认证文档".into()))?,
+                )?;
+                let info = self.build_current_auth_info_from_documents(&auth_state, &docs)?;
+                let matched = self.matched_saved_account_name(&registry, &info, &docs.auth);
+                let unique = if info.auth_method == Some(OpenAiAuthMethod::Chatgpt) {
+                    identity_from_auth(&docs.auth).and_then(|identity| {
+                        let owner = CodexOAuthTokenService::from_dirs(
+                            self.ccr_codex_dir.clone(),
+                            self.codex_dir.clone(),
+                        );
+                        let mut names = registry.accounts.keys().filter(|n| {
+                            self.validate_account_name(n).is_ok()
+                                && owner.saved_identity(&registry, n).as_ref() == Some(&identity)
+                        });
+                        let first = names.next()?;
+                        names.next().is_none().then(|| first.clone())
+                    })
+                } else {
+                    matched.clone()
+                };
+                (Some(info), matched, unique)
+            } else {
+                (None, None, None)
+            };
         let login_state = Self::compute_login_state(
             &auth_state,
             current_info.as_ref(),
@@ -606,6 +660,7 @@ impl CodexAuthService {
         );
 
         Ok(AuthReadSnapshot {
+            unique_credential_name,
             auth_state,
             login_state,
             current_info,
@@ -727,19 +782,41 @@ impl CodexAuthService {
     fn matched_saved_account_name(
         &self,
         registry: &CodexAuthRegistry,
-        current_info: Option<&CurrentAuthInfo>,
+        info: &CurrentAuthInfo,
+        auth: &CodexAuthJson,
     ) -> Option<String> {
-        let info = current_info?;
         if info.auth_method == Some(OpenAiAuthMethod::Chatgpt) {
             let oauth = CodexOAuthTokenService::from_dirs(
                 self.ccr_codex_dir.clone(),
                 self.codex_dir.clone(),
             );
-            return oauth.select_sync_target(registry, &oauth.runtime_identity()?);
+            return oauth.select_sync_target(registry, &identity_from_auth(auth)?);
         }
-        registry.accounts.iter().find_map(|(name, account)| {
-            (account.account_id == info.account_id).then(|| name.clone())
-        })
+        if info.auth_method != Some(OpenAiAuthMethod::Api) {
+            return None;
+        }
+        let key = auth.openai_api_key.as_deref()?;
+        let mut matched = None;
+        for (name, account) in &registry.accounts {
+            if account.auth_method == Some(OpenAiAuthMethod::Chatgpt)
+                || (account.auth_method.is_none() && account.account_id.starts_with("provider:"))
+                || self.validate_account_name(name).is_err()
+            {
+                continue;
+            }
+            let document = self.load_auth_raw_map(&self.account_auth_path(name)).ok()?;
+            if document
+                .get("OPENAI_API_KEY")
+                .and_then(serde_json::Value::as_str)
+                == Some(key)
+            {
+                if matched.is_some() {
+                    return None;
+                }
+                matched = Some(name.clone());
+            }
+        }
+        matched
     }
 
     fn compute_login_state(
@@ -797,8 +874,9 @@ impl CodexAuthService {
         }
         let new_current = match state.intent {
             AuthIntent::OpenAiAuth { .. } if matches!(state.status, AuthStateStatus::Valid) => {
-                let info = self.get_current_auth_info()?;
-                self.matched_saved_account_name(&registry, Some(&info))
+                let docs = self.load_current_auth_documents()?;
+                let info = self.build_current_auth_info_from_documents(&state, &docs)?;
+                self.matched_saved_account_name(&registry, &info, &docs.auth)
             }
             _ => None,
         };

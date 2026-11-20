@@ -65,7 +65,17 @@ const CLAUDE_AUTH_ENV_SOURCES: &[(&str, ClaudeAuthSourceKind, ClaudeAuthConfiden
 ];
 
 /// Claude auth 读取快照
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RuntimeCredentialRead {
+    Detected,
+    Missing,
+    Invalid,
+    Unreadable,
+}
+
 pub struct ClaudeAuthReadSnapshot {
+    pub credential_read: RuntimeCredentialRead,
+    pub unique_credential_name: Option<String>,
     pub login_state: ClaudeLoginState,
     pub current_info: Option<ClaudeCurrentAuthInfo>,
     pub registry: ClaudeAuthRegistry,
@@ -91,6 +101,8 @@ pub struct ClaudeAuthItem {
 }
 
 struct RuntimeAuthRead {
+    credential_read: RuntimeCredentialRead,
+    unique_credential_name: Option<String>,
     info: Option<ClaudeCurrentAuthInfo>,
     usable: bool,
     matched_account_name: Option<String>,
@@ -712,21 +724,49 @@ impl ClaudeAuthService {
         registry: &ClaudeAuthRegistry,
         credentials: &ClaudeCredentialsDocument,
     ) -> Option<(String, ClaudeAuthSnapshotFile)> {
-        let current_token = Self::credentials_identity_token(credentials).ok()?;
-        registry.accounts.keys().find_map(|name| {
+        self.matching_snapshots(registry, credentials).next()
+    }
+
+    fn matching_snapshots<'a>(
+        &'a self,
+        registry: &'a ClaudeAuthRegistry,
+        credentials: &ClaudeCredentialsDocument,
+    ) -> impl Iterator<Item = (String, ClaudeAuthSnapshotFile)> + 'a {
+        let expected = Self::credentials_identity_token(credentials).ok();
+        registry.accounts.keys().filter_map(move |name| {
+            let expected = expected.as_ref()?;
+            self.validate_account_name(name).ok()?;
             let snapshot = self.load_snapshot(name).ok()?;
-            let snapshot_token = Self::credentials_identity_token(&snapshot.credentials).ok()?;
-            (snapshot_token == current_token).then(|| (name.clone(), snapshot))
+            let token = Self::credentials_identity_token(&snapshot.credentials).ok()?;
+            (&token == expected).then(|| (name.clone(), snapshot))
         })
     }
 
     fn load_current_runtime_auth(&self, registry: &ClaudeAuthRegistry) -> RuntimeAuthRead {
-        let credentials = self
-            .read_optional_json::<ClaudeCredentialsDocument>(&self.credentials_path())
-            .filter(|doc| doc.claude_ai_oauth.is_some());
-        let matched = credentials
+        let (credentials, credential_read) = match fs::read(self.credentials_path()) {
+            Ok(bytes) => match serde_json::from_slice::<ClaudeCredentialsDocument>(&bytes) {
+                Ok(document) if document.claude_ai_oauth.is_some() => {
+                    (Some(document), RuntimeCredentialRead::Detected)
+                }
+                _ => (None, RuntimeCredentialRead::Invalid),
+            },
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                (None, RuntimeCredentialRead::Missing)
+            }
+            Err(_) => (None, RuntimeCredentialRead::Unreadable),
+        };
+        let (matched, unique_credential_name) = credentials
             .as_ref()
-            .and_then(|document| self.find_matching_snapshot(registry, document));
+            .map(|doc| {
+                let mut matches = self.matching_snapshots(registry, doc);
+                let first = matches.next();
+                let unique = first
+                    .as_ref()
+                    .filter(|_| matches.next().is_none())
+                    .map(|(name, _)| name.clone());
+                (first, unique)
+            })
+            .unwrap_or_default();
         let matched_account_name = matched.as_ref().map(|(name, _)| name.clone());
         let fallback_metadata = matched.is_none().then(|| {
             self.read_optional_json::<ClaudeMetadataDocument>(&self.runtime_paths.state_file)
@@ -746,6 +786,8 @@ impl ClaudeAuthService {
         let usable = info.is_some();
 
         RuntimeAuthRead {
+            unique_credential_name,
+            credential_read,
             info,
             usable,
             matched_account_name,
@@ -817,6 +859,8 @@ impl ClaudeAuthService {
         };
 
         Ok(ClaudeAuthReadSnapshot {
+            credential_read: runtime.credential_read,
+            unique_credential_name: runtime.unique_credential_name,
             login_state,
             current_info: runtime.info,
             registry,
