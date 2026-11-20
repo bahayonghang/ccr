@@ -123,6 +123,7 @@ impl ConfigurationApp {
     fn card(&mut self, index: usize, row: &ConfigRow, cx: &mut Context<Self>) -> AnyElement {
         let (preview_focus, apply_focus) = self.card_handles(&row.name, cx);
         let selected = self.selected.as_deref() == Some(&row.name);
+        let glass = theme::platform_card::PlatformCard::new(self.platform, cx.theme().mode);
         let disabled = self.loading || self.tools.read(cx).expanded() || self.tools.read(cx).busy();
         let state = self
             .observation
@@ -141,7 +142,8 @@ impl ConfigurationApp {
                     .min_w_0()
                     .max_w_full()
                     .font_weight(FontWeight::SEMIBOLD)
-                    .text_size(theme::text_size(14.))
+                    .text_size(theme::text_size(17.))
+                    .text_color(glass.title)
                     .child(row.name.clone()),
             );
         if let Some(state) = state {
@@ -174,37 +176,67 @@ impl ConfigurationApp {
         }
         let unknown = text(cx, "Unspecified", "未指定");
         let host = crate::runtime::profiles::safe_host(&row.base_url);
-        let mut fields = div().flex().flex_col().gap(px(3.)).w_full();
-        for (label, value) in [
-            (
-                text(cx, "Provider", "供应商"),
-                row.provider.as_deref().unwrap_or(unknown),
-            ),
-            (text(cx, "Host", "主机"), host.as_deref().unwrap_or(unknown)),
-            (
-                text(cx, "Model", "模型"),
-                row.model.as_deref().unwrap_or(unknown),
-            ),
-            (text(cx, "Auth", "认证"), auth_label(row, cx)),
-        ] {
-            fields = fields.child(
-                div()
-                    .flex()
-                    .items_start()
-                    .w_full()
-                    .gap(px(8.))
-                    .text_size(theme::text_size(13.))
-                    .child(
-                        div()
-                            .flex_shrink_0()
-                            .w(theme::text_size(54.))
-                            .text_size(theme::text_size(12.))
-                            .text_color(cx.theme().muted_foreground)
-                            .child(label),
-                    )
-                    .child(div().flex_1().min_w_0().child(value.to_string())),
+        let field = |label, value: &str| {
+            div()
+                .flex()
+                .items_start()
+                .flex_grow(1.)
+                .flex_basis(theme::text_size(206.))
+                .min_w_0()
+                .gap(px(8.))
+                .child(
+                    div()
+                        .flex_shrink_0()
+                        .w(theme::text_size(54.))
+                        .text_size(theme::text_size(12.))
+                        .text_color(glass.secondary)
+                        .child(label),
+                )
+                .child(
+                    div()
+                        .flex_1()
+                        .min_w_0()
+                        .text_size(theme::text_size(13.))
+                        .text_color(if value == unknown {
+                            glass.secondary
+                        } else {
+                            cx.theme().foreground
+                        })
+                        .child(value.to_string()),
+                )
+        };
+        let pair = || {
+            div()
+                .flex()
+                .flex_wrap()
+                .w_full()
+                .gap_x(px(12.))
+                .gap_y(px(3.))
+        };
+        let fields = div()
+            .flex()
+            .flex_col()
+            .w_full()
+            .gap(px(3.))
+            .child(
+                pair()
+                    .child(field(
+                        text(cx, "Provider", "供应商"),
+                        row.provider.as_deref().unwrap_or(unknown),
+                    ))
+                    .child(field(
+                        text(cx, "Host", "主机"),
+                        host.as_deref().unwrap_or(unknown),
+                    )),
+            )
+            .child(
+                pair()
+                    .child(field(
+                        text(cx, "Model", "模型"),
+                        row.model.as_deref().unwrap_or(unknown),
+                    ))
+                    .child(field(text(cx, "Auth", "认证"), auth_label(row, cx))),
             );
-        }
         let name = row.name.clone();
         let body = CardButton::new(format!("configuration:{}", row.name))
             .accessibility_label(labels.join(", "))
@@ -217,7 +249,9 @@ impl ConfigurationApp {
             .rounded(px(10.))
             .cursor_pointer()
             .focus_visible(|s| s.border_color(cx.theme().ring))
-            .hover(|s| s.bg(cx.theme().muted))
+            .when(!disabled, |el| {
+                el.hover(|s| s.bg(glass.title.opacity(0.055)))
+            })
             .w_full()
             .flex_1()
             .flex_col()
@@ -253,18 +287,32 @@ impl ConfigurationApp {
             })
             .rounded(px(8.))
             .border_2()
-            .border_color(transparent_black())
-            .focus_visible(|s| s.border_color(cx.theme().ring))
-            .hover(|s| s.bg(cx.theme().muted))
-            .cursor_pointer()
-            .px(px(7.))
-            .py(px(5.))
-            .text_size(theme::text_size(13.))
+            .border_color(if disabled {
+                glass.edge
+            } else {
+                glass.action_edge
+            })
+            .bg(if disabled {
+                cx.theme().muted
+            } else {
+                glass.action
+            })
             .text_color(if disabled {
                 cx.theme().muted_foreground
             } else {
-                cx.theme().link
+                glass.title
             })
+            .when(!disabled, |el| {
+                el.cursor_pointer()
+                    .hover(|s| s.bg(glass.hover))
+                    .active(|s| s.bg(glass.pressed))
+            })
+            .focus_visible(|s| s.border_color(cx.theme().ring))
+            .min_h(px(30.))
+            .px(px(12.))
+            .py(px(3.))
+            .font_weight(FontWeight::SEMIBOLD)
+            .text_size(theme::text_size(13.))
             .on_key_down(cx.listener(move |this, event: &KeyDownEvent, window, cx| {
                 let key = event.keystroke.key.as_str();
                 if matches!(key, "enter" | "space") && !event.keystroke.modifiers.modified() {
@@ -297,15 +345,18 @@ impl ConfigurationApp {
             .flex_wrap()
             .justify_between()
             .gap(px(4.))
-            .px(px(10.))
+            .mx(px(12.))
+            .pt(px(6.))
             .pb(px(8.))
+            .border_t_1()
+            .border_color(glass.edge.opacity(0.58))
             .child(
                 div()
                     .id(format!("configuration-tags:{}", row.name))
                     .min_w_0()
                     .flex_1()
                     .text_size(theme::text_size(12.))
-                    .text_color(cx.theme().muted_foreground)
+                    .text_color(glass.secondary)
                     .cursor_pointer()
                     .on_click(
                         cx.listener(move |this, _, window, cx| this.preview(&name, window, cx)),
@@ -313,22 +364,8 @@ impl ConfigurationApp {
                     .child(tag_labels.join(" · ")),
             )
             .child(action);
-        div()
-            .min_w_0()
-            .flex()
-            .flex_col()
-            .rounded(px(12.))
-            .border_1()
-            .border_color(if selected {
-                cx.theme().muted_foreground
-            } else {
-                cx.theme().border
-            })
-            .bg(if selected {
-                cx.theme().secondary
-            } else {
-                cx.theme().background
-            })
+        glass
+            .surface(div().min_w_0().flex().flex_col(), selected)
             .child(body)
             .child(footer)
             .into_any_element()

@@ -1146,7 +1146,16 @@ mod tests {
             });
             window.render_frame(cx);
             let offset = view.read(cx).scroll.logical_scroll_top();
-            window.click("configuration:profile-00019", cx);
+            // The next band's centre can be clipped at 20px. Click its visible portion.
+            let card = window.find("configuration:profile-00019").bounds();
+            let visible = card.intersect(&viewport);
+            assert!(!visible.is_empty());
+            window.click_at(
+                "configuration:profile-00019",
+                visible.center() - card.origin,
+                cx,
+            );
+            assert!(view.read(cx).detail_open);
             window.press("escape", cx);
             assert_eq!(
                 window.find("configuration:profile-00019").focused(),

@@ -1,4 +1,5 @@
 //! The single native semantic token mapping from DESIGN.md.
+pub mod platform_card;
 use gpui_kit::component::{Theme, ThemeMode};
 use gpui_kit::{
     App, Background, BoxShadow, Hsla, Image, ImageFormat, Pixels, Point, Size, Window,
@@ -1078,6 +1079,57 @@ mod tests {
                 let colors = tone_colors(tone, mode);
                 assert_eq!(colors.fill.a, 1., "{label}: fill stays opaque");
                 assert_eq!(colors.edge.a, 1., "{label}: edge stays opaque");
+            }
+        }
+    }
+
+    #[test]
+    fn platform_card_reading_buttons_and_focus_keep_contrast_on_the_sheet() {
+        use ccr_app::runtime::Platform;
+        let to_rgb = |color: Hsla| {
+            let rgba = gpui_kit::Rgba::from(color);
+            [rgba.r, rgba.g, rgba.b].map(|c| f64::from(c) * 255.)
+        };
+        for mode in [ThemeMode::Light, ThemeMode::Dark] {
+            let p = palette(mode);
+            for platform in [
+                Platform::Claude,
+                Platform::Codex,
+                Platform::Grok,
+                Platform::Gemini,
+            ] {
+                let card = platform_card::PlatformCard::new(platform, mode);
+                for scene in scene_samples(mode) {
+                    let sheet = composite(scene, p.material.sheet);
+                    for stop in card.stops() {
+                        let face = composite(sheet, stop);
+                        for ink in [to_rgb(card.title), to_rgb(card.secondary), channels(p.text)] {
+                            assert!(contrast(ink, face) >= 4.5, "{platform:?}: reading");
+                        }
+                        assert!(
+                            contrast(to_rgb(card.action_edge), face) >= 3.,
+                            "{platform:?}: outline"
+                        );
+                        assert!(
+                            contrast(channels(p.focus), face) >= 3.,
+                            "{platform:?}: preview focus"
+                        );
+                    }
+                }
+                for fill in [card.action, card.hover, card.pressed].map(to_rgb) {
+                    assert!(
+                        contrast(to_rgb(card.title), fill) >= 4.5,
+                        "{platform:?}: action label"
+                    );
+                    assert!(
+                        contrast(to_rgb(card.action_edge), fill) >= 3.,
+                        "{platform:?}: action edge"
+                    );
+                    assert!(
+                        contrast(channels(p.focus), fill) >= 3.,
+                        "{platform:?}: action focus"
+                    );
+                }
             }
         }
     }
