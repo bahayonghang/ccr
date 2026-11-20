@@ -1,8 +1,14 @@
 //! Native configuration catalog. Domain-backed actions live in the Profiles feature.
+mod cards;
+mod toolbar;
+
 use crate::{
     features::profiles::ProfileTools,
     locales::{is_chinese, service_error, text},
-    runtime::Services,
+    runtime::{
+        Services,
+        profiles::{ProfileCatalog, ProfileError},
+    },
     shell::{badge, semantics},
     theme,
 };
@@ -10,17 +16,18 @@ use ccr_app::{
     config::ConfigRow,
     runtime::{AdmissionError, Completion, Platform, RequestKey, ResponseGate, TaskEvent},
 };
+use ccr_cli::application::profile_observation::{ProfileObservation, RuntimeState};
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
-    ActiveTheme, Disableable, Selectable,
+    ActiveTheme, Disableable, Selectable, Sizable,
     button::{Button, ButtonVariants},
     input::{Input, InputEvent, InputState},
 };
 use gpui_kit::prelude::FluentBuilder;
 use gpui_kit::{
     AppContext, Context, Entity, FocusHandle, Focusable, InteractiveElement, IntoElement,
-    ParentElement, Render, SharedString, StatefulInteractiveElement, Styled, Subscription, Task,
-    UniformListScrollHandle, Window, div, px, uniform_list,
+    ListAlignment, ListOffset, ListState, ParentElement, Render, StatefulInteractiveElement,
+    Styled, Subscription, Task, Window, div, list, px,
 };
 use std::sync::Arc;
 
@@ -29,6 +36,8 @@ pub struct ConfigurationApp {
     catalog_environment: ccr_app::runtime::EnvironmentId,
     rows: Arc<Vec<ConfigRow>>,
     all_rows: Arc<Vec<ConfigRow>>,
+    observation: Option<ProfileObservation>,
+    runtime_file: String,
     provider_filter: Option<String>,
     tag_filter: Option<String>,
     enabled_filter: Option<bool>,
@@ -43,17 +52,19 @@ pub struct ConfigurationApp {
     error: Option<&'static str>,
     search: Entity<InputState>,
     search_text: String,
+    search_language: Option<bool>,
     _search_subscription: Subscription,
     list_focus: FocusHandle,
     detail_focus: FocusHandle,
-    scroll: UniformListScrollHandle,
+    scroll: ListState,
+    columns: usize,
+    card_focus: std::collections::HashMap<String, (FocusHandle, FocusHandle)>,
+    filter_panel: Option<toolbar::FilterPanel>,
     tools: Entity<ProfileTools>,
     _tools_subscription: Subscription,
     tools_version: u64,
     platform: Platform,
     pinned: bool,
-    #[cfg(test)]
-    last_rendered_count: usize,
 }
 
 impl ConfigurationApp {
@@ -107,6 +118,8 @@ impl ConfigurationApp {
             services,
             rows: Arc::new(Vec::new()),
             all_rows: Arc::new(Vec::new()),
+            observation: None,
+            runtime_file: String::new(),
             provider_filter: None,
             tag_filter: None,
             enabled_filter: None,
@@ -121,17 +134,19 @@ impl ConfigurationApp {
             error: None,
             search,
             search_text: String::new(),
+            search_language: None,
             _search_subscription: subscription,
             list_focus: cx.focus_handle(),
             detail_focus: cx.focus_handle().tab_stop(false),
-            scroll: UniformListScrollHandle::new(),
+            scroll: ListState::new(0, ListAlignment::Top, px(100.)),
+            columns: 1,
+            card_focus: Default::default(),
+            filter_panel: None,
             tools,
             _tools_subscription: tools_subscription,
             tools_version: 0,
             platform: Platform::Claude,
             pinned: false,
-            #[cfg(test)]
-            last_rendered_count: 0,
         };
         if load {
             this.refresh(cx);
@@ -206,7 +221,12 @@ impl ConfigurationApp {
         self.generation += 1;
         let environment = self.services.environment();
         if self.catalog_environment != environment {
+            self.rows = Arc::new(Vec::new());
+            self.all_rows = Arc::new(Vec::new());
             self.selected = None;
+            self.detail_open = false;
+            self.card_focus.clear();
+            self.sync_target(cx);
         }
         self.catalog_environment = environment.clone();
         let key = RequestKey {
@@ -217,44 +237,17 @@ impl ConfigurationApp {
         };
         self.gate.replace(key.clone());
         self.loading = true;
+        self.observation = None;
+        self.runtime_file.clear();
+        self.tools.update(cx, |tools, cx| tools.refresh_status(cx));
         self.error = None;
-        // Drop the previous platform's rows before the next catalog returns.
-        self.rows = Arc::new(Vec::new());
-        self.all_rows = Arc::new(Vec::new());
-        self.detail_open = false;
-        match self.services.profile_rows(key.clone(), String::new()) {
+        match self.services.profile_catalog(key.clone(), String::new()) {
             Ok(mut subscription) => {
                 self.read_task = Some(cx.spawn(async move |weak, cx| {
                     while let Some(event) = subscription.next().await {
                         if let TaskEvent::Terminal(result) = event {
-                            let _ = weak.update(cx, |this, cx| {
-                                if !this.gate.accepts(&key) {
-                                    return;
-                                }
-                                this.loading = false;
-                                match result.as_ref() {
-                                    Completion::Success(rows) => {
-                                        this.accept_rows(rows.clone());
-                                        this.sync_target(cx);
-                                    }
-                                    Completion::Failed(error)
-                                    | Completion::CleanupFailed(error) => {
-                                        this.rows = Arc::new(Vec::new());
-                                        this.selected = None;
-                                        this.detail_open = false;
-                                        this.error = Some(error.message());
-                                    }
-                                    Completion::Cancelled => {
-                                        this.error = Some("Read cancelled / 已取消读取")
-                                    }
-                                    Completion::WorkerFailed => {
-                                        this.error = Some(
-                                            "Read worker stopped. Retry. / 读取线程已停止，请重试",
-                                        )
-                                    }
-                                }
-                                cx.notify();
-                            });
+                            let _ = weak
+                                .update(cx, |this, cx| this.finish_read(&key, result.as_ref(), cx));
                             break;
                         }
                     }
@@ -270,8 +263,48 @@ impl ConfigurationApp {
         }
         cx.notify();
     }
+    fn finish_read(
+        &mut self,
+        key: &RequestKey,
+        result: &Completion<ProfileCatalog, ProfileError>,
+        cx: &mut Context<Self>,
+    ) {
+        if !self.gate.accepts(key) {
+            return;
+        }
+        self.loading = false;
+        match result {
+            Completion::Success(catalog) => {
+                self.observation = Some(catalog.observation.clone());
+                self.runtime_file.clone_from(&catalog.runtime_file);
+                self.accept_rows(catalog.rows.clone());
+                self.sync_target(cx);
+            }
+            Completion::Failed(error) | Completion::CleanupFailed(error) => {
+                self.all_rows = Arc::new(Vec::new());
+                self.rows = Arc::new(Vec::new());
+                self.card_focus.clear();
+                self.selected = None;
+                self.sync_target(cx);
+                self.detail_open = false;
+                self.error = Some(error.message());
+            }
+            Completion::Cancelled => self.error = Some("Read cancelled / 已取消读取"),
+            Completion::WorkerFailed => {
+                self.error = Some("Read worker stopped. Retry. / 读取线程已停止，请重试")
+            }
+        }
+        cx.notify();
+    }
     fn accept_rows(&mut self, rows: Arc<Vec<ConfigRow>>) {
         self.all_rows = rows;
+        let names = self
+            .all_rows
+            .iter()
+            .map(|r| r.name.as_str())
+            .collect::<std::collections::HashSet<_>>();
+        self.card_focus
+            .retain(|name, _| names.contains(name.as_str()));
         self.refilter();
     }
 
@@ -313,7 +346,17 @@ impl ConfigurationApp {
                     .then_with(|| a.name.cmp(&b.name))
             });
         }
+        let top = self.scroll.logical_scroll_top();
+        let anchor = self.rows.get(top.item_ix * self.columns).map(|r| &r.name);
+        let new_anchor = anchor.and_then(|name| rows.iter().position(|r| &r.name == name));
         self.rows = Arc::new(rows);
+        self.scroll.reset(self.rows.len().div_ceil(self.columns));
+        if let Some(index) = new_anchor {
+            self.scroll.scroll_to(ListOffset {
+                item_ix: index / self.columns,
+                ..top
+            });
+        }
         if !self
             .rows
             .iter()
@@ -322,25 +365,6 @@ impl ConfigurationApp {
             self.selected = None;
             self.detail_open = false;
         }
-    }
-    fn select_offset(&mut self, down: bool, cx: &mut Context<Self>) {
-        if self.rows.is_empty() || self.tools.read(cx).expanded() || self.tools.read(cx).busy() {
-            return;
-        }
-        let current = self
-            .rows
-            .iter()
-            .position(|row| Some(&row.name) == self.selected.as_ref());
-        let next = match (current, down) {
-            (Some(index), true) => (index + 1).min(self.rows.len() - 1),
-            (Some(index), false) => index.saturating_sub(1),
-            _ => 0,
-        };
-        self.selected = Some(self.rows[next].name.clone());
-        self.sync_target(cx);
-        self.scroll
-            .scroll_to_item(next, gpui_kit::ScrollStrategy::Top);
-        cx.notify();
     }
     fn sync_target(&mut self, cx: &mut Context<Self>) {
         let row = self
@@ -356,6 +380,9 @@ impl ConfigurationApp {
             .update(cx, |tools, cx| tools.set_platform(platform, window, cx))
         {
             self.platform = platform;
+            self.rows = Arc::new(Vec::new());
+            self.card_focus.clear();
+            self.filter_panel = None;
             self.all_rows = Arc::new(Vec::new());
             self.selected = None;
             self.detail_open = false;
@@ -364,48 +391,67 @@ impl ConfigurationApp {
     }
     fn back(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.detail_open = false;
-        window.focus(&self.list_focus, cx);
+        if let Some((focus, _)) = self
+            .selected
+            .as_ref()
+            .and_then(|name| self.card_focus.get(name))
+        {
+            window.focus(focus, cx);
+        } else {
+            window.focus(&self.list_focus, cx);
+        }
         cx.notify();
     }
-
-    fn catalog_controls(&self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
-        let blocked = self.tools.read(cx).expanded() || self.tools.read(cx).busy();
-        let mut controls = div()
-            .flex_shrink_0()
+    fn runtime_summary(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let source = match &self.catalog_environment {
+            ccr_app::runtime::EnvironmentId::Local(_) => text(cx, "Local", "本机"),
+            ccr_app::runtime::EnvironmentId::Ssh(_) => text(cx, "SSH host", "SSH 主机"),
+            ccr_app::runtime::EnvironmentId::Wsl(_) => "WSL",
+        };
+        let status = match &self.observation {
+            Some(observation) => {
+                let label = state_label(observation.state, cx);
+                match &observation.name {
+                    Some(name) if self.platform == Platform::Claude => {
+                        format!("{} {name} · {label}", text(cx, "CCR marker", "CCR 标记"))
+                    }
+                    Some(name) => format!("{name} · {label}"),
+                    None => label.into(),
+                }
+            }
+            None if self.loading => text(cx, "Reading catalog…", "正在读取目录…").into(),
+            None => text(cx, "Catalog unavailable", "目录不可用").into(),
+        };
+        let file = self
+            .runtime_file
+            .rsplit(['/', '\\'])
+            .next()
+            .unwrap_or_default();
+        let summary = if file.is_empty() {
+            format!("{source} · {status}")
+        } else {
+            format!("{source} · {file} · {status}")
+        };
+        let source_path = self.runtime_file.clone();
+        div()
             .flex()
             .flex_wrap()
             .items_center()
-            .gap(px(8.));
-        controls = controls.child(semantics::ghost_button(
-            Button::new("configuration-filter-clear")
-                .label(text(cx, "Clear filters", "清除筛选"))
-                .ghost()
-                .on_click(cx.listener(|this, _, window, cx| {
-                    this.provider_filter = None;
-                    this.tag_filter = None;
-                    this.enabled_filter = None;
-                    this.search_text.clear();
-                    this.search
-                        .update(cx, |state, cx| state.set_value("", window, cx));
-                    this.refilter();
-                    this.sync_target(cx);
-                    cx.notify();
-                })),
-            blocked,
-            false,
-            cx,
-        ));
-        let current = self
-            .all_rows
-            .iter()
-            .find(|row| row.is_current)
-            .map(|row| row.name.as_str())
-            .unwrap_or(text(cx, "None observed", "未观测到"));
-        controls = controls
-            .child(div().text_size(crate::theme::text_size(12.)).child(format!(
-                "{}: {current}",
-                text(cx, "Current runtime profile", "当前运行方案")
-            )))
+            .gap(px(8.))
+            .child(
+                div()
+                    .id("configuration-runtime-summary")
+                    .test_support()
+                    .role(gpui_kit::Role::Status)
+                    .aria_label(summary.clone())
+                    .child(summary)
+                    .when(!source_path.is_empty(), |view| {
+                        view.tooltip(move |window, cx| {
+                            gpui_kit::component::tooltip::Tooltip::new(source_path.clone())
+                                .build(window, cx)
+                        })
+                    }),
+            )
             .child(semantics::ghost_button(
                 Button::new("profile-off")
                     .label(text(cx, "Detach current profile", "解除当前方案"))
@@ -414,129 +460,44 @@ impl ConfigurationApp {
                         this.tools
                             .update(cx, |tools, cx| tools.detach_current(window, cx))
                     })),
-                blocked || !self.tools.read(cx).can_detach(),
+                self.tools.read(cx).expanded() || !self.tools.read(cx).can_detach(),
                 false,
                 cx,
             ))
-            .child(semantics::ghost_button(
-                Button::new("configuration-manage")
-                    .label(if self.management {
-                        text(cx, "Back to list", "返回列表")
-                    } else {
-                        text(cx, "Manage catalog", "管理方案集合")
-                    })
-                    .ghost()
-                    .on_click(cx.listener(|this, _, _, cx| {
-                        this.management = !this.management;
-                        this.tools
-                            .update(cx, |tools, cx| tools.set_management(this.management, cx));
-                        cx.notify();
-                    })),
-                blocked,
-                false,
-                cx,
-            ));
-        for (enabled, id, en, zh) in [
-            (None, "configuration-enabled-all", "All states", "全部状态"),
-            (
-                Some(true),
-                "configuration-enabled-only",
-                "Enabled",
-                "已启用",
-            ),
-            (
-                Some(false),
-                "configuration-disabled-only",
-                "Disabled",
-                "已禁用",
-            ),
-        ] {
-            controls = controls.child(badge::filter_chip(
-                Button::new(id)
-                    .label(text(cx, en, zh))
-                    .ghost()
-                    .on_click(cx.listener(move |this, _, _, cx| {
-                        this.enabled_filter = enabled;
-                        this.refilter();
-                        this.sync_target(cx);
-                        cx.notify();
-                    })),
-                self.enabled_filter == enabled,
-                blocked,
-                cx,
-            ));
-        }
-        controls = controls.child(semantics::ghost_button(
-            Button::new("configuration-sort-usage")
-                .label(if self.sort_usage {
-                    text(cx, "Sort: observed uses", "排序：已观测使用次数")
-                } else {
-                    text(cx, "Sort: name", "排序：名称")
-                })
-                .ghost()
-                .on_click(cx.listener(|this, _, _, cx| {
-                    this.sort_usage = !this.sort_usage;
-                    this.refilter();
-                    this.sync_target(cx);
-                    cx.notify();
-                })),
-            blocked,
-            false,
+    }
+}
+
+fn state_label(state: RuntimeState, cx: &gpui_kit::App) -> &'static str {
+    match state {
+        RuntimeState::NoMarker => text(cx, "No current marker", "无当前标记"),
+        RuntimeState::NoMatch => text(cx, "No runtime config match", "运行配置无匹配"),
+        RuntimeState::Inactive => text(cx, "Inactive", "未激活"),
+        RuntimeState::Matched => text(cx, "Runtime config matches", "运行配置匹配"),
+        RuntimeState::Drifted => text(cx, "Runtime config differs", "运行配置偏离"),
+        RuntimeState::OverridesCleared => text(cx, "CCR overrides cleared", "CCR 托管覆盖已清除"),
+        RuntimeState::OverridesPresent => text(cx, "CCR overrides remain", "仍有 CCR 托管覆盖"),
+        RuntimeState::BaselineMissing => text(cx, "Recovery baseline missing", "恢复基线缺失"),
+        RuntimeState::Missing => text(cx, "Runtime file missing", "运行文件缺失"),
+        RuntimeState::Invalid => text(cx, "Cannot verify · invalid format", "无法核对 · 格式无效"),
+        RuntimeState::Unreadable => text(
             cx,
-        ));
-        let providers = self
-            .all_rows
-            .iter()
-            .filter_map(|row| row.provider.clone())
-            .collect::<std::collections::BTreeSet<_>>();
-        let tags = self
-            .all_rows
-            .iter()
-            .flat_map(|row| row.tags.clone().unwrap_or_default())
-            .collect::<std::collections::BTreeSet<_>>();
-        for (index, provider) in providers.into_iter().enumerate() {
-            let selected = self.provider_filter.as_ref() == Some(&provider);
-            controls = controls.child(badge::filter_chip(
-                Button::new(format!("configuration-provider-{index}"))
-                    .label(provider.clone())
-                    .ghost()
-                    .on_click(cx.listener(move |this, _, _, cx| {
-                        this.provider_filter = if this.provider_filter.as_ref() == Some(&provider) {
-                            None
-                        } else {
-                            Some(provider.clone())
-                        };
-                        this.refilter();
-                        this.sync_target(cx);
-                        cx.notify();
-                    })),
-                selected,
-                blocked,
-                cx,
-            ));
-        }
-        for (index, tag) in tags.into_iter().enumerate() {
-            let selected = self.tag_filter.as_ref() == Some(&tag);
-            controls = controls.child(badge::filter_chip(
-                Button::new(format!("configuration-tag-{index}"))
-                    .label(tag.clone())
-                    .ghost()
-                    .on_click(cx.listener(move |this, _, _, cx| {
-                        this.tag_filter = if this.tag_filter.as_ref() == Some(&tag) {
-                            None
-                        } else {
-                            Some(tag.clone())
-                        };
-                        this.refilter();
-                        this.sync_target(cx);
-                        cx.notify();
-                    })),
-                selected,
-                blocked,
-                cx,
-            ));
-        }
-        controls.into_any_element()
+            "Cannot verify · source unreadable",
+            "无法核对 · 来源不可读",
+        ),
+        RuntimeState::Unsupported => text(cx, "Verification unsupported", "该来源不支持核对"),
+    }
+}
+
+fn auth_label(row: &ConfigRow, cx: &gpui_kit::App) -> &'static str {
+    match row.auth_mode.as_deref() {
+        Some("subscription") => text(cx, "Claude subscription", "Claude 订阅"),
+        Some("api_key" | "inline_api_key" | "openai_api_key") => text(cx, "API key", "API 密钥"),
+        Some("openai_chatgpt") => text(cx, "ChatGPT login", "ChatGPT 登录"),
+        Some("provider_env_key" | "env_key") => text(cx, "Environment variable", "环境变量"),
+        Some("provider_bearer_token") => text(cx, "Provider bearer token", "供应商访问令牌"),
+        Some("no_auth") => text(cx, "No authentication", "无需认证"),
+        Some("session") => text(cx, "Grok session or environment", "Grok 会话或环境变量"),
+        _ => text(cx, "Invalid authentication settings", "认证配置无效"),
     }
 }
 
@@ -554,11 +515,13 @@ fn profile_details(row: &ConfigRow, cx: &gpui_kit::App) -> gpui_kit::Div {
         ),
         (
             text(cx, "Model", "模型"),
-            row.model.clone().unwrap_or_else(|| unknown.into()),
+            row.model
+                .clone()
+                .unwrap_or_else(|| text(cx, "Unspecified", "未指定").into()),
         ),
         (
             text(cx, "Authentication", "认证方式"),
-            row.auth_mode.clone().unwrap_or_else(|| unknown.into()),
+            auth_label(row, cx).into(),
         ),
         (
             text(cx, "Provider", "供应商"),
@@ -591,9 +554,9 @@ fn profile_details(row: &ConfigRow, cx: &gpui_kit::App) -> gpui_kit::Div {
         );
     }
     let credential = if row.auth_token.is_empty() {
-        text(cx, "Not set", "未设置")
+        auth_label(row, cx)
     } else {
-        row.auth_token.as_str()
+        "••••"
     };
     grid.child(
         div()
@@ -653,189 +616,6 @@ impl Render for ConfigurationApp {
                 .child(self.tools.clone());
         }
         let split = window.viewport_size().width >= px(theme::SPLIT_WIDTH);
-        let muted = cx.theme().muted_foreground;
-        let selected = self.selected.clone();
-        let count = self.rows.len();
-        let list = uniform_list(
-            "configuration-list",
-            count,
-            cx.processor(move |this, range: std::ops::Range<usize>, _, cx| {
-                #[cfg(test)]
-                {
-                    this.last_rendered_count = range.len();
-                }
-                range
-                    .map(|index| {
-                        let row = &this.rows[index];
-                        let name = row.name.clone();
-                        let selected_name = name.clone();
-                        let a11y_name = if row.is_current {
-                            format!("{name}, {}", text(cx, "current", "当前"))
-                        } else if !row.enabled {
-                            format!("{name}, {}", text(cx, "disabled", "已禁用"))
-                        } else {
-                            name.clone()
-                        };
-                        let weak = cx.weak_entity();
-                        let is_selected = selected.as_ref() == Some(&name);
-                        let background = if is_selected {
-                            cx.theme().secondary
-                        } else {
-                            cx.theme().background
-                        };
-                        let mut item = div()
-                            .id(SharedString::from(format!("configuration:{}", row.name)))
-                            .test_support()
-                            .role(gpui_kit::Role::ListBoxOption)
-                            .aria_label(a11y_name)
-                            .aria_selected(is_selected)
-                            .aria_position_in_set(index + 1)
-                            .aria_size_of_set(count)
-                            .on_a11y_action(
-                                gpui_kit::AccessibleAction::Click,
-                                move |_, window, cx| {
-                                    let _ = weak.update(cx, |this, cx| {
-                                        if this.tools.read(cx).expanded()
-                                            || this.tools.read(cx).busy()
-                                        {
-                                            return;
-                                        }
-                                        this.selected = Some(selected_name.clone());
-                                        this.sync_target(cx);
-                                        this.detail_open = true;
-                                        window.focus(
-                                            if split {
-                                                &this.list_focus
-                                            } else {
-                                                &this.detail_focus
-                                            },
-                                            cx,
-                                        );
-                                        cx.notify();
-                                    });
-                                },
-                            )
-                            .h(px(60.))
-                            .w_full()
-                            .px(px(theme::CONTROL_GAP))
-                            .flex()
-                            .items_center()
-                            .gap(px(theme::SECTION_GAP))
-                            .bg(background)
-                            .rounded(px(theme::SELECTION_RADIUS))
-                            .hover(|style| style.bg(cx.theme().muted))
-                            .on_click(cx.listener(move |this, _, window, cx| {
-                                if this.tools.read(cx).expanded() || this.tools.read(cx).busy() {
-                                    return;
-                                }
-                                this.selected = Some(name.clone());
-                                this.sync_target(cx);
-                                this.detail_open = true;
-                                window.focus(
-                                    if split {
-                                        &this.list_focus
-                                    } else {
-                                        &this.detail_focus
-                                    },
-                                    cx,
-                                );
-                                cx.notify();
-                            }))
-                            .child(
-                                div()
-                                    .flex_1()
-                                    .min_w_0()
-                                    .flex()
-                                    .flex_col()
-                                    .gap(px(4.))
-                                    .child(
-                                        div()
-                                            .id(format!("configuration-name:{}", row.name))
-                                            .truncate()
-                                            .tooltip({
-                                                let name = row.name.clone();
-                                                move |window, cx| {
-                                                    gpui_kit::component::tooltip::Tooltip::new(
-                                                        name.clone(),
-                                                    )
-                                                    .build(window, cx)
-                                                }
-                                            })
-                                            .child(row.name.clone()),
-                                    )
-                                    .child(
-                                        div()
-                                            .truncate()
-                                            .text_size(crate::theme::text_size(12.))
-                                            .text_color(muted)
-                                            .child(format!(
-                                                "{} · {} · {} · {}",
-                                                row.base_url,
-                                                row.model.as_deref().unwrap_or(text(
-                                                    cx,
-                                                    "Unknown model",
-                                                    "模型未知"
-                                                )),
-                                                row.auth_mode.as_deref().unwrap_or(text(
-                                                    cx,
-                                                    "Unknown auth",
-                                                    "认证未知"
-                                                )),
-                                                row.tags
-                                                    .as_ref()
-                                                    .map(|tags| tags.join(", "))
-                                                    .unwrap_or_default()
-                                            )),
-                                    ),
-                            )
-                            .child(
-                                div()
-                                    .flex()
-                                    .items_center()
-                                    .gap(px(theme::CONTROL_GAP))
-                                    .text_size(crate::theme::text_size(theme::META_SIZE))
-                                    .text_color(muted)
-                                    .when(row.is_current, |status| {
-                                        status.child(badge::dot(cx.theme().primary))
-                                    })
-                                    .child(if row.is_current {
-                                        text(cx, "Current", "当前")
-                                    } else if !row.enabled {
-                                        text(cx, "Disabled", "已禁用")
-                                    } else {
-                                        ""
-                                    }),
-                            );
-                        if is_selected {
-                            item = item.aria_active_descendant();
-                            item = item.child(semantics::button(
-                                Button::new(format!("configuration-apply:{}", row.name))
-                                    .label(if row.enabled {
-                                        text(cx, "Apply", "应用")
-                                    } else {
-                                        text(cx, "Enable and apply", "启用并应用")
-                                    })
-                                    .primary()
-                                    .on_click(cx.listener(|this, _, window, cx| {
-                                        cx.stop_propagation();
-                                        this.tools.update(cx, |tools, cx| {
-                                            tools.apply_selected(window, cx)
-                                        });
-                                    })),
-                                this.tools.read(cx).expanded() || this.tools.read(cx).busy(),
-                                false,
-                                cx,
-                            ));
-                        }
-                        item.into_any_element()
-                    })
-                    .collect()
-            }),
-        )
-        .track_scroll(&self.scroll)
-        .h(px((count as f32 * 60.).max(60.)))
-        .max_h_full()
-        .w_full();
         let status = if self.loading {
             text(cx, "Reading catalog", "正在读取配置").into()
         } else if let Some(error) = self.error {
@@ -847,19 +627,13 @@ impl Render for ConfigurationApp {
                 text(cx, "No profiles match this filter", "没有符合筛选的配置").into()
             }
         } else {
-            let count = self.rows.len();
-            if is_chinese(cx) {
-                format!("{count} 个配置")
-            } else if count == 1 {
-                "1 profile".into()
-            } else {
-                format!("{count} profiles")
-            }
+            self.count_label(cx)
         };
         let detail = self
             .rows
             .iter()
-            .find(|row| Some(&row.name) == self.selected.as_ref());
+            .find(|row| Some(&row.name) == self.selected.as_ref())
+            .cloned();
         let show_detail = self.detail_open && detail.is_some();
         let mut body = div()
             .flex()
@@ -871,81 +645,57 @@ impl Render for ConfigurationApp {
             && !self.management
             && !self.tools.read(cx).collection_workspace()
         {
-            body = body.child(
-                div()
-                    .id("list-focus")
-                    .test_support()
-                    .role(gpui_kit::Role::ListBox)
-                    .aria_label(text(cx, "Configuration profiles", "配置列表"))
-                    .track_focus(&self.list_focus)
-                    .tab_stop(true)
-                    .on_key_down(cx.listener(
-                        move |this, event: &gpui_kit::KeyDownEvent, window, cx| {
-                            match event.keystroke.key.as_str() {
-                                "down" => this.select_offset(true, cx),
-                                "up" => this.select_offset(false, cx),
-                                "enter" => {
-                                    this.detail_open = this.selected.is_some();
-                                    if this.detail_open && !split {
-                                        window.focus(&this.detail_focus, cx);
-                                    }
-                                    cx.notify();
-                                }
-                                "escape" => this.back(window, cx),
-                                _ => return,
-                            }
-                            cx.stop_propagation();
-                        },
-                    ))
-                    .flex_grow(3.)
-                    .flex_basis(px(0.))
-                    // 合同：宽窗列表至少 360px；窄窗走 drill-in，不靠 min_w_0 解除下限。
-                    .min_w(px(360.))
-                    .min_h_0()
-                    .focus(|style| style.border_color(cx.theme().ring))
-                    .rounded(px(theme::SELECTION_RADIUS))
-                    .child(list),
-            );
+            body = body.child(self.card_list(window, cx));
         }
         if !self.management
             && !self.tools.read(cx).collection_workspace()
+            && show_detail
             && let Some(row) = detail
         {
             body = body.child(
                 div()
                     .id("configuration-detail")
+                    .test_support()
+                    .overflow_y_scroll()
                     .role(gpui_kit::Role::Region)
                     .aria_label(text(cx, "Profile details", "配置详情"))
                     .track_focus(&self.detail_focus)
                     .tab_stop(false)
                     .flex_grow(2.)
                     .flex_basis(px(0.))
-                    // 合同：宽窗详情至少 320px。
-                    .min_w(px(320.))
+                    .min_w_0()
                     .min_h_0()
                     .flex()
                     .flex_col()
                     .gap(px(theme::SECTION_GAP))
-                    .child(self.tools.clone())
                     .when(!self.tools.read(cx).expanded(), |pane| {
-                        pane.child(semantics::ghost_button(
-                            Button::new("configuration-back")
-                                .label(text(cx, "Back to profiles", "返回配置列表"))
-                                .ghost()
-                                .on_click(cx.listener(|this, _, window, cx| this.back(window, cx))),
-                            false,
-                            false,
-                            cx,
-                        ))
+                        pane.child(
+                            div().flex().items_center().child(semantics::ghost_button(
+                                Button::new("configuration-back")
+                                    .label(text(cx, "Back to profiles", "返回配置列表"))
+                                    .ghost()
+                                    .on_click(
+                                        cx.listener(|this, _, window, cx| this.back(window, cx)),
+                                    ),
+                                false,
+                                false,
+                                cx,
+                            )),
+                        )
                         .child(
                             div()
                                 .text_size(crate::theme::text_size(theme::TITLE_SIZE))
                                 .font_weight(gpui_kit::FontWeight::SEMIBOLD)
                                 .child(row.name.clone()),
                         )
-                        .child(div().text_color(muted).child(row.description.clone()))
-                        .child(profile_details(row, cx))
+                        .child(
+                            div()
+                                .text_color(cx.theme().muted_foreground)
+                                .child(row.description.clone()),
+                        )
+                        .child(profile_details(&row, cx))
                     })
+                    .child(self.tools.clone())
                     .on_key_down(cx.listener(
                         |this, event: &gpui_kit::KeyDownEvent, window, cx| {
                             if event.keystroke.key == "escape" {
@@ -954,37 +704,6 @@ impl Render for ConfigurationApp {
                             }
                         },
                     )),
-            );
-        }
-        if split
-            && detail.is_none()
-            && !self.rows.is_empty()
-            && !self.management
-            && !self.tools.read(cx).collection_workspace()
-        {
-            body = body.child(
-                div()
-                    .flex_grow(2.)
-                    .flex_shrink(1.)
-                    .flex_basis(px(0.))
-                    .min_w(px(320.))
-                    .self_start()
-                    .child(
-                        badge::empty_panel(
-                            "configuration-empty-detail",
-                            gpui_kit::component::IconName::Eye,
-                            text(cx, "Select a profile", "选择一个方案"),
-                            text(
-                                cx,
-                                "Selection shows details; it does not apply the profile.",
-                                "选择仅显示详情，不会应用方案。",
-                            ),
-                            None,
-                            cx,
-                        )
-                        // 只登记测试观测，不新增布局节点；用于核对 3:2 与空 pane 收紧。
-                        .test_support(),
-                    ),
             );
         }
         let show_toolbar = split || !show_detail;
@@ -1020,65 +739,10 @@ impl Render for ConfigurationApp {
                         .child(text(cx, title_en, title_zh)),
                 )
             })
-            .child(div().text_color(muted).child(text(
-                cx,
-                "Local profile catalog · Changes use domain validation and backups",
-                "本地配置目录 · 修改遵循领域校验和备份规则",
-            )))
+            .when(show_toolbar, |root| root.child(self.runtime_summary(cx)))
             .when(show_toolbar, |root| {
-                root.child(
-                    div()
-                        .flex()
-                        .items_center()
-                        .gap(px(theme::CONTROL_GAP))
-                        .child(badge::search_field(
-                            Input::new(&self.search)
-                                .disabled(
-                                    self.tools.read(cx).expanded() || self.tools.read(cx).busy(),
-                                )
-                                .id("configuration-filter")
-                                .aria_label(text(
-                                    cx,
-                                    "Search name, endpoint or model",
-                                    "搜索名称、端点或模型",
-                                )),
-                            cx,
-                        ))
-                        .child(semantics::ghost_button(
-                            Button::new("configuration-refresh")
-                                .icon(gpui_kit::component::IconName::RefreshCw)
-                                .label(if self.loading {
-                                    text(cx, "Reading", "读取中")
-                                } else if self.error.is_some() {
-                                    text(cx, "Retry", "重试")
-                                } else {
-                                    text(cx, "Refresh", "刷新")
-                                })
-                                .ghost()
-                                .on_click(cx.listener(|this, _, _, cx| this.refresh(cx))),
-                            self.loading,
-                            self.loading,
-                            cx,
-                        )),
-                )
+                root.child(self.toolbar(status, window, cx))
             })
-            .child(
-                div()
-                    .id("configuration-status")
-                    .test_support()
-                    .role(gpui_kit::Role::Status)
-                    .aria_label(status.clone())
-                    .a11y_synthetic_children(|tree| {
-                        tree.parent_node()
-                            .set_live(gpui_kit::accesskit::Live::Polite)
-                    })
-                    .text_color(if self.error.is_some() {
-                        cx.theme().danger
-                    } else {
-                        muted
-                    })
-                    .child(status),
-            )
             .when(!self.pinned, |parent| {
                 parent.child(
                     div()
@@ -1125,21 +789,13 @@ impl Render for ConfigurationApp {
                         )),
                 )
             })
-            .when(show_toolbar, |root| {
-                root.child(semantics::button(
-                    Button::new("profile-create")
-                        .label(text(cx, "New profile", "新建方案"))
-                        .primary()
-                        .on_click(cx.listener(|this, _, window, cx| {
-                            this.tools
-                                .update(cx, |tools, cx| tools.new_profile(window, cx))
-                        })),
-                    self.tools.read(cx).expanded() || self.tools.read(cx).busy(),
-                    false,
-                    cx,
-                ))
-                .child(self.catalog_controls(cx))
-            })
+            .when(
+                show_toolbar
+                    && !self.detail_open
+                    && !self.management
+                    && !self.tools.read(cx).collection_workspace(),
+                |root| root.children(self.tools.read(cx).feedback(cx)),
+            )
             .child(
                 if self.management || self.tools.read(cx).collection_workspace() {
                     self.tools.clone().into_any_element()
@@ -1176,7 +832,7 @@ mod tests {
                     delay: Duration::ZERO,
                 },
             );
-            services.select_environment(previous);
+            services.select_environment(previous.clone());
             let (handle, view) = cx.update(|cx| {
                 gpui_kit::init(cx);
                 gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
@@ -1194,12 +850,31 @@ mod tests {
             });
             cx.update_window(handle, |_, window, cx| {
                 window.render_frame(cx);
+                window.click("configuration-filter-group", cx);
                 assert!(window.try_find("configuration-provider-0").is_some());
                 assert!(window.try_find("configuration-tag-0").is_some());
                 services
                     .select_environment(ccr_app::runtime::EnvironmentId::Ssh("new-host".into()));
                 view.update(cx, |view, cx| view.refresh(cx));
                 window.render_frame(cx);
+                let old = RequestKey {
+                    environment: previous,
+                    platform: Platform::Claude,
+                    generation: 0,
+                    request_id: 0,
+                };
+                let late = Completion::Success(ProfileCatalog {
+                    rows: Arc::new(vec![row(0)]),
+                    observation: ProfileObservation {
+                        name: Some("previous-host".into()),
+                        state: RuntimeState::Matched,
+                    },
+                    runtime_file: "previous-settings.json".into(),
+                });
+                view.update(cx, |this, cx| this.finish_read(&old, &late, cx));
+                assert!(view.read(cx).observation.is_none());
+                assert!(view.read(cx).runtime_file.is_empty());
+                assert!(view.read(cx).loading);
                 assert!(view.read(cx).all_rows.is_empty());
                 assert!(view.read(cx).selected.is_none());
                 assert!(window.try_find("configuration-provider-0").is_none());
@@ -1278,8 +953,10 @@ mod tests {
         });
         cx.update_window(handle, |_, window, cx| {
             window.render_frame(cx);
+            window.click("configuration-filter-group", cx);
             window.click("configuration-provider-1", cx);
             window.click("configuration-tag-1", cx);
+            window.click("configuration-filter-state", cx);
             window.click("configuration-disabled-only", cx);
             window.click("configuration:profile-00001", cx);
             assert!(window.try_find("configuration-filter").is_none());
@@ -1288,7 +965,11 @@ mod tests {
             assert_eq!(view.read(cx).selected.as_deref(), Some("profile-00001"));
             assert_eq!(view.read(cx).provider_filter.as_deref(), Some("provider-b"));
             assert_eq!(view.read(cx).tag_filter.as_deref(), Some("tag-b"));
-            assert_eq!(window.find("list-focus").focused(), Some(true));
+            assert_eq!(
+                window.find("configuration:profile-00001").focused(),
+                Some(true)
+            );
+            window.click("configuration-filter-state", cx);
             window.click("configuration-enabled-only", cx);
             assert_eq!(
                 window.find("configuration-status").label(),
@@ -1300,12 +981,27 @@ mod tests {
                     .try_find("configuration-apply:profile-00001")
                     .is_none()
             );
+            window.click("configuration-remove-tag", cx);
+            assert!(view.read(cx).tag_filter.is_none());
+            assert_eq!(view.read(cx).provider_filter.as_deref(), Some("provider-b"));
             window.click("configuration-filter-clear", cx);
             assert_eq!(
                 window.find("configuration-status").label(),
-                Some("2 profiles")
+                Some("2 / 2 profiles")
             );
             assert!(view.read(cx).selected.is_none());
+            view.update(cx, |this, cx| {
+                this.accept_rows(Arc::new(Vec::new()));
+                this.sync_target(cx);
+                cx.notify();
+            });
+            window.render_frame(cx);
+            assert_eq!(
+                window.find("configuration-status").label(),
+                Some("This catalog has no profiles")
+            );
+            assert!(window.find("profile-create").visible());
+            assert!(window.try_find("configuration-filter-clear").is_none());
             window.remove_window();
         })
         .unwrap_or_else(|e| panic!("filter recovery: {e}"));
@@ -1341,58 +1037,149 @@ mod tests {
         });
         cx.update_window(handle, |_, window, cx| {
             window.render_frame(cx);
-            assert!(view.read(cx).last_rendered_count > 0);
-            assert!(
-                view.read(cx).last_rendered_count < 100,
-                "virtualization must render only a visible range"
-            );
-            let list_bounds = window.find("list-focus").bounds();
-            let first_row = window.find("configuration:profile-00000").bounds();
-            assert!(first_row.size.width >= list_bounds.size.width - px(4.),
-                "row hitbox must fill the list, not shrink to its text: row={first_row:?}, list={list_bounds:?}");
-            // Click far to the right of the short label, inside the real list.
-            window.click_at("list-focus", gpui_kit::point(
-                list_bounds.size.width - px(16.),
-                first_row.center().y - list_bounds.origin.y,
-            ), cx);
-            assert!(view.read(cx).detail_open, "the blank part of a row must open its detail");
+            window.render_frame(cx);
+            let visible_cards = view.read(cx).card_focus.len();
+            assert!((1..100).contains(&visible_cards));
+            window.click("configuration:profile-00000", cx);
             assert_eq!(view.read(cx).selected.as_deref(), Some("profile-00000"));
             window.click("configuration-back", cx);
-            view.update(cx, |this, cx| window.focus(&this.list_focus, cx));
-            window.press("down", cx);
-            assert_eq!(view.read(cx).selected.as_deref(), Some("profile-00001"));
+            assert_eq!(
+                window.find("configuration:profile-00000").focused(),
+                Some(true)
+            );
+            window.press("right", cx);
+            assert_eq!(
+                window.find("configuration:profile-00001").focused(),
+                Some(true)
+            );
             window.press("enter", cx);
-            assert!(view.read(cx).detail_open);
+            assert_eq!(view.read(cx).selected.as_deref(), Some("profile-00001"));
             assert!(window.find("configuration-back").visible());
             window.press("escape", cx);
             assert!(!view.read(cx).detail_open);
-            assert_eq!(view.read(cx).selected.as_deref(), Some("profile-00001"));
-            window.press("enter", cx);
-            window.click("configuration-back", cx);
-            assert!(!view.read(cx).detail_open);
-            assert_eq!(view.read(cx).selected.as_deref(), Some("profile-00001"));
+            assert_eq!(
+                window.find("configuration:profile-00001").focused(),
+                Some(true)
+            );
+            window.press("tab", cx);
+            assert_eq!(
+                window.find("configuration-apply:profile-00001").focused(),
+                Some(true)
+            );
             view.update(cx, |this, cx| {
                 this.accept_rows(Arc::new(vec![row(20), row(1)]));
                 cx.notify();
             });
             window.render_frame(cx);
+            assert_eq!(view.read(cx).selected.as_deref(), Some("profile-00001"));
+            for _ in 0..2 {
+                window.render_frame(cx);
+            }
             assert_eq!(
-                view.read(cx).selected.as_deref(),
-                Some("profile-00001"),
-                "identity follows domain name, not the old index"
+                window.find("configuration-apply:profile-00001").focused(),
+                Some(true)
             );
-            window.press("down", cx);
-            assert_eq!(view.read(cx).selected.as_deref(), Some("profile-00020"));
-            window.remove_window();
         })
         .unwrap_or_else(|e| panic!("interaction: {e}"));
+        cx.simulate_window_resize(handle, gpui_kit::size(px(540.), px(720.)));
+        cx.update_window(handle, |_, window, cx| {
+            theme::apply_typography(
+                &crate::runtime::preferences::TypographyPreferences {
+                    ui_size: 20,
+                    ..Default::default()
+                },
+                cx,
+            );
+            window.set_rem_size(cx.theme().font_size);
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
+            window.render_frame(cx);
+            assert_eq!(view.read(cx).columns, 1);
+            assert_eq!(
+                window.find("configuration-apply:profile-00001").focused(),
+                Some(true)
+            );
+            let long_name = format!("profile-00001-{}", "very-long-profile-segment-".repeat(5));
+            let mut long = row(1);
+            long.name = long_name.clone();
+            long.base_url = format!(
+                "https://user:password@{}.invalid:8443/private?token=secret",
+                "long-host-name-".repeat(4)
+            );
+            let long_id = format!("configuration:{long_name}");
+            let apply_id = format!("configuration-apply:{long_name}");
+            view.update(cx, |this, cx| {
+                this.accept_rows(Arc::new(vec![long, row(2)]));
+                cx.notify();
+            });
+            window.render_frame(cx);
+            let card = window.find(long_id).bounds();
+            let apply = window.find(apply_id.clone()).bounds();
+            assert!(card.size.height > px(140.));
+            assert!(apply.top() >= card.bottom() && apply.right() <= card.right());
+            let viewport = window.find("list-focus").bounds();
+            if apply.bottom() > viewport.bottom() {
+                window.scroll(
+                    "list-focus",
+                    gpui_kit::ScrollDelta::Pixels(gpui_kit::point(
+                        px(0.),
+                        viewport.bottom() - apply.bottom() - px(8.),
+                    )),
+                    cx,
+                );
+                window.render_frame(cx);
+            }
+            let visible_action = window.find(apply_id).bounds();
+            assert!(
+                visible_action.top() >= viewport.top()
+                    && visible_action.bottom() <= viewport.bottom(),
+                "action {visible_action:?} must be reachable in {viewport:?}, card {card:?}"
+            );
+            // Narrow drill-in round-trips from a scrolled band.
+            view.update(cx, |this, cx| {
+                this.accept_rows(Arc::new((0..100).map(row).collect()));
+                this.scroll.scroll_to(ListOffset {
+                    item_ix: 18,
+                    offset_in_item: px(12.),
+                });
+                cx.notify();
+            });
+            window.render_frame(cx);
+            let offset = view.read(cx).scroll.logical_scroll_top();
+            window.click("configuration:profile-00019", cx);
+            window.press("escape", cx);
+            assert_eq!(
+                window.find("configuration:profile-00019").focused(),
+                Some(true)
+            );
+            let restored = view.read(cx).scroll.logical_scroll_top();
+            assert_eq!(restored.item_ix, offset.item_ix);
+            assert_eq!(restored.offset_in_item, offset.offset_in_item);
+            window.press("tab", cx);
+            assert_eq!(
+                window.find("configuration-apply:profile-00019").focused(),
+                Some(true)
+            );
+            window.press("enter", cx);
+            assert_eq!(
+                window.find("profile-result").label(),
+                Some("Applying profile-00019…")
+            );
+            assert!(window.try_find("configuration-detail").is_none());
+            assert!(view.read(cx).tools.read(cx).busy());
+            window.click("configuration-apply:profile-00018", cx);
+            assert_eq!(
+                window.find("profile-result").label(),
+                Some("Applying profile-00019…")
+            );
+            window.remove_window();
+        })
+        .unwrap_or_else(|e| panic!("resize and drill-in: {e}"));
         owner.shutdown();
     }
 
-    // PRD 8.3「配置」：宽窗列表/详情 3:2；短列表与未选空 pane 随内容收紧、长列表在可用高度内；
-    // 不自动选第一行；禁用项的行内主操作明确写“启用并应用”。
     #[gpui_kit::test]
-    fn wide_catalog_splits_three_to_two_and_sizes_lists_by_content(cx: &mut TestAppContext) {
+    fn wide_catalog_uses_available_width_and_independent_apply_controls(cx: &mut TestAppContext) {
         cx.executor().allow_parking();
         let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
         let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
@@ -1436,36 +1223,25 @@ mod tests {
             window.render_frame(cx);
             assert!(view.read(cx).selected.is_none(), "no automatic selection");
             let list = window.find("list-focus").bounds();
-            let empty = window.find("configuration-empty-detail").bounds();
-            // 3:2 按宽度比核对，允许 2px 取整误差。
-            let ratio = list.size.width / empty.size.width;
-            assert!((ratio - 1.5).abs() < 0.02, "3:2 split: {list:?} {empty:?}");
-            assert!(list.size.width >= px(360.) && empty.size.width >= px(320.));
-            // 实色列表由 60px 行本身组成：两行就是 120px，不补空行；未选空态不拉伸到窗口高度。
+            assert!(window.try_find("configuration-detail").is_none());
+            window.render_frame(cx);
             let first = window.find("configuration:profile-00000").bounds();
             let second = window.find("configuration:profile-00001").bounds();
-            assert_eq!(first.size.height, px(60.));
-            assert_eq!(second.bottom() - first.top(), px(120.));
-            assert!(
-                empty.size.height < px(400.),
-                "empty pane stays tight: {empty:?}"
+            assert_eq!(first.top(), second.top());
+            assert!(second.left() > first.right());
+            assert!(first.size.width < list.size.width / 2.);
+            assert_eq!(
+                window.find("configuration-apply:profile-00001").label(),
+                Some("Enable and apply profile-00001")
+            );
+            assert_eq!(
+                window.find("configuration-apply:profile-00000").label(),
+                Some("Apply profile-00000")
             );
             window.click("configuration:profile-00001", cx);
             assert_eq!(view.read(cx).selected.as_deref(), Some("profile-00001"));
-            assert_eq!(
-                window.find("configuration-apply:profile-00001").label(),
-                Some("Enable and apply")
-            );
-            assert!(
-                window
-                    .try_find("configuration-apply:profile-00000")
-                    .is_none()
-            );
-            window.click("configuration:profile-00000", cx);
-            assert_eq!(
-                window.find("configuration-apply:profile-00000").label(),
-                Some("Apply")
-            );
+            assert!(window.find("configuration-detail").visible());
+            assert!(window.find("configuration-apply:profile-00000").visible());
             view.update(cx, |this, cx| {
                 this.accept_rows(Arc::new((0..500).map(row).collect()));
                 cx.notify();

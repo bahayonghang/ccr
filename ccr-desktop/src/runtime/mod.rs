@@ -526,7 +526,7 @@ mod tests {
             matches!(catalog.next().await, Some(TaskEvent::Terminal(value)) if matches!(value.as_ref(), Completion::Failed(ConfigReadError::PlatformNotSupported(_))))
         );
         let mut profiles = services
-            .profile_rows(key, String::new())
+            .profile_catalog(key, String::new())
             .unwrap_or_else(|_| panic!("profile admission"));
         assert!(
             matches!(profiles.next().await, Some(TaskEvent::Terminal(value)) if matches!(value.as_ref(), Completion::Failed(profiles::ProfileError::Unsupported)))

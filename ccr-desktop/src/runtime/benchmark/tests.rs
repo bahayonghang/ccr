@@ -680,8 +680,8 @@ fn poisoned_ambient_child() {
                 manager.save(&config)
             })
             .unwrap();
-        let rows = result(services.profile_rows(key(4), String::new()).unwrap()).await;
-        assert!(matches!(rows.as_ref(),Completion::Success(rows) if rows.len()==1));
+        let rows = result(services.profile_catalog(key(4), String::new()).unwrap()).await;
+        assert!(matches!(rows.as_ref(),Completion::Success(rows) if rows.rows.len()==1));
         for command in [
             crate::runtime::profiles::ProfileCommand::Apply {
                 name: "synthetic".into(),
@@ -749,9 +749,9 @@ fn generated_pairs_load_through_native_domain_consumers() {
             // An alternate adapter path cannot rebind this immutable source.
             let services=services.with_insights_paths(crate::runtime::insights::InsightsPaths {usage_root:pair.join("not-a-source"),archive_db:pair.join("not-an-archive"),provider_home:pair.join("not-a-home")});
             assert_eq!(services.insights_paths().unwrap().provider_home,layout.roots.home);
-            let profile_rows=result(services.profile_rows(key(10),String::new()).unwrap()).await;
+            let profile_rows=result(services.profile_catalog(key(10),String::new()).unwrap()).await;
             if layout.profile_count==0 {assert!(matches!(profile_rows.as_ref(),Completion::Failed(crate::runtime::profiles::ProfileError::Missing)));}
-            else {assert!(matches!(profile_rows.as_ref(),Completion::Success(rows) if rows.len()==layout.profile_count));}
+            else {assert!(matches!(profile_rows.as_ref(),Completion::Success(rows) if rows.rows.len()==layout.profile_count));}
             let context=layout.profile_context(ccr_config::Platform::Claude).unwrap();
             let projected=if layout.profile_count==0 {json!({"source":"missing","rows":[]})} else {
                 let snapshot=context.run(||ccr_config::ConfigManager::new(context.paths().profiles_file.clone()).snapshot()).unwrap();

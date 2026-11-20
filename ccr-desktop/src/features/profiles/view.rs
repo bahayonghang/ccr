@@ -6,6 +6,7 @@ use gpui_kit::component::{
     button::{Button, ButtonVariants},
     input::{Input, Textarea},
 };
+use gpui_kit::prelude::FluentBuilder;
 use gpui_kit::{
     InteractiveElement, IntoElement, ParentElement, Render, StatefulInteractiveElement, Styled,
     div, px,
@@ -290,13 +291,16 @@ impl Render for ProfileTools {
                     continue;
                 }
                 if self.embedded
-                    && (matches!(action, Action::Off | Action::Create)
+                    && (matches!(action, Action::Off | Action::Create | Action::Apply)
                         || (self.management == needs_target))
                 {
                     continue;
                 }
                 bar = bar.child(semantics::ghost_button(
                     Button::new(id)
+                        .when(matches!(action, Action::Delete), |b| {
+                            b.text_color(cx.theme().danger)
+                        })
                         .label(
                             if matches!(action, Action::Apply)
                                 && self.target.as_ref().is_some_and(|row| !row.enabled)
@@ -652,21 +656,26 @@ impl Render for ProfileTools {
                 ));
             }
         }
-        if let Some(message) = &self.message {
+        root.children(self.feedback(cx))
+    }
+}
+
+impl ProfileTools {
+    pub(crate) fn feedback(&self, cx: &gpui_kit::App) -> Option<gpui_kit::AnyElement> {
+        self.message.as_ref().map(|message| {
             let line = crate::locales::localized_line(cx, message);
-            root = root.child(
-                div()
-                    .id("profile-result")
-                    .role(gpui_kit::Role::Status)
-                    .aria_label(line.clone())
-                    .text_color(if self.failed {
-                        cx.theme().danger
-                    } else {
-                        cx.theme().muted_foreground
-                    })
-                    .child(line),
-            );
-        }
-        root
+            div()
+                .id("profile-result")
+                .test_support()
+                .role(gpui_kit::Role::Status)
+                .aria_label(line.clone())
+                .text_color(if self.failed {
+                    cx.theme().danger
+                } else {
+                    cx.theme().muted_foreground
+                })
+                .child(line)
+                .into_any_element()
+        })
     }
 }

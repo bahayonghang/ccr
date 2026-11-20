@@ -165,7 +165,10 @@ impl WorkbenchView {
             platform,
             Platform::Claude | Platform::Codex | Platform::Grok
         )
-        .then(|| self.services.profile_rows(key("profiles"), String::new()));
+        .then(|| {
+            self.services
+                .profile_catalog(key("profiles"), String::new())
+        });
         let surface = match platform {
             Platform::Gemini => Surface::LegacySettings,
             Platform::OpenCode => Surface::Settings,
@@ -221,7 +224,7 @@ impl WorkbenchView {
                 let result = match profiles {
                     Ok(mut sub) => loop { match sub.next().await {
                         Some(TaskEvent::Terminal(value)) => break match value.as_ref() {
-                            Completion::Success(rows) => Ok(rows.clone()),
+                            Completion::Success(catalog) => Ok(catalog.rows.clone()),
                             Completion::Failed(error) | Completion::CleanupFailed(error) => Err(error.message()),
                             _ => Err("Profile read interrupted. Retry. / 配置读取已中断，请重试"),
                         }, Some(_) => {}, None => break Err("Profile read interrupted. Retry. / 配置读取已中断，请重试")

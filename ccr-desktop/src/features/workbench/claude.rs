@@ -941,11 +941,7 @@ fn subscription_error(error: Error) -> &'static str {
         _ => "Save failed; draft retained / 保存失败，草稿保留",
     }
 }
-fn safe_host(raw: &str) -> Option<String> {
-    reqwest::Url::parse(raw)
-        .ok()
-        .and_then(|url| url.host_str().map(str::to_owned))
-}
+use crate::runtime::profiles::safe_host;
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1296,8 +1292,8 @@ mod tests {
     #[test]
     fn endpoint_facts_never_expose_url_credentials_or_query() {
         assert_eq!(
-            safe_host("https://user:secret@example.org/path?token=secret#private").as_deref(),
-            Some("example.org")
+            safe_host("https://user:secret@example.org:8443/path?token=secret#private").as_deref(),
+            Some("example.org:8443")
         );
         // 解析失败交给调用点按界面语言显示“未知”，不回落到原始字符串。
         assert_eq!(safe_host("not a url with secret"), None);

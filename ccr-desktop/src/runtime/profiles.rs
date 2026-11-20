@@ -15,6 +15,7 @@ use ccr_app::{
 use ccr_cli::application::profile_lifecycle::{
     ApplyProfileRequest, ProfileLifecycleContext, ProfileOutcome,
 };
+use ccr_cli::application::profile_observation::{ProfileObservation, RuntimeState};
 use ccr_config::{
     ClaudeRuntimePaths, ConfigPatch, ConfigService, FieldPatch, Platform, PlatformPaths,
 };
@@ -22,6 +23,16 @@ use ccr_core::{CcrError, Result};
 use std::sync::Arc;
 
 pub mod overview;
+
+/// Show only the host and optional port, including for credential-bearing URLs.
+pub(crate) fn safe_host(raw: &str) -> Option<String> {
+    let url = reqwest::Url::parse(raw).ok()?;
+    let host = url.host_str()?;
+    Some(match url.port() {
+        Some(port) => format!("{host}:{port}"),
+        None => host.to_owned(),
+    })
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProfileError {
@@ -269,12 +280,59 @@ pub fn context(source: &ConfigSource, platform: Platform) -> Result<ProfileLifec
     }
 }
 
-fn rows(context: &ProfileLifecycleContext, filter: &str) -> Result<Vec<ConfigRow>> {
+#[derive(Debug, Clone)]
+pub struct ProfileCatalog {
+    pub rows: Arc<Vec<ConfigRow>>,
+    pub observation: ProfileObservation,
+    pub runtime_file: String,
+}
+
+#[derive(Default)]
+pub(super) struct UnavailableInputs {
+    pub registry: Option<RuntimeState>,
+    pub runtime: Option<RuntimeState>,
+}
+
+impl UnavailableInputs {
+    fn observe(
+        &self,
+        context: &ProfileLifecycleContext,
+        config: &ccr_config::CcsConfig,
+    ) -> ProfileObservation {
+        let file_marker = config.current_config.trim();
+        let claude_file_marker = context.platform() == Platform::Claude
+            && !file_marker.is_empty()
+            && config.sections.contains_key(file_marker);
+        // Only Claude gives a valid catalog marker precedence over its registry.
+        if let Some(state) = self.registry.filter(|_| !claude_file_marker) {
+            return ProfileObservation { name: None, state };
+        }
+        if context.platform() != Platform::Claude
+            && let Some(state) = self.runtime
+        {
+            return ProfileObservation { name: None, state };
+        }
+        let mut observation = context.observe_profile(config);
+        if observation.name.is_some()
+            && let Some(state) = self.runtime
+        {
+            observation.state = state;
+        }
+        observation
+    }
+}
+
+fn catalog(
+    context: &ProfileLifecycleContext,
+    filter: &str,
+    unavailable: &UnavailableInputs,
+) -> Result<ProfileCatalog> {
     context.run(|| {
         let snapshot = context.manager().snapshot()?;
-        // A readable catalog stays listed when active-profile resolution fails.
-        // No resolved name means no Current badge; the default row is not a substitute.
-        let current = context.instance().get_current_profile().ok().flatten();
+        let observation = unavailable.observe(context, &snapshot.config);
+        let current = observation.name.as_deref().filter(|_| {
+            context.platform() == Platform::Claude || observation.state == RuntimeState::Matched
+        });
         let profiles = snapshot.config.sections.iter().map(|(name, section)| {
             (
                 name.clone(),
@@ -282,7 +340,7 @@ fn rows(context: &ProfileLifecycleContext, filter: &str) -> Result<Vec<ConfigRow
             )
         });
         let filter = filter.to_lowercase();
-        Ok(profiles
+        let rows = profiles
             .into_iter()
             .filter(|(name, profile)| {
                 name.to_lowercase().contains(&filter)
@@ -298,8 +356,21 @@ fn rows(context: &ProfileLifecycleContext, filter: &str) -> Result<Vec<ConfigRow
             })
             .map(|(name, profile)| ConfigRow {
                 version: snapshot.version.clone(),
-                is_current: current.as_deref() == Some(name.as_str()),
+                is_current: current == Some(name.as_str()),
                 is_default: snapshot.config.default_config == name,
+                auth_mode: match context.platform() {
+                    Platform::Claude => Some(
+                        ccr_cli::platforms::ClaudePlatform::profile_auth_mode(&profile).as_str(),
+                    ),
+                    Platform::Codex => {
+                        Some(ccr_codex::CodexPlatform::profile_auth_mode(&profile).as_str())
+                    }
+                    Platform::Grok => ccr_cli::platforms::GrokPlatform::profile_auth_mode(&profile)
+                        .ok()
+                        .map(|mode| mode.as_str()),
+                    _ => None,
+                }
+                .map(str::to_owned),
                 name,
                 description: profile.description.unwrap_or_default(),
                 base_url: profile
@@ -320,11 +391,6 @@ fn rows(context: &ProfileLifecycleContext, filter: &str) -> Result<Vec<ConfigRow
                     })
                     .unwrap_or_default(),
                 model: profile.model,
-                auth_mode: profile
-                    .platform_data
-                    .get("auth_mode")
-                    .and_then(serde_json::Value::as_str)
-                    .map(str::to_owned),
                 small_fast_model: profile.small_fast_model,
                 provider: profile.provider,
                 provider_type: profile.provider_type,
@@ -333,7 +399,12 @@ fn rows(context: &ProfileLifecycleContext, filter: &str) -> Result<Vec<ConfigRow
                 usage_count: profile.usage_count.map(u64::from),
                 enabled: profile.enabled.unwrap_or(true),
             })
-            .collect())
+            .collect();
+        Ok(ProfileCatalog {
+            rows: Arc::new(rows),
+            observation,
+            runtime_file: context.instance().get_settings_path().display().to_string(),
+        })
     })
 }
 
@@ -347,27 +418,42 @@ impl Services {
             ConfigSource::Local => dirs::home_dir(),
         }
     }
-    pub fn profile_rows(
+    pub fn profile_catalog(
         &self,
         key: RequestKey,
         filter: String,
-    ) -> std::result::Result<TaskSubscription<Arc<Vec<ConfigRow>>, ProfileError>, AdmissionError>
-    {
+    ) -> std::result::Result<TaskSubscription<ProfileCatalog, ProfileError>, AdmissionError> {
         if matches!(key.environment, ccr_app::runtime::EnvironmentId::Ssh(_)) {
             let io = self.remote_configuration_io(&key.environment);
             let platform = key.platform;
             return self.executor.read(key, move |cancel, _| {
                 tokio::runtime::Handle::current().block_on(async move {
                     let io = io.map_err(remote_error)?;
-                    let mirror = super::remote_config::capture(io, platform, cancel)
-                        .await
-                        .map_err(remote_platform_error)?;
+                    let (mirror, capture_error) =
+                        super::remote_config::capture_profile_catalog(io, platform, cancel).await?;
                     let context = super::remote_config::context(
                         &mirror,
                         domain_platform(&platform).map_err(safe_error)?,
                     )
                     .map_err(safe_error)?;
-                    rows(&context, &filter).map(Arc::new).map_err(safe_error)
+                    let mut result =
+                        catalog(&context, &filter, &capture_error).map_err(safe_error)?;
+                    let runtime = context.instance().get_settings_path();
+                    let relative = runtime
+                        .strip_prefix(mirror.root())
+                        .map_err(|_| ProfileError::Unsupported)?
+                        .to_string_lossy()
+                        .replace('\\', "/");
+                    let ccr_app::environments::io::EnvironmentPath::Ssh(path) = mirror
+                        .io()
+                        .roots()
+                        .relative(&relative)
+                        .map_err(remote_error)?
+                    else {
+                        return Err(ProfileError::Unsupported);
+                    };
+                    result.runtime_file = path.as_str().into();
+                    Ok(result)
                 })
             });
         }
@@ -390,11 +476,11 @@ impl Services {
                 }
             }
             if cancel.is_cancelled() {
-                return Ok(Arc::new(Vec::new()));
+                return Err(ProfileError::Cancelled);
             }
             let context = context(&source, domain_platform(&key.platform).map_err(safe_error)?)
                 .map_err(safe_error)?;
-            rows(&context, &filter).map(Arc::new).map_err(safe_error)
+            catalog(&context, &filter, &UnavailableInputs::default()).map_err(safe_error)
         })
     }
     pub fn profile_command(
@@ -608,7 +694,7 @@ fn remote_result_success(result: &ProfileResult) -> bool {
         }
     )
 }
-fn remote_error(error: ccr_app::environments::io::Error) -> ProfileError {
+pub(super) fn remote_error(error: ccr_app::environments::io::Error) -> ProfileError {
     match error {
         ccr_app::environments::io::Error::UnrepresentablePath => {
             ProfileError::RemotePathUnsupported
@@ -1352,7 +1438,8 @@ pub(crate) mod tests {
             profile.auth_token.as_ref().map(ccr_core::Secret::expose),
             Some("sk-native-profile-secret-sentinel")
         );
-        let rows = rows(&context, "").unwrap_or_else(|_| panic!("rows"));
+        let rows =
+            catalog(&context, "", &UnavailableInputs::default()).unwrap_or_else(|_| panic!("rows"));
         assert!(!format!("{rows:?}").contains("sk-native-profile-secret-sentinel"));
         owner.shutdown();
     }
@@ -1412,7 +1499,7 @@ pub(crate) mod tests {
         };
         let context =
             super::context(&missing, Platform::Claude).unwrap_or_else(|_| panic!("context"));
-        assert!(rows(&context, "").is_err());
+        assert!(catalog(&context, "", &UnavailableInputs::default()).is_err());
         assert!(!root.path().join("absent").exists());
     }
     #[test]
@@ -1848,7 +1935,7 @@ pub(crate) mod tests {
             delay: Duration::ZERO,
         };
         let context = context(&source, Platform::Claude).unwrap_or_else(|_| panic!("context"));
-        let Err(error) = rows(&context, "") else {
+        let Err(error) = catalog(&context, "", &UnavailableInputs::default()) else {
             panic!("legacy read must fail");
         };
         let safe = safe_error(error);
@@ -1871,11 +1958,13 @@ pub(crate) mod tests {
         let parent = runtime.parent().unwrap_or_else(|| panic!("runtime parent"));
         std::fs::create_dir_all(parent).unwrap_or_else(|_| panic!("runtime dir"));
         std::fs::write(&runtime, b"[").unwrap_or_else(|_| panic!("runtime"));
-        let listed = rows(&context, "").unwrap_or_else(|_| panic!("catalog read"));
-        assert_eq!(listed.len(), 1);
-        assert_eq!(listed[0].name, "codex-kept");
-        assert!(!listed[0].is_current);
-        assert!(!listed[0].auth_token.contains("secret-sentinel"));
-        assert!(listed[0].auth_token.contains("..."));
+        let listed = catalog(&context, "", &UnavailableInputs::default())
+            .unwrap_or_else(|_| panic!("catalog read"));
+        assert_eq!(listed.rows.len(), 1);
+        assert_eq!(listed.observation.state, RuntimeState::Invalid);
+        assert_eq!(listed.rows[0].name, "codex-kept");
+        assert!(!listed.rows[0].is_current);
+        assert!(!listed.rows[0].auth_token.contains("secret-sentinel"));
+        assert!(listed.rows[0].auth_token.contains("..."));
     }
 }

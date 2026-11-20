@@ -152,6 +152,79 @@ pub(super) async fn capture(
         .map_err(error)
 }
 
+/// Only inputs used by profile observation; account stores are unrelated. When
+/// a file is inaccessible, recapture the remaining declared inputs against
+/// the same authority. Cancellation, disconnect and catalog errors stay fatal.
+pub(super) async fn capture_profile_catalog(
+    io: EnvironmentIo,
+    platform: Platform,
+    cancel: tokio_util::sync::CancellationToken,
+) -> Result<(ConfigMirror, super::profiles::UnavailableInputs), super::profiles::ProfileError> {
+    use super::profiles::{ProfileError, UnavailableInputs, remote_error};
+    use ccr_cli::application::profile_observation::RuntimeState;
+    let directory = format!(".ccr/platforms/{}", platform.short_name());
+    let required: BTreeSet<_> = [
+        "profiles.toml",
+        "profiles.db",
+        "profiles.db-shm",
+        "profiles.db-wal",
+        "profiles.db-journal",
+    ]
+    .into_iter()
+    .map(|file| format!("{directory}/{file}"))
+    .collect();
+    let mut paths = required.clone();
+    paths.insert(".ccr/config.toml".into());
+    match platform {
+        Platform::Claude => {
+            paths.insert(".claude/settings.json".into());
+        }
+        Platform::Codex => {
+            paths.extend([
+                ".codex/config.toml".into(),
+                ".codex/auth.json".into(),
+                format!("{directory}/profile_secrets.json"),
+            ]);
+        }
+        Platform::Grok => {
+            paths.extend([
+                ".grok/config.toml".into(),
+                format!("{directory}/profile_entry_config_state.json"),
+            ]);
+        }
+        _ => return Err(ProfileError::Unsupported),
+    }
+    let mut unavailable = UnavailableInputs::default();
+    loop {
+        match ConfigMirror::capture_inputs(io.clone(), paths.clone(), None, cancel.clone()).await {
+            Ok(mirror) => return Ok((mirror, unavailable)),
+            Err(error) => {
+                let state = match error.reason {
+                    Error::TooLarge
+                    | Error::Ssh("ssh_file_too_large" | "ssh_file_access_denied") => {
+                        RuntimeState::Unreadable
+                    }
+                    Error::Unsupported | Error::Ssh("ssh_invalid_remote_path") => {
+                        RuntimeState::Unsupported
+                    }
+                    reason => return Err(remote_error(reason)),
+                };
+                let Some(path) = error.path else {
+                    return Err(remote_error(error.reason));
+                };
+                if required.contains(&path) || !paths.remove(&path) {
+                    return Err(remote_error(error.reason));
+                }
+                if path == ".ccr/config.toml" {
+                    unavailable.registry = Some(state);
+                } else {
+                    unavailable.runtime = Some(state);
+                }
+            }
+        }
+    }
+}
+
 pub(super) async fn capture_settings(
     io: EnvironmentIo,
     platform: Platform,

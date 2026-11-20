@@ -162,6 +162,18 @@ impl Fixture {
             _ => panic!("platform read failed"),
         }
     }
+    async fn profile_catalog(&self, platform: Platform) -> super::super::profiles::ProfileCatalog {
+        let terminal = terminal(
+            self.services
+                .profile_catalog(self.key(platform), String::new())
+                .unwrap(),
+        )
+        .await;
+        match terminal.as_ref() {
+            Completion::Success(catalog) => catalog.clone(),
+            _ => panic!("expected remote catalog"),
+        }
+    }
     async fn command(
         &self,
         platform: Platform,
@@ -349,15 +361,15 @@ async fn three_remote_profile_owners_create_apply_off_and_keep_catalogs_and_secr
         let rows = terminal(
             fixture
                 .services
-                .profile_rows(fixture.key(platform), String::new())
+                .profile_catalog(fixture.key(platform), String::new())
                 .unwrap(),
         )
         .await;
         let Completion::Success(rows) = rows.as_ref() else {
             panic!("rows")
         };
-        assert_eq!(rows.len(), 1);
-        assert!(!rows[0].auth_token.contains("synthetic-profile-secret"));
+        assert_eq!(rows.rows.len(), 1);
+        assert!(!rows.rows[0].auth_token.contains("synthetic-profile-secret"));
         let applied = fixture
             .command(
                 platform,
@@ -372,6 +384,52 @@ async fn three_remote_profile_owners_create_apply_off_and_keep_catalogs_and_secr
             "apply failed: {}",
             platform.short_name()
         );
+        use ccr_cli::application::profile_observation::RuntimeState;
+        let catalog = fixture.profile_catalog(platform).await;
+        assert_eq!(catalog.observation.name.as_deref(), Some("fixture-profile"));
+        assert_eq!(catalog.observation.state, RuntimeState::Matched);
+        assert!(
+            catalog
+                .runtime_file
+                .starts_with("/srv/configuration-fixture/")
+        );
+        if platform == Platform::Claude {
+            let registry = ".ccr/config.toml";
+            let settings = ".claude/settings.json";
+            fixture
+                .transport
+                .fail_path("get", &Fixture::path(registry), "ssh_file_access_denied");
+            let file_marker = fixture.profile_catalog(platform).await;
+            assert_eq!(
+                file_marker.observation.name.as_deref(),
+                Some("fixture-profile")
+            );
+            assert_eq!(file_marker.observation.state, RuntimeState::Matched);
+
+            let original_registry = fixture.file(registry).unwrap();
+            let original_settings = fixture.file(settings).unwrap();
+            assert!(matches!(
+                fixture
+                    .command(platform, ProfileCommand::Off)
+                    .await
+                    .as_ref(),
+                Completion::Success(_)
+            ));
+            fixture.set(registry, &original_registry);
+            fixture.set(settings, &original_settings);
+            fixture
+                .transport
+                .fail_path("get", &Fixture::path(settings), "ssh_file_access_denied");
+            let registry_marker = fixture.profile_catalog(platform).await;
+            assert_eq!(registry_marker.rows.len(), 1);
+            assert_eq!(
+                registry_marker.observation.name.as_deref(),
+                Some("fixture-profile")
+            );
+            assert_eq!(registry_marker.observation.state, RuntimeState::Unreadable);
+            assert_eq!(fixture.file(registry).as_ref(), Some(&original_registry));
+            assert_eq!(fixture.file(settings).as_ref(), Some(&original_settings));
+        }
         assert!(matches!(
             fixture
                 .command(platform, ProfileCommand::Status)
@@ -417,6 +475,19 @@ async fn three_remote_profile_owners_create_apply_off_and_keep_catalogs_and_secr
         std::fs::read_to_string(fixture.root.path().join("desktop-profile-fixture")).unwrap(),
         "local-profile-root-must-stay-untouched"
     );
+    fixture.transport.fail_path(
+        "get",
+        &Fixture::path(".claude/settings.json"),
+        "ssh_network_error",
+    );
+    let disconnected = terminal(
+        fixture
+            .services
+            .profile_catalog(fixture.key(Platform::Claude), String::new())
+            .unwrap(),
+    )
+    .await;
+    assert!(matches!(disconnected.as_ref(), Completion::Failed(_)));
     fixture.runtime.shutdown();
 }
 
@@ -536,7 +607,7 @@ async fn remote_cas_sidecars_missing_files_and_reconnect_are_fail_closed(
         let result = terminal(
             fixture
                 .services
-                .profile_rows(fixture.key(Platform::Codex), String::new())
+                .profile_catalog(fixture.key(Platform::Codex), String::new())
                 .unwrap(),
         )
         .await;

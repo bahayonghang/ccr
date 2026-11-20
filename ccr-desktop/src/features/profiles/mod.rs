@@ -243,8 +243,10 @@ impl ProfileTools {
         cx.notify();
     }
 
-    pub fn apply_selected(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        self.act(Action::Apply, window, cx);
+    pub fn apply_profile(&mut self, name: String, enable: bool, cx: &mut Context<Self>) {
+        if !self.expanded() {
+            self.submit(ProfileCommand::Apply { name, enable }, cx);
+        }
     }
     pub fn detach_current(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.act(Action::Off, window, cx);
@@ -290,9 +292,11 @@ impl ProfileTools {
                 self.grok_force_delete = None;
             }
             self.target = target;
-            self.submit(ProfileCommand::Status, cx);
             cx.notify();
         }
+    }
+    pub fn refresh_status(&mut self, cx: &mut Context<Self>) {
+        self.submit(ProfileCommand::Status, cx);
     }
     pub fn set_platform(
         &mut self,
@@ -456,13 +460,7 @@ impl ProfileTools {
             }
             Action::Apply => {
                 if let Some(row) = &self.target {
-                    self.submit(
-                        ProfileCommand::Apply {
-                            name: row.name.clone(),
-                            enable: !row.enabled,
-                        },
-                        cx,
-                    );
+                    self.apply_profile(row.name.clone(), !row.enabled, cx);
                 }
             }
             Action::Validate => {
@@ -709,6 +707,10 @@ impl ProfileTools {
             return;
         }
         let is_status = matches!(command, ProfileCommand::Status);
+        let apply_target = match &command {
+            ProfileCommand::Apply { name, .. } => Some(name.clone()),
+            _ => None,
+        };
         self.request += 1;
         let key = RequestKey {
             environment: if matches!(
@@ -726,9 +728,17 @@ impl ProfileTools {
         self.gate.replace(key.clone());
         // A status read must not freeze list selection or arrow navigation.
         self.busy = !is_status;
+        if is_status {
+            self.can_off = None;
+        }
         // 状态刷新不能抹掉已提交操作的持久警告或恢复结果。
         if !is_status {
-            self.message = None;
+            self.message = match &command {
+                ProfileCommand::Apply { name, .. } => {
+                    Some(format!("{} {name}…", text(cx, "Applying", "正在应用")))
+                }
+                _ => None,
+            };
             self.failed = false;
             self.draft_conflict = false;
         }
@@ -749,7 +759,10 @@ impl ProfileTools {
                                             this.draft_conflict = !is_status
                                                 && *error == ProfileError::Conflict
                                                 && this.mode != Mode::Closed;
-                                            this.message = Some(error.message().into());
+                                            this.message = Some(match &apply_target {
+                                                Some(name) => format!("{name} · {}", crate::locales::service_error(cx, error.message())),
+                                                None => error.message().into(),
+                                            });
                                         }
                                     }
                                     Completion::Cancelled => {
@@ -823,19 +836,7 @@ impl ProfileTools {
             }
             ProfileResult::Outcome(outcome) => {
                 use ccr_cli::application::profile_lifecycle::ProfileStatus;
-                let status = outcome.message();
-                // Status copy has no Chinese half, so the whole sentence stays English.
-                let warnings = if outcome.warnings.is_empty() {
-                    String::new()
-                } else {
-                    format!(" · warnings: {:?}", outcome.warnings)
-                };
-                let recovery = if outcome.recovery_paths.is_empty() {
-                    String::new()
-                } else {
-                    " · Inspect recovery records before retrying".to_string()
-                };
-                self.message = Some(format!("{status}{warnings}{recovery}"));
+                self.message = Some(lifecycle_message(outcome, cx));
                 let feedback = outcome_feedback(
                     outcome.status,
                     outcome.activation_committed,
@@ -986,6 +987,64 @@ fn outcome_feedback(
         (true, ProfileStatus::Unchanged, false) => OutcomeFeedback::SaveRolledBack,
         _ => OutcomeFeedback::Lifecycle,
     }
+}
+
+fn lifecycle_message(
+    outcome: &ccr_cli::application::profile_lifecycle::ProfileOutcome,
+    cx: &gpui_kit::App,
+) -> String {
+    use ccr_cli::application::profile_lifecycle::{ProfileStatus, ProfileWarning};
+    let zh = match outcome.status {
+        ProfileStatus::Applied if outcome.activation_committed => "已应用方案",
+        ProfileStatus::Applied => "已更新方案",
+        ProfileStatus::Unchanged if outcome.activation_committed => "方案已在使用",
+        ProfileStatus::Unchanged => "方案未应用，已恢复原文件",
+        ProfileStatus::AppliedWithWarning => "方案操作已提交，后续步骤需要处理。请勿重复激活",
+        ProfileStatus::RecoveryRequired => "方案操作需要恢复，已保留外部更改",
+    };
+    let mut parts = vec![format!(
+        "{} · {}",
+        outcome.profile,
+        text(cx, outcome.message(), zh)
+    )];
+    for warning in &outcome.warnings {
+        parts.push(
+            match warning {
+                ProfileWarning::UsageCountFailed => {
+                    text(cx, "Usage count update failed", "使用次数更新失败")
+                }
+                ProfileWarning::HistoryFailed => {
+                    text(cx, "History write failed", "历史记录写入失败")
+                }
+                ProfileWarning::AuthRegistryFailed => {
+                    text(cx, "Auth registry update failed", "认证登记更新失败")
+                }
+                ProfileWarning::AnalyticsFailed => {
+                    text(cx, "Usage analytics update failed", "用量统计更新失败")
+                }
+                ProfileWarning::OperationRecordFailed => {
+                    text(cx, "Operation record write failed", "操作记录写入失败")
+                }
+                ProfileWarning::AncillaryPending => {
+                    text(cx, "Follow-up work pending", "后续操作待处理")
+                }
+                ProfileWarning::ActivationFailed => text(cx, "Activation failed", "激活失败"),
+                ProfileWarning::Interrupted => text(cx, "Operation interrupted", "操作中断"),
+            }
+            .into(),
+        );
+    }
+    if !outcome.recovery_paths.is_empty() {
+        parts.push(
+            text(
+                cx,
+                "Inspect recovery records before retrying",
+                "重试前请检查恢复记录",
+            )
+            .into(),
+        );
+    }
+    parts.join(" · ")
 }
 
 #[cfg(test)]

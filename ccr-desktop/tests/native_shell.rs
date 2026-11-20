@@ -1631,6 +1631,22 @@ async fn profile_pages_show_only_their_catalog(cx: &mut TestAppContext) {
     };
     seed_catalog(&source, ccr_config::Platform::Claude, "claude-kept", true);
     seed_catalog(&source, ccr_config::Platform::Codex, "codex-kept", false);
+    let claude =
+        context(&source, ccr_config::Platform::Claude).unwrap_or_else(|_| panic!("fixture"));
+    claude
+        .run(|| {
+            claude.instance().apply_profile("claude-kept")?;
+            claude.manager().mutate(|catalog| {
+                if let Some(row) = catalog.sections.get_mut("claude-kept") {
+                    row.enabled = Some(false);
+                }
+                Ok(())
+            })
+        })
+        .unwrap_or_else(|_| panic!("seed matched disabled profile"));
+    let codex = context(&source, ccr_config::Platform::Codex).unwrap_or_else(|_| panic!("fixture"));
+    write_fixture(&codex.instance().get_settings_path(), "[");
+    let retry_source = source.clone();
     let (handle, _) = cx.update(|cx| {
         gpui_kit::init(cx);
         gpui_kit::open_window(
@@ -1667,11 +1683,15 @@ async fn profile_pages_show_only_their_catalog(cx: &mut TestAppContext) {
         let text = page_labels(window);
         assert_eq!(
             window.find("configuration:claude-kept").label(),
-            Some("claude-kept, current")
+            Some("claude-kept, Runtime config matches, Disabled")
+        );
+        assert_eq!(
+            window.find("configuration-runtime-summary").label(),
+            Some("Local · settings.json · CCR marker claude-kept · Runtime config matches")
         );
         assert_eq!(
             window.find("configuration-status").label(),
-            Some("1 profile")
+            Some("1 / 1 profile")
         );
         assert!(!text.contains("codex-kept"));
         assert!(!text.contains("sk-native-profile-secret-sentinel"));
@@ -1684,7 +1704,8 @@ async fn profile_pages_show_only_their_catalog(cx: &mut TestAppContext) {
             .label()
             .unwrap_or_default()
             .to_string();
-        assert!(credential.contains("sk-n...inel"), "{credential}");
+        assert!(credential.contains("••••"), "{credential}");
+        assert!(!credential.contains("sk-n"));
         assert!(!credential.contains("sk-native-profile-secret-sentinel"));
         assert!(!page_labels(window).contains("sk-native-profile-secret-sentinel"));
         window.click("nav-codex", cx);
@@ -1698,6 +1719,10 @@ async fn profile_pages_show_only_their_catalog(cx: &mut TestAppContext) {
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         assert!(window.find("page-codex").visible());
+        assert_eq!(
+            window.find("configuration-runtime-summary").label(),
+            Some("Local · config.toml · Cannot verify · invalid format")
+        );
         let text = page_labels(window);
         assert_eq!(
             window.find("configuration:codex-kept").label(),
@@ -1705,7 +1730,7 @@ async fn profile_pages_show_only_their_catalog(cx: &mut TestAppContext) {
         );
         assert_eq!(
             window.find("configuration-status").label(),
-            Some("1 profile")
+            Some("1 / 1 profile")
         );
         assert!(!text.contains("claude-kept"));
         assert!(!text.contains("sk-native-profile-secret-sentinel"));
@@ -1735,9 +1760,26 @@ async fn profile_pages_show_only_their_catalog(cx: &mut TestAppContext) {
         assert!(!text.contains("sk-native-profile-secret-sentinel"));
         assert!(!text.contains("Home insights"));
         assert!(!text.contains("Apply / refresh"));
-        window.remove_window();
+        seed_catalog(&retry_source, ccr_config::Platform::Grok, "grok-kept", true);
+        window.click("configuration-refresh", cx);
     })
     .unwrap_or_else(|e| panic!("grok: {e}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("configuration:grok-kept").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, _| {
+        assert_eq!(
+            window.find("configuration-runtime-summary").label(),
+            Some("Local · config.toml · grok-kept · Recovery baseline missing")
+        );
+        assert_eq!(
+            window.find("configuration:grok-kept").label(),
+            Some("grok-kept, Recovery baseline missing")
+        );
+        window.remove_window();
+    })
+    .unwrap_or_else(|_| panic!("grok retry"));
     owner.shutdown();
 }
 
@@ -2202,7 +2244,11 @@ async fn selected_profile_is_independent_from_running_profile_and_dirty_navigati
         .run(|| {
             let mut config = context.manager().load()?;
             let row = config.sections["A"].clone();
-            config.sections.insert("B".into(), row);
+            config.sections.insert("B".into(), row.clone());
+            let mut c = row;
+            c.model = Some("fixture-model-c".into());
+            c.enabled = Some(false);
+            config.sections.insert("C".into(), c);
             context.manager().save(&config)
         })
         .unwrap_or_else(|_| panic!("catalog"));
@@ -2213,9 +2259,17 @@ async fn selected_profile_is_independent_from_running_profile_and_dirty_navigati
         .version;
     let (handle, _) = cx.update(|cx| {
         gpui_kit::init(cx);
-        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
-            cx.new(|cx| Shell::new(Services::new(owner.handle(), source), window, cx))
-        })
+        gpui_kit::open_window(
+            WindowOptions {
+                window_bounds: Some(gpui_kit::WindowBounds::Windowed(gpui_kit::Bounds::new(
+                    gpui_kit::point(gpui_kit::px(0.), gpui_kit::px(0.)),
+                    gpui_kit::size(gpui_kit::px(1440.), gpui_kit::px(1000.)),
+                ))),
+                ..Default::default()
+            },
+            cx,
+            |window, cx| cx.new(|cx| Shell::new(Services::new(owner.handle(), source), window, cx)),
+        )
         .unwrap_or_else(|e| panic!("window: {e}"))
     });
     wait_for_environment(cx, handle);
@@ -2254,6 +2308,32 @@ async fn selected_profile_is_independent_from_running_profile_and_dirty_navigati
     })
     .await;
     cx.update_window(handle, |_, window, cx| {
+        assert_eq!(
+            window.find("configuration-apply:C").label(),
+            Some("Enable and apply C")
+        );
+        window.click("configuration-apply:C", cx);
+    })
+    .unwrap_or_else(|_| panic!("apply C while previewing B"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window
+            .try_find("configuration:C")
+            .is_some_and(|node| node.label() == Some("C, Runtime config matches"))
+            && context
+                .instance()
+                .get_current_profile()
+                .ok()
+                .flatten()
+                .as_deref()
+                == Some("C")
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        assert_eq!(
+            window.find("profile-result").label(),
+            Some("C · Profile applied")
+        );
+        assert!(window.find("configuration:B").selected().unwrap_or(false));
         window.click("profile-off", cx);
         window.simulate_next_frame(cx);
         window.render_frame(cx);
@@ -2263,36 +2343,41 @@ async fn selected_profile_is_independent_from_running_profile_and_dirty_navigati
     .unwrap_or_else(|_| panic!("detach"));
     cx.wait_for(handle, Duration::from_secs(10), |window, _| {
         window
-            .try_find("configuration:A")
-            .is_some_and(|row| row.label() == Some("A"))
+            .try_find("configuration-runtime-summary")
+            .is_some_and(|node| {
+                node.label()
+                    .is_some_and(|s| s.contains("No current marker"))
+            })
+            && window
+                .try_find("configuration-apply:B")
+                .is_some_and(|n| n.disabled() != Some(true))
             && owner.handle().active_tasks() == 0
-            && context
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        assert!(
+            context
                 .instance()
                 .get_current_profile()
                 .ok()
                 .flatten()
                 .is_none()
+        );
+        window.click("configuration-back", cx);
+        assert_eq!(window.find("configuration:B").focused(), Some(true));
+        window.press("tab", cx);
+        assert_eq!(window.find("configuration-apply:B").focused(), Some(true));
+        window.press("enter", cx);
     })
-    .await;
-    cx.update_window(handle, |_, window, cx| window.click("configuration:B", cx))
-        .unwrap_or_else(|_| panic!("select B"));
-    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
-        window
-            .try_find("profile-apply")
-            .is_some_and(|node| node.disabled() != Some(true))
-            && owner.handle().active_tasks() == 0
-    })
-    .await;
-    cx.update_window(handle, |_, window, cx| {
-        window.click("configuration-apply:B", cx)
-    })
-    .unwrap_or_else(|_| panic!("apply B"));
+    .unwrap_or_else(|_| panic!("keyboard apply B"));
     cx.wait_for(handle, Duration::from_secs(10), |window, _| {
         window
             .try_find("configuration:B")
-            .is_some_and(|row| row.label() == Some("B, current"))
+            .is_some_and(|row| row.label() == Some("B, Runtime config matches"))
     })
     .await;
+    cx.update_window(handle, |_, window, cx| window.click("configuration:B", cx))
+        .unwrap_or_else(|_| panic!("open B"));
     cx.wait_for(handle, Duration::from_secs(10), |window, _| {
         window
             .try_find("profile-edit")
