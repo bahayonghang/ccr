@@ -128,6 +128,9 @@ impl russh_sftp::server::Handler for ReadServer {
         id: u32,
         path: String,
     ) -> Result<russh_sftp::protocol::Attrs, StatusCode> {
+        if path == "/home/fixture/denied.json" {
+            return Err(StatusCode::PermissionDenied);
+        }
         let permissions = if self.link == Some(path.as_str()) {
             0o120777
         } else if matches!(path.as_str(), "/home" | "/home/fixture") {
@@ -219,6 +222,14 @@ async fn production_sftp_reader_handles_missing_empty_binary_chunks_limit_and_cl
         ));
         let raw = RawSftpSession::new(client);
         raw.init().await.unwrap();
+        assert_eq!(
+            read_sftp(
+                &raw,
+                &RemotePosixPath::root(Some("/home/fixture/denied.json")).unwrap()
+            )
+            .await,
+            Err("ssh_file_access_denied")
+        );
         let result = read_sftp(
             &raw,
             &RemotePosixPath::root(Some("/home/fixture/settings.json")).unwrap(),

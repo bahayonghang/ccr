@@ -11,6 +11,7 @@ pub mod profile_export;
 pub(crate) mod profile_fields;
 pub mod profile_import;
 pub mod profile_lifecycle;
+pub mod profile_observation;
 pub mod profile_off;
 pub mod profile_switch;
 pub mod types;

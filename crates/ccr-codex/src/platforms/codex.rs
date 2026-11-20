@@ -2105,46 +2105,48 @@ impl CodexPlatform {
             .then_some(current))
     }
 
+    /// Compare a captured, successfully parsed config with the recorded profile.
+    /// Credentials select the existing switch intent but are not compared.
+    pub fn match_current_config(&self, config: &toml::Value) -> Result<Option<String>> {
+        self.match_recorded_profile(|name, profile| {
+            self.config_matches_profile(name, profile, config)
+        })
+    }
+
+    fn config_matches_profile(
+        &self,
+        name: &str,
+        profile: &ProfileConfig,
+        config: &toml::Value,
+    ) -> Result<bool> {
+        let auth = self.config_manager.load_auth()?;
+        let intent = Self::resolve_current_auth_intent(config, &auth);
+        let spec = Self::build_switch_spec(name, profile, &intent)?;
+        Ok(Self::spec_matches_runtime_without_auth(&spec, config))
+    }
+
+    fn match_recorded_profile(
+        &self,
+        matches: impl FnOnce(&str, &ProfileConfig) -> Result<bool>,
+    ) -> Result<Option<String>> {
+        let name = match self.current_profile_from_registry()? {
+            Some(name) => name,
+            None => match self.fallback_current_profile_from_file()? {
+                Some(name) => name,
+                None => return Ok(None),
+            },
+        };
+        let profiles = self.load_profiles()?;
+        let Some(profile) = profiles.get(&name) else {
+            return Ok(None);
+        };
+        Ok(matches(&name, profile)?.then_some(name))
+    }
+
     fn stable_current_profile(&self) -> Result<Option<String>> {
-        let runtime_matches_profile =
-            |profile_name: &str, profile: &ProfileConfig| -> Result<bool> {
-                let config = self.config_manager.load_config()?;
-                let auth = self.config_manager.load_auth()?;
-                let auth_intent = Self::resolve_current_auth_intent(&config, &auth);
-                let spec = Self::build_switch_spec(profile_name, profile, &auth_intent)?;
-                Ok(Self::spec_matches_runtime_without_auth(&spec, &config))
-            };
-
-        match self.current_profile_from_registry()? {
-            Some(current) => {
-                let profiles = self.load_profiles()?;
-                let Some(profile) = profiles.get(&current) else {
-                    return Ok(None);
-                };
-
-                if runtime_matches_profile(&current, profile)? {
-                    Ok(Some(current))
-                } else {
-                    Ok(None)
-                }
-            }
-            None => {
-                let Some(current) = self.fallback_current_profile_from_file()? else {
-                    return Ok(None);
-                };
-
-                let profiles = self.load_profiles()?;
-                let Some(profile) = profiles.get(&current) else {
-                    return Ok(None);
-                };
-
-                if runtime_matches_profile(&current, profile)? {
-                    Ok(Some(current))
-                } else {
-                    Ok(None)
-                }
-            }
-        }
+        self.match_recorded_profile(|name, profile| {
+            self.config_matches_profile(name, profile, &self.config_manager.load_config()?)
+        })
     }
 }
 

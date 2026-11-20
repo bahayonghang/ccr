@@ -684,6 +684,11 @@ async fn read_sftp_limited(
         {
             return Ok(None);
         }
+        Err(russh_sftp::client::error::Error::Status(status))
+            if status.status_code == StatusCode::PermissionDenied =>
+        {
+            return Err("ssh_file_access_denied");
+        }
         Err(_) => return Err("ssh_read_failed"),
     };
     let result = async {
@@ -701,6 +706,11 @@ async fn read_sftp_limited(
                     if status.status_code == StatusCode::Eof =>
                 {
                     break;
+                }
+                Err(russh_sftp::client::error::Error::Status(status))
+                    if status.status_code == StatusCode::PermissionDenied =>
+                {
+                    return Err("ssh_file_access_denied");
                 }
                 Err(_) => return Err("ssh_read_failed"),
             }
@@ -746,6 +756,11 @@ async fn ensure_unlinked(raw: &RawSftpSession, path: &RemotePosixPath) -> Result
                 if status.status_code == StatusCode::NoSuchFile =>
             {
                 break;
+            }
+            Err(russh_sftp::client::error::Error::Status(status))
+                if status.status_code == StatusCode::PermissionDenied =>
+            {
+                return Err("ssh_file_access_denied");
             }
             Err(_) => return Err("ssh_read_failed"),
         }

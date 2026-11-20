@@ -17,14 +17,38 @@ pub struct ConfigMirror {
     auth_directory: Option<String>,
 }
 
+/// Identifies a failed read within the caller's own allowlist. All other
+/// failures (including verification conflicts) remain whole-capture failures.
+pub struct CaptureError {
+    pub path: Option<String>,
+    pub reason: Error,
+}
+
+impl From<Error> for CaptureError {
+    fn from(reason: Error) -> Self {
+        Self { path: None, reason }
+    }
+}
+
 impl ConfigMirror {
     /// Capture only declared inputs, rejecting any live SQLite sidecar.
     pub async fn capture(
         io: EnvironmentIo,
-        mut paths: BTreeSet<String>,
+        paths: BTreeSet<String>,
         auth_directory: Option<String>,
         cancel: CancellationToken,
     ) -> Result<Self, Error> {
+        Self::capture_inputs(io, paths, auth_directory, cancel)
+            .await
+            .map_err(|error| error.reason)
+    }
+
+    pub async fn capture_inputs(
+        io: EnvironmentIo,
+        mut paths: BTreeSet<String>,
+        auth_directory: Option<String>,
+        cancel: CancellationToken,
+    ) -> Result<Self, CaptureError> {
         let _guard = io.configuration_lock(cancel.clone()).await?;
         if let Some(auth) = &auth_directory {
             for name in io.list(auth, cancel.clone()).await? {
@@ -34,12 +58,12 @@ impl ConfigMirror {
             }
         }
         if paths.len() > 256 {
-            return Err(Error::TooLarge);
+            return Err(Error::TooLarge.into());
         }
         validate_materialized_paths(paths.iter().map(String::as_str))?;
         for path in paths.iter().filter(|path| is_sidecar(path)) {
             if io.metadata(path, cancel.clone()).await?.is_some() {
-                return Err(Error::Busy);
+                return Err(Error::Busy.into());
             }
         }
         let directory = tempfile::Builder::new()
@@ -50,10 +74,16 @@ impl ConfigMirror {
             .map_err(|_| Error::Io)?;
         let mut files = BTreeMap::new();
         for path in paths {
-            let snapshot = io.read_bytes(&path, cancel.clone()).await?;
+            let snapshot = io
+                .read_bytes(&path, cancel.clone())
+                .await
+                .map_err(|reason| CaptureError {
+                    path: Some(path.clone()),
+                    reason,
+                })?;
             if snapshot.exists {
                 if is_sidecar(&path) {
-                    return Err(Error::Busy);
+                    return Err(Error::Busy.into());
                 }
                 ccr_core::core::LockManager::with_scoped_directory(
                     &directory.path().join(".ccr-local-locks"),
@@ -78,7 +108,7 @@ impl ConfigMirror {
             files,
             auth_directory,
         };
-        mirror.verify(cancel).await?;
+        mirror.verify_inputs(cancel).await?;
         for path in mirror
             .files
             .keys()
@@ -101,13 +131,26 @@ impl ConfigMirror {
 
     /// Recheck every input, including absent sidecars, before any publication.
     pub async fn verify(&self, cancel: CancellationToken) -> Result<(), Error> {
+        self.verify_inputs(cancel)
+            .await
+            .map_err(|error| error.reason)
+    }
+
+    async fn verify_inputs(&self, cancel: CancellationToken) -> Result<(), CaptureError> {
         for (path, expected) in &self.files {
-            let actual = self.io.read_bytes(path, cancel.clone()).await?;
+            let actual = self
+                .io
+                .read_bytes(path, cancel.clone())
+                .await
+                .map_err(|reason| CaptureError {
+                    path: Some(path.clone()),
+                    reason,
+                })?;
             if is_sidecar(path) && actual.exists {
-                return Err(Error::Busy);
+                return Err(Error::Busy.into());
             }
             if actual.version() != expected.version() || actual.exists != expected.exists {
-                return Err(Error::Conflict);
+                return Err(Error::Conflict.into());
             }
         }
         Ok(())

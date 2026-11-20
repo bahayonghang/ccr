@@ -7,6 +7,148 @@ use std::sync::{Arc, Barrier};
 const SENTINEL: &str = "synthetic-gpui04-secret-never-render";
 
 #[test]
+fn profile_observation_checks_only_the_marked_claude_profile_without_writes() {
+    use crate::application::profile_observation::RuntimeState;
+    let root = tempfile::tempdir().unwrap();
+    let context = context(root.path(), Platform::Claude);
+    context
+        .run(|| {
+            seed(&context);
+            context
+                .manager()
+                .mutate(|catalog| {
+                    catalog.sections.get_mut("old").unwrap().default_fable_model =
+                        Some("fixture-fable".into());
+                    Ok(())
+                })
+                .unwrap();
+            context
+                .apply(ApplyProfileRequest::new(Platform::Claude, "old"))
+                .unwrap();
+            let runtime = &context.claude_runtime.as_ref().unwrap();
+            std::fs::write(&runtime.credentials_file, b"synthetic-credential-canary").unwrap();
+            let applied: serde_json::Value =
+                serde_json::from_slice(&std::fs::read(&runtime.settings_file).unwrap()).unwrap();
+            let check = |expected_name: Option<&str>, expected: RuntimeState| {
+                let before = snapshot(&context);
+                let catalog = context.manager().snapshot().unwrap();
+                let observation = context.observe_profile(&catalog.config);
+                assert_eq!(observation.name.as_deref(), expected_name);
+                assert_eq!(observation.state, expected);
+                assert_eq!(snapshot(&context), before);
+                assert_eq!(
+                    context.manager().snapshot().unwrap().version,
+                    catalog.version
+                );
+                assert_eq!(
+                    std::fs::read(&runtime.credentials_file).unwrap(),
+                    b"synthetic-credential-canary"
+                );
+                assert!(!format!("{observation:?}").contains(SENTINEL));
+            };
+            check(Some("old"), RuntimeState::Matched);
+            let mut settings = applied.clone();
+            settings["env"]["ANTHROPIC_USER_OWNED"] = "external".into();
+            settings["headers"] = serde_json::json!({"fixture": "extra"});
+            std::fs::write(&runtime.settings_file, settings.to_string()).unwrap();
+            check(Some("old"), RuntimeState::Matched);
+            for key in [
+                "ANTHROPIC_AUTH_TOKEN",
+                "ANTHROPIC_DEFAULT_FABLE_MODEL",
+                "CLAUDE_CODE_EFFORT_LEVEL",
+            ] {
+                let mut changed = settings.clone();
+                changed["env"][key] = "different".into();
+                std::fs::write(&runtime.settings_file, changed.to_string()).unwrap();
+                check(Some("old"), RuntimeState::Drifted);
+            }
+            settings["env"]
+                .as_object_mut()
+                .unwrap()
+                .remove("ANTHROPIC_MODEL");
+            std::fs::write(&runtime.settings_file, settings.to_string()).unwrap();
+            check(Some("old"), RuntimeState::Drifted);
+            std::fs::write(&runtime.settings_file, "{").unwrap();
+            check(Some("old"), RuntimeState::Invalid);
+            std::fs::write(&runtime.settings_file, r#"{"env":{"ANTHROPIC_MODEL":17}}"#).unwrap();
+            check(Some("old"), RuntimeState::Invalid);
+            std::fs::remove_file(&runtime.settings_file).unwrap();
+            check(Some("old"), RuntimeState::Missing);
+            std::fs::create_dir(&runtime.settings_file).unwrap();
+            check(Some("old"), RuntimeState::Unreadable);
+            std::fs::remove_dir(&runtime.settings_file).unwrap();
+
+            context
+                .manager()
+                .mutate(|catalog| {
+                    let old = catalog.sections.get_mut("old").unwrap();
+                    old.other.insert("auth_mode".into(), "subscription".into());
+                    let twin = old.clone();
+                    catalog.sections.insert("twin".into(), twin);
+                    Ok(())
+                })
+                .unwrap();
+            std::fs::write(&runtime.settings_file, applied.to_string()).unwrap();
+            check(Some("old"), RuntimeState::Matched);
+            context.manager().clear_current_if_present().unwrap();
+            check(Some("old"), RuntimeState::Matched); // valid registry fallback
+            std::fs::remove_file(&context.paths().registry_file).unwrap();
+            check(None, RuntimeState::NoMarker);
+            std::fs::write(&context.paths().registry_file, "[").unwrap();
+            check(None, RuntimeState::Invalid);
+
+            context
+                .manager()
+                .mutate(|catalog| {
+                    catalog.current_config = "official".into();
+                    catalog
+                        .sections
+                        .insert("official".into(), Default::default());
+                    Ok(())
+                })
+                .unwrap();
+            check(Some("official"), RuntimeState::OverridesPresent);
+            std::fs::write(&runtime.settings_file, "{}").unwrap();
+            check(Some("official"), RuntimeState::OverridesCleared);
+            std::fs::remove_file(&runtime.settings_file).unwrap();
+            check(Some("official"), RuntimeState::Missing);
+            Ok(())
+        })
+        .unwrap();
+}
+
+#[test]
+fn profile_observation_follows_codex_config_even_when_credentials_change() {
+    use crate::application::profile_observation::RuntimeState;
+    let root = tempfile::tempdir().unwrap();
+    let context = context(root.path(), Platform::Codex);
+    seed(&context);
+    context
+        .run(|| {
+            context.instance().apply_profile("old")?;
+            let path = context.instance().get_settings_path();
+            let catalog = context.manager().snapshot()?;
+            let observed = || context.observe_profile(&catalog.config);
+            assert_eq!(observed().name.as_deref(), Some("old"));
+            std::fs::write(
+                path.with_file_name("auth.json"),
+                r#"{"OPENAI_API_KEY":"synthetic-replacement"}"#,
+            )?;
+            let before = snapshot(&context);
+            assert_eq!(observed().state, RuntimeState::Matched);
+            assert_eq!(snapshot(&context), before);
+            std::fs::write(&path, "model='different'")?;
+            assert_eq!(observed().state, RuntimeState::NoMatch);
+            std::fs::write(&path, "[")?;
+            assert_eq!(observed().state, RuntimeState::Invalid);
+            std::fs::remove_file(&path)?;
+            assert_eq!(observed().state, RuntimeState::Missing);
+            Ok(())
+        })
+        .unwrap();
+}
+
+#[test]
 #[cfg(not(target_os = "macos"))]
 fn captured_profile_lifecycle_keeps_process_auth_policy_through_apply_and_off() {
     if crate::home_process::run_current_test() {

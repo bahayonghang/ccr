@@ -4,6 +4,8 @@ pub fn authentication_message(code: &str, chinese: bool) -> Option<&'static str>
     Some(match (code, chinese) {
         ("ssh_file_too_large", false) => "Remote file or output exceeds the size limit.",
         ("ssh_file_too_large", true) => "远程文件或输出超过大小上限。",
+        ("ssh_file_access_denied", false) => "Access to the remote file was denied.",
+        ("ssh_file_access_denied", true) => "远程文件拒绝访问。",
         ("ssh_session_changed", false) => {
             "This document belongs to a previous connection. Reload before saving; your draft is retained."
         }
@@ -70,7 +72,11 @@ pub fn authentication_message(code: &str, chinese: bool) -> Option<&'static str>
 mod tests {
     #[test]
     fn environment_io_codes_have_safe_bilingual_messages() {
-        for code in ["ssh_file_too_large", "ssh_session_changed"] {
+        for code in [
+            "ssh_file_too_large",
+            "ssh_file_access_denied",
+            "ssh_session_changed",
+        ] {
             for chinese in [false, true] {
                 let message = super::authentication_message(code, chinese).unwrap_or_default();
                 assert!(!message.is_empty());

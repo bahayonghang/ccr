@@ -74,7 +74,12 @@ impl Workspace {
                 self.check_io(authority)?;
                 Ok(content)
             }
-            Err("ssh_cancelled") => Err("ssh_cancelled"),
+            Err(
+                error @ ("ssh_cancelled"
+                | "ssh_file_too_large"
+                | "ssh_invalid_remote_path"
+                | "ssh_file_access_denied"),
+            ) => Err(error),
             Err(error) => {
                 self.revoke(authority.0.session_id).await?;
                 Err(error)
