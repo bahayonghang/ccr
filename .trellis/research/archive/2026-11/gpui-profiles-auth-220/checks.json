@@ -1,0 +1,62 @@
+{
+  "base": "12e8bb2aa6b56715d525b3e2734152eb48892f96",
+  "source": {
+    "sha256_before_and_after": "17afc85ce7a61771109075ff0e4314de4a47b65607ef4e35b28ca9f2183f81ac",
+    "file_count": 2778,
+    "scope": "Cargo.toml, Cargo.lock, justfile, crates, ccr-desktop, ccr-ui, ccr-vscode, docs, scripts, .github and .cargo: git-tracked and nonignored untracked files; sorted paths, NUL-delimited path and file SHA-256"
+  },
+  "release_sha256": "fe552d4adbe29c3f16212e4c30cd8cf61c6060d38e3537ae2d997b1eb9fa1a50",
+  "platform": "Windows 11 10.0.26300, 125%",
+  "tools": {
+    "rustc": "1.98.0",
+    "just": "1.59.0",
+    "bun": "1.4.5",
+    "node": "26.7.0"
+  },
+  "gates": {
+    "just gpui-test-ui": {
+      "exit_code": 0,
+      "log": "outputs/desktop/profiles-auth-220/220-final-ui.log",
+      "sha256": "c8615479f84f3a995b0a355a35fd43e14172620cf8139e267977335d96d40e39"
+    },
+    "just gpui-ci": {
+      "exit_code": 0,
+      "log": "outputs/desktop/profiles-auth-220/220-final-gpui.log",
+      "sha256": "799fa1df045d13703dd35bf1acf836c63948cc57d50bc606fa682b9cc856d9e5"
+    },
+    "just ci": {
+      "exit_code": 0,
+      "log": "outputs/desktop/profiles-auth-220/220-final-ci.log",
+      "sha256": "4336fe7a7483f3bb31d02aedff607a6742a79f155dab9cdb5fbf72e1ac234932"
+    }
+  },
+  "just_ci": {
+    "total": "23:44.057",
+    "steps": {
+      "Version Check": "00:02.166",
+      "Format Check": "00:08.553",
+      "OMP Check": "00:03.954",
+      "Harness Check": "00:01.956",
+      "Copilot Check": "00:18.095",
+      "Skill Pack Check": "00:02.108",
+      "Strict Clippy": "00:06.378",
+      "Workspace Check": "00:28.748",
+      "Test": "04:19.006",
+      "Release Build": "04:31.126",
+      "Security Audit": "00:11.662",
+      "CI Governance": "02:19.767",
+      "Tauri CI": "05:24.429",
+      "Frontend Check": "03:17.647",
+      "Frontend Audit": "00:05.301",
+      "Frontend Coverage": "02:08.216",
+      "VSCode CI": "00:14.907"
+    },
+    "allowed_audit_warnings": {
+      "workspace": 9,
+      "tauri": 18
+    },
+    "frontend_reported_advisories": 0,
+    "frontend_active_exceptions": 0
+  },
+  "native_exit_code": 0
+}

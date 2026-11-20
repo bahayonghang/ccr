@@ -1,0 +1,94 @@
+{
+  "initial": {
+    "db_marker": "A-Primary",
+    "registry_marker": "A-Primary",
+    "model": "demo-model-00",
+    "profiles": 27,
+    "matches": [
+      "Account-A"
+    ],
+    "runtime_auth": "7db864bc715a0868d36c03032a912ad54bc9c0c2ceb0b5e50a538c4d83d7283c",
+    "config": "a7549eab15ef5a53e5d51c788469c0576cc6cb89377e5ba20f335c020c7e5e35",
+    "registry": "55928ed3d77e10522dfbf78c83b72dee9fac7c14372747bd943aa6a52c0af52e",
+    "saved": {
+      "Account-A": "7db864bc715a0868d36c03032a912ad54bc9c0c2ceb0b5e50a538c4d83d7283c",
+      "Account-B": "847606a0fdce7e1fa7391620968cc92abdc83d3f65ac87c681b52668e6996367"
+    }
+  },
+  "preview": {
+    "db_marker": "A-Primary",
+    "registry_marker": "A-Primary",
+    "model": "demo-model-00",
+    "profiles": 27,
+    "matches": [
+      "Account-A"
+    ],
+    "runtime_auth": "7db864bc715a0868d36c03032a912ad54bc9c0c2ceb0b5e50a538c4d83d7283c",
+    "config": "a7549eab15ef5a53e5d51c788469c0576cc6cb89377e5ba20f335c020c7e5e35",
+    "registry": "55928ed3d77e10522dfbf78c83b72dee9fac7c14372747bd943aa6a52c0af52e",
+    "saved": {
+      "Account-A": "7db864bc715a0868d36c03032a912ad54bc9c0c2ceb0b5e50a538c4d83d7283c",
+      "Account-B": "847606a0fdce7e1fa7391620968cc92abdc83d3f65ac87c681b52668e6996367"
+    }
+  },
+  "applied": {
+    "db_marker": "C-Apply",
+    "registry_marker": "C-Apply",
+    "model": "demo-model-02",
+    "profiles": 27,
+    "matches": [],
+    "runtime_auth": "dff1fa3e55b5427f4ca83b01d7956ef83eeb535d57ed20c15f044bd68a6ad518",
+    "config": "9558fc7c5030ade699d34babff3d1ea70aaa4bf47e2294b41ea0cacf0c4b49de",
+    "registry": "adb7c1fae1169c7ca5ab2acae847b4c2bfeb453a3a2025d49322f8fbb290ac8e",
+    "saved": {
+      "Account-A": "7db864bc715a0868d36c03032a912ad54bc9c0c2ceb0b5e50a538c4d83d7283c",
+      "Account-B": "847606a0fdce7e1fa7391620968cc92abdc83d3f65ac87c681b52668e6996367"
+    }
+  },
+  "select": {
+    "db_marker": "C-Apply",
+    "registry_marker": "C-Apply",
+    "model": "demo-model-02",
+    "profiles": 27,
+    "matches": [],
+    "runtime_auth": "dff1fa3e55b5427f4ca83b01d7956ef83eeb535d57ed20c15f044bd68a6ad518",
+    "config": "9558fc7c5030ade699d34babff3d1ea70aaa4bf47e2294b41ea0cacf0c4b49de",
+    "registry": "adb7c1fae1169c7ca5ab2acae847b4c2bfeb453a3a2025d49322f8fbb290ac8e",
+    "saved": {
+      "Account-A": "7db864bc715a0868d36c03032a912ad54bc9c0c2ceb0b5e50a538c4d83d7283c",
+      "Account-B": "847606a0fdce7e1fa7391620968cc92abdc83d3f65ac87c681b52668e6996367"
+    }
+  },
+  "switched": {
+    "db_marker": "C-Apply",
+    "registry_marker": "C-Apply",
+    "model": "demo-model-02",
+    "profiles": 27,
+    "matches": [
+      "Account-B"
+    ],
+    "runtime_auth": "847606a0fdce7e1fa7391620968cc92abdc83d3f65ac87c681b52668e6996367",
+    "config": "6f8ade85139ec5eaa5bcb0070674cc2ec48f3b3ec795dd32205f1310431c2322",
+    "registry": "adb7c1fae1169c7ca5ab2acae847b4c2bfeb453a3a2025d49322f8fbb290ac8e",
+    "saved": {
+      "Account-A": "7db864bc715a0868d36c03032a912ad54bc9c0c2ceb0b5e50a538c4d83d7283c",
+      "Account-B": "847606a0fdce7e1fa7391620968cc92abdc83d3f65ac87c681b52668e6996367"
+    }
+  },
+  "returned": {
+    "db_marker": "C-Apply",
+    "registry_marker": "C-Apply",
+    "model": "demo-model-02",
+    "profiles": 27,
+    "matches": [
+      "Account-B"
+    ],
+    "runtime_auth": "847606a0fdce7e1fa7391620968cc92abdc83d3f65ac87c681b52668e6996367",
+    "config": "6f8ade85139ec5eaa5bcb0070674cc2ec48f3b3ec795dd32205f1310431c2322",
+    "registry": "adb7c1fae1169c7ca5ab2acae847b4c2bfeb453a3a2025d49322f8fbb290ac8e",
+    "saved": {
+      "Account-A": "7db864bc715a0868d36c03032a912ad54bc9c0c2ceb0b5e50a538c4d83d7283c",
+      "Account-B": "847606a0fdce7e1fa7391620968cc92abdc83d3f65ac87c681b52668e6996367"
+    }
+  }
+}
