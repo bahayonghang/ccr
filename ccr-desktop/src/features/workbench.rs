@@ -284,6 +284,7 @@ impl WorkbenchView {
             .max_w_full()
             .text_size(crate::theme::text_size(theme::SECTION_TITLE_SIZE))
             .font_weight(gpui_kit::FontWeight::SEMIBOLD)
+            .text_color(self.heading_color(cx))
             .child(profile)
             .into_any_element()
     }
@@ -333,15 +334,25 @@ impl WorkbenchView {
             .child(credential)
             .into_any_element()
     }
+    fn heading_color(&self, cx: &Context<Self>) -> gpui_kit::Hsla {
+        if self.platform == Platform::Gemini {
+            theme::platform_card::PlatformCard::new(self.platform, cx.theme().mode).title
+        } else {
+            cx.theme().foreground
+        }
+    }
+
     fn current(&self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
-        let mut section = div()
-            .flex()
-            .flex_col()
-            .gap(px(theme::CONTROL_GAP))
-            .py(px(theme::SECTION_GAP))
-            .border_t_1()
-            .border_b_1()
-            .border_color(cx.theme().border);
+        let base = div().flex().flex_col().gap(px(theme::CONTROL_GAP));
+        let mut section = if self.platform == Platform::Gemini {
+            theme::platform_card::PlatformCard::new(self.platform, cx.theme().mode)
+                .surface(base.p(px(theme::SECTION_GAP)), false)
+        } else {
+            base.py(px(theme::SECTION_GAP))
+                .border_t_1()
+                .border_b_1()
+                .border_color(cx.theme().border)
+        };
         section = section
             .child(self.current_profile(cx))
             .child(self.credential_status(cx));
@@ -355,9 +366,18 @@ impl WorkbenchView {
         section.into_any_element()
     }
     fn usage(&self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
-        let mut section = div().flex().flex_col().gap(px(theme::CONTROL_GAP))
-            .child(div().text_size(crate::theme::text_size(theme::SECTION_TITLE_SIZE)).font_weight(gpui_kit::FontWeight::SEMIBOLD).child(text(cx,"Usage · last 30 days","用量 · 最近 30 天")))
-            .child(div().text_size(crate::theme::text_size(theme::META_SIZE)).text_color(cx.theme().muted_foreground).child(text(cx,"Local calendar days. Costs recorded by llmusage (USD); missing data is not zero.","按本地日历日统计。费用为 llmusage 记录的美元费用；缺失数据不记为零。")));
+        let base = div().flex().flex_col().gap(px(theme::CONTROL_GAP));
+        let mut section = if self.platform == Platform::Gemini {
+            theme::platform_card::PlatformCard::new(self.platform, cx.theme().mode)
+                .surface(base.p(px(theme::SECTION_GAP)), false)
+        } else {
+            base
+        }
+        .child(div().text_size(theme::text_size(theme::SECTION_TITLE_SIZE))
+            .font_weight(gpui_kit::FontWeight::SEMIBOLD).text_color(self.heading_color(cx))
+            .child(text(cx, "Usage · last 30 days", "用量 · 最近 30 天")))
+        .child(div().text_size(theme::text_size(theme::META_SIZE)).text_color(cx.theme().muted_foreground)
+            .child(text(cx, "Local calendar days. Costs recorded by llmusage (USD); missing data is not zero.", "按本地日历日统计。费用为 llmusage 记录的美元费用；缺失数据不记为零。")));
         match &self.usage {
             Some(Ok(snapshot)) => {
                 if let InsightsSnapshot::Usage(usage) = snapshot.as_ref() {
@@ -367,6 +387,9 @@ impl WorkbenchView {
                         .flex()
                         .flex_col()
                         .gap(px(theme::NAV_ROW_GAP));
+                    if self.platform == Platform::Gemini {
+                        totals = totals.max_w(theme::text_size(460.));
+                    }
                     for (label, value) in [
                         (
                             text(cx, "Requests", "请求"),
@@ -509,19 +532,40 @@ impl Render for WorkbenchView {
         }
         let rolling = (self.platform == Platform::Codex).then(|| self.rolling_usage(cx));
         let grok = (self.platform == Platform::Grok).then(|| self.grok_overview(cx));
+        let refresh = semantics::ghost_button(
+            Button::new("workbench-refresh")
+                .icon(gpui_kit::component::IconName::RefreshCw)
+                .label(text(cx, "Refresh status", "刷新状态"))
+                .ghost()
+                .on_click(cx.listener(|this, _, _, cx| this.open(this.platform, cx))),
+            false,
+            false,
+            cx,
+        );
+        if self.platform == Platform::Gemini {
+            // Keep figures beside their labels on wide monitors. Flex wrap also
+            // stacks the two reading surfaces when the user's font grows.
+            let section = |width, grow| {
+                div()
+                    .min_w_0()
+                    .flex_basis(theme::text_size(width))
+                    .flex_grow(grow)
+            };
+            let cards = div()
+                .flex()
+                .flex_wrap()
+                .items_start()
+                .w_full()
+                .max_w(theme::text_size(1040.))
+                .gap(px(theme::SECTION_GAP))
+                .child(section(288., 1.).child(self.current(cx)))
+                .child(section(492., 1.5).child(self.usage(cx)));
+            return page.child(cards).child(div().flex().child(refresh));
+        }
         page.child(self.current(cx))
             .children(grok)
             .children(rolling)
             .child(self.usage(cx))
-            .child(semantics::ghost_button(
-                Button::new("workbench-refresh")
-                    .icon(gpui_kit::component::IconName::RefreshCw)
-                    .label(text(cx, "Refresh status", "刷新状态"))
-                    .ghost()
-                    .on_click(cx.listener(|this, _, _, cx| this.open(this.platform, cx))),
-                false,
-                false,
-                cx,
-            ))
+            .child(refresh)
     }
 }
