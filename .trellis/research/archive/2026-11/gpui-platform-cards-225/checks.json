@@ -1,0 +1,68 @@
+{
+  "platform": "Windows 11, 125%",
+  "builds": {
+    "before": "fe552d4adbe29c3f16212e4c30cd8cf61c6060d38e3537ae2d997b1eb9fa1a50",
+    "after": "7a07febfa4df5300d28fb361b34fa6c84459cab9c44e454b3de0286c8e8e4e57",
+    "revised": "2f61e56993e200f2a250c04e94796a84eb2132c06ad124d6f7b7019771766d77",
+    "release": "3e42adb3c6c79119ab2d39455185a2864cb7f36f0e7e593986f7f6bcd180b79b"
+  },
+  "windows": {
+    "standard": [
+      1280,
+      800
+    ],
+    "narrow": [
+      960,
+      700
+    ],
+    "wide": [
+      1930,
+      980
+    ],
+    "large_font_px": 20
+  },
+  "native": [
+    {
+      "run": "after-light",
+      "current": "C-Apply",
+      "enabled": true
+    },
+    {
+      "run": "after-dark",
+      "current": "C-Apply",
+      "enabled": true
+    },
+    {
+      "run": "after-lightpointer",
+      "current": "D-Disabled",
+      "enabled": true
+    },
+    {
+      "run": "release-lightfinal",
+      "current": "C-Apply",
+      "enabled": true
+    }
+  ],
+  "antigravity_refresh": {
+    "before": 101,
+    "after": 137
+  },
+  "review": "ship after populated wide-window revision",
+  "gates": {
+    "just gpui-test-ui": {
+      "exit_code": 0,
+      "log": "outputs/desktop/platform-cards-225/final-ui.log",
+      "log_sha256": "671fe3f80cf0179c680f94f1641c813635bc783b5447f78b390d222c55bc92c7"
+    },
+    "just gpui-ci": {
+      "exit_code": 0,
+      "log": "outputs/desktop/platform-cards-225/final-gpui.log",
+      "log_sha256": "00718a276fdcc064432386299d756f28d861f707057544a06f1a801ef69a512d"
+    },
+    "just ci": {
+      "exit_code": 0,
+      "log": "outputs/desktop/platform-cards-225/root-ci.log",
+      "log_sha256": "74aaf12ef595dba7d0b237b240809282317d73c3fcdd88373fc4b7c4f3011940"
+    }
+  }
+}

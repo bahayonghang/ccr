@@ -76,7 +76,7 @@ Codex 夹具将凭据存储显式设为 keyring，同时保留 A/B 两个已存�
 
 ## #220 同一 release 的 Profiles → Auth
 
-在 Windows 11 26300 的同一个进程中，经侧栏和真实标签页完成以下操作。使用最终 `just gpui-ci` 构建的 release，SHA-256 为 `fe552d4adbe29c3f16212e4c30cd8cf61c6060d38e3537ae2d997b1eb9fa1a50`。主仓库基线 `12e8bb2aa6b56715d525b3e2734152eb48892f96`。本次工作区未提交。
+在 Windows 11 26300 的同一个进程中，经侧栏和真实标签页完成以下操作。使用最终 `just gpui-ci` 构建的 release，SHA-256 为 `fe552d4adbe29c3f16212e4c30cd8cf61c6060d38e3537ae2d997b1eb9fa1a50`。主仓库基线 `12e8bb2aa6b56715d525b3e2734152eb48892f96`。截图采自该基线上的集成工作区。随后按领域、GPUI、审计和验收记录拆成六笔提交并推送至 dev。[查看交付差异](https://github.com/bahayonghang/ccr/compare/12e8bb2a...85673c3b)
 
 | 用户操作 | 配置方案页或文件 | 运行账户与文件 |
 | --- | --- | --- |
