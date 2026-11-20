@@ -5,6 +5,7 @@ import {
   collectAdvisories,
   validateAllowlist,
   validateAuditReport,
+  validatePatches,
 } from '../../scripts/audit-dependencies.mjs'
 import auditPolicy from '../../scripts/frontend-audit-allowlist.json'
 
@@ -68,15 +69,24 @@ describe('frontend dependency audit policy', () => {
     ])
   })
 
-  it('covers every locked picomatch version in the temporary exception', () => {
+  it('retains a patch without suppressing future advisories for the package', () => {
+    const policy = { exceptions: [], retainedPatches: ['brace-expansion@1.1.16'] }
+    const manifest = { patchedDependencies: { 'brace-expansion@1.1.16': 'patch.diff' } }
+    expect(validatePatches(manifest, policy)).toEqual([])
+    expect(validateAuditReport(report, policy)).toEqual([expect.stringContaining('unapproved')])
+    expect(validatePatches({}, policy)).toEqual([expect.stringContaining('missing')])
+    expect(validatePatches(manifest, { exceptions: [] })).toEqual([expect.stringContaining('unlisted')])
+  })
+
+  it('covers every locked picomatch version with a retained patch', () => {
     const lockfile = readFileSync(requireFromUi.resolve('../../bun.lock'), 'utf8')
     const resolvedVersions = new Set(
       Array.from(lockfile.matchAll(/:\s*\["picomatch@([^"]+)"/g), ([, version]) => version),
     )
-    const picomatchException = auditPolicy.exceptions.find(({ package: name }) => name === 'picomatch')
-
-    expect(picomatchException).toBeDefined()
-    expect(resolvedVersions).toEqual(new Set(picomatchException?.patchedVersions))
+    const patchedVersions = auditPolicy.retainedPatches
+      .filter((name) => name.startsWith('picomatch@'))
+      .map((name) => name.slice('picomatch@'.length))
+    expect(resolvedVersions).toEqual(new Set(patchedVersions))
   })
 
   it.each(['micromatch', 'tinyglobby', 'vite'])('blocks repeating extglobs for %s', (consumer) => {

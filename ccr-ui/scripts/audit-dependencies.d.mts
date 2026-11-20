@@ -10,6 +10,7 @@ export interface AuditException {
 export interface AuditPolicy {
   maxActiveExceptions: number
   exceptions: AuditException[]
+  retainedPatches?: string[]
 }
 
 export interface AuditAdvisory {
@@ -25,3 +26,7 @@ export type AuditReport = Record<string, AuditAdvisory[]>
 export function validateAllowlist(policy: AuditPolicy, now?: Date): string[]
 export function collectAdvisories(report: AuditReport): Array<AuditAdvisory & { id: string; package: string }>
 export function validateAuditReport(report: AuditReport, policy: Pick<AuditPolicy, 'exceptions'>): string[]
+export function validatePatches(
+  manifest: { patchedDependencies?: Record<string, string> },
+  policy: Pick<AuditPolicy, 'exceptions' | 'retainedPatches'>,
+): string[]

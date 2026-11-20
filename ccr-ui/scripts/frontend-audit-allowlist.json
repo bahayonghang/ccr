@@ -1,13 +1,10 @@
 {
   "maxActiveExceptions": 2,
-  "exceptions": [
-    {
-      "id": "GHSA-fc5q-39xc-vjpf",
-      "package": "picomatch",
-      "owner": "frontend-platform",
-      "rationale": "No fixed npm release is available. All locked copies reject repeating extglobs before compiling regex. Remove the local patches once every affected copy has a compatible upstream fix.",
-      "expires": "2026-12-31",
-      "patchedVersions": ["2.3.2", "4.0.4", "4.0.5"]
-    }
+  "exceptions": [],
+  "retainedPatches": [
+    "braces@3.0.3",
+    "picomatch@2.3.2",
+    "picomatch@4.0.4",
+    "picomatch@4.0.5"
   ]
 }

@@ -83,25 +83,22 @@ function loadJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(uiRoot, relativePath), 'utf8'))
 }
 
-function validatePatches(manifest, policy) {
+export function validatePatches(manifest, policy) {
   const failures = []
-  if (!Array.isArray(policy?.exceptions) || policy.exceptions.length === 0) {
-    if (manifest.patchedDependencies && Object.keys(manifest.patchedDependencies).length > 0) {
-      failures.push('patchedDependencies must be empty when no advisory exceptions are active')
-    }
-    return failures
-  }
-
-  for (const exception of policy.exceptions) {
+  const expected = new Set(policy.retainedPatches ?? [])
+  for (const exception of policy.exceptions ?? []) {
     for (const version of exception.patchedVersions ?? []) {
-      const packageKey = `${exception.package}@${version}`
-      const patchPath = manifest.patchedDependencies?.[packageKey]
-      if (typeof patchPath !== 'string') {
-        failures.push(`${packageKey}: missing patchedDependencies entry`)
-      }
+      expected.add(`${exception.package}@${version}`)
     }
   }
-
+  for (const name of expected) {
+    if (typeof manifest.patchedDependencies?.[name] !== 'string') {
+      failures.push(`${name}: missing patchedDependencies entry`)
+    }
+  }
+  for (const name of Object.keys(manifest.patchedDependencies ?? {})) {
+    if (!expected.has(name)) failures.push(`${name}: unlisted dependency patch`)
+  }
   return failures
 }
 
