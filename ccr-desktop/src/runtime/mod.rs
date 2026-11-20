@@ -204,6 +204,8 @@ pub struct Services {
     local_delivery_root: Option<PathBuf>,
     pub(super) usage_report_latency: Arc<std::sync::Mutex<ccr_app::monitoring::LatencyWindow>>,
     pub(super) platform_oauth: Arc<ccr_cli::application::codex_oauth::NativeSession>,
+    #[cfg(test)]
+    pub(crate) account_fixture: Option<Arc<platforms::AccountFixture>>,
     pub(super) command_jobs: Arc<ccr_app::jobs::commands::CommandJobs>,
     pub(super) install: Arc<install::InstallOwner>,
     pub(super) tools: Arc<tools::Owner>,
@@ -259,6 +261,8 @@ impl Services {
             local_delivery_root,
             usage_report_latency: Default::default(),
             platform_oauth: Default::default(),
+            #[cfg(test)]
+            account_fixture: None,
             command_jobs: Default::default(),
             install: Default::default(),
             tools: Default::default(),

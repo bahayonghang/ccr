@@ -20,7 +20,19 @@ pub mod layers;
 mod providers;
 mod quota;
 pub mod rolling;
-pub use quota::QuotaRow;
+pub use quota::{QuotaRow, QuotaTarget};
+
+#[cfg(test)]
+#[derive(Default)]
+pub(crate) struct AccountFixture {
+    pub calls: std::sync::Mutex<Vec<QuotaTarget>>,
+    pub replies: std::sync::Mutex<std::collections::VecDeque<Result<Vec<QuotaRow>, PlatformError>>>,
+    pub quota_delay: std::time::Duration,
+    pub preflights: std::sync::atomic::AtomicUsize,
+    pub starts: std::sync::atomic::AtomicUsize,
+    pub callbacks: std::sync::atomic::AtomicUsize,
+    pub commits: std::sync::atomic::AtomicUsize,
+}
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Surface {
@@ -157,6 +169,15 @@ pub enum CredentialState {
     Detected,
     Invalid,
 }
+impl CredentialState {
+    pub fn file_account_write_access(self) -> Result<(), PlatformError> {
+        match self {
+            Self::PlatformUnsupported | Self::StoreUnsupported => Err(PlatformError::Unsupported),
+            Self::Unreadable => Err(PlatformError::Storage),
+            Self::NotDetected | Self::Detected | Self::Invalid => Ok(()),
+        }
+    }
+}
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ProviderReport {
     Unsupported,
@@ -214,7 +235,7 @@ pub enum Command {
     },
     Quota {
         session: Arc<PlatformSession>,
-        account: Option<String>,
+        target: QuotaTarget,
     },
     Account {
         session: Arc<PlatformSession>,
@@ -546,7 +567,9 @@ fn project_fields(
     (FileState::Present, fields)
 }
 fn remember_account(accounts: &mut Vec<AccountRow>, name: &str, current: bool) {
-    let Some(name) = safe_name(name) else {
+    let Some(name) =
+        safe_name(name).filter(|safe| safe == name && !safe.contains(['/', '\\']) && safe != "..")
+    else {
         return;
     };
     accounts.push(AccountRow { name, current });
@@ -577,14 +600,18 @@ fn project_auth(roots: &PlatformRoots, platform: Platform, surface: Surface) -> 
                         remember_account(
                             &mut accounts,
                             name,
-                            state.current_account_name.as_ref() == Some(name),
+                            state.unique_credential_name.as_ref() == Some(name),
                         );
                     }
                     AuthProjection {
-                        credential: if state.runtime_usable {
-                            CredentialState::Detected
-                        } else {
-                            CredentialState::NotDetected
+                        credential: {
+                            use ccr_cli::services::claude_auth_service::RuntimeCredentialRead as Read;
+                            match state.credential_read {
+                                Read::Detected => CredentialState::Detected,
+                                Read::Missing => CredentialState::NotDetected,
+                                Read::Invalid => CredentialState::Invalid,
+                                Read::Unreadable => CredentialState::Unreadable,
+                            }
                         },
                         signed_in: false,
                         runtime_auth_present: None,
@@ -611,7 +638,11 @@ fn project_auth(roots: &PlatformRoots, platform: Platform, surface: Surface) -> 
                     };
                     let mut accounts = Vec::new();
                     for row in rows.into_iter().filter(|row| !row.is_virtual) {
-                        remember_account(&mut accounts, &row.name, row.is_current);
+                        remember_account(
+                            &mut accounts,
+                            &row.name,
+                            state.unique_credential_name.as_ref() == Some(&row.name),
+                        );
                     }
                     AuthProjection {
                         signed_in: false,
@@ -736,10 +767,11 @@ fn read_at(
     }
     let (file_state, mut fields) = project_fields(platform, surface, &snapshot);
     if platform == Platform::Grok && surface == Surface::Auth {
-        let state = ccr_cli::services::GrokAuthService::from_roots(roots.clone())
+        let sources = ccr_cli::services::GrokAuthService::from_roots(roots.clone())
             .read_snapshot()
-            .map_err(domain_error)?;
-        for source in state.sources {
+            .map(|s| s.sources)
+            .unwrap_or_default();
+        for source in sources {
             if let Some(value) = safe_scalar(&source.scope) {
                 fields.push(FieldFact {
                     key: "oauth_source",
@@ -768,7 +800,7 @@ fn read_at(
         })
         .collect();
     }
-    let auth = if remote.is_some() && surface != Surface::Auth {
+    let mut auth = if remote.is_some() && surface != Surface::Auth {
         AuthProjection {
             credential: CredentialState::PlatformUnsupported,
             accounts: Vec::new(),
@@ -784,8 +816,16 @@ fn read_at(
         } else {
             project_providers(platform, surface, file_state, &snapshot)
         };
-    let auth_revision = if surface == Surface::Auth {
-        accounts::capture(&roots, platform, &auth.accounts)?
+    let auth_revision = if auth.credential == CredentialState::StoreUnsupported {
+        accounts::Revision::unreadable()
+    } else if surface == Surface::Auth {
+        match accounts::capture(&roots, platform, &auth.accounts) {
+            Ok(revision) => revision,
+            Err(_) => {
+                auth.credential = CredentialState::Unreadable;
+                accounts::Revision::unreadable()
+            }
+        }
     } else {
         accounts::Revision::default()
     };
@@ -967,7 +1007,7 @@ fn execute(
                 name,
                 action,
             } => accounts::apply(session, name, action),
-            Command::Quota { session, account } => quota::fetch(session, account.as_deref()),
+            Command::Quota { session, target } => quota::fetch(session, target),
             Command::Read(_) => Err(PlatformError::Invalid),
         })())
     })
@@ -976,6 +1016,13 @@ fn execute(
 impl Services {
     pub fn platform_oauth_status(&self) -> Option<NativeStatus> {
         self.platform_oauth.status()
+    }
+    pub(crate) fn manual_provider_actions_available(&self) -> bool {
+        #[cfg(test)]
+        if self.account_fixture.is_some() {
+            return true;
+        }
+        !self.is_fixture()
     }
     pub fn platform_oauth_cancel(&self) {
         self.platform_oauth.request_cancel();
@@ -999,6 +1046,7 @@ impl Services {
             || key.platform != Platform::Codex
             || session.platform != Platform::Codex
             || session.surface != Surface::Auth
+            || session.credential.file_account_write_access().is_err()
         {
             return self
                 .executor
@@ -1006,6 +1054,12 @@ impl Services {
         }
         if self.platform_oauth.claim().is_err() {
             return Err(AdmissionError::Full);
+        }
+        #[cfg(test)]
+        if let Some(fixture) = &self.account_fixture {
+            fixture
+                .starts
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         }
         let owner = self.platform_oauth.clone();
         let task = self.executor.job(key, move |cancel, progress| {
@@ -1043,6 +1097,22 @@ impl Services {
                 .read(key, |_, _| Err(PlatformError::Unsupported));
         }
         let owner = self.platform_oauth.clone();
+        #[cfg(test)]
+        if let Some(fixture) = &self.account_fixture {
+            match &control {
+                OAuthControl::Callback { .. } => {
+                    fixture
+                        .callbacks
+                        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                }
+                OAuthControl::Complete { .. } => {
+                    fixture
+                        .commits
+                        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                }
+                _ => {}
+            }
+        }
         self.executor.job(key.clone(), move |_, _| {
             if EnvironmentPolicy::LocalOnly
                 .admit(&key.environment)
@@ -1203,6 +1273,8 @@ impl Services {
         let supported = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         let platform = key.platform;
         let is_read = matches!(command, Command::Read(_));
+        #[cfg(test)]
+        let fixture = self.account_fixture.clone();
         let run = move || {
             let remote_session = match &command {
                 Command::Read(_) => false,
@@ -1213,6 +1285,26 @@ impl Services {
                 | Command::Quota { session, .. } => session.remote.is_some(),
             };
             if supported && !remote_session {
+                #[cfg(test)]
+                if let (Some(fixture), Command::Quota { session, target }) = (fixture, &command)
+                    && session.roots.fixture
+                    && platform == Platform::Codex
+                    && session.surface == Surface::Auth
+                {
+                    fixture
+                        .calls
+                        .lock()
+                        .map_err(|_| PlatformError::Storage)?
+                        .push(target.clone());
+                    std::thread::sleep(fixture.quota_delay);
+                    return fixture
+                        .replies
+                        .lock()
+                        .map_err(|_| PlatformError::Storage)?
+                        .pop_front()
+                        .ok_or(PlatformError::Invalid)?
+                        .map(ResultValue::Quotas);
+                }
                 execute(&source, platform, command)
             } else {
                 Err(PlatformError::Unsupported)
@@ -1296,14 +1388,18 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         let source = fixture_source(temp.path());
         let session = loaded(&source, Platform::Codex, Surface::Auth);
-        for account in [None, Some("default".into()), Some("fixture".into())] {
+        for target in [
+            QuotaTarget::AllSaved,
+            QuotaTarget::Runtime,
+            QuotaTarget::Saved("fixture".into()),
+        ] {
             assert!(matches!(
                 execute(
                     &source,
                     Platform::Codex,
                     Command::Quota {
                         session: session.clone(),
-                        account
+                        target
                     }
                 ),
                 Err(PlatformError::Unsupported)
@@ -1330,6 +1426,45 @@ mod tests {
         assert_eq!(
             session.fields.len(),
             platform_settings::codex::BUILTIN_MODELS.len() + 1
+        );
+    }
+
+    #[test]
+    fn account_file_failures_remain_distinct_from_an_empty_store() {
+        let temp = tempfile::tempdir().unwrap();
+        let source = fixture_source(temp.path());
+        let roots = roots(&source).unwrap();
+        for (platform, path) in [
+            (Platform::Claude, roots.claude.credentials_file),
+            (Platform::Codex, roots.codex_runtime.join("auth.json")),
+            (Platform::Grok, roots.grok_runtime.join("auth.json")),
+        ] {
+            assert_eq!(
+                loaded(&source, platform, Surface::Auth).credential,
+                CredentialState::NotDetected
+            );
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, b"{").unwrap();
+            assert_eq!(
+                loaded(&source, platform, Surface::Auth).credential,
+                CredentialState::Invalid
+            );
+            std::fs::remove_file(&path).unwrap();
+            std::fs::create_dir(&path).unwrap();
+            let unreadable = loaded(&source, platform, Surface::Auth);
+            assert_eq!(unreadable.credential, CredentialState::Unreadable);
+            assert!(!unreadable.auth_revision.unchanged().unwrap());
+        }
+        // A directory at auth.json rejects file reads. An unsupported store must
+        // remain unsupported even when that path cannot be captured for writes.
+        std::fs::write(
+            roots.codex_runtime.join("config.toml"),
+            r#"cli_auth_credentials_store = "keyring""#,
+        )
+        .unwrap();
+        assert_eq!(
+            loaded(&source, Platform::Codex, Surface::Auth).credential,
+            CredentialState::StoreUnsupported
         );
     }
 
@@ -1376,6 +1511,31 @@ mod tests {
             AccountAction::Switch,
         );
         assert!(roots.codex_runtime.join("auth.json").exists());
+        let matched = loaded(&source, Platform::Codex, Surface::Auth);
+        assert!(
+            matched
+                .accounts
+                .iter()
+                .any(|row| row.name == "renamed" && row.current)
+        );
+        apply(matched, "same-key-alias", AccountAction::Save);
+        let duplicate = loaded(&source, Platform::Codex, Surface::Auth);
+        assert!(
+            duplicate.accounts.iter().all(|r| !r.current),
+            "a duplicate cannot prove which alias is current"
+        );
+        apply(duplicate, "same-key-alias", AccountAction::Delete);
+        std::fs::write(
+            roots.codex_runtime.join("auth.json"),
+            r#"{"OPENAI_API_KEY":"synthetic-differentkey"}"#,
+        )
+        .unwrap();
+        assert!(
+            loaded(&source, Platform::Codex, Surface::Auth)
+                .accounts
+                .iter()
+                .all(|row| !row.current)
+        );
         apply(
             loaded(&source, Platform::Codex, Surface::Auth),
             "",

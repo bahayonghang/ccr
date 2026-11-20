@@ -51,14 +51,17 @@ async fn codex_auth_reviews_warn_without_blocking_and_cleanup_never_takes_unknow
         "mounting auth must not probe the host"
     );
     cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("platform-account-save", cx);
+        window.render_frame(cx);
         view.update(cx, |this, cx| {
-            this.name.update(cx, |state, cx| {
+            this.account_input.update(cx, |state, cx| {
                 state.set_value("controlled-saved", window, cx)
             })
         });
         window.render_frame(cx);
         window.click("platform-account-name", cx);
-        window.click("platform-account-save", cx);
+        window.click("platform-name-submit", cx);
         window.press("enter", cx);
         assert!(
             !roots
@@ -108,7 +111,7 @@ async fn codex_auth_reviews_warn_without_blocking_and_cleanup_never_takes_unknow
         window.render_frame(cx);
         assert_eq!(window.find("platform-account-name").focused(), Some(true));
         assert!(window.try_find("codex-diagnostic-review").is_none());
-        window.click("platform-account-save", cx);
+        window.click("platform-name-submit", cx);
         window.render_frame(cx);
         // Save warning is advisory even before the isolated diagnostic completes.
         window.click("codex-diagnostic-confirm", cx);
@@ -126,6 +129,8 @@ async fn codex_auth_reviews_warn_without_blocking_and_cleanup_never_takes_unknow
     cx.wait_for(handle, Duration::from_secs(10), |_, cx| !view.read(cx).busy)
         .await;
     cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("platform-tools-diagnostics", cx);
         window.render_frame(cx);
         window.click("codex-port-check", cx);
     })
@@ -205,6 +210,8 @@ async fn codex_auth_reviews_warn_without_blocking_and_cleanup_never_takes_unknow
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         assert!(window.try_find("codex-port-status").is_some());
+        window.click("platform-tools-back", cx);
+        window.render_frame(cx);
         window.click("platform-account-save", cx);
         view.update(cx, |this, cx| this.leave(window, cx));
         window.render_frame(cx);

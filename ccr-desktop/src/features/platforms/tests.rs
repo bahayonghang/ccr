@@ -157,11 +157,30 @@ async fn codex_api_account_requires_confirmation_and_clears_plaintext_after_comm
             .join("auth/ui-account.json")
     });
     cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        for id in [
+            "platform-tools-login",
+            "platform-tools-add",
+            "platform-tools-quota",
+            "platform-tools-diagnostics",
+        ] {
+            assert!(
+                window.try_find(id).is_some(),
+                "missing account workspace {id}"
+            );
+        }
+        assert!(window.try_find("platform-account-content").is_none());
+        window.click("platform-tools-add", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("platform-oauth-start").is_none());
+        assert!(window.try_find("platform-quota-current").is_none());
+        window.render_frame(cx);
         view.read(cx)
+            .tools
             .name
             .clone()
             .update(cx, |input, cx| input.set_value("ui-account", window, cx));
-        view.read(cx).content.clone().update(cx, |input, cx| {
+        view.read(cx).tools.api.clone().update(cx, |input, cx| {
             input.set_value(r#"{"api_key":"ui-secret-sentinel"}"#, window, cx)
         });
         window.render_frame(cx);
@@ -172,7 +191,8 @@ async fn codex_api_account_requires_confirmation_and_clears_plaintext_after_comm
         assert!(!path.exists());
         assert!(
             view.read(cx)
-                .content
+                .tools
+                .api
                 .read(cx)
                 .value()
                 .contains("ui-secret-sentinel")
@@ -190,9 +210,14 @@ async fn codex_api_account_requires_confirmation_and_clears_plaintext_after_comm
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         assert!(path.exists());
-        assert!(view.read(cx).content.read(cx).value().is_empty());
+        assert!(view.read(cx).tools.api.read(cx).value().is_empty());
         assert!(view.read(cx).decision_content.is_empty());
-        assert!(view.read(cx).session.is_none());
+        assert!(
+            view.read(cx)
+                .session
+                .as_ref()
+                .is_some_and(|s| s.accounts.iter().any(|a| a.name == "ui-account"))
+        );
         window.remove_window();
     })
     .unwrap_or_else(|_| panic!("saved"));
@@ -373,7 +398,8 @@ fn confirmation_enters_after_callback_before_draw(cx: &mut TestAppContext) {
 async fn oauth_cancel_joins_fixture_cleanup_and_clears_callback_draft(cx: &mut TestAppContext) {
     cx.executor().allow_parking();
     let root = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
-    let roots = PlatformRoots::fixture(root.path()).unwrap_or_else(|_| panic!("roots"));
+    let roots = PlatformRoots::fixture(&root.path().join("desktop-platform-fixture"))
+        .unwrap_or_else(|_| panic!("roots"));
     let mut pending = ccr_cli::application::codex_oauth::new_oauth_pending()
         .unwrap_or_else(|_| panic!("pending"));
     let port = std::net::TcpListener::bind(("127.0.0.1", 0))
@@ -388,34 +414,8 @@ async fn oauth_cancel_joins_fixture_cleanup_and_clears_callback_draft(cx: &mut T
     let store = ccr_codex::services::CodexOAuthPendingStore::with_path(pending_path.clone());
     ccr_core::core::LockManager::with_scoped_directory(&roots.locks, || store.save(&pending))
         .unwrap_or_else(|_| panic!("fixture pending store"));
-    let document = Document::new(
-        roots.codex_runtime.join("auth.json"),
-        None,
-        BackupPolicy::None,
-        Some(roots.locks.clone()),
-        Format::Json,
-    );
-    let snapshot = document.read().unwrap_or_else(|_| panic!("snapshot"));
-    let session = Arc::new(PlatformSession {
-        remote: None,
-        roots,
-        document,
-        snapshot,
-        accounts: Vec::new(),
-        signed_in: false,
-        provider_ids: Vec::new(),
-        provider_report: crate::runtime::platforms::ProviderReport::Unsupported,
-        surface: Surface::Auth,
-        platform: Platform::Codex,
-        file_state: crate::runtime::platforms::FileState::Present,
-        file_label: "config.toml",
-        fields: Vec::new(),
-        credential: crate::runtime::platforms::CredentialState::NotDetected,
-        runtime_auth_present: None,
-        auth_revision: Default::default(),
-    });
     let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
-    let services = Services::new(
+    let mut services = Services::new(
         owner.handle(),
         crate::runtime::ConfigSource::Fixture {
             profiles: root.path().join("profiles.toml"),
@@ -423,36 +423,34 @@ async fn oauth_cancel_joins_fixture_cleanup_and_clears_callback_draft(cx: &mut T
             delay: std::time::Duration::ZERO,
         },
     );
+    let fixture = Arc::new(crate::runtime::platforms::AccountFixture::default());
+    services.account_fixture = Some(fixture.clone());
     let (handle, view) = cx.update(|cx| {
         gpui_kit::init(cx);
         gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
             cx.new(|cx| {
                 let mut view = PlatformsView::new(services, window, cx);
-                view.platform = Platform::Codex;
-                view.surface = Surface::Auth;
-                view.session = Some(session);
+                view.open(Platform::Codex, Surface::Auth, window, cx);
                 view
             })
         })
         .unwrap_or_else(|_| panic!("window"))
     });
-    cx.update_window(handle, |_, window, cx| {
-        window.render_frame(cx);
-        window.click("platform-oauth-start", cx);
-    })
-    .unwrap_or_else(|_| panic!("start OAuth"));
+    use std::sync::atomic::Ordering::Relaxed;
     cx.wait_for(handle, std::time::Duration::from_secs(5), |_, cx| {
-        !view.read(cx).diagnostic_blocked()
+        !view.read(cx).busy
     })
     .await;
-    cx.update_window(handle, |_, _, cx| {
-        assert!(view.read(cx).oauth_status.is_none());
-        assert!(!view.read(cx).services.platform_oauth_active());
-        // Host preflight refuses isolated sources. Exercise the retained owner's
-        // cancellation separately using the captured, preseeded ephemeral port.
-        view.update(cx, |this, cx| this.start_oauth(cx));
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("platform-tools-login", cx);
+        window.render_frame(cx);
+        assert_eq!(fixture.preflights.load(Relaxed), 0);
+        assert_eq!(fixture.starts.load(Relaxed), 0);
+        window.click("platform-oauth-start", cx);
+        window.click("platform-oauth-start", cx);
     })
-    .unwrap_or_else(|_| panic!("start captured fixture owner"));
+    .unwrap_or_else(|_| panic!("start from accounts"));
     cx.wait_for(handle, std::time::Duration::from_secs(5), |_, cx| {
         view.read(cx)
             .oauth_status
@@ -462,10 +460,15 @@ async fn oauth_cancel_joins_fixture_cleanup_and_clears_callback_draft(cx: &mut T
     .await;
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
-        view.read(cx).content.clone().update(cx, |state, cx| {
-            state.set_value("invalid-callback-secret-sentinel", window, cx);
-        });
+        view.read(cx)
+            .tools
+            .callback
+            .clone()
+            .update(cx, |state, cx| {
+                state.set_value("invalid-callback-secret-sentinel", window, cx);
+            });
         window.click("platform-oauth-cancel", cx);
+        assert!(view.read(cx).tools.cancelling);
     })
     .unwrap_or_else(|_| panic!("cancel OAuth"));
     cx.wait_for(handle, std::time::Duration::from_secs(5), |_, cx| {
@@ -477,17 +480,101 @@ async fn oauth_cancel_joins_fixture_cleanup_and_clears_callback_draft(cx: &mut T
     .await;
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
-        assert!(view.read(cx).content.read(cx).value().is_empty());
-        assert!(view.read(cx).oauth_url.read(cx).value().is_empty());
+        assert!(view.read(cx).tools.callback.read(cx).value().is_empty());
+        assert!(
+            view.read(cx)
+                .oauth_status
+                .as_ref()
+                .is_none_or(|s| s.authorization_url.expose().is_empty())
+        );
         assert!(!view.read(cx).services.platform_oauth_active());
         assert!(!pending_path.exists());
         assert!(std::net::TcpListener::bind(("127.0.0.1", port)).is_ok());
         assert!(
             view.read(cx)
-                .message
+                .tools
+                .login_feedback
                 .as_deref()
                 .is_some_and(|message| message.contains("cancelled after"))
         );
+        assert_eq!(fixture.preflights.load(Relaxed), 1);
+        assert_eq!(fixture.starts.load(Relaxed), 1);
+        assert_eq!(fixture.callbacks.load(Relaxed), 0);
+        assert_eq!(fixture.commits.load(Relaxed), 0);
+        ccr_core::core::LockManager::with_scoped_directory(&roots.locks, || store.save(&pending))
+            .unwrap_or_else(|_| panic!("fixture pending"));
+        window.click("platform-oauth-start", cx);
+    })
+    .unwrap_or_else(|_| panic!("second explicit login"));
+    cx.wait_for(handle, std::time::Duration::from_secs(5), |_, cx| {
+        view.read(cx)
+            .oauth_status
+            .as_ref()
+            .is_some_and(|s| s.phase == NativePhase::Waiting)
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("platform-tools-back", cx);
+        window.render_frame(cx);
+        assert!(
+            window
+                .find("platform-tools-login")
+                .label()
+                .is_some_and(|s| s.contains("progress") || s.contains("进行中"))
+        );
+        window.click("platform-tools-login", cx);
+        window.render_frame(cx);
+        assert_eq!(fixture.starts.load(Relaxed), 2);
+        let url = format!(
+            "{}?code=synthetic-callback-sentinel&state={}",
+            pending.redirect_uri,
+            pending.state.expose()
+        );
+        view.read(cx)
+            .tools
+            .callback
+            .clone()
+            .update(cx, |i, cx| i.set_value(url, window, cx));
+        window.render_frame(cx);
+        assert_secret_hidden(window, "synthetic-callback-sentinel");
+        window.click("platform-oauth-callback", cx);
+    })
+    .unwrap_or_else(|_| panic!("manual callback"));
+    cx.wait_for(handle, std::time::Duration::from_secs(5), |_, cx| {
+        view.read(cx).oauth_control_phase.is_none()
+            && view
+                .read(cx)
+                .oauth_status
+                .as_ref()
+                .is_some_and(|s| s.phase == NativePhase::Callback)
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(view.read(cx).tools.callback.read(cx).value().is_empty());
+        assert!(window.try_find("platform-oauth-callback").is_none());
+        assert!(window.try_find("platform-oauth-complete").is_some());
+        assert_eq!(fixture.callbacks.load(Relaxed), 1);
+        assert_eq!(fixture.commits.load(Relaxed), 0);
+        window.click("platform-oauth-complete", cx);
+    })
+    .unwrap_or_else(|_| panic!("explicit commit"));
+    cx.wait_for(handle, std::time::Duration::from_secs(5), |_, cx| {
+        !view.read(cx).services.platform_oauth_active()
+            && view.read(cx).oauth_control_phase.is_none()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert_eq!(fixture.commits.load(Relaxed), 1);
+        assert!(
+            view.read(cx)
+                .oauth_status
+                .as_ref()
+                .is_some_and(|s| s.phase == NativePhase::Failed)
+        );
+        assert!(!roots.codex_runtime.join("auth.json").exists());
         window.remove_window();
     })
     .unwrap_or_else(|_| panic!("terminal cleanup"));
@@ -708,6 +795,12 @@ async fn account_actions_follow_the_selected_row_and_saving_ignores_selection(
         Ok::<(), ccr_core::CcrError>(())
     })
     .unwrap_or_else(|_| panic!("fixture accounts"));
+    std::fs::create_dir_all(&roots.codex_runtime)
+        .unwrap_or_else(|_| panic!("create runtime fixture directory"));
+    let running = roots.codex_runtime.join("auth.json");
+    let first_runtime = br#"{"OPENAI_API_KEY":"synthetic-first-account-key"}"#;
+    std::fs::write(&running, first_runtime)
+        .unwrap_or_else(|_| panic!("write initial runtime credential"));
     let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
     let services = Services::new(
         owner.handle(),
@@ -739,17 +832,18 @@ async fn account_actions_follow_the_selected_row_and_saving_ignores_selection(
         assert!(window.try_find("platform-accounts-saved").is_some());
         // 账户 tab 不显示设置 tab 的配置来源开关。
         assert!(window.try_find("platform-show-layers").is_none());
-        // 没有选中项：针对所选账户的动作禁用（无焦点绑定、点击无效），保存当前登录仍可用。
         for id in [
+            "platform-account-name",
+            "platform-account-content",
             "platform-account-switch",
             "platform-account-rename",
             "platform-account-delete",
         ] {
-            assert_eq!(window.find(id).focused(), None, "{id} must be disabled");
+            assert!(
+                window.try_find(id).is_none(),
+                "{id} should open only when needed"
+            );
         }
-        assert_eq!(window.find("platform-account-save").focused(), Some(false));
-        window.click("platform-account-delete", cx);
-        assert!(view.read(cx).decision.is_none());
         assert_eq!(
             window.find("platform-account-first").selected(),
             Some(false)
@@ -788,14 +882,34 @@ async fn account_actions_follow_the_selected_row_and_saving_ignores_selection(
             window.find("platform-account-second").selected(),
             Some(true)
         );
-        window.click("platform-account-rename", cx);
-        assert_eq!(view.read(cx).decision_name, "second");
+        assert_eq!(
+            std::fs::read(&running).unwrap_or_else(|_| panic!("read unchanged runtime credential")),
+            first_runtime
+        );
+        window.click("platform-auth-off", cx);
         window.render_frame(cx);
-        window.click("platform-decision-cancel", cx);
+        assert!(
+            window
+                .find("platform-confirmation")
+                .label()
+                .is_some_and(|label| label.contains("first") && label.contains("Saved accounts"))
+        );
+        window.press("escape", cx);
+        window.render_frame(cx);
+        window.click("platform-account-rename", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("platform-account-name").is_some());
+        window.click("platform-name-cancel", cx);
         window.render_frame(cx);
         window.click("platform-account-delete", cx);
         assert_eq!(view.read(cx).decision_name, "second");
         window.render_frame(cx);
+        let alert = window.find("platform-confirmation");
+        assert!(
+            alert
+                .label()
+                .is_some_and(|t| t.contains("second") && t.contains("does not log out"))
+        );
         window.click("platform-decision-cancel", cx);
         window.render_frame(cx);
         window.click("platform-account-switch", cx);
@@ -827,12 +941,14 @@ async fn account_actions_follow_the_selected_row_and_saving_ignores_selection(
         );
         // 选中 first 后保存当前登录：目标是新账户名，而不是选中项。
         window.click("platform-account-first", cx);
+        window.click("platform-account-save", cx);
+        window.render_frame(cx);
         view.read(cx)
-            .name
+            .account_input
             .clone()
             .update(cx, |input, cx| input.set_value("third", window, cx));
         window.render_frame(cx);
-        window.click("platform-account-save", cx);
+        window.click("platform-name-submit", cx);
         // 进程警告只是提示，不必等待隔离诊断结束即可确认保存。
         window.render_frame(cx);
         window.click("codex-diagnostic-confirm", cx);
@@ -849,6 +965,37 @@ async fn account_actions_follow_the_selected_row_and_saving_ignores_selection(
         std::fs::read(&first).unwrap_or_else(|_| panic!("first account")),
         first_before
     );
+    std::fs::write(
+        roots.codex_runtime.join("config.toml"),
+        r#"cli_auth_credentials_store = "keyring""#,
+    )
+    .unwrap_or_else(|_| panic!("select unsupported credential store"));
+    cx.update(|cx| view.update(cx, |v, cx| v.load(cx)));
+    cx.wait_for(handle, std::time::Duration::from_secs(10), |_, cx| {
+        !view.read(cx).busy
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("platform-account-first", cx);
+        window.render_frame(cx);
+        assert_eq!(window.find("platform-account-first").selected(), Some(true));
+        for action in [
+            "platform-account-switch",
+            "platform-account-rename",
+            "platform-account-delete",
+            "platform-auth-off",
+            "platform-account-save",
+        ] {
+            assert_eq!(
+                window.find(action).focused(),
+                None,
+                "{action} cannot write this store"
+            );
+        }
+        assert!(window.find("platform-load").focused().is_some());
+    })
+    .unwrap_or_else(|_| panic!("inspect read-only account controls"));
     cx.update_window(handle, |_, window, _| window.remove_window())
         .unwrap_or_else(|_| panic!("close"));
     owner.shutdown();
@@ -1175,5 +1322,238 @@ fn embedded_opencode_keeps_a_reachable_tui_document_entry(cx: &mut TestAppContex
     .unwrap_or_else(|_| panic!("embedded tui entry"));
     cx.update_window(handle, |_, window, _| window.remove_window())
         .unwrap_or_else(|_| panic!("close"));
+    owner.shutdown();
+}
+
+fn assert_secret_hidden(window: &gpui_kit::Window, sentinel: &str) {
+    assert!(
+        gpui_kit::base::test_support::snapshots(window)
+            .iter()
+            .all(|node| [node.label(), node.value()]
+                .into_iter()
+                .flatten()
+                .all(|s| !s.contains(sentinel))),
+        "sensitive value reached an accessibility node"
+    );
+}
+
+#[gpui_kit::test]
+#[allow(clippy::unwrap_used)]
+async fn codex_manual_quota_targets_history_and_late_results_from_accounts(
+    cx: &mut TestAppContext,
+) {
+    use crate::runtime::platforms::{AccountFixture, QuotaRow, QuotaTarget};
+    use std::time::Duration;
+    let timeout = Duration::from_secs(10);
+    cx.executor().allow_parking();
+    let dir = tempfile::tempdir().unwrap();
+    let roots = PlatformRoots::fixture(&dir.path().join("desktop-platform-fixture")).unwrap();
+    ccr_core::core::LockManager::with_scoped_directory(&roots.locks, || {
+        let owner = roots.codex_auth();
+        let export = owner.build_export_account_from_auth_json(
+            ccr_codex::CodexAuthJson {
+                openai_api_key: Some("fixture-key".into()),
+                tokens: None,
+                last_refresh: None,
+            },
+            None,
+            None,
+            None,
+            None,
+        )?;
+        ccr_cli::application::codex_oauth::commit_account(
+            &owner,
+            export,
+            Some("first".into()),
+            false,
+        )
+        .unwrap();
+        Ok(())
+    })
+    .unwrap();
+    let row = |name: &str, failed: bool| QuotaRow {
+        account: name.into(),
+        hourly: (!failed).then_some(0),
+        weekly: None,
+        hourly_reset: Some(1_800_000_000),
+        weekly_reset: None,
+        fetched_at: "2026-11-19T12:30:00Z".into(),
+        failed,
+        cache_hit: Some(false),
+        history_warning: false,
+    };
+    let fixture = Arc::new(AccountFixture {
+        quota_delay: Duration::from_millis(150),
+        ..Default::default()
+    });
+    fixture.replies.lock().unwrap().extend([
+        Ok(vec![row("runtime", false)]),
+        Ok(vec![row("first", false)]),
+        Ok(vec![row("first", true), row("second", false)]),
+        Err(crate::runtime::platforms::PlatformError::Storage),
+        Ok(vec![row("stale", false)]),
+    ]);
+    let owner = RuntimeOwner::new().unwrap();
+    let mut services = Services::new(
+        owner.handle(),
+        crate::runtime::ConfigSource::Fixture {
+            registry: dir.path().join("registry.toml"),
+            profiles: dir.path().join("profiles.toml"),
+            delay: Duration::ZERO,
+        },
+    );
+    services.account_fixture = Some(fixture.clone());
+    let (handle, view) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| {
+                let mut v = PlatformsView::new(services, window, cx);
+                v.open(Platform::Codex, Surface::Auth, window, cx);
+                v
+            })
+        })
+        .unwrap()
+    });
+    cx.wait_for(handle, timeout, |_, cx| !view.read(cx).busy)
+        .await;
+    cx.update_window(handle, |_, w, cx| {
+        w.render_frame(cx);
+        w.click("platform-tools-quota", cx);
+        w.render_frame(cx);
+        assert!(
+            w.find("platform-quota-state")
+                .label()
+                .unwrap()
+                .contains("No quota")
+        );
+        w.click("platform-quota-selected", cx);
+        assert!(fixture.calls.lock().unwrap().is_empty());
+        w.click("platform-tools-back", cx);
+        w.render_frame(cx);
+        assert_eq!(w.find("platform-tools-quota").focused(), Some(true));
+        w.click("platform-account-first", cx);
+        w.click("platform-tools-quota", cx);
+        w.render_frame(cx);
+        assert!(fixture.calls.lock().unwrap().is_empty());
+        w.click("platform-quota-current", cx);
+        w.click("platform-quota-current", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, timeout, |_, cx| !view.read(cx).busy)
+        .await;
+    cx.update_window(handle, |_, w, cx| {
+        w.render_frame(cx);
+        let facts = w.find("platform-quota-result-0");
+        let facts = facts.label().unwrap();
+        assert!(
+            facts.contains("0%")
+                && facts.contains("unavailable")
+                && facts.contains("2026-11-19")
+                && facts.contains("2027-01-15")
+        );
+        assert_eq!(*fixture.calls.lock().unwrap(), [QuotaTarget::Runtime]);
+        w.click("platform-quota-selected", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, timeout, |_, cx| !view.read(cx).busy)
+        .await;
+    cx.update_window(handle, |_, w, cx| {
+        w.render_frame(cx);
+        assert_eq!(
+            *fixture.calls.lock().unwrap(),
+            [QuotaTarget::Runtime, QuotaTarget::Saved("first".into())]
+        );
+        w.click("platform-quota-all", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, timeout, |_, cx| !view.read(cx).busy)
+        .await;
+    cx.update_window(handle, |_, w, cx| {
+        w.render_frame(cx);
+        assert_eq!(
+            fixture.calls.lock().unwrap().last(),
+            Some(&QuotaTarget::AllSaved)
+        );
+        assert!(
+            w.find("platform-quota-state")
+                .label()
+                .unwrap()
+                .contains("Partial")
+        );
+        assert!(
+            w.find("platform-quota-history-0")
+                .label()
+                .unwrap()
+                .contains("Last successful")
+        );
+        w.click("platform-quota-selected", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, timeout, |_, cx| !view.read(cx).busy)
+        .await;
+    cx.update_window(handle, |_, w, cx| {
+        w.render_frame(cx);
+        assert!(
+            w.find("platform-quota-state")
+                .label()
+                .unwrap()
+                .contains("failed")
+        );
+        assert!(
+            w.find("platform-quota-history-0")
+                .label()
+                .unwrap()
+                .contains("first")
+        );
+        assert!(w.try_find("platform-quota-result-0").is_none());
+        w.click("platform-quota-current", cx);
+        w.render_frame(cx);
+        w.click("platform-tools-add", cx);
+        w.render_frame(cx);
+        assert!(w.try_find("platform-quota-state").is_none());
+        w.click("platform-tools-import", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, timeout, |_, cx| !view.read(cx).busy)
+        .await;
+    cx.update_window(handle, |_, w, cx| {
+        w.render_frame(cx);
+        assert_eq!(w.find("platform-tools-import").focused(), Some(true));
+        assert!(view.read(cx).quotas.is_empty());
+        view.read(cx)
+            .tools
+            .import
+            .clone()
+            .update(cx, |i, cx| i.set_value("masked-import-sentinel", w, cx));
+        w.render_frame(cx);
+        assert_secret_hidden(w, "masked-import-sentinel");
+        w.click("platform-account-import", cx);
+        w.render_frame(cx);
+        assert_secret_hidden(w, "masked-import-sentinel");
+        w.click("platform-decision-cancel", cx);
+        w.render_frame(cx);
+        w.click("platform-tools-diagnostics", cx);
+        w.render_frame(cx);
+        w.click("platform-decision-cancel", cx);
+        assert!(!view.read(cx).tools.import.read(cx).value().is_empty());
+        w.render_frame(cx);
+        w.click("platform-tools-diagnostics", cx);
+        w.render_frame(cx);
+        w.click("platform-decision-confirm", cx);
+        w.render_frame(cx);
+        assert!(w.try_find("codex-port-check").is_some());
+        assert!(view.read(cx).tools.import.read(cx).value().is_empty());
+        assert_eq!(
+            fixture
+                .preflights
+                .load(std::sync::atomic::Ordering::Relaxed),
+            0
+        );
+        w.press("escape", cx);
+        w.render_frame(cx);
+        assert_eq!(w.find("platform-tools-diagnostics").focused(), Some(true));
+        w.remove_window();
+    })
+    .unwrap();
     owner.shutdown();
 }

@@ -89,6 +89,10 @@ impl Shell {
                                 if let Some(decision) = this.navigation_decision.take() {
                                     this.configurations
                                         .update(cx, |view, cx| view.leave(window, cx));
+                                    if this.lens == Lens::Auth {
+                                        this.platforms
+                                            .update(cx, |view, cx| view.leave(window, cx));
+                                    }
                                     this.remote.update(cx, |view, cx| {
                                         view.discard_for_environment_switch(window, cx)
                                     });

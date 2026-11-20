@@ -17,6 +17,7 @@ enum Review {
 pub(super) struct ViewState {
     task: Option<Task<()>>,
     busy: bool,
+    releasing: bool,
     generation: u64,
     review: Option<Review>,
     warning: Option<Result<ProcessWarning, Error>>,
@@ -47,6 +48,7 @@ impl PlatformsView {
     fn request_diagnostic(&mut self, request: Request, intent: Intent, cx: &mut Context<Self>) {
         self.diagnostics.task = None;
         self.diagnostics.busy = true;
+        self.diagnostics.releasing = matches!(intent, Intent::CancelOwned);
         self.diagnostics.generation += 1;
         let generation = self.generation;
         let decision = self.diagnostics.generation;
@@ -67,6 +69,7 @@ impl PlatformsView {
                                     return;
                                 }
                                 this.diagnostics.busy = false;
+                                this.diagnostics.releasing = false;
                                 let result = match value.as_ref() {
                                     Completion::Success(value) => Ok(value.clone()),
                                     Completion::Failed(error)
@@ -83,6 +86,7 @@ impl PlatformsView {
             }
             Err(_) => {
                 self.diagnostics.busy = false;
+                self.diagnostics.releasing = false;
                 self.apply_diagnostic(intent, Err(Error::Unavailable), cx);
             }
         }
@@ -109,6 +113,15 @@ impl PlatformsView {
                     _ => Err(Error::Unavailable),
                 };
                 let start = matches!(intent, Intent::Start) && state == Ok(PortState::Available);
+                if matches!(intent, Intent::Start) && !start {
+                    self.tools.login_feedback = Some(
+                        match &state {
+                            Ok(port) => port_text(port, cx),
+                            Err(error) => error.message(),
+                        }
+                        .to_owned(),
+                    );
+                }
                 self.diagnostics.port = Some(state);
                 if start {
                     self.start_oauth(cx);
@@ -149,7 +162,7 @@ impl PlatformsView {
         self.diagnostics.warning = None;
         self.diagnostics.review = Some(Review::Save {
             session: session.clone(),
-            name: self.name.read(cx).value().to_string(),
+            name: self.account_input.read(cx).value().to_string(),
         });
         self.diagnostics.return_focus = window.focused(cx);
         self.diagnostics.entry_pending = true;
@@ -162,6 +175,12 @@ impl PlatformsView {
     pub(super) fn preflight_oauth_start(&mut self, cx: &mut Context<Self>) {
         if self.platform != Platform::Codex
             || self.surface != Surface::Auth
+            || self.tools.active != Some(Workspace::Login)
+            || self
+                .session
+                .as_ref()
+                .is_none_or(|s| s.credential.file_account_write_access().is_err())
+            || !self.services.manual_provider_actions_available()
             || self.diagnostics.busy
             || self.services.platform_oauth_active()
         {
@@ -227,6 +246,16 @@ impl PlatformsView {
     pub(super) fn diagnostic_blocked(&self) -> bool {
         self.diagnostics.busy || self.diagnostics.review.is_some()
     }
+    pub(super) fn diagnostic_navigation_blocked(&self) -> bool {
+        self.diagnostics.review.is_some() || self.diagnostics.releasing
+    }
+    pub(super) fn clear_workspace_diagnostic(&mut self) {
+        let generation = self.diagnostics.generation + 1;
+        self.diagnostics = ViewState {
+            generation,
+            ..Default::default()
+        };
+    }
     pub(super) fn render_codex_diagnostics(
         &mut self,
         window: &mut Window,
@@ -236,6 +265,7 @@ impl PlatformsView {
             return self.render_diagnostic_review(window, cx);
         }
         div().id("codex-auth-diagnostics").test_support().flex().flex_col().gap(px(theme::CONTROL_GAP))
+            .when(self.services.is_fixture(),|d|d.child(text(cx,"Demo mode disables host port and process probes.","演示模式已禁用主机端口和进程探测。")))
             .child(text(cx,"OAuth callback: 127.0.0.1:1455. Preflight is a snapshot; starting OAuth always performs the final bind.","OAuth 回调：127.0.0.1:1455。预检只是瞬时状态，开始 OAuth 时仍会最终绑定校验。"))
             .child(self.render_port_diagnostic(cx))
             .child(self.render_diagnostic_actions(cx)).into_any_element()
@@ -281,7 +311,7 @@ impl PlatformsView {
             .flex()
             .flex_col()
             .gap(px(theme::CONTROL_GAP));
-        root = root.child(if self.diagnostics.busy {
+        let summary = if self.diagnostics.busy {
             text(cx, "Diagnostic is running.", "诊断进行中。").to_string()
         } else {
             match &self.diagnostics.port {
@@ -294,7 +324,8 @@ impl PlatformsView {
                 Some(Ok(state)) => port_text(state, cx).to_string(),
                 Some(Err(error)) => error.message().to_string(),
             }
-        });
+        };
+        root = root.aria_label(summary.clone()).child(summary);
         if let Some(result) = &self.diagnostics.release {
             root = root.child(match result {
                 Err(error) => error.message().to_string(),

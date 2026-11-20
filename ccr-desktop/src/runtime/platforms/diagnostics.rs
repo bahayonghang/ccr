@@ -221,6 +221,18 @@ impl Services {
         let release = matches!(&request, Request::CancelOwnedListeners(_));
         let key_copy = key.clone();
         let run = move || {
+            #[cfg(test)]
+            if let Some(fixture) = &services.account_fixture
+                && services.is_fixture()
+                && matches!(key.environment, ccr_app::runtime::EnvironmentId::Local(_))
+                && key.platform == ccr_app::runtime::Platform::Codex
+                && matches!(request, Request::CallbackPort)
+            {
+                fixture
+                    .preflights
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                return Ok(Report::Port(PortState::Available));
+            }
             admit(&services, &key)?;
             match request {
                 Request::SaveProcesses(roots) => {

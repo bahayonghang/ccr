@@ -416,6 +416,7 @@ impl Shell {
         }
         self.navigation_generation += 1;
         if (self.lens == Lens::Profiles && self.configurations.read(cx).has_dirty_draft(cx))
+            || (self.lens == Lens::Auth && self.platforms.read(cx).account_draft_dirty(cx))
             || (self.destination == Destination::Settings
                 && self.remote.read(cx).has_environment_draft(cx))
         {

@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 #[derive(Default)]
 pub struct Revision {
+    unavailable: bool,
     files: Vec<(PathBuf, String)>,
     grok: Option<ccr_cli::services::grok_auth_service::GrokAuthRevision>,
 }
@@ -35,6 +36,7 @@ pub fn capture(
         return Ok(Revision {
             files: Vec::new(),
             grok: Some(snapshot.revision),
+            unavailable: false,
         });
     }
     let mut paths = vec![runtime, store.join("auth_registry.toml")];
@@ -48,7 +50,10 @@ pub fn capture(
         .into_iter()
         .map(|path| token(&path).map(|token| (path, token)))
         .collect::<Result<Vec<_>, _>>()
-        .map(|files| Revision { files, grok: None })
+        .map(|files| Revision {
+            files,
+            ..Default::default()
+        })
 }
 
 fn token(path: &std::path::Path) -> Result<String, PlatformError> {
@@ -60,7 +65,16 @@ fn token(path: &std::path::Path) -> Result<String, PlatformError> {
 }
 
 impl Revision {
+    pub(super) fn unreadable() -> Self {
+        Self {
+            unavailable: true,
+            ..Default::default()
+        }
+    }
     pub fn unchanged(&self) -> Result<bool, PlatformError> {
+        if self.unavailable {
+            return Ok(false);
+        }
         for (path, expected) in &self.files {
             if token(path)? != *expected {
                 return Ok(false);
@@ -78,6 +92,7 @@ pub fn apply(
     if session.surface != Surface::Auth {
         return Err(PlatformError::Invalid);
     }
+    session.credential.file_account_write_access()?;
     if !session.auth_revision.unchanged()?
         || session.document.read().map_err(settings_error)?.token != session.snapshot.token
     {

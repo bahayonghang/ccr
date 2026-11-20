@@ -2015,8 +2015,8 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
         assert!(window.try_find("platform-accounts-saved").is_some());
         assert!(window.try_find("platform-show-layers").is_none());
         assert!(window.try_find("platform-group-runtime").is_none());
-        assert_eq!(window.find("platform-account-switch").focused(), None);
-        assert_eq!(window.find("platform-account-save").focused(), Some(false));
+        assert!(window.try_find("platform-account-switch").is_none());
+        assert_eq!(window.find("platform-account-save").focused(), None);
         private_projection(window, secret, &["gpt-5", "grok-3", "opencode-model"]);
         window.click("nav-codex", cx);
         window.click("tool-profiles", cx);
@@ -2110,8 +2110,8 @@ async fn platform_routes_show_supported_local_status_without_secrets(cx: &mut Te
             window.find("platform-account-grok-fixture-only").selected(),
             Some(false)
         );
-        assert_eq!(window.find("platform-account-switch").focused(), None);
-        assert_eq!(window.find("platform-account-delete").focused(), None);
+        assert!(window.try_find("platform-account-switch").is_none());
+        assert!(window.try_find("platform-account-delete").is_none());
         assert!(window.try_find("platform-account-rename").is_none());
         window.click("platform-account-grok-fixture-only", cx);
         window.render_frame(cx);

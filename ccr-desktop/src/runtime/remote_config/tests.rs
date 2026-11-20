@@ -968,7 +968,7 @@ async fn remote_unconnected_collection_and_network_actions_are_rejected_by_runti
                     fixture.key(Platform::Codex),
                     Command::Quota {
                         session: session.clone(),
-                        account: None
+                        target: crate::runtime::platforms::QuotaTarget::AllSaved
                     }
                 )
                 .unwrap()

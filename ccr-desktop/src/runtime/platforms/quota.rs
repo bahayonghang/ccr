@@ -1,6 +1,13 @@
 //! Safe display projection of the existing credential-refreshing quota owner.
 use super::*;
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum QuotaTarget {
+    Runtime,
+    Saved(String),
+    AllSaved,
+}
+
 #[derive(Clone)]
 pub struct QuotaRow {
     pub account: String,
@@ -45,7 +52,7 @@ impl From<ccr_codex::CodexAccountQuota> for QuotaRow {
 
 pub fn fetch(
     session: &PlatformSession,
-    account: Option<&str>,
+    target: &QuotaTarget,
 ) -> Result<ResultValue, PlatformError> {
     // Reject synthetic sources before constructing a network or credential owner.
     if session.roots.fixture
@@ -54,7 +61,12 @@ pub fn fetch(
     {
         return Err(PlatformError::Unsupported);
     }
-    if account.is_some_and(|name| name.contains(['/', '\\']) || safe_name(name).is_none()) {
+    session.credential.file_account_write_access()?;
+    if let QuotaTarget::Saved(name) = target
+        && (name.contains(['/', '\\'])
+            || safe_name(name).is_none()
+            || !session.accounts.iter().any(|row| row.name == *name))
+    {
         return Err(PlatformError::Invalid);
     }
     let handle = tokio::runtime::Handle::try_current().map_err(|_| PlatformError::Storage)?;
@@ -63,10 +75,12 @@ pub fn fetch(
         session.roots.codex_runtime.clone(),
     );
     let results = handle.block_on(async {
-        match account {
-            Some("default") => vec![service.fetch_current_quota_force_refresh().await],
-            Some(account) => vec![service.fetch_account_quota_force_refresh(account).await],
-            None => service.fetch_all_quotas_force_refresh().await,
+        match target {
+            QuotaTarget::Runtime => vec![service.fetch_current_quota_force_refresh().await],
+            QuotaTarget::Saved(account) => {
+                vec![service.fetch_account_quota_force_refresh(account).await]
+            }
+            QuotaTarget::AllSaved => service.fetch_all_quotas_force_refresh().await,
         }
     });
     Ok(ResultValue::Quotas(
