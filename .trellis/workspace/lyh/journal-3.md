@@ -1949,3 +1949,12 @@ Topics: [.trellis/research/archive/2026-11/ssh-environment-finalization.md](../.
 ### Next Steps
 
 - 协调者核最终HEAD/原五脏/refs/署名与评论，执行已授权公开动作并在ignored收据记录实际终态，不再安排关票后tracked提交。
+
+## Session 180: GPUI 配置方案与账户重设计规格（#220）
+
+**Date**: 2026-11-19
+**Branch**: `dev`
+
+经用户确认，Claude Code、Codex、Grok 的两页设计已更新到[配置方案与账户设计](../../../ccr-desktop/DESIGN.md#profiles-工作面)，待实施。[父规格 #220](https://github.com/bahayonghang/ccr/issues/220) 的四张实施票已核验正文、标签、父子关系及两条原生依赖。#221 与 #223 可独立开始。
+
+记录器因历史 Session 28 重号在写前退出；本条沿用此前追加方式，在记录锁内校验原文件与新编号后追加，并更新索引。
