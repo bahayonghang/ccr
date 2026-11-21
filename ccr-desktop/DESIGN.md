@@ -480,7 +480,7 @@ Claude 扩展的同名条目不合并：各来源下照常列出，在条目下�
 
 ## Known Gaps and Native QA
 
-2026-11-19，[#217](https://github.com/bahayonghang/ccr/issues/217) 的背景光斑与外框投影已在同一 Windows 原生运行概览验收。中文 30 天演示数据，1280×800 逻辑像素，120 DPI。亮暗两组分别隔离了光斑和阴影，也在实际窗口验证了键盘切区、菜单关闭后的焦点返回。[前后图、像素剖面与逐项记录](../.trellis/research/archive/2026-11/gpui-airy-glass-217/native.md)
+2026-11-19，应用内毛玻璃的两项修正已分别验收，并在同一构建的 Windows 原生运行概览复核了组合效果。窗口使用中文 30 天演示数据，1280×800 逻辑像素，120 DPI。亮暗两组分别隔离了光斑和阴影，也在实际窗口验证了键盘切区、菜单关闭后的焦点返回。[父规格 #217](https://github.com/bahayonghang/ccr/issues/217) · [背景光斑 #218](https://github.com/bahayonghang/ccr/issues/218) · [侧栏与纸面 #219](https://github.com/bahayonghang/ccr/issues/219) · [前后图、像素剖面与逐项记录](../.trellis/research/archive/2026-11/gpui-airy-glass-217/native.md)
 
 03 已将语义 token 实现在 `src/theme.rs` 并通过 Kit Theme 同步 Base/Component；`src/shell/` 呈现已接入的 Local 配置、命令收藏/历史与会话内主题/语言设置。列表采用稳定领域 ID 的虚拟化，详情提供返回，F6/Tab 与编辑键分别处理。无持续装饰动画；按钮即时 pressed 色反馈，常用行操作不做缩放。
 
