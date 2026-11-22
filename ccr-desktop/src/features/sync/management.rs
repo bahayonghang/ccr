@@ -47,85 +47,121 @@ impl SyncView {
         }
         self.start(operation, cx);
     }
-    pub(super) fn render_management(
+    pub(super) fn cancel_management(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        match self.management_confirmation.take() {
+            Some(Confirmation::Clear { .. }) => {
+                self.restore_action_focus(self.disconnect_anchor.clone(), window, cx);
+            }
+            Some(Confirmation::Batch { .. }) => self.focus_main(window, cx),
+            None => return,
+        }
+        cx.notify();
+    }
+
+    pub(super) fn render_management_confirmation(
         &mut self,
         window: &mut Window,
         cx: &mut Context<Self>,
-    ) -> gpui_kit::AnyElement {
+    ) -> Option<gpui_kit::AnyElement> {
+        let pending = self.management_confirmation.as_ref()?;
         let locked = self.busy || self.operation.busy;
-        let mut root = div()
-            .flex()
-            .flex_col()
-            .flex_shrink_0()
-            .gap(px(theme::CONTROL_GAP));
-        if let Some(pending) = &self.management_confirmation {
-            if self.management_focus {
-                self.management_focus = false;
-                window.focus(&self.focus, cx);
-            }
-            let message = match pending {
-                Confirmation::Clear { .. } => text(
-                    cx,
-                    "Disconnect WebDAV? Clear the saved endpoint and credentials and remove the legacy connection file. Folder definitions and remote files stay unchanged. Local configuration backups can retain old credentials.",
-                    "断开 WebDAV？将清除已保存的地址和凭据，并删除旧版连接配置。文件夹定义及远程文件保持不变。本地配置备份可能保留旧凭据。",
-                ),
-                Confirmation::Batch { upload: true, .. } => text(
-                    cx,
-                    "Upload every enabled folder and overwrite matching remote content? Files transfer as stored over HTTPS and can contain credentials; this does not use the encrypted asset envelope.",
-                    "上传全部已启用文件夹并覆盖对应远程内容？文件通过 HTTPS 按原始内容传输，可能包含凭据，不使用加密资产封装。",
-                ),
-                Confirmation::Batch { upload: false, .. } => text(
-                    cx,
-                    "Replace every enabled local folder with remote content? Each download preserves a backup. Completed folders are not rolled back if another folder fails.",
-                    "用远程内容替换全部已启用的本地文件夹？每项下载会保留备份。其他文件夹失败时，不会回滚已完成的文件夹。",
-                ),
-            };
-            return root
+        if std::mem::take(&mut self.management_focus) {
+            self.restore_action_focus(self.management_anchor.clone(), window, cx);
+        }
+        let message = match pending {
+            Confirmation::Clear { .. } => text(
+                cx,
+                "Disconnect WebDAV? Clear the saved endpoint and credentials and remove the legacy connection file. Folder definitions and remote files stay unchanged. Local configuration backups can retain old credentials.",
+                "断开 WebDAV？将清除已保存的地址和凭据，并删除旧版连接配置。文件夹定义及远程文件保持不变。本地配置备份可能保留旧凭据。",
+            ),
+            Confirmation::Batch { upload: true, .. } => text(
+                cx,
+                "Upload every enabled folder and overwrite matching remote content? Files transfer as stored over HTTPS and can contain credentials; this does not use the encrypted asset envelope.",
+                "上传全部已启用文件夹并覆盖对应远程内容？文件通过 HTTPS 按原始内容传输，可能包含凭据，不使用加密资产封装。",
+            ),
+            Confirmation::Batch { upload: false, .. } => text(
+                cx,
+                "Replace every enabled local folder with remote content? Each download preserves a backup. Completed folders are not rolled back if another folder fails.",
+                "用远程内容替换全部已启用的本地文件夹？每项下载会保留备份。其他文件夹失败时，不会回滚已完成的文件夹。",
+            ),
+        };
+        Some(
+            div()
                 .id("sync-management-confirmation")
                 .test_support()
+                .track_focus(&self.management_anchor)
+                .tab_stop(false)
+                .flex()
+                .flex_col()
+                .gap(px(theme::CONTROL_GAP))
+                .child(section_heading(match pending {
+                    Confirmation::Clear { .. } => text(cx, "Disconnect WebDAV", "断开 WebDAV"),
+                    Confirmation::Batch { .. } => {
+                        text(cx, "Confirm folder transfer", "确认文件夹传输")
+                    }
+                }))
                 .child(message)
-                .child(semantics::button(
-                    Button::new("sync-management-cancel")
-                        .label(text(cx, "Cancel", "取消"))
-                        .ghost()
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            this.management_confirmation = None;
-                            cx.notify();
-                        })),
-                    locked,
-                    false,
-                    cx,
-                ))
-                .child(semantics::button(
-                    Button::new("sync-management-confirm")
-                        .label(text(cx, "Confirm", "确认"))
-                        .on_click(cx.listener(|this, _, _, cx| this.confirm_management(cx))),
-                    locked,
-                    false,
-                    cx,
-                ))
-                .into_any_element();
-        }
-        let blocked = locked
+                .child(
+                    sync_actions()
+                        .child(semantics::ghost_button(
+                            Button::new("sync-management-cancel")
+                                .label(text(cx, "Cancel", "取消"))
+                                .on_click(cx.listener(|this, _, window, cx| {
+                                    this.cancel_management(window, cx)
+                                })),
+                            locked,
+                            false,
+                            cx,
+                        ))
+                        .child(semantics::button(
+                            Button::new("sync-management-confirm")
+                                .label(text(cx, "Confirm", "确认"))
+                                .on_click(
+                                    cx.listener(|this, _, _, cx| this.confirm_management(cx)),
+                                ),
+                            locked,
+                            false,
+                            cx,
+                        )),
+                )
+                .into_any_element(),
+        )
+    }
+
+    fn management_blocked(&self) -> bool {
+        self.busy
+            || self.operation.busy
             || self.editor.is_some()
             || self.folder_editor.is_some()
             || self.asset_editor.is_some()
             || self.confirmation.is_some()
+            || self.management_confirmation.is_some()
             || self.folder_delete.is_some()
-            || self.snapshot.is_none();
-        root = root.child(semantics::button(
-            Button::new("sync-disconnect")
-                .label(text(cx, "Disconnect WebDAV", "断开 WebDAV"))
-                .ghost()
-                .on_click(cx.listener(|this, _, _, cx| {
-                    if let Some(revision) = this.revision() {
-                        this.start(Operation::PrepareClear { revision }, cx);
-                    }
-                })),
-            blocked || self.is_ssh(),
-            false,
-            cx,
-        ));
+            || self.snapshot.is_none()
+    }
+
+    pub(super) fn render_disconnect(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .id("sync-disconnect-action")
+            .track_focus(&self.disconnect_anchor)
+            .tab_stop(false)
+            .child(semantics::ghost_button(
+                Button::new("sync-disconnect")
+                    .label(text(cx, "Disconnect WebDAV", "断开 WebDAV"))
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        if let Some(revision) = this.revision() {
+                            this.start(Operation::PrepareClear { revision }, cx);
+                        }
+                    })),
+                self.management_blocked() || self.is_ssh(),
+                self.operation.busy && self.operation.kind == Some(OperationKind::PrepareClear),
+                cx,
+            ))
+    }
+
+    pub(super) fn render_batch_controls(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let blocked = self.management_blocked();
+        let mut actions = sync_actions();
         let enabled = matches!(&self.snapshot, Some(SyncSnapshot::Present(local)) if local.folders.iter().any(|f|f.enabled && f.identity.is_some()));
         for (upload, id, label) in [
             (
@@ -139,7 +175,7 @@ impl SyncView {
                 text(cx, "Download enabled folders", "下载已启用文件夹"),
             ),
         ] {
-            root = root.child(semantics::button(
+            actions = actions.child(semantics::button(
                 Button::new(id).label(label).ghost().on_click(cx.listener(
                     move |this, _, _, cx| {
                         if this.busy || this.operation.busy {
@@ -161,6 +197,11 @@ impl SyncView {
                 cx,
             ));
         }
+        let mut root = div()
+            .flex()
+            .flex_col()
+            .gap(px(theme::CONTROL_GAP))
+            .child(actions);
         if let Some(Ok(SyncOutcome::Batch(results))) = &self.operation.result {
             for item in results {
                 let result = match &item.result {
@@ -173,6 +214,6 @@ impl SyncView {
                 root = root.child(format!("{} · {result}", item.name));
             }
         }
-        root.into_any_element()
+        root
     }
 }

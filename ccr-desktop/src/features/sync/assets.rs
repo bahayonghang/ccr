@@ -59,17 +59,23 @@ impl SyncView {
     pub(super) fn render_assets(&mut self, cx: &mut Context<Self>) -> impl IntoElement {
         let locked = self.busy
             || self.operation.busy
+            || self.editor.is_some()
+            || self.management_confirmation.is_some()
             || !matches!(self.snapshot, Some(SyncSnapshot::Present(_)));
         let mut section=div().id("sync-assets").test_support().flex().flex_col().flex_shrink_0().gap(px(theme::CONTROL_GAP))
-            .child(text(cx,"Configuration assets","配置资产"))
+            .child(section_heading(text(cx,"Configuration assets","配置资产")))
             .child(text(cx,"Sensitive assets use the v2 encrypted envelope. The operation passphrase is never saved. Instruction files transfer without encryption. Automatic sync is not enabled.","敏感资产使用 v2 加密封装，操作口令不会保存。指令文件不加密传输。不会启用自动同步。"));
         for (index, asset) in SYNC_ASSETS.iter().enumerate() {
             let id = asset.id.to_string();
             section = section.child(
-                div()
-                    .flex()
-                    .gap(px(theme::CONTROL_GAP))
-                    .child(format!("{} · {}", asset.name, asset.local_path))
+                sync_actions()
+                    .items_center()
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .child(format!("{} · {}", asset.name, asset.local_path)),
+                    )
                     .child(semantics::button(
                         Button::new(("sync-asset", index))
                             .label(text(cx, "Choose asset", "选择资产"))
@@ -84,9 +90,7 @@ impl SyncView {
             );
         }
         section = section.child(
-            div()
-                .flex()
-                .gap(px(theme::CONTROL_GAP))
+            sync_actions()
                 .child(semantics::button(
                     Button::new("sync-assets-all")
                         .label(text(cx, "All assets", "全部资产"))

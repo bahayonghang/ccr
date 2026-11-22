@@ -1,7 +1,9 @@
 //! Canonical sync settings and retained WebDAV operations.
 mod assets;
 mod folders;
+mod layout;
 mod management;
+mod webdav;
 use crate::{
     locales::{is_chinese, service_error, text},
     runtime::{
@@ -14,7 +16,7 @@ use crate::{
     shell::semantics,
     theme,
 };
-use ccr_app::runtime::{Completion, Platform, RequestKey, ResponseGate, TaskEvent};
+use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent};
 use folders::{FolderEditor, FolderTarget};
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::button::{Button, ButtonVariants};
@@ -23,19 +25,30 @@ use gpui_kit::{
     App, AppContext, Context, Entity, FocusHandle, InteractiveElement, IntoElement, ParentElement,
     Render, SharedString, StatefulInteractiveElement, Styled, Task, Window, div, px,
 };
+use layout::{reading_panel, section_heading, sync_actions, sync_status};
 use std::sync::Arc;
 
 struct Editor {
+    revision: String,
     url: Entity<InputState>,
     username: Entity<InputState>,
     password: Entity<InputState>,
     base: Entity<InputState>,
     enabled: bool,
-    password_mode: u8,
+    password_mode: PasswordMode,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum PasswordMode {
+    Keep,
+    Replace,
+    Clear,
 }
 
 pub struct SyncView {
     services: Services,
+    environment: EnvironmentId,
+    environment_name: Option<String>,
     snapshot: Option<SyncSnapshot>,
     generation: u64,
     gate: ResponseGate,
@@ -43,6 +56,9 @@ pub struct SyncView {
     busy: bool,
     message: Option<&'static str>,
     focus: FocusHandle,
+    edit_anchor: FocusHandle,
+    disconnect_anchor: FocusHandle,
+    management_anchor: FocusHandle,
     editor: Option<Editor>,
     asset_editor: Option<assets::AssetEditor>,
     folder_editor: Option<FolderEditor>,
@@ -51,28 +67,30 @@ pub struct SyncView {
     confirmation: Option<OperationKind>,
     management_confirmation: Option<management::Confirmation>,
     management_focus: bool,
+    preparing_disconnect: bool,
     operation: Arc<OperationState>,
     observation: Option<Task<()>>,
 }
 
 impl SyncView {
     fn is_ssh(&self) -> bool {
-        matches!(
-            self.services.environment(),
-            ccr_app::runtime::EnvironmentId::Ssh(_)
-        )
+        matches!(self.environment, EnvironmentId::Ssh(_))
     }
     pub fn has_environment_draft(&self) -> bool {
         self.editor.is_some()
             || self.asset_editor.is_some()
             || self.folder_editor.is_some()
             || self.confirmation.is_some()
+            || self.folder_delete.is_some()
             || self.management_confirmation.is_some()
     }
     pub fn new(services: Services, _window: &mut Window, cx: &mut Context<Self>) -> Self {
+        let environment = services.environment();
         Self {
-            operation: services.sync_operation_state(),
+            operation: services.sync_operation_state().visible_in(&environment),
             services,
+            environment,
+            environment_name: None,
             snapshot: None,
             generation: 0,
             gate: ResponseGate::default(),
@@ -80,6 +98,9 @@ impl SyncView {
             busy: false,
             message: None,
             focus: cx.focus_handle().tab_stop(false),
+            edit_anchor: cx.focus_handle().tab_stop(false),
+            disconnect_anchor: cx.focus_handle().tab_stop(false),
+            management_anchor: cx.focus_handle().tab_stop(false),
             editor: None,
             asset_editor: None,
             folder_editor: None,
@@ -88,6 +109,7 @@ impl SyncView {
             confirmation: None,
             management_confirmation: None,
             management_focus: false,
+            preparing_disconnect: false,
             observation: None,
         }
     }
@@ -102,29 +124,47 @@ impl SyncView {
         self.gate.clear();
         self.generation += 1;
         self.busy = false;
+        self.snapshot = None;
+        self.selected = None;
+        self.message = None;
         self.observation = None;
         self.editor = None;
         self.asset_editor = None;
         self.confirmation = None;
         self.management_confirmation = None;
+        self.management_focus = false;
+        self.preparing_disconnect = false;
         self.folder_editor = None;
         self.folder_delete = None;
         cx.notify();
     }
 
+    pub fn open(&mut self, environment_name: String, cx: &mut Context<Self>) {
+        self.refresh(cx);
+        self.environment_name = Some(environment_name);
+    }
+
     pub fn refresh(&mut self, cx: &mut Context<Self>) {
+        let environment = self.services.environment();
+        if self.environment != environment {
+            self.suspend(cx);
+            self.environment = environment;
+            self.environment_name = None;
+        }
         self.observe(cx);
         if self.busy {
             return;
         }
         self.confirmation = None;
         self.management_confirmation = None;
+        self.management_focus = false;
+        self.preparing_disconnect = false;
         self.asset_editor = None;
         self.folder_delete = None;
         self.folder_editor = None;
         self.generation += 1;
         let key = RequestKey {
-            environment: self.services.environment(),
+            environment: self.environment.clone(),
             platform: Platform::Claude,
             generation: self.generation,
             request_id: self.generation,
@@ -181,17 +221,27 @@ impl SyncView {
     }
 
     fn observe(&mut self, cx: &mut Context<Self>) {
-        self.operation = self.services.sync_operation_state();
+        self.operation = self
+            .services
+            .sync_operation_state()
+            .visible_in(&self.environment);
         if self.observation.is_some() {
             return;
         }
         let mut updates = self.services.observe_sync();
-        self.operation = updates.borrow_and_update().clone();
+        self.operation = updates
+            .borrow_and_update()
+            .clone()
+            .visible_in(&self.environment);
         self.observation = Some(cx.spawn(async move |weak, cx| {
             while updates.changed().await.is_ok() {
                 let state = updates.borrow_and_update().clone();
                 if weak
                     .update(cx, |this, cx| {
+                        if this.environment != this.services.environment() {
+                            return;
+                        }
+                        let state = state.visible_in(&this.environment);
                         let saved = matches!(
                             state.result,
                             Some(Ok(SyncOutcome::Saved
@@ -200,6 +250,7 @@ impl SyncView {
                                 | Some(Err(SyncError::LegacyRemaining))
                         );
                         if let Some(Ok(SyncOutcome::ClearPrepared(session))) = &state.result
+                            && this.preparing_disconnect
                             && let Some(revision) = this.revision()
                         {
                             this.management_confirmation = Some(management::Confirmation::Clear {
@@ -208,6 +259,9 @@ impl SyncView {
                                 generation: this.generation,
                             });
                             this.management_focus = true;
+                        }
+                        if !state.busy {
+                            this.preparing_disconnect = false;
                         }
                         this.operation = state;
                         if saved {
@@ -227,50 +281,30 @@ impl SyncView {
     }
 
     fn revision(&self) -> Option<String> {
+        if self.environment != self.services.environment() {
+            return None;
+        }
         match self.snapshot.as_ref()? {
             SyncSnapshot::Absent => Some(String::new()),
             SyncSnapshot::Present(local) => Some(local.revision.clone()),
         }
     }
 
-    fn edit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.busy
-            || self.operation.busy
-            || self.folder_editor.is_some()
-            || self.snapshot.is_none()
-        {
-            return;
-        }
-        self.confirmation = None;
-        self.management_confirmation = None;
-        self.asset_editor = None;
-        self.editor = Some(Editor {
-            url: cx.new(|cx| InputState::new(window, cx)),
-            username: cx.new(|cx| InputState::new(window, cx)),
-            password: cx.new(|cx| InputState::new(window, cx).masked(true)),
-            base: cx.new(|cx| InputState::new(window, cx)),
-            enabled: matches!(&self.snapshot, Some(SyncSnapshot::Present(local)) if local.webdav_enabled),
-            password_mode: 0,
-        });
-        cx.notify();
-    }
-
     fn start(&mut self, operation: Operation, cx: &mut Context<Self>) {
-        if self.busy || self.operation.busy {
+        if self.busy || self.operation.busy || self.environment != self.services.environment() {
             return;
         }
         self.generation += 1;
         let key = RequestKey {
-            environment: self.services.environment(),
+            environment: self.environment.clone(),
             platform: Platform::Claude,
             generation: self.generation,
             request_id: self.generation,
         };
-        self.message = self
-            .services
-            .start_sync(key, operation)
-            .err()
-            .map(SyncError::message);
+        let prepare_disconnect = matches!(operation, Operation::PrepareClear { .. });
+        let error = self.services.start_sync(key, operation).err();
+        self.preparing_disconnect = prepare_disconnect && error.is_none();
+        self.message = error.map(SyncError::message);
         self.confirmation = None;
         self.management_confirmation = None;
         self.folder_delete = None;
@@ -278,28 +312,21 @@ impl SyncView {
         cx.notify();
     }
 
-    fn save(&mut self, cx: &mut Context<Self>) {
-        let (Some(editor), Some(revision)) = (&self.editor, self.revision()) else {
-            return;
-        };
-        let value = |input: &Entity<InputState>| {
-            let value = input.read(cx).value().to_string();
-            (!value.trim().is_empty()).then(|| value.trim().to_string())
-        };
-        let password = match editor.password_mode {
-            1 => PasswordUpdate::Replace(editor.password.read(cx).value().to_string().into()),
-            2 => PasswordUpdate::Clear,
-            _ => PasswordUpdate::Keep,
-        };
-        let patch = SettingsPatch {
-            revision,
-            enabled: editor.enabled,
-            url: value(&editor.url),
-            username: value(&editor.username),
-            base_remote_path: value(&editor.base),
-            password,
-        };
-        self.start(Operation::Save(patch), cx);
+    fn restore_action_focus(
+        &self,
+        anchor: FocusHandle,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        window.focus(&anchor, cx);
+        let (view, generation) = (cx.weak_entity(), self.generation);
+        window.on_next_frame(move |window, cx| {
+            let _ = view.update(cx, |this, cx| {
+                if this.generation == generation && anchor.is_focused(window) {
+                    window.focus_next(cx);
+                }
+            });
+        });
     }
 
     fn transfer(&mut self, kind: OperationKind, cx: &mut Context<Self>) {
@@ -315,90 +342,6 @@ impl SyncView {
             cx,
         );
     }
-}
-
-fn url_line(cx: &App, url: &SyncUrl) -> String {
-    match url {
-        SyncUrl::Missing => text(cx, "No WebDAV URL is stored.", "未保存 WebDAV URL。").to_string(),
-        SyncUrl::Stored => text(cx, "A WebDAV URL is stored.", "已保存 WebDAV URL。").to_string(),
-        SyncUrl::Host(host) => {
-            if is_chinese(cx) {
-                format!("WebDAV 主机：{host}")
-            } else {
-                format!("WebDAV host: {host}")
-            }
-        }
-    }
-}
-
-fn presence_line(
-    cx: &App,
-    present: bool,
-    en_yes: &'static str,
-    en_no: &'static str,
-    zh_yes: &'static str,
-    zh_no: &'static str,
-) -> String {
-    text(
-        cx,
-        if present { en_yes } else { en_no },
-        if present { zh_yes } else { zh_no },
-    )
-    .to_string()
-}
-
-fn local_lines(cx: &App, local: &SyncLocal) -> Vec<String> {
-    let mut lines = vec![
-        if local.webdav_enabled {
-            text(
-                cx,
-                "WebDAV is enabled in the local file.",
-                "本地文件里启用了 WebDAV。",
-            )
-            .to_string()
-        } else {
-            text(
-                cx,
-                "WebDAV is turned off in the local file.",
-                "本地文件里关闭了 WebDAV。",
-            )
-            .to_string()
-        },
-        url_line(cx, &local.url),
-        presence_line(
-            cx,
-            local.username_present,
-            "A WebDAV username is stored.",
-            "No WebDAV username is stored.",
-            "已保存 WebDAV 用户名。",
-            "未保存 WebDAV 用户名。",
-        ),
-        presence_line(
-            cx,
-            local.password_present,
-            "A WebDAV password is stored in the local file.",
-            "No WebDAV password is stored.",
-            "本地文件里保存了 WebDAV 密码。",
-            "未保存 WebDAV 密码。",
-        ),
-        text(
-            cx,
-            "Remote access was not tested. Use Test connection to check the saved account.",
-            "未测试远程访问。使用测试连接检查已保存的账户。",
-        )
-        .to_string(),
-    ];
-    if local.folders.is_empty() {
-        lines.push(
-            text(
-                cx,
-                "The canonical file has no folders.",
-                "规范配置文件里没有文件夹。",
-            )
-            .to_string(),
-        );
-    }
-    lines
 }
 
 fn folder_label(cx: &App, folder: &SyncFolderRow) -> String {
@@ -420,163 +363,16 @@ fn folder_label(cx: &App, folder: &SyncFolderRow) -> String {
     }
 }
 
-impl Render for SyncView {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let mut root = div()
-            .id("sync-page")
-            .test_support()
-            .track_focus(&self.focus)
-            .on_key_down(cx.listener(|this, event: &gpui_kit::KeyDownEvent, _, cx| {
-                if event.keystroke.key == "escape" && this.management_confirmation.take().is_some() {
-                    cx.stop_propagation(); cx.notify();
-                }
-            }))
-            .tab_stop(false)
-            .flex()
-            .flex_col()
-            .size_full()
-            .overflow_y_scroll()
-            .p(px(theme::CONTENT_PADDING))
-            .gap(px(theme::SECTION_GAP))
-            .child(
-                div()
-                    .id("sync-heading")
-                    .test_support()
-                    .role(gpui_kit::Role::Heading)
-                    .aria_level(1)
-                    .text_size(crate::theme::text_size(theme::TITLE_SIZE))
-                    .font_weight(gpui_kit::FontWeight::SEMIBOLD)
-                    .child(text(cx, "Sync", "同步")),
-            )
-            .child({
-                let intro = if self.is_ssh() { text(cx, "Sync files in the current SSH environment through the saved WebDAV account. Profile databases, disconnecting WebDAV and creating new empty destination directories are unavailable. Multi-file publication can partially complete and preserves remote backups.", "通过已保存的 WebDAV 账户同步当前 SSH 环境中的文件。方案数据库、解绑 WebDAV 和新建纯空目标目录尚不可用；多文件发布可能部分完成，并保留远端备份。") } else { text(
-                    cx,
-                    "Manage the canonical local WebDAV account and saved folders. Sensitive assets have a separate encrypted transfer below. Automatic sync is not enabled by this page.",
-                    "管理本地规范 WebDAV 账户和已保存的文件夹。敏感资产使用下方独立加密传输，不会启用自动同步。",
-                ) };
-                div()
-                    .id("sync-intro")
-                    .test_support()
-                    .aria_label(intro)
-                    .child(intro)
-            })
-            .child(semantics::button(
-                Button::new("sync-read")
-                    .label(if self.busy {
-                        text(cx, "Reading", "读取中")
-                    } else {
-                        text(cx, "Read local config", "读取本地配置")
-                    })
-                    .ghost()
-                    .on_click(cx.listener(|this, _, _, cx| this.refresh(cx))),
-                self.busy || self.editor.is_some() || self.folder_editor.is_some() || self.operation.busy || self.management_confirmation.is_some(),
-                self.busy,
-                cx,
-            ));
-        if self.busy {
-            root = root.child(
-                div()
-                    .id("sync-status")
-                    .test_support()
-                    .role(gpui_kit::Role::Status)
-                    .child(text(
-                        cx,
-                        "Reading the local sync config.",
-                        "正在读取本地同步配置。",
-                    )),
-            );
-        }
-        if let Some(message) = self.message {
-            let line = service_error(cx, message);
-            root = root.child(
-                div()
-                    .id("sync-status")
-                    .test_support()
-                    .role(gpui_kit::Role::Status)
-                    .aria_label(line)
-                    .child(line),
-            );
-        }
-        if self.management_confirmation.is_some() {
-            return root.child(self.render_management(window, cx));
-        }
-        if let Some(snapshot) = self.snapshot.clone() {
-            match snapshot {
-                SyncSnapshot::Absent => {
-                    let empty = text(
-                        cx,
-                        "No canonical sync config file was found. Legacy sync config is not read. Remote access was not tested.",
-                        "没有找到规范同步配置文件。不会读取旧的同步配置。未测试远程访问。",
-                    );
-                    root = root.child(
-                        div()
-                            .id("sync-absent")
-                            .test_support()
-                            .aria_label(empty)
-                            .child(empty),
-                    );
-                }
-                SyncSnapshot::Present(local) => {
-                    let lines = local_lines(cx, &local);
-                    let summary = lines.join(" ");
-                    let mut detail = div()
-                        .id("sync-local")
-                        .test_support()
-                        .aria_label(SharedString::from(summary))
-                        .flex()
-                        .flex_col()
-                        .gap(px(theme::CONTROL_GAP));
-                    for line in lines {
-                        detail = detail.child(line);
-                    }
-                    root = root.child(detail);
-                    for (index, folder) in local.folders.iter().enumerate() {
-                        let label = folder_label(cx, folder);
-                        root = root.child(
-                            div()
-                                .id(SharedString::from(format!("sync-folder-{index}")))
-                                .test_support()
-                                .h(crate::theme::text_size(theme::ROW_HEIGHT))
-                                .flex()
-                                .items_center()
-                                .aria_label(SharedString::from(label.clone()))
-                                .child(label)
-                                .child(semantics::button(
-                                    Button::new(("sync-select", index))
-                                        .label(if self.selected == Some(index) {
-                                            text(cx, "Selected", "已选择")
-                                        } else {
-                                            text(cx, "Select", "选择")
-                                        })
-                                        .ghost()
-                                        .on_click(cx.listener(move |this, _, _, cx| {
-                                            this.generation += 1;
-                                            this.selected = Some(index);
-                                            this.confirmation = None;
-                                            this.folder_editor = None;
-                                            this.folder_delete = None;
-                                            cx.notify();
-                                        })),
-                                    self.busy || self.operation.busy,
-                                    false,
-                                    cx,
-                                )),
-                        );
-                    }
-                }
-            }
-        }
-        root.child(self.render_management(window, cx))
-            .child(self.render_folder_controls(cx))
-            .child(self.render_operations(cx))
-            .child(self.render_assets(cx))
-    }
-}
-
 impl SyncView {
-    fn render_operations(&mut self, cx: &mut Context<Self>) -> impl IntoElement {
-        let locked = self.busy || self.operation.busy;
-        let mut section = div().flex().flex_col().gap(px(theme::CONTROL_GAP));
+    fn render_operation_status(&self, cx: &App) -> Option<layout::Panel> {
+        if self.operation.kind == Some(OperationKind::Test)
+            || matches!(
+                self.operation.result,
+                Some(Ok(SyncOutcome::ClearPrepared(_)))
+            )
+        {
+            return None;
+        }
         let status = if self.operation.busy {
             Some(text(cx, "Sync operation is running. It continues when you leave this page; closing waits for it to finish. Cancellation is unavailable during transfer.", "同步操作正在运行。离开页面后会继续，关闭应用将等待完成。传输期间不提供取消。").to_string())
         } else {
@@ -630,67 +426,14 @@ impl SyncView {
                 Err(error) => sync_error(cx, *error).to_string(),
             })
         };
-        if let Some(status) = status {
-            section = section.child(
-                div()
-                    .id("sync-operation-status")
-                    .test_support()
-                    .role(gpui_kit::Role::Status)
-                    .aria_label(SharedString::from(status.clone()))
-                    .child(status),
-            );
-        }
+        status.map(|status| sync_status("sync-operation-status", status))
+    }
+
+    fn render_selected_folder_operations(&mut self, cx: &mut Context<Self>) -> impl IntoElement {
+        let locked = self.busy || self.operation.busy || self.management_confirmation.is_some();
+        let mut section = div().flex().flex_col().gap(px(theme::CONTROL_GAP));
         section = section.child(
-            div()
-                .flex()
-                .gap(px(theme::CONTROL_GAP))
-                .child(semantics::button(
-                    Button::new("sync-edit")
-                        .label(text(cx, "Edit WebDAV settings", "编辑 WebDAV 设置"))
-                        .on_click(cx.listener(|this, _, window, cx| this.edit(window, cx))),
-                    locked || self.folder_editor.is_some() || self.snapshot.is_none(),
-                    false,
-                    cx,
-                ))
-                .child(semantics::button(
-                    Button::new("sync-test")
-                        .label(text(cx, "Test connection", "测试连接"))
-                        .ghost()
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            if let Some(revision) = this.revision() {
-                                this.start(Operation::Test { revision }, cx);
-                            }
-                        })),
-                    locked
-                        || self.editor.is_some()
-                        || self.folder_editor.is_some()
-                        || !matches!(self.snapshot, Some(SyncSnapshot::Present(_))),
-                    false,
-                    cx,
-                )),
-        );
-        if let Some(editor) = &self.editor {
-            section = section.child(div().id("sync-editor").test_support().flex().flex_col().gap(px(theme::CONTROL_GAP))
-                .child(text(cx, "Blank URL, username or base path keeps the saved value. Password handling is explicit. Saving does not contact the server.", "URL、用户名或基础路径留空会保留原值。密码需明确选择处理方式。保存不会连接服务器。"))
-                .child(Input::new(&editor.url).aria_label(text(cx, "WebDAV URL", "WebDAV URL")).accessibility_id("sync-url"))
-                .child(Input::new(&editor.username).aria_label(text(cx, "WebDAV username", "WebDAV 用户名")).accessibility_id("sync-username"))
-                .child(Input::new(&editor.base).aria_label(text(cx, "Remote base path", "远程基础路径")).accessibility_id("sync-base"))
-                .child(semantics::button(Button::new("sync-enabled").label(if editor.enabled { text(cx, "WebDAV enabled", "WebDAV 已启用") } else { text(cx, "WebDAV disabled", "WebDAV 已停用") })
-                    .ghost().on_click(cx.listener(|this, _, _, cx| { if let Some(editor) = &mut this.editor { editor.enabled = !editor.enabled; } cx.notify(); })), locked, false, cx))
-                .child(div().flex().gap(px(theme::CONTROL_GAP))
-                    .children([(0, text(cx, "Keep password", "保留密码")), (1, text(cx, "Replace password", "替换密码")), (2, text(cx, "Clear password", "清除密码"))].into_iter().map(|(mode, label)| {
-                        semantics::button(Button::new(("sync-password-mode", mode as usize)).label(label).ghost()
-                            .on_click(cx.listener(move |this, _, _, cx| { if let Some(editor) = &mut this.editor { editor.password_mode = mode; } cx.notify(); })), locked, false, cx)
-                    })))
-                .child(text(cx, match editor.password_mode { 1 => "New password will replace the saved password.", 2 => "Saved password will be cleared. Disable WebDAV first.", _ => "Saved password will be kept." },
-                    match editor.password_mode { 1 => "新密码将替换已保存的密码。", 2 => "将清除已保存的密码，请先停用 WebDAV。", _ => "将保留已保存的密码。" }))
-                .child(Input::new(&editor.password).aria_label(text(cx, "New WebDAV password", "新 WebDAV 密码")).accessibility_id("sync-password"))
-                .child(div().flex().gap(px(theme::CONTROL_GAP))
-                    .child(semantics::button(Button::new("sync-save").label(text(cx, "Save settings", "保存设置")).on_click(cx.listener(|this, _, _, cx| this.save(cx))), locked, false, cx))
-                    .child(semantics::button(Button::new("sync-edit-cancel").label(text(cx, "Cancel editing", "取消编辑")).ghost().on_click(cx.listener(|this, _, _, cx| { this.editor = None; cx.notify(); })), locked, false, cx))));
-        }
-        section = section.child(
-            div().flex().gap(px(theme::CONTROL_GAP)).children(
+            sync_actions().children(
                 [
                     (
                         OperationKind::Push,
@@ -747,9 +490,7 @@ impl SyncView {
                     .gap(px(theme::CONTROL_GAP))
                     .child(warning)
                     .child(
-                        div()
-                            .flex()
-                            .gap(px(theme::CONTROL_GAP))
+                        sync_actions()
                             .child(semantics::button(
                                 Button::new("sync-transfer-cancel")
                                     .label(text(cx, "Cancel", "取消"))

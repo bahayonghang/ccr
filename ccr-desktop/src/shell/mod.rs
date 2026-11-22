@@ -602,7 +602,10 @@ impl Shell {
             Destination::Commands => self.jobs.update(cx, |view, cx| view.refresh(cx)),
             Destination::McpManager => self.mcp.update(cx, |view, cx| view.open_global(cx)),
             Destination::Checkin => self.checkin.update(cx, |view, cx| view.refresh(cx)),
-            Destination::Sync => self.sync.update(cx, |view, cx| view.refresh(cx)),
+            Destination::Sync => {
+                let environment = self.environment_name(cx);
+                self.sync.update(cx, |view, cx| view.open(environment, cx));
+            }
             Destination::Settings => {
                 self.environments.update(cx, |view, cx| view.refresh(cx));
             }

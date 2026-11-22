@@ -141,6 +141,48 @@ pub struct OperationState {
     pub kind: Option<OperationKind>,
     pub environment: Option<EnvironmentId>,
     pub result: Option<Result<SyncOutcome, SyncError>>,
+    connection_test: Option<ConnectionTest>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ConnectionTestStatus {
+    Running,
+    Succeeded,
+    Failed(SyncError),
+}
+
+#[derive(Clone, Debug)]
+struct ConnectionTest {
+    environment: EnvironmentId,
+    revision: String,
+    status: ConnectionTestStatus,
+}
+
+impl OperationState {
+    pub fn visible_in(self: Arc<Self>, environment: &EnvironmentId) -> Arc<Self> {
+        if self
+            .environment
+            .as_ref()
+            .is_none_or(|active| active == environment)
+        {
+            return self;
+        }
+        Arc::new(Self {
+            busy: self.busy,
+            connection_test: self.connection_test.clone(),
+            ..Self::default()
+        })
+    }
+
+    pub fn connection_test(
+        &self,
+        environment: &EnvironmentId,
+        revision: &str,
+    ) -> Option<ConnectionTestStatus> {
+        self.connection_test.as_ref().and_then(|test| {
+            (&test.environment == environment && test.revision == revision).then_some(test.status)
+        })
+    }
 }
 
 pub struct SyncOperations {
@@ -168,6 +210,14 @@ impl SyncOperations {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         state.busy = false;
+        if state.kind == Some(OperationKind::Test)
+            && let Some(test) = &mut state.connection_test
+        {
+            test.status = match &result {
+                Ok(_) => ConnectionTestStatus::Succeeded,
+                Err(error) => ConnectionTestStatus::Failed(*error),
+            };
+        }
         state.result = Some(result);
         self.updates.send_replace(Arc::new(state.clone()));
     }
@@ -230,6 +280,14 @@ impl Services {
                 kind: Some(operation.kind()),
                 environment: Some(key.environment.clone()),
                 result: None,
+                connection_test: match &operation {
+                    Operation::Test { revision } => Some(ConnectionTest {
+                        environment: key.environment.clone(),
+                        revision: revision.clone(),
+                        status: ConnectionTestStatus::Running,
+                    }),
+                    _ => state.connection_test.clone(),
+                },
             };
             owner.updates.send_replace(Arc::new(state.clone()));
         }

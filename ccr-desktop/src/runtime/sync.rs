@@ -4,8 +4,8 @@ use ccr_app::runtime::EnvironmentId;
 mod operations;
 mod remote;
 pub use operations::{
-    AssetDirection, AssetRequest, FolderChange, FolderPatch, Operation, OperationKind,
-    OperationState, PasswordUpdate, SettingsPatch, SyncOperations, SyncOutcome,
+    AssetDirection, AssetRequest, ConnectionTestStatus, FolderChange, FolderPatch, Operation,
+    OperationKind, OperationState, PasswordUpdate, SettingsPatch, SyncOperations, SyncOutcome,
 };
 
 use std::path::{Path, PathBuf};

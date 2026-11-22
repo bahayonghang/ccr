@@ -531,6 +531,94 @@ async fn server(
 }
 
 #[tokio::test]
+async fn explicit_connection_test_keeps_the_shared_lock_and_scopes_its_result() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}/", listener.local_addr().unwrap());
+    let fixture = SshFixture::new(&url).await;
+    let revision = fixture.revision();
+    let key = fixture.key();
+    let local = RequestKey {
+        environment: EnvironmentId::Local("local".into()),
+        ..key.clone()
+    };
+    fixture
+        .services
+        .start_sync(
+            key.clone(),
+            Operation::Test {
+                revision: revision.clone(),
+            },
+        )
+        .unwrap();
+    let (mut socket, _) = tokio::time::timeout(Duration::from_secs(10), listener.accept())
+        .await
+        .unwrap()
+        .unwrap();
+    let elsewhere = fixture
+        .services
+        .sync_operation_state()
+        .visible_in(&local.environment);
+    assert!(elsewhere.busy && elsewhere.kind.is_none() && elsewhere.result.is_none());
+    assert_eq!(
+        fixture.services.start_sync(
+            local.clone(),
+            Operation::Test {
+                revision: revision.clone()
+            }
+        ),
+        Err(SyncError::Busy)
+    );
+    let mut request = Vec::new();
+    while !request.windows(4).any(|window| window == b"\r\n\r\n") {
+        assert_ne!(socket.read_buf(&mut request).await.unwrap(), 0);
+    }
+    assert!(request.starts_with(b"PROPFIND / "));
+    let body = r#"<d:multistatus xmlns:d="DAV:"><d:response><d:href>/</d:href><d:propstat><d:prop><d:resourcetype><d:collection/></d:resourcetype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"#;
+    let response = format!(
+        "HTTP/1.1 207 Multi-Status\r\nContent-Type: application/xml\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        body.len()
+    );
+    socket.write_all(response.as_bytes()).await.unwrap();
+    socket.shutdown().await.unwrap();
+    let mut updates = fixture.services.observe_sync();
+    let completed = tokio::time::timeout(
+        Duration::from_secs(10),
+        updates.wait_for(|state| !state.busy),
+    )
+    .await
+    .unwrap()
+    .unwrap()
+    .clone();
+    assert_eq!(completed.result, Some(Ok(SyncOutcome::Connected)));
+    assert_eq!(
+        completed.connection_test(&key.environment, &revision),
+        Some(ConnectionTestStatus::Succeeded)
+    );
+    assert_eq!(
+        completed.connection_test(&local.environment, &revision),
+        None
+    );
+    assert_eq!(completed.connection_test(&key.environment, "changed"), None);
+    assert!(
+        fixture
+            .run(Operation::AssetInventory {
+                revision: revision.clone(),
+                probe: false
+            })
+            .await
+            .is_ok()
+    );
+    assert_eq!(
+        fixture
+            .services
+            .sync_operation_state()
+            .connection_test(&key.environment, &revision),
+        Some(ConnectionTestStatus::Succeeded)
+    );
+    fixture.finish().await;
+}
+
+#[tokio::test]
 async fn explicit_loopback_push_and_transactional_pull_use_the_canonical_folder() {
     let root = tempfile::tempdir().unwrap();
     let source = source(root.path());

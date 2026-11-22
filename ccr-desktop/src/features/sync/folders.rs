@@ -128,7 +128,7 @@ impl SyncView {
         );
     }
     pub(super) fn render_folder_controls(&mut self, cx: &mut Context<Self>) -> impl IntoElement {
-        let locked = self.busy || self.operation.busy;
+        let locked = self.busy || self.operation.busy || self.management_confirmation.is_some();
         let mut section = div().flex().flex_col().gap(px(theme::CONTROL_GAP));
         if matches!(self.snapshot, Some(SyncSnapshot::Absent)) {
             return section.child(text(

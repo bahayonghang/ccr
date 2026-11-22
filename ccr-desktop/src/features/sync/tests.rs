@@ -285,9 +285,22 @@ async fn saved_settings_and_operation_results_survive_leaving_the_view(cx: &mut 
     })
     .await;
     view.update(cx, |this, cx| this.refresh(cx));
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        matches!(view.read(cx).snapshot, Some(SyncSnapshot::Present(_)))
+    })
+    .await;
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         assert!(labels(window).contains("Remote sync is disabled for fixture data."));
+        assert!(
+            window
+                .try_find("sync-webdav-connection")
+                .and_then(|node| node
+                    .label()
+                    .map(|label| label.contains("Connection test failed")))
+                .unwrap_or(false),
+            "explicit test failure should be visible in the WebDAV summary after returning"
+        );
         window.remove_window();
     })
     .unwrap();
@@ -309,15 +322,14 @@ fn open(
     cx: &mut TestAppContext,
     owner: &RuntimeOwner,
     root: &std::path::Path,
+    viewport: gpui_kit::Size<gpui_kit::Pixels>,
 ) -> gpui_kit::AnyWindowHandle {
     cx.update(|cx| {
         gpui_kit::init(cx);
         gpui_kit::open_window(
             WindowOptions {
                 window_bounds: Some(WindowBounds::Windowed(gpui_kit::Bounds::centered(
-                    None,
-                    size(px(1280.), px(800.)),
-                    cx,
+                    None, viewport, cx,
                 ))),
                 ..Default::default()
             },
@@ -351,7 +363,7 @@ async fn sync_page_without_a_canonical_file_stays_absent(cx: &mut TestAppContext
     cx.executor().allow_parking();
     let root = tempfile::tempdir().unwrap();
     let owner = RuntimeOwner::new().unwrap();
-    let handle = open(cx, &owner, root.path());
+    let handle = open(cx, &owner, root.path(), size(px(960.), px(640.)));
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-sync", cx);
@@ -373,6 +385,24 @@ async fn sync_page_without_a_canonical_file_stays_absent(cx: &mut TestAppContext
         assert!(!text.contains("Apply / refresh"));
         assert!(!text.contains(" / "));
         assert!(!root.path().join("sync_folders.toml").exists());
+        assert!(window.try_find("sync-detail").is_none());
+        assert_eq!(window.find("sync-edit").label(), Some("Configure WebDAV"));
+        assert!(window.find("sync-edit").bounds().size.width < px(240.));
+        window.click("sync-edit", cx);
+        window.render_frame(cx);
+        assert!(window.find("sync-editor").visible());
+        assert!(window.try_find("sync-asset-list").is_none());
+        for _ in 0..3 {
+            window.press("tab", cx);
+        }
+        window.render_frame(cx);
+        assert_eq!(window.find("sync-enabled").focused(), Some(true));
+        window.press("escape", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("sync-editor").is_none());
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert_eq!(window.find("sync-edit").focused(), Some(true));
         window.remove_window();
     })
     .unwrap();
@@ -401,7 +431,7 @@ enabled = true
     )
     .unwrap();
     let owner = RuntimeOwner::new().unwrap();
-    let handle = open(cx, &owner, root.path());
+    let handle = open(cx, &owner, root.path(), size(px(1280.), px(800.)));
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-sync", cx);
@@ -416,7 +446,7 @@ enabled = true
         let text = labels(window);
         assert!(text.contains("A WebDAV URL is stored."));
         assert!(text.contains("A WebDAV username is stored."));
-        assert!(text.contains("A WebDAV password is stored in the local file."));
+        assert!(text.contains("A WebDAV password is stored."));
         assert!(text.contains("Remote access was not tested."));
         assert!(text.contains("claude-fixture"));
         assert!(text.contains("enabled"));
@@ -426,9 +456,19 @@ enabled = true
         assert!(!text.contains("Home insights"));
         assert!(!text.contains("Apply / refresh"));
         assert!(!text.contains(" / "));
+        window.scroll(
+            "sync-page",
+            gpui_kit::ScrollDelta::Pixels(gpui_kit::point(px(0.), px(-520.))),
+            cx,
+        );
         window.click("sync-pull", cx);
         window.render_frame(cx);
         assert!(window.find("sync-confirmation").visible());
+        window.scroll(
+            "sync-page",
+            gpui_kit::ScrollDelta::Pixels(gpui_kit::point(px(0.), px(520.))),
+            cx,
+        );
         window.click("sync-read", cx);
         window.render_frame(cx);
         assert!(window.try_find("sync-confirmation").is_none());
@@ -448,7 +488,7 @@ async fn sync_page_reports_an_unreadable_file_without_its_secret(cx: &mut TestAp
     )
     .unwrap();
     let owner = RuntimeOwner::new().unwrap();
-    let handle = open(cx, &owner, root.path());
+    let handle = open(cx, &owner, root.path(), size(px(1280.), px(800.)));
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-sync", cx);
