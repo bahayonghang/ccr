@@ -253,10 +253,15 @@ pub(super) fn validate_native_fixture(
     {
         return Err(ERROR);
     }
-    if profiles.symlink_metadata().is_ok()
-        && profiles.canonicalize().map_err(|_| ERROR)? != canonical_root.join("profiles.toml")
-    {
-        return Err(ERROR);
+    for name in ["profiles.toml", "sync_folders.toml", "sync.toml"] {
+        let path = root.join(name);
+        match path.symlink_metadata() {
+            Ok(metadata)
+                if metadata.is_file()
+                    && path.canonicalize().map_err(|_| ERROR)? == canonical_root.join(name) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            _ => return Err(ERROR),
+        }
     }
     for path in [
         registry,
