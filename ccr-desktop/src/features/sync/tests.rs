@@ -6,7 +6,7 @@ use crate::runtime::sync::SyncLocal;
 use crate::shell::Shell;
 use ccr_app::runtime::RuntimeOwner;
 use gpui_kit::test::{TestAppContextExt, TestWindowExt};
-use gpui_kit::{AppContext, TestAppContext, WindowBounds, WindowOptions, px, size};
+use gpui_kit::{AppContext, Focusable, TestAppContext, WindowBounds, WindowOptions, px, size};
 use std::time::Duration;
 
 struct SyncWithNeighbor {
@@ -80,8 +80,29 @@ async fn ssh_sync_unavailable_database_and_disconnect_controls_do_not_start_acti
         window.render_frame(cx);
         window.click("sync-asset-details-claude-settings", cx);
         window.render_frame(cx);
-        window.click(("sync-asset", 1usize), cx);
-        assert!(view.read(cx).asset_editor.is_some());
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        window.press("tab", cx);
+        window.press("tab", cx);
+        window.render_frame(cx);
+        assert_eq!(window.find(("sync-asset", 1usize)).focused(), Some(true));
+        window.press("enter", cx);
+        window.render_frame(cx);
+
+        let passphrase = &view.read(cx).asset_editor.as_ref().unwrap().passphrase;
+        assert!(passphrase.read(cx).focus_handle(cx).is_focused(window));
+        for _ in 0..6 {
+            window.press("tab", cx);
+        }
+        window.render_frame(cx);
+        assert_eq!(window.find("sync-asset-discard").focused(), Some(true));
+        window.press("enter", cx);
+        window.render_frame(cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert!(view.read(cx).asset_editor.is_none());
+        assert_eq!(window.find(("sync-asset", 1usize)).focused(), Some(true));
+        window.remove_window();
     })
     .unwrap();
     owner.shutdown();

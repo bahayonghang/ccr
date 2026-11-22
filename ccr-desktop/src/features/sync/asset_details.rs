@@ -11,7 +11,7 @@ impl SyncView {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if self.environment != self.services.environment() {
+        if self.environment != self.services.environment() || self.asset_draft_blocked() {
             return;
         }
         self.asset_detail = Some(index);
@@ -119,16 +119,20 @@ impl SyncView {
         } else if self.asset_editor.is_none() {
             let id = asset.id;
             pane = pane.child(
-                div().child(semantics::ghost_button(
-                    Button::new(("sync-asset", index))
-                        .label(text(cx, "Transfer asset…", "传输资产…"))
-                        .on_click(cx.listener(move |this, _, window, cx| {
-                            this.edit_asset(Some(id.to_owned()), window, cx);
-                        })),
-                    self.asset_transfer_locked(),
-                    false,
-                    cx,
-                )),
+                div()
+                    .id("sync-asset-transfer-anchor")
+                    .track_focus(&self.asset_transfer_anchor)
+                    .tab_stop(false)
+                    .child(semantics::ghost_button(
+                        Button::new(("sync-asset", index))
+                            .label(text(cx, "Transfer asset…", "传输资产…"))
+                            .on_click(cx.listener(move |this, _, window, cx| {
+                                this.edit_asset(Some(id.to_owned()), window, cx);
+                            })),
+                        self.asset_transfer_locked(),
+                        false,
+                        cx,
+                    )),
             );
         }
         Some(pane.children(self.render_asset_editor(cx)))

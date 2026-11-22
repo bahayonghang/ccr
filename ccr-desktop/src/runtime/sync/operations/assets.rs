@@ -78,14 +78,19 @@ pub(super) async fn inventory(
     };
     let mut rows = Vec::with_capacity(SYNC_ASSETS.len());
     for asset in SYNC_ASSETS {
-        let info = service.info(asset.id, probe).await.ok();
+        let info = service.info(asset.id, false).await.ok();
+        let remote_exists = if probe {
+            service.probe_remote(asset.id).await.ok()
+        } else {
+            None
+        };
         rows.push(AssetRow {
             id: asset.id.into(),
             local_path: info
                 .as_ref()
                 .map(|info| redact_log_text(&info.local_path.to_string_lossy())),
             local_exists: info.as_ref().map(|info| info.local_exists),
-            remote_exists: info.and_then(|info| info.remote_exists),
+            remote_exists,
         });
     }
     if probe {

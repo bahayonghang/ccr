@@ -224,11 +224,7 @@ async fn asset_inventory(
         };
         let remote_exists = if let Some(service) = service {
             io.check_authority().map_err(error)?;
-            service
-                .info(asset.id, true)
-                .await
-                .ok()
-                .and_then(|info| info.remote_exists)
+            service.probe_remote(asset.id).await.ok()
         } else {
             None
         };

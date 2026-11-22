@@ -305,6 +305,15 @@ impl AssetService {
         }
         SyncService::new(&config).await.map_err(|e| e.to_string())
     }
+    /// Check the WebDAV copy of a fixed asset without accessing its local path.
+    pub async fn probe_remote(&self, id: &str) -> Result<bool, String> {
+        self.service(asset_by_id(id)?)
+            .await?
+            .remote_exists()
+            .await
+            .map_err(|error| error.to_string())
+    }
+
     /// Local inventory does not probe the network. Callers explicitly request probing.
     pub async fn info(&self, id: &str, probe: bool) -> Result<AssetInfo, String> {
         let asset = asset_by_id(id)?;
@@ -313,10 +322,7 @@ impl AssetService {
             .await
             .map_err(|_| "Cannot inspect local asset")?;
         let remote_exists = if probe {
-            match self.service(asset).await {
-                Ok(service) => asset_remote_exists_state(service.remote_exists().await),
-                Err(_) => None,
-            }
+            asset_remote_exists_state(self.probe_remote(asset.id).await)
         } else {
             None
         };

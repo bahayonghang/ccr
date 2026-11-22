@@ -536,6 +536,38 @@ async fn server(
 }
 
 #[tokio::test]
+async fn local_asset_path_failure_keeps_known_webdav_evidence() {
+    let root = tempfile::tempdir().unwrap();
+    let response = br#"<d:multistatus xmlns:d="DAV:"><d:response><d:href>/</d:href><d:propstat><d:prop><d:resourcetype><d:collection/></d:resourcetype></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"#;
+    let (url, request) = server("207 Multi-Status", response, 0).await;
+    config(root.path(), &url);
+    let source = ConfigSource::Fixture {
+        profiles: root.path().join("invalid\0directory").join("profiles.toml"),
+        registry: root.path().join("registry.toml"),
+        delay: Duration::ZERO,
+    };
+    let outcome = execute(
+        &source,
+        Operation::AssetInventory {
+            revision: revision(&source),
+            probe: true,
+        },
+        true,
+    )
+    .await
+    .unwrap();
+    let SyncOutcome::AssetInventory(rows) = outcome else {
+        panic!("expected WebDAV inventory despite unreadable local paths");
+    };
+    let platform = rows.iter().find(|row| row.id == "ccr-platforms").unwrap();
+    assert_eq!(platform.local_path, None);
+    assert_eq!(platform.local_exists, None);
+    assert_eq!(platform.remote_exists, Some(true));
+    let request = request.await.unwrap();
+    assert!(String::from_utf8_lossy(&request).starts_with("PROPFIND "));
+}
+
+#[tokio::test]
 async fn ssh_asset_inventory_scopes_webdav_evidence_and_keeps_incomplete_checks_unknown() {
     use std::sync::atomic::{AtomicU8, Ordering};
 

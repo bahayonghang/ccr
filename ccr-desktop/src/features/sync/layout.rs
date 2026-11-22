@@ -75,6 +75,9 @@ impl Render for SyncView {
                     } else if this.editor.is_some() && !this.busy && !this.operation.busy {
                         this.close_editor(window, cx);
                         cx.stop_propagation();
+                    } else if this.asset_editor.is_some() {
+                        this.cancel_asset_edit(window, cx);
+                        cx.stop_propagation();
                     } else if this.editor.is_none() && this.asset_detail.is_some() {
                         this.close_asset_details(window, cx);
                         cx.stop_propagation();
