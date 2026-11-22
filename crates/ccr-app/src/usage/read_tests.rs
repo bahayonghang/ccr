@@ -315,6 +315,7 @@ fn previous_period_uses_adjacent_calendar_dates_and_every_current_filter() {
         since: Some(utc_date("2000-01-01")),
         until: Some(utc_date("2000-01-02")),
         timezone: ReportTimezone::Utc,
+        ..Default::default()
     };
     let report =
         read_usage_page_at(&dashboard, &filter, utc_instant("2000-01-01T00:00:00Z")).unwrap();
