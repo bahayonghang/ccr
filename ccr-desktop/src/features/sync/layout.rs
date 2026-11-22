@@ -12,7 +12,7 @@ impl Render for SyncView {
         let details = self
             .render_management_confirmation(window, cx)
             .or_else(|| self.render_editor(cx))
-            .or_else(|| self.render_folder_details(cx))
+            .or_else(|| self.render_folder_details(window, cx))
             .or_else(|| {
                 self.render_asset_details(cx)
                     .map(IntoElement::into_any_element)

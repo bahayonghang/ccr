@@ -586,7 +586,7 @@ enabled = true
         window.render_frame(cx);
         assert!(window.find("sync-confirmation").visible());
         for action in ["sync-edit", "sync-read", "sync-test", "sync-assets-local"] {
-            assert_eq!(window.find(action).disabled(), Some(true), "{action}");
+            assert_eq!(window.find(action).focused(), None, "{action}");
         }
         window.scroll(
             "sync-page",
@@ -697,8 +697,16 @@ async fn asset_controls_require_confirmation_and_clear_passphrase_on_leave(
         window.render_frame(cx);
         assert!(window.find("sync-asset-editor").visible());
         for action in ["sync-edit", "sync-read", "sync-test", "sync-folder-add"] {
-            assert_eq!(window.find(action).disabled(), Some(true), "{action}");
+            assert_eq!(window.find(action).focused(), None, "{action}");
         }
+        window.scroll(
+            "sync-page",
+            gpui_kit::ScrollDelta::Pixels(gpui_kit::point(px(0.), px(1500.))),
+            cx,
+        );
+        window.click("sync-read", cx);
+        window.render_frame(cx);
+        assert!(!view.read(cx).busy);
         view.read(cx)
             .asset_editor
             .as_ref()

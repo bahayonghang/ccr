@@ -137,6 +137,7 @@ impl SyncView {
         }
         self.folder_editor = None;
         self.folder_delete = None;
+        self.folder_delete_focus = false;
     }
 
     pub(super) fn dismiss_folder_panel(
@@ -155,6 +156,7 @@ impl SyncView {
                 self.close_folder_panel(self.folder_focus.add.clone(), window, cx);
             }
         } else if self.folder_delete.take().is_some() {
+            self.folder_delete_focus = false;
             self.restore_action_focus(self.folder_focus.delete.clone(), window, cx);
             cx.notify();
         } else if self.folder_focus.list_offset.is_some() {
@@ -434,7 +436,11 @@ impl SyncView {
             .child(self.render_folder_transfers(None, cx))
     }
 
-    pub(super) fn render_folder_details(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
+    pub(super) fn render_folder_details(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Option<AnyElement> {
         self.folder_focus.list_offset?;
         let mut panel = div()
             .id("sync-folder-detail")
@@ -458,11 +464,17 @@ impl SyncView {
         }
         let folder = self.selected_folder()?;
         if let Some(target) = &self.folder_delete {
-            return Some(
-                panel
-                    .child(self.render_folder_delete(folder, target, cx))
-                    .into_any_element(),
-            );
+            let panel = panel
+                .child(self.render_folder_delete(folder, target, cx))
+                .into_any_element();
+            if std::mem::take(&mut self.folder_delete_focus) {
+                self.restore_action_focus(
+                    self.folder_focus.delete_confirmation.clone(),
+                    window,
+                    cx,
+                );
+            }
+            return Some(panel);
         }
         panel = panel
             .child(
@@ -564,14 +576,10 @@ impl SyncView {
                     semantics::ghost_button(
                         Button::new("sync-folder-delete")
                             .label(text(cx, "Remove", "移除"))
-                            .on_click(cx.listener(move |this, _, window, cx| {
+                            .on_click(cx.listener(move |this, _, _, cx| {
                                 if !this.management_blocked() && this.target_current(&delete) {
                                     this.folder_delete = Some(delete.clone());
-                                    this.restore_action_focus(
-                                        this.folder_focus.delete_confirmation.clone(),
-                                        window,
-                                        cx,
-                                    );
+                                    this.folder_delete_focus = true;
                                     cx.notify();
                                 }
                             })),
@@ -1133,6 +1141,15 @@ mod controls {
                             window.find("sync-folder-delete-cancel").focused(),
                             Some(true)
                         );
+                        for (key, button) in [
+                            ("tab", "sync-folder-delete-confirm"),
+                            ("tab", "sync-folder-delete-cancel"),
+                            ("shift-tab", "sync-folder-delete-confirm"),
+                        ] {
+                            window.press(key, cx);
+                            window.render_frame(cx);
+                            assert_eq!(window.find(button).focused(), Some(true), "{key}");
+                        }
                         window.press("escape", cx);
                         window.simulate_next_frame(cx);
                         window.render_frame(cx);

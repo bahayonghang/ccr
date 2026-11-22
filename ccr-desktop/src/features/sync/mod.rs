@@ -74,6 +74,7 @@ pub struct SyncView {
     folder_focus: FolderFocus,
     folder_editor: Option<FolderEditor>,
     folder_delete: Option<FolderTarget>,
+    folder_delete_focus: bool,
     selected: Option<usize>,
     confirmation: Option<management::FolderTransfer>,
     management_confirmation: Option<management::Confirmation>,
@@ -122,6 +123,7 @@ impl SyncView {
             folder_focus: FolderFocus::new(cx),
             folder_editor: None,
             folder_delete: None,
+            folder_delete_focus: false,
             selected: None,
             confirmation: None,
             management_confirmation: None,
@@ -336,6 +338,7 @@ impl SyncView {
         self.confirmation = None;
         self.management_confirmation = None;
         self.folder_delete = None;
+        self.folder_delete_focus = false;
         self.observe(cx);
         self.message = error
             .filter(|error| {
