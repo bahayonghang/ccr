@@ -592,6 +592,7 @@ pub(super) fn heading(cx: &App) -> impl IntoElement {
 pub(super) fn context_row(
     filter: &QueryFilter,
     report: Option<&UsageSnapshot>,
+    records_context: Option<&ccr_usage::UsageRecordContext>,
     cx: &App,
 ) -> impl IntoElement {
     let range = match (filter.since, filter.until) {
@@ -600,12 +601,17 @@ pub(super) fn context_row(
         (None, Some(until)) => format!("{} {until}", text(cx, "Through", "截至")),
         (None, None) => {
             let all = text(cx, "All history", "全历史");
-            report
-                .and_then(|report| report.trends.first().zip(report.trends.last()))
-                .map_or_else(
-                    || all.to_string(),
-                    |(first, last)| format!("{all} · {} – {}", first.date, last.date),
-                )
+            let actual_range = records_context
+                .and_then(|context| context.actual_range.as_ref())
+                .map(|(first, last)| (first.as_str(), last.as_str()))
+                .or_else(|| {
+                    let trends = &report?.trends;
+                    Some((trends.first()?.date.as_str(), trends.last()?.date.as_str()))
+                });
+            actual_range.map_or_else(
+                || all.to_string(),
+                |(first, last)| format!("{all} · {first} – {last}"),
+            )
         }
     };
     let zone = match filter.timezone {
@@ -620,18 +626,19 @@ pub(super) fn context_row(
         .gap(px(theme::SECTION_GAP))
         .child(context_label("usage-date-range", range));
     context
-        .children(report.map(|report| {
-            let sync = report
-                .overview
-                .last_sync_at
-                .as_deref()
-                .and_then(|value| DateTime::parse_from_rfc3339(value).ok())
-                .map(|instant| match filter.timezone {
-                    ReportTimezone::Local => instant.with_timezone(&Local).naive_local(),
-                    ReportTimezone::Utc => instant.naive_utc(),
-                })
-                .map(|date| date.format("%Y-%m-%d %H:%M").to_string())
-                .unwrap_or_else(|| text(cx, "not recorded", "未记录").into());
+        .children((records_context.is_some() || report.is_some()).then(|| {
+            let sync = if let Some(context) = records_context {
+                context.last_sync_at.as_deref()
+            } else {
+                report.and_then(|report| report.overview.last_sync_at.as_deref())
+            }
+            .and_then(|value| DateTime::parse_from_rfc3339(value).ok())
+            .map(|instant| match filter.timezone {
+                ReportTimezone::Local => instant.with_timezone(&Local).naive_local(),
+                ReportTimezone::Utc => instant.naive_utc(),
+            })
+            .map(|date| date.format("%Y-%m-%d %H:%M").to_string())
+            .unwrap_or_else(|| text(cx, "not recorded", "未记录").into());
             let prefix = text(
                 cx,
                 "Last successful sync (any source)",

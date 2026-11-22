@@ -25,7 +25,7 @@ impl InsightsView {
                 Section::Heatmap => report.heatmap.as_ref().map_or(0, Vec::len),
                 Section::Logs => 0,
             },
-            Some(InsightsSnapshot::Logs(page)) => page.records.len(),
+            Some(InsightsSnapshot::Logs(page, _)) => page.records.len(),
             Some(InsightsSnapshot::Sessions { page, .. }) => page.items.len(),
             Some(InsightsSnapshot::Detail(detail)) => detail.page.messages.len(),
             None => 0,
@@ -53,7 +53,7 @@ impl InsightsView {
                     .map(|row| row.date.as_str()),
                 Section::Logs => None,
             },
-            InsightsSnapshot::Logs(page) => page.records.get(index).map(|row| row.id.as_str()),
+            InsightsSnapshot::Logs(page, _) => page.records.get(index).map(|row| row.id.as_str()),
             InsightsSnapshot::Sessions { page, .. } => {
                 page.items.get(index).map(|row| row.archive_id.as_str())
             }
@@ -124,7 +124,7 @@ impl InsightsView {
                 }
                 Section::Logs => return None,
             },
-            InsightsSnapshot::Logs(page) => {
+            InsightsSnapshot::Logs(page, _) => {
                 let r = page.records.get(index)?;
                 (
                     format!(
@@ -308,7 +308,7 @@ impl InsightsView {
                     .unwrap_or_default(),
                 Section::Logs => Vec::new(),
             },
-            InsightsSnapshot::Logs(page) => {
+            InsightsSnapshot::Logs(page, _) => {
                 let r = &page.records[index];
                 vec![
                     format!(
@@ -386,7 +386,7 @@ impl InsightsView {
                     "Provider dimension unsupported, not measured zero"
                 }
             ),
-            Some(InsightsSnapshot::Logs(p)) => format!(
+            Some(InsightsSnapshot::Logs(p, _)) => format!(
                 "{} rows on this page · {} matching records",
                 p.records.len(),
                 p.total

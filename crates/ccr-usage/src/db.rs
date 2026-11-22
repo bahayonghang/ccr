@@ -422,21 +422,7 @@ impl Dashboard {
             bucket_count,
         ) = values;
 
-        let freshness = self.conn.query_row(
-            r#"
-            SELECT
-                MAX(CASE WHEN command IN (?1, ?2, ?3) THEN finished_at END),
-                MAX(CASE WHEN command = 'export html' THEN finished_at END)
-            FROM run_log
-            WHERE status = 'success'
-            "#,
-            USAGE_IMPORT_COMMANDS,
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        );
-        let (last_sync_at, last_export_at) = freshness.unwrap_or_else(|error| {
-            tracing::warn!(?error, "llmusage overview: freshness query failed");
-            (None, None)
-        });
+        let (last_sync_at, last_export_at) = self.freshness();
         Ok(OverviewPayload {
             generated_at: if fixed {
                 as_of.to_rfc3339()
@@ -453,6 +439,53 @@ impl Dashboard {
             total_cost_usd,
             last_sync_at,
             last_export_at,
+        })
+    }
+
+    fn freshness(&self) -> (Option<String>, Option<String>) {
+        let freshness = self.conn.query_row(
+            r#"
+            SELECT
+                MAX(CASE WHEN command IN (?1, ?2, ?3) THEN finished_at END),
+                MAX(CASE WHEN command = 'export html' THEN finished_at END)
+            FROM run_log
+            WHERE status = 'success'
+            "#,
+            USAGE_IMPORT_COMMANDS,
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        );
+        freshness.unwrap_or_else(|error| {
+            tracing::warn!(?error, "llmusage report: freshness query failed");
+            (None, None)
+        })
+    }
+
+    /// Report heading metadata for a cursor page, without recalculating charts or totals.
+    pub fn usage_record_context(
+        &self,
+        filter: &QueryFilter,
+    ) -> Result<UsageRecordContext, UsageError> {
+        let actual_range = if filter.since.is_none() && filter.until.is_none() {
+            self.ensure_feature_for_filter(FeatureKey::DailyTrends, filter)?;
+            let zone = self.zone(filter.timezone);
+            let bounds = filter.bucket_filter(None, &zone, self.schema_version())?;
+            let date = zone.local_date_expr("hour_start");
+            let sql = format!(
+                "SELECT MIN({date}), MAX({date}) FROM usage_bucket_30m {}",
+                bounds.where_sql()
+            );
+            self.conn
+                .query_row(&sql, params_from_iter(bounds.param_refs()), |row| {
+                    let first: Option<String> = row.get(0)?;
+                    let last: Option<String> = row.get(1)?;
+                    Ok(first.zip(last))
+                })?
+        } else {
+            None
+        };
+        Ok(UsageRecordContext {
+            actual_range,
+            last_sync_at: self.freshness().0,
         })
     }
 
@@ -1217,6 +1250,12 @@ pub struct LogsQuery {
     pub cursor: Option<String>,
     pub include_total: bool,
     pub include_raw_json: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct UsageRecordContext {
+    pub actual_range: Option<(String, String)>,
+    pub last_sync_at: Option<String>,
 }
 
 #[derive(Debug, Clone)]

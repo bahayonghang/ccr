@@ -57,11 +57,8 @@ impl InsightsView {
         window.focus_next(cx);
     }
 
-    pub(super) fn reset_usage_data(&mut self) {
-        let source = self
-            .usage_controls
-            .filter(self.requests.report_clock())
-            .source;
+    pub(super) fn reset_usage_data(&mut self, filter: &QueryFilter) {
+        let source = filter.source;
         if self
             .submitted_usage
             .as_ref()
@@ -155,6 +152,10 @@ impl InsightsView {
             Some(InsightsSnapshot::Usage(report)) => Some(report),
             _ => None,
         });
+        let records_context = match self.snapshot.as_deref() {
+            Some(InsightsSnapshot::Logs(_, context)) => context.as_ref(),
+            _ => None,
+        };
         root.overflow_y_scroll()
             .track_focus(&self.usage_report.main_focus)
             .tab_stop(false)
@@ -163,7 +164,7 @@ impl InsightsView {
             .children(
                 self.submitted_usage
                     .as_ref()
-                    .map(|filter| usage::context_row(filter, context_report, cx)),
+                    .map(|filter| usage::context_row(filter, context_report, records_context, cx)),
             )
             .children(self.platform_scope.is_none().then_some(auxiliary))
             .child(self.usage_navigation(cx))
@@ -206,7 +207,7 @@ impl InsightsView {
         } else if let Some(error) = self.error {
             service_error(cx, error)
         } else if report.is_some_and(|report| report.overview.bucket_count == 0)
-            || matches!(self.snapshot.as_deref(), Some(InsightsSnapshot::Logs(page)) if page.records.is_empty())
+            || matches!(self.snapshot.as_deref(), Some(InsightsSnapshot::Logs(page, _)) if page.records.is_empty())
         {
             text(cx, "No records in this range.", "此区间没有记录。")
         } else {
@@ -249,15 +250,43 @@ impl InsightsView {
                     .token_composition(window.viewport_size().width < px(theme::SPLIT_WIDTH), cx)
             }))
             .children(readings.map(|report| self.usage_ranking(report, cx)))
+            .children((readings.is_none() && self.loading).then(|| {
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap(px(theme::SECTION_GAP))
+                    .child(loading_panel(
+                        "usage-trend-loading",
+                        text(cx, "Daily trend", "逐日趋势"),
+                        250.,
+                        cx,
+                    ))
+                    .child(loading_panel(
+                        "usage-composition-loading",
+                        text(cx, "Token composition", "Token 构成"),
+                        110.,
+                        cx,
+                    ))
+                    .child(loading_panel(
+                        "usage-rank-loading",
+                        self.ranking_title(cx),
+                        180.,
+                        cx,
+                    ))
+            }))
+    }
+
+    fn ranking_title(&self, cx: &App) -> &'static str {
+        if self.default_usage_ranking() == Section::Sources {
+            text(cx, "Top sources", "来源排行")
+        } else {
+            text(cx, "Top models", "模型排行")
+        }
     }
 
     fn usage_ranking(&self, report: &UsageSnapshot, cx: &mut Context<Self>) -> Div {
         let sources = self.default_usage_ranking() == Section::Sources;
-        let title = if sources {
-            text(cx, "Top sources", "来源排行")
-        } else {
-            text(cx, "Top models", "模型排行")
-        };
+        let title = self.ranking_title(cx);
         let mut rows = div();
         if sources {
             for source in report.sources.iter().take(5) {
@@ -314,7 +343,26 @@ impl InsightsView {
 
     fn usage_details(&self, report: Option<&UsageSnapshot>, cx: &mut Context<Self>) -> Div {
         let Some(report) = report else {
-            return div();
+            return if self.loading {
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap(px(theme::SECTION_GAP))
+                    .child(loading_panel(
+                        "usage-ranking-loading",
+                        self.ranking_title(cx),
+                        190.,
+                        cx,
+                    ))
+                    .child(loading_panel(
+                        "usage-heatmap-loading",
+                        text(cx, "Activity heatmap", "活动热力图"),
+                        160.,
+                        cx,
+                    ))
+            } else {
+                div()
+            };
         };
         let mut tabs = crate::shell::page_header::capsule(cx);
         for (section, en, zh) in [
@@ -388,8 +436,17 @@ impl InsightsView {
     }
 
     fn usage_records(&self, cx: &mut Context<Self>) -> Div {
-        let Some(InsightsSnapshot::Logs(page)) = self.snapshot.as_deref() else {
-            return div();
+        let Some(InsightsSnapshot::Logs(page, _)) = self.snapshot.as_deref() else {
+            return if self.loading {
+                loading_panel(
+                    "usage-records-loading",
+                    text(cx, "Records", "记录"),
+                    310.,
+                    cx,
+                )
+            } else {
+                div()
+            };
         };
         if page.records.is_empty() {
             return div();
@@ -537,7 +594,7 @@ impl InsightsView {
 
     fn usage_exact_detail(&self, index: usize, cx: &mut Context<Self>) -> impl IntoElement {
         let mut lines = self.details(index);
-        if let Some(InsightsSnapshot::Logs(page)) = self.snapshot.as_deref()
+        if let Some(InsightsSnapshot::Logs(page, _)) = self.snapshot.as_deref()
             && let Some(record) = page.records.get(index)
             && !record.project_path.is_empty()
         {
@@ -634,6 +691,12 @@ fn report_panel(cx: &App) -> Div {
         .border_color(cx.theme().border)
         .bg(cx.theme().popover)
         .p(px(theme::SECTION_GAP))
+}
+
+fn loading_panel(id: &'static str, title: &'static str, height: f32, cx: &App) -> Div {
+    report_panel(cx)
+        .min_h(px(height))
+        .child(div().id(id).test_support().child(heading(title, cx)))
 }
 
 fn heading(title: &'static str, cx: &App) -> Div {

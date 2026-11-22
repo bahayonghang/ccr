@@ -26,7 +26,7 @@ use ccr_db::database::{self, DbPool};
 use ccr_store::sessions::{AgentSessionProviderRegistry, AgentSessionProviderStatus};
 use ccr_usage::{
     AppPaths, HomeOverviewPlatformStats, HomeOverviewSeriesItem, LogsPage, LogsQuery, QueryFilter,
-    ReportTimezone, SourceKind, UsageError,
+    ReportTimezone, SourceKind, UsageError, UsageRecordContext,
 };
 use chrono::{DateTime, NaiveDate, Utc};
 use std::{
@@ -351,6 +351,7 @@ pub enum InsightsQuery {
     Logs {
         filter: QueryFilter,
         cursor: Option<String>,
+        usage_page: bool,
     },
     Sessions(SessionListRequest),
     Detail {
@@ -361,7 +362,7 @@ pub enum InsightsQuery {
 pub enum InsightsSnapshot {
     Home(HomeInsightsSnapshot),
     Usage(UsageSnapshot),
-    Logs(LogsPage),
+    Logs(LogsPage, Option<UsageRecordContext>),
     Sessions {
         page: SessionPage,
         statuses: Vec<AgentSessionProviderStatus>,
@@ -639,15 +640,24 @@ impl InsightsRequests {
                     InsightsQuery::UsagePage { filter, as_of } => {
                         self.read_usage(&dashboard, &filter, Some(as_of))
                     }
-                    InsightsQuery::Logs { filter, cursor } => dashboard
-                        .logs(&LogsQuery {
-                            filter,
-                            cursor,
-                            page_size: 100,
-                            include_total: true,
-                            include_raw_json: false,
+                    InsightsQuery::Logs {
+                        filter,
+                        cursor,
+                        usage_page,
+                    } => dashboard
+                        .with_read_snapshot(|dashboard| {
+                            let context = usage_page
+                                .then(|| dashboard.usage_record_context(&filter))
+                                .transpose()?;
+                            let page = dashboard.logs(&LogsQuery {
+                                filter,
+                                cursor,
+                                page_size: 100,
+                                include_total: true,
+                                include_raw_json: false,
+                            })?;
+                            Ok(InsightsSnapshot::Logs(page, context))
                         })
-                        .map(InsightsSnapshot::Logs)
                         .map_err(Into::into),
                     _ => unreachable!("session reads returned before opening usage"),
                 }

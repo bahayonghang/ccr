@@ -768,8 +768,8 @@ fn generated_pairs_load_through_native_domain_consumers() {
             let Completion::Success(snapshot)=reply.as_ref() else {panic!("usage failed");};let InsightsSnapshot::Usage(usage)=snapshot.as_ref() else {panic!("wrong report");};
             assert_eq!(usage.overview.total_events,layout.usage_count as i64);
             for (name,value) in [("tokens",serde_json::to_value(&usage.overview.total).unwrap()),("models",serde_json::to_value(&usage.models).unwrap()),("providers",serde_json::to_value(&usage.providers).unwrap()),("projects",serde_json::to_value(&usage.projects).unwrap()),("sources",serde_json::to_value(&usage.sources).unwrap()),("trends",serde_json::to_value(&usage.trends).unwrap())] {assert_eq!(value,logical["usage"][name],"{scenario}/{name}");}
-            let logs=result(requests.load(key(16),InsightsQuery::Logs {filter:ccr_usage::QueryFilter {timezone:ReportTimezone::Utc,..Default::default()},cursor:None}).unwrap()).await;
-            assert!(matches!(logs.as_ref(),Completion::Success(snapshot) if matches!(snapshot.as_ref(),InsightsSnapshot::Logs(page) if page.total==Some(layout.usage_count as i64) && page.records.iter().all(|record|record.record_json.is_empty()))));
+            let logs=result(requests.load(key(16),InsightsQuery::Logs {filter:ccr_usage::QueryFilter {timezone:ReportTimezone::Utc,..Default::default()},cursor:None, usage_page: false}).unwrap()).await;
+            assert!(matches!(logs.as_ref(),Completion::Success(snapshot) if matches!(snapshot.as_ref(),InsightsSnapshot::Logs(page, None) if page.total==Some(layout.usage_count as i64) && page.records.iter().all(|record|record.record_json.is_empty()))));
             let mut rows=Vec::new();let mut cursor=None;let mut first_id=None;
             loop {
                 let reply=result(requests.load(key(12),InsightsQuery::Sessions(ccr_app::sessions::SessionListRequest {cursor,limit:Some(200),..Default::default()})).unwrap()).await;

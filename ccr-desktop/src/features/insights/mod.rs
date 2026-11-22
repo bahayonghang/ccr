@@ -336,9 +336,13 @@ impl InsightsView {
         }
     }
     pub fn refresh(&mut self, cx: &mut Context<Self>) {
-        if self.surface == Surface::Usage && self.page == InsightsPage::Usage {
-            self.reset_usage_data();
-        }
+        let new_usage =
+            (self.surface == Surface::Usage && self.page == InsightsPage::Usage).then(|| {
+                let clock = self.requests.report_clock();
+                let filter = self.usage_controls.filter(clock);
+                self.reset_usage_data(&filter);
+                (filter, clock.as_of)
+            });
         if self.page == InsightsPage::Sessions {
             self.observe_session_operations(cx);
         }
@@ -348,7 +352,7 @@ impl InsightsView {
         if self.surface == Surface::Sessions {
             self.reset_session_detail();
         }
-        self.submit(cx);
+        self.submit_query(new_usage, cx);
     }
     fn start_archive_refresh(&mut self, cx: &mut Context<Self>) {
         self.generation += 1;
@@ -418,7 +422,11 @@ impl InsightsView {
         }
         Ok(filter)
     }
-    fn query(&self, cx: &Context<Self>) -> Result<InsightsQuery, InsightsError> {
+    fn query(
+        &self,
+        new_usage: Option<(QueryFilter, chrono::DateTime<chrono::Utc>)>,
+        cx: &Context<Self>,
+    ) -> Result<InsightsQuery, InsightsError> {
         match self.page {
             InsightsPage::Policies | InsightsPage::Observer | InsightsPage::Capabilities => {
                 Err(InsightsError::Query)
@@ -431,24 +439,28 @@ impl InsightsView {
                 })
             }
             InsightsPage::Usage => {
-                let clock = self.requests.report_clock();
-                let filter = if self.surface == Surface::Usage {
-                    self.submitted_usage
-                        .clone()
-                        .unwrap_or_else(|| self.usage_controls.filter(clock))
+                let usage_page = self.surface == Surface::Usage;
+                let (filter, as_of) = if let Some(usage) = new_usage {
+                    usage
                 } else {
-                    self.filter(cx)?
+                    let clock = self.requests.report_clock();
+                    let filter = if usage_page {
+                        self.submitted_usage
+                            .clone()
+                            .unwrap_or_else(|| self.usage_controls.filter(clock))
+                    } else {
+                        self.filter(cx)?
+                    };
+                    (filter, clock.as_of)
                 };
                 Ok(if self.section == Section::Logs {
                     InsightsQuery::Logs {
                         filter,
                         cursor: self.cursor.clone(),
+                        usage_page,
                     }
-                } else if self.surface == Surface::Usage {
-                    InsightsQuery::UsagePage {
-                        filter,
-                        as_of: clock.as_of,
-                    }
+                } else if usage_page {
+                    InsightsQuery::UsagePage { filter, as_of }
                 } else {
                     InsightsQuery::Usage(filter)
                 })
@@ -483,12 +495,19 @@ impl InsightsView {
         }
     }
     fn submit(&mut self, cx: &mut Context<Self>) {
+        self.submit_query(None, cx);
+    }
+
+    fn submit_query(
+        &mut self,
+        new_usage: Option<(QueryFilter, chrono::DateTime<chrono::Utc>)>,
+        cx: &mut Context<Self>,
+    ) {
         // Sessions 产品面：列表请求不碰详情槽与会话操作；旧页保留到新页到达，
         // 避免防抖搜索时整列闪空。其他产品面维持单 snapshot 路径。
         let sessions = self.surface == Surface::Sessions;
         if !sessions {
             self.clear_session_draft();
-            self.snapshot = None;
         }
         self.task = None;
         self.gate.clear();
@@ -500,16 +519,30 @@ impl InsightsView {
         };
         self.detail_open = false;
         self.error = None;
-        let query = match self.query(cx) {
+        let query = match self.query(new_usage, cx) {
             Ok(query) => query,
             Err(error) => {
+                if !sessions {
+                    self.snapshot = None;
+                }
                 self.error = Some(error.message());
                 self.loading = false;
                 cx.notify();
                 return;
             }
         };
-        if let InsightsQuery::UsagePage { filter, .. } | InsightsQuery::Logs { filter, .. } = &query
+        let same_usage_report = matches!(&query, InsightsQuery::UsagePage { filter, .. }
+            if self.submitted_usage.as_ref() == Some(filter)
+                && matches!(self.snapshot.as_deref(), Some(InsightsSnapshot::Usage(_))));
+        if !sessions && !same_usage_report {
+            self.snapshot = None;
+        }
+        if let InsightsQuery::UsagePage { filter, .. }
+        | InsightsQuery::Logs {
+            filter,
+            usage_page: true,
+            ..
+        } = &query
         {
             if self.submitted_usage.as_ref() != Some(filter) {
                 self.usage_trend.reset_range();
@@ -598,7 +631,7 @@ impl InsightsView {
             return;
         }
         match self.snapshot.as_deref() {
-            Some(InsightsSnapshot::Logs(page)) => {
+            Some(InsightsSnapshot::Logs(page, _)) => {
                 let Some(cursor) = page.next_cursor.clone() else {
                     return;
                 };
@@ -667,7 +700,7 @@ impl InsightsView {
     }
     fn has_next(&self) -> bool {
         match self.snapshot.as_deref() {
-            Some(InsightsSnapshot::Logs(page)) => page.next_cursor.is_some(),
+            Some(InsightsSnapshot::Logs(page, _)) => page.next_cursor.is_some(),
             Some(InsightsSnapshot::Sessions { page, .. }) => page.next_cursor.is_some(),
             Some(InsightsSnapshot::Detail(detail)) => detail.page.has_older,
             _ => false,

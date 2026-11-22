@@ -100,6 +100,7 @@ async fn bounded_usage_consumer_preserves_values_and_paginates_without_raw_conte
             InsightsQuery::Logs {
                 filter: QueryFilter::default(),
                 cursor: None,
+                usage_page: false,
             },
         )
         .unwrap();
@@ -109,7 +110,7 @@ async fn bounded_usage_consumer_preserves_values_and_paginates_without_raw_conte
     let Completion::Success(snapshot) = result.as_ref() else {
         panic!("logs failed");
     };
-    let InsightsSnapshot::Logs(page) = snapshot.as_ref() else {
+    let InsightsSnapshot::Logs(page, None) = snapshot.as_ref() else {
         panic!("wrong logs");
     };
     assert_eq!(page.records.len(), 100);
@@ -126,6 +127,7 @@ async fn bounded_usage_consumer_preserves_values_and_paginates_without_raw_conte
             InsightsQuery::Logs {
                 filter: QueryFilter::default(),
                 cursor: page.next_cursor.clone(),
+                usage_page: false,
             },
         )
         .unwrap();
@@ -135,7 +137,7 @@ async fn bounded_usage_consumer_preserves_values_and_paginates_without_raw_conte
     let Completion::Success(snapshot) = result.as_ref() else {
         panic!("second logs failed");
     };
-    let InsightsSnapshot::Logs(page) = snapshot.as_ref() else {
+    let InsightsSnapshot::Logs(page, None) = snapshot.as_ref() else {
         panic!("wrong second logs");
     };
     assert_eq!(page.records.len(), 1);
@@ -610,6 +612,7 @@ fn usage_latency_samples_only_successful_opened_report_body_and_keeps_captured_o
         .read(InsightsQuery::Logs {
             filter: QueryFilter::default(),
             cursor: None,
+            usage_page: false,
         })
         .unwrap();
     let invalid = QueryFilter {

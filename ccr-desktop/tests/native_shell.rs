@@ -3055,7 +3055,7 @@ fn platform_tab_focus_survives_crossing_the_wide_layout_breakpoint(cx: &mut Test
 async fn usage_rankings_heatmap_and_records_share_scope_in_both_entries(cx: &mut TestAppContext) {
     use ccr_gpui::runtime::insights::InsightsPaths;
     use ccr_usage::fixtures::{
-        SeedBucket, SeedEvent, create_projection_db, seed_bucket, seed_event,
+        SeedBucket, SeedEvent, create_projection_db, seed_bucket, seed_event, seed_run_log,
     };
     use chrono::{Days, Local};
 
@@ -3117,6 +3117,7 @@ async fn usage_rankings_heatmap_and_records_share_scope_in_both_entries(cx: &mut
             ..Default::default()
         },
     );
+    seed_run_log(&conn, "codex", "recent", "2026-11-01T20:00:00Z");
     drop(conn);
 
     let services = Services::new(
@@ -3161,7 +3162,12 @@ async fn usage_rankings_heatmap_and_records_share_scope_in_both_entries(cx: &mut
                 .value()
                 .is_some_and(|value| value.contains("16"))
         );
-        assert!(window.find("usage-rank:Unknown agent (retired)").visible());
+        assert!(
+            window
+                .find("usage-rank:Unknown agent (retired)")
+                .value()
+                .is_some_and(|value| value.contains("7"))
+        );
         window.click("usage-view-details", cx);
         window.render_frame(cx);
 
@@ -3265,6 +3271,32 @@ async fn usage_rankings_heatmap_and_records_share_scope_in_both_entries(cx: &mut
     })
     .await;
     cx.update_window(handle, |_, window, cx| {
+        window.click("usage-range-menu", cx);
+        window.click("usage-range-all", cx);
+    })
+    .unwrap_or_else(|error| panic!("show all records: {error}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("insights-row:unmapped-record").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        let expected_range = format!("All history · {month_ago} – {today} · Local");
+        assert_eq!(
+            window.find("usage-date-range").value(),
+            Some(expected_range.as_str())
+        );
+        assert!(window.find("usage-last-sync").value().is_some_and(|value| {
+            value.starts_with("Last successful sync (any source) · 2026-11-01")
+        }));
+        window.click("insights-refresh", cx);
+    })
+    .unwrap_or_else(|error| panic!("refresh records: {error}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("insights-row:unmapped-record").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        assert!(window.try_find("usage-last-sync").is_some());
         window.click("nav-antigravity", cx);
         window.click("tool-platform-usage", cx);
     })

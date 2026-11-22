@@ -23,7 +23,7 @@ pub use capabilities::{
 };
 pub use db::{
     Dashboard, DiagnosticsPayload, LogsPage, LogsQuery, QueryFilter, ReportTimezone,
-    SourceDiagnostics, SourceProjection, build_filter, open_dashboard,
+    SourceDiagnostics, SourceProjection, UsageRecordContext, build_filter, open_dashboard,
 };
 pub use error::UsageError;
 pub use insights::{
