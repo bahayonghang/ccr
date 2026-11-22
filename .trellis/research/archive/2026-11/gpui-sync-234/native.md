@@ -75,3 +75,19 @@ release。共享 `ccr-sync` 77 项及 4 个 doctest 通过，1 项忽略，严�
 资产入参仍绑定执行环境与 WebDAV 修订，原传输入口保留。
 
 生产 WebDAV、真实 SSH、系统高对比度、减少动态效果与其他系统未实测。
+
+## #238 普通文件夹
+
+候选 `24bf5e8aba71ac61317e3f528a12383fc0f6c7d2`。原生 debug SHA-256 与 #236
+相同。Windows 使用同一隔离 WebDAV，并独立准备了三项文件夹，其中一项停用。
+
+- 960×640 深色列表中长路径可省略，打开详情可读取完整本机路径与远端路径。最终候选的焦点进入内容宽度的「返回同步列表」，Esc 返回原来的 Lab notes 详情按钮，并恢复列表位置。[详情焦点](238-final-detail-focus.jpg) · [返回原行](238-final-row-return.jpg)
+- 较早候选 `a5162f4f` 中，上传所选、下载全部已启用和移除确认均检查了可见范围、初始「取消」焦点以及 Esc 返回。下载范围只显示已启用的两项，说明 HTTPS 原内容传输和替换前备份。[单项确认](238-single-review.jpg) · [批量确认](238-enabled-batch-review.jpg) · [返回发起按钮](238-batch-review-return.jpg) · [移除确认](238-remove-safe-focus.jpg)
+- 最终候选实际执行批量上传，WebDAV 收到两个已启用项的 PUT，分别返回 201 和 503。界面显示 1/2 部分完成和逐项失败原因。请求日志中没有停用目标。[批量结果](238-final-batch-partial.jpg)
+- 最终候选在 1280×800 浅色右栏显示完整路径。实际下载所选文件夹得到 GET 200，界面显示 1/1 和备份位置。读回目标与先前上传的合成文本一致，备份 SHA-256 与覆盖前文件一致，为 `F6F83669F5A303B2A7A52F8E416E59DE0E9DDE5724B30F8E7A52557DD1F55B3D`。[宽窗详情](238-final-wide-detail.jpg) · [下载与备份](238-final-wide-backup.jpg)
+- 新增、编辑、启停、删除、修订或目标身份失效、本机与 SSH 范围、混合结果由合成控件、运行时和传输测试覆盖。复查确认移除与详情焦点在控件实际挂载后生效。原生验证用的合成服务把 MKCOL 改为返回 201，与仓库受控 WebDAV 测试一致。
+
+同一候选上的同步定向 35 项、`just gpui-test-ui` 46 项和 `just gpui-ci` 主库 426 项
+通过，分别忽略 0、1、4 项测试。完整门禁也完成 Windows release。原生验证使用合成 HTTP
+loopback 和本机文件。生产 HTTPS WebDAV、真实 SSH、系统高对比度、减少动态效果和其他
+系统未实测。
