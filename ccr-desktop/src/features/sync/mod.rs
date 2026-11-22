@@ -1,5 +1,6 @@
 //! Canonical sync settings and retained WebDAV operations.
 mod asset_details;
+mod asset_transfer;
 mod assets;
 mod folders;
 mod layout;
@@ -65,13 +66,15 @@ pub struct SyncView {
     selected_transfer_anchors: [FocusHandle; 2],
     management_anchor: FocusHandle,
     editor: Option<Editor>,
-    asset_editor: Option<assets::AssetEditor>,
+    asset_editor: Option<asset_transfer::AssetEditor>,
     asset_detail: Option<usize>,
     asset_detail_focus: Option<(u64, asset_details::AssetDetailFocus)>,
     asset_row_anchors: [FocusHandle; ccr_sync::sync::assets::SYNC_ASSETS.len()],
     asset_back_anchor: FocusHandle,
     asset_transfer_anchor: FocusHandle,
     all_assets_transfer_anchor: FocusHandle,
+    asset_editor_anchor: FocusHandle,
+    asset_result_anchor: FocusHandle,
     folder_focus: FolderFocus,
     folder_editor: Option<FolderEditor>,
     folder_delete: Option<FolderTarget>,
@@ -122,6 +125,8 @@ impl SyncView {
             asset_back_anchor: cx.focus_handle().tab_stop(false),
             asset_transfer_anchor: cx.focus_handle().tab_stop(false),
             all_assets_transfer_anchor: cx.focus_handle().tab_stop(false),
+            asset_editor_anchor: cx.focus_handle().tab_stop(false),
+            asset_result_anchor: cx.focus_handle().tab_stop(false),
             folder_focus: FolderFocus::new(cx),
             folder_editor: None,
             folder_delete: None,
@@ -398,12 +403,21 @@ impl SyncView {
                 )
                 .to_string(),
                 Ok(SyncOutcome::Batch(results)) => Self::folder_result_summary(results, cx),
-                Ok(SyncOutcome::Assets(results)) => format!(
-                    "{}: {}/{}",
-                    text(cx, "Assets completed", "资产已完成"),
-                    results.iter().filter(|r| r.result.is_ok()).count(),
-                    results.len()
-                ),
+                Ok(SyncOutcome::Assets(results)) => {
+                    let completed = results.iter().filter(|asset| asset.result.is_ok()).count();
+                    let label = if completed == results.len() {
+                        text(cx, "Asset transfer completed", "资产传输完成")
+                    } else if completed > 0
+                        || results
+                            .iter()
+                            .any(|asset| asset.result == Err(SyncError::RemotePartial))
+                    {
+                        text(cx, "Asset transfer partially completed", "资产传输部分完成")
+                    } else {
+                        text(cx, "Asset transfer failed", "资产传输失败")
+                    };
+                    format!("{label} · {completed}/{}", results.len())
+                }
                 Ok(SyncOutcome::AssetInventory(_)) => {
                     text(cx, "Asset inventory read.", "资产状态已读取。").to_string()
                 }
@@ -430,15 +444,23 @@ impl SyncView {
             })
         };
         status.map(|status| {
-            let mut panel = sync_status("sync-operation-status", status);
-            if let Some(Ok(SyncOutcome::Batch(results))) = &self.operation.result {
-                panel = panel
-                    .flex()
-                    .flex_col()
-                    .gap(px(theme::CONTROL_GAP))
-                    .children(self.render_folder_results(results, cx));
+            let panel = sync_status("sync-operation-status", status)
+                .track_focus(&self.asset_result_anchor)
+                .tab_stop(false)
+                .flex()
+                .flex_col()
+                .gap(px(theme::CONTROL_GAP));
+            match &self.operation.result {
+                Some(Ok(SyncOutcome::Batch(results))) => {
+                    panel.children(self.render_folder_results(results, cx))
+                }
+                Some(Ok(SyncOutcome::Assets(results))) => {
+                    panel.children(results.iter().map(|asset| {
+                        asset_transfer::render_asset_result(&asset.id, &asset.result, cx)
+                    }))
+                }
+                _ => panel,
             }
-            panel
         })
     }
 }
@@ -463,6 +485,18 @@ fn sync_error(cx: &App, error: SyncError) -> &'static str {
         ),
         SyncError::Busy => text(cx, error.message(), "已有同步操作排队或运行。"),
         SyncError::FixtureNetwork => text(cx, error.message(), "演示数据禁用远程同步。"),
+        SyncError::AssetPassphrase => text(cx, error.message(), "敏感资产需要本次操作口令。"),
+        SyncError::AssetLegacy => text(cx, error.message(), "导入明文 v1 需要本次明确授权。"),
+        SyncError::AssetDecrypt => text(
+            cx,
+            error.message(),
+            "资产解密失败，请检查口令和加密封装。当前环境中的数据已保留。",
+        ),
+        SyncError::AssetConflict => text(
+            cx,
+            error.message(),
+            "两端都有副本。允许覆盖后可重试，下载会先备份当前环境的数据。",
+        ),
         SyncError::Operation => text(
             cx,
             error.message(),

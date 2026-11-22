@@ -1,3 +1,4 @@
+use super::asset_details::AssetDetailFocus;
 use super::*;
 use gpui_kit::component::ActiveTheme;
 use gpui_kit::{Div, Role, Stateful, relative};
@@ -13,6 +14,7 @@ impl Render for SyncView {
             .render_management_confirmation(window, cx)
             .or_else(|| self.render_editor(cx))
             .or_else(|| self.render_folder_details(window, cx))
+            .or_else(|| self.render_asset_editor(window, cx))
             .or_else(|| {
                 self.render_asset_details(window, cx)
                     .map(IntoElement::into_any_element)
@@ -23,6 +25,11 @@ impl Render for SyncView {
         } else {
             self.render_operation_status(cx)
         };
+        if result.is_some()
+            && self.asset_detail_focus == Some((self.generation, AssetDetailFocus::TransferResult))
+        {
+            window.focus(&self.asset_result_anchor, cx);
+        }
         let mut body = div()
             .id("sync-workspace")
             .test_support()

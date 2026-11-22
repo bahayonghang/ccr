@@ -370,7 +370,7 @@ impl SyncView {
     }
 }
 
-fn url_line(cx: &App, url: &SyncUrl) -> String {
+pub(super) fn url_line(cx: &App, url: &SyncUrl) -> String {
     match url {
         SyncUrl::Missing => text(cx, "No WebDAV URL is stored.", "未保存 WebDAV URL。").into(),
         SyncUrl::Stored => text(cx, "A WebDAV URL is stored.", "已保存 WebDAV URL。").into(),

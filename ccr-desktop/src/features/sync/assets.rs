@@ -1,86 +1,11 @@
 use super::*;
-use crate::runtime::sync::{AssetDirection, AssetRequest, AssetRow};
+use crate::runtime::sync::AssetRow;
 use ccr_sync::sync::assets::{SYNC_ASSETS, SyncAssetDefinition, SyncAssetGroup};
 use gpui_kit::component::button::ButtonRounded;
 use gpui_kit::component::{ActiveTheme, Icon, IconName, Sizable};
-use gpui_kit::{Focusable, FontWeight, relative};
+use gpui_kit::{FontWeight, relative};
 
-pub(super) struct AssetEditor {
-    revision: String,
-    id: Option<String>,
-    pub(super) passphrase: Entity<InputState>,
-    force: bool,
-    import_v1: bool,
-    confirmation: Option<AssetDirection>,
-}
 impl SyncView {
-    pub(super) fn edit_asset(
-        &mut self,
-        id: Option<String>,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        if self.asset_transfer_locked() || self.asset_editor.is_some() {
-            return;
-        }
-        let Some(revision) = self.revision() else {
-            return;
-        };
-        self.reset_folder_panel();
-        if id.is_none() {
-            self.asset_detail = None;
-        }
-        let passphrase = cx.new(|cx| InputState::new(window, cx).masked(true));
-        window.focus(&passphrase.read(cx).focus_handle(cx), cx);
-        self.asset_editor = Some(AssetEditor {
-            revision,
-            id,
-            passphrase,
-            force: false,
-            import_v1: false,
-            confirmation: None,
-        });
-        cx.notify();
-    }
-    pub(super) fn cancel_asset_edit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let Some(editor) = self.asset_editor.take() else {
-            return;
-        };
-        let anchor = if editor.id.is_some() {
-            &self.asset_transfer_anchor
-        } else {
-            &self.all_assets_transfer_anchor
-        };
-        self.restore_action_focus(anchor.clone(), window, cx);
-        cx.notify();
-    }
-
-    fn send_asset(&mut self, cx: &mut Context<Self>) {
-        if self.busy || self.operation.busy {
-            return;
-        }
-        let Some(editor) = self.asset_editor.take() else {
-            return;
-        };
-        let Some(direction) = editor.confirmation else {
-            self.asset_editor = Some(editor);
-            return;
-        };
-        let value = editor.passphrase.read(cx).value().to_string();
-        self.start(
-            Operation::Assets(AssetRequest {
-                revision: editor.revision,
-                id: editor.id,
-                direction,
-                force: editor.force,
-                passphrase: (!value.is_empty()).then(|| value.into()),
-                import_plaintext_v1: editor.import_v1,
-            }),
-            cx,
-        );
-        self.close_asset_details(cx);
-    }
-
     pub(super) fn asset_draft_blocked(&self) -> bool {
         self.editor.is_some()
             || self.folder_decision_open()
@@ -252,7 +177,7 @@ impl SyncView {
 
     pub(super) fn render_assets(&mut self, cx: &mut Context<Self>) -> impl IntoElement {
         let locked = self.asset_actions_locked();
-        let mut section = div()
+        div()
             .id("sync-assets")
             .test_support()
             .flex()
@@ -292,9 +217,9 @@ impl SyncView {
                             .tab_stop(false)
                             .child(semantics::ghost_button(
                                 Button::new("sync-assets-all")
-                                    .label(text(cx, "All assets", "全部资产"))
-                                    .on_click(cx.listener(|this, _, window, cx| {
-                                        this.edit_asset(None, window, cx);
+                                    .label(text(cx, "Transfer all assets…", "传输全部资产…"))
+                                    .on_click(cx.listener(|this, _, _, cx| {
+                                        this.edit_asset(None, cx);
                                     })),
                                 self.asset_transfer_locked()
                                     || self.asset_editor.is_some()
@@ -386,55 +311,7 @@ impl SyncView {
                             selected,
                         ))
                 })),
-            );
-        if let Some(Ok(SyncOutcome::Assets(results))) = &self.operation.result {
-            for item in results {
-                section = section.child(match &item.result {
-                    Ok(backup) => format!(
-                        "{} · {}{}",
-                        item.id,
-                        text(cx, "Completed", "已完成"),
-                        backup
-                            .as_ref()
-                            .map(|p| format!(" · {}: {p}", text(cx, "Backup", "备份")))
-                            .unwrap_or_default()
-                    ),
-                    Err(error) => format!("{} · {}", item.id, sync_error(cx, *error)),
-                });
-            }
-        }
-
-        if self.asset_detail.is_none() {
-            section = section.children(self.render_asset_editor(cx));
-        }
-        section
-    }
-
-    pub(super) fn render_asset_editor(&self, cx: &mut Context<Self>) -> Option<layout::Panel> {
-        let locked = self.asset_transfer_locked();
-        let mut section = div()
-            .id("sync-asset-transfer")
-            .test_support()
-            .flex()
-            .flex_col()
-            .gap(px(theme::CONTROL_GAP));
-        let editor = self.asset_editor.as_ref()?;
-        {
-            section = section.child(div().id("sync-asset-editor").test_support().flex().flex_col().gap(px(theme::CONTROL_GAP))
-                .child(editor.id.clone().unwrap_or_else(||text(cx,"All assets","全部资产").into()))
-                .child(Input::new(&editor.passphrase).aria_label(text(cx,"Asset operation passphrase","资产操作口令")).accessibility_id("sync-asset-passphrase"))
-                .child(semantics::button(Button::new("sync-asset-force").label(if editor.force{text(cx,"Replacement allowed","允许覆盖")}else{text(cx,"Replacement blocked","禁止覆盖")}).ghost().on_click(cx.listener(|this,_,_,cx|{if let Some(e)=&mut this.asset_editor{e.force = !e.force;e.confirmation=None;}cx.notify();})),locked,false,cx))
-                .child(semantics::button(Button::new("sync-asset-v1").label(if editor.import_v1{text(cx,"Plaintext v1 import allowed","允许导入明文 v1")}else{text(cx,"Plaintext v1 import blocked","禁止导入明文 v1")}).ghost().on_click(cx.listener(|this,_,_,cx|{if let Some(e)=&mut this.asset_editor{e.import_v1 = !e.import_v1;e.confirmation=None;}cx.notify();})),locked,false,cx))
-                .child(text(cx,"Replacement permits upload overwrite or local replacement with backup. Sync prefers local when both copies exist. Plaintext v1 import only reads old data; it does not re-encrypt the remote copy.","允许覆盖后，上传可替换远程数据，下载会备份再替换本地数据。双向同步在两端都存在时优先本地。明文 v1 导入只读取旧数据，不会重新加密远程副本。"))
-                .child(sync_actions().children([(AssetDirection::Push,"sync-asset-push",text(cx,"Upload asset","上传资产")),(AssetDirection::Pull,"sync-asset-pull",text(cx,"Download asset","下载资产")),(AssetDirection::Sync,"sync-asset-sync",text(cx,"Sync asset","同步资产"))].into_iter().map(|(direction,id,label)|semantics::button(Button::new(id).label(label).on_click(cx.listener(move|this,_,_,cx|{if let Some(e)=&mut this.asset_editor{e.confirmation=Some(direction);}cx.notify();})),locked,false,cx))))
-                .child(semantics::button(Button::new("sync-asset-discard").label(text(cx,"Cancel","取消")).ghost().on_click(cx.listener(|this,_,window,cx|this.cancel_asset_edit(window, cx))),locked,false,cx)));
-            if let Some(direction) = editor.confirmation {
-                section = section.child(div().id("sync-asset-confirmation").test_support().flex().flex_col().gap(px(theme::CONTROL_GAP))
-                    .child(match direction{AssetDirection::Push=>text(cx,"Upload the selected configuration assets to the saved WebDAV account?","将所选配置资产上传到已保存的 WebDAV 账户？"),AssetDirection::Pull=>text(cx,"Download the selected configuration assets and apply them locally? Existing local data will be backed up when replacement is allowed.","下载所选配置资产并应用到本地？允许覆盖时，会备份已有本地数据。"),AssetDirection::Sync=>text(cx,"Synchronize selected assets using the displayed replacement and legacy import choices?","按上方覆盖和旧数据导入选项同步所选资产？")})
-                    .child(semantics::button(Button::new("sync-asset-confirm").label(text(cx,"Confirm transfer","确认传输")).on_click(cx.listener(|this,_,_,cx|this.send_asset(cx))),locked,false,cx)));
-            }
-        }
-        Some(section)
+            )
     }
 }
 

@@ -8,6 +8,10 @@ use gpui_kit::component::ActiveTheme;
 pub(super) enum AssetDetailFocus {
     Back,
     Row(usize),
+    TransferEditor,
+    SingleTransfer,
+    AllTransfer,
+    TransferResult,
 }
 
 impl SyncView {
@@ -38,15 +42,23 @@ impl SyncView {
     }
 
     pub(super) fn finish_asset_list_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if let Some((generation, AssetDetailFocus::Row(index))) = self.asset_detail_focus
+        if let Some((generation, target)) = self.asset_detail_focus
             && generation == self.generation
             && self.asset_detail.is_none()
             && self.asset_editor.is_none()
             && !self.asset_draft_blocked()
             && self.environment == self.services.environment()
         {
+            let anchor = match target {
+                AssetDetailFocus::Row(index) => &self.asset_row_anchors[index],
+                AssetDetailFocus::AllTransfer if !self.asset_transfer_locked() => {
+                    &self.all_assets_transfer_anchor
+                }
+                AssetDetailFocus::AllTransfer => &self.asset_row_anchors[0],
+                _ => return,
+            };
             self.asset_detail_focus = None;
-            self.restore_action_focus(self.asset_row_anchors[index].clone(), window, cx);
+            self.restore_action_focus(anchor.clone(), window, cx);
         }
     }
 
@@ -58,13 +70,24 @@ impl SyncView {
         let index = self.asset_detail?;
         // The next native frame drains callbacks before drawing. Schedule
         // entry now so its tab stop exists in the completed frame.
-        if self.asset_detail_focus == Some((self.generation, AssetDetailFocus::Back))
+        if let Some((generation, target)) = self.asset_detail_focus
+            && generation == self.generation
             && !self.asset_draft_blocked()
             && self.asset_editor.is_none()
             && self.environment == self.services.environment()
         {
-            self.asset_detail_focus = None;
-            self.restore_action_focus(self.asset_back_anchor.clone(), window, cx);
+            let anchor = match target {
+                AssetDetailFocus::Back => Some(&self.asset_back_anchor),
+                AssetDetailFocus::SingleTransfer if !self.asset_transfer_locked() => {
+                    Some(&self.asset_transfer_anchor)
+                }
+                AssetDetailFocus::SingleTransfer => Some(&self.asset_back_anchor),
+                _ => None,
+            };
+            if let Some(anchor) = anchor {
+                self.asset_detail_focus = None;
+                self.restore_action_focus(anchor.clone(), window, cx);
+            }
         }
         let asset = &SYNC_ASSETS[index];
         let name = asset_name(asset);
@@ -154,8 +177,7 @@ impl SyncView {
                 "This asset can be inspected on SSH. Profile database transfer needs a remote transaction owner.",
                 "可检查 SSH 上的此资产。方案数据库传输需要远端事务所有者。",
             ));
-        } else if self.asset_editor.is_none() {
-            let id = asset.id;
+        } else {
             pane = pane.child(
                 div()
                     .id("sync-asset-transfer-anchor")
@@ -165,8 +187,8 @@ impl SyncView {
                     .child(semantics::ghost_button(
                         Button::new(("sync-asset", index))
                             .label(text(cx, "Transfer asset…", "传输资产…"))
-                            .on_click(cx.listener(move |this, _, window, cx| {
-                                this.edit_asset(Some(id.to_owned()), window, cx);
+                            .on_click(cx.listener(move |this, _, _, cx| {
+                                this.edit_asset(Some(index), cx);
                             })),
                         self.asset_transfer_locked(),
                         false,
@@ -174,6 +196,6 @@ impl SyncView {
                     )),
             );
         }
-        Some(pane.children(self.render_asset_editor(cx)))
+        Some(pane)
     }
 }

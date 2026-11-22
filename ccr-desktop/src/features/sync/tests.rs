@@ -88,19 +88,29 @@ async fn ssh_sync_unavailable_database_and_disconnect_controls_do_not_start_acti
         assert_eq!(window.find(("sync-asset", 1usize)).focused(), Some(true));
         window.press("enter", cx);
         window.render_frame(cx);
-
-        let passphrase = &view.read(cx).asset_editor.as_ref().unwrap().passphrase;
-        assert!(passphrase.read(cx).focus_handle(cx).is_focused(window));
-        for _ in 0..6 {
-            window.press("tab", cx);
-        }
+        window.simulate_next_frame(cx);
         window.render_frame(cx);
-        assert_eq!(window.find("sync-asset-discard").focused(), Some(true));
+        assert_eq!(window.find("sync-asset-push").focused(), Some(true));
+        window.press("tab", cx);
         window.press("enter", cx);
         window.render_frame(cx);
         window.simulate_next_frame(cx);
         window.render_frame(cx);
+        let input = asset_passphrase(&view, cx);
+        assert!(input.read(cx).focus_handle(cx).is_focused(window));
+        assert_eq!(
+            window.find("sync-asset-transfer-environment").label(),
+            Some("Execution environment · SSH")
+        );
+        input.update(cx, |state, cx| {
+            state.set_value("discarded-passphrase", window, cx)
+        });
+        window.press("escape", cx);
+        window.render_frame(cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
         assert!(view.read(cx).asset_editor.is_none());
+        assert!(input.read(cx).value().is_empty());
         assert_eq!(window.find(("sync-asset", 1usize)).focused(), Some(true));
         window.remove_window();
     })
@@ -695,9 +705,17 @@ async fn asset_controls_require_confirmation_and_clear_passphrase_on_leave(
         );
         window.click("sync-assets-all", cx);
         window.render_frame(cx);
+        assert!(window.find("sync-detail").visible());
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert_eq!(window.find("sync-asset-push").focused(), Some(true));
         assert!(window.find("sync-asset-editor").visible());
         for action in ["sync-edit", "sync-read", "sync-test", "sync-folder-add"] {
-            assert_eq!(window.find(action).focused(), None, "{action}");
+            assert_eq!(
+                window.try_find(action).and_then(|action| action.focused()),
+                None,
+                "{action}"
+            );
         }
         window.scroll(
             "sync-page",
@@ -707,17 +725,6 @@ async fn asset_controls_require_confirmation_and_clear_passphrase_on_leave(
         window.click("sync-read", cx);
         window.render_frame(cx);
         assert!(!view.read(cx).busy);
-        view.read(cx)
-            .asset_editor
-            .as_ref()
-            .unwrap()
-            .passphrase
-            .clone()
-            .update(cx, |state, cx| {
-                state.set_value("asset-passphrase-sentinel", window, cx)
-            });
-        window.render_frame(cx);
-        assert!(!labels(window).contains("asset-passphrase-sentinel"));
         window.scroll(
             "sync-page",
             gpui_kit::ScrollDelta::Pixels(gpui_kit::point(px(0.), px(-1500.))),
@@ -725,15 +732,42 @@ async fn asset_controls_require_confirmation_and_clear_passphrase_on_leave(
         );
         window.click("sync-asset-pull", cx);
         window.render_frame(cx);
-        window.scroll(
-            "sync-page",
-            gpui_kit::ScrollDelta::Pixels(gpui_kit::point(px(0.), px(-1500.))),
-            cx,
-        );
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
         assert!(window.find("sync-asset-confirmation").visible());
+        let input = asset_passphrase(&view, cx);
+        assert!(input.read(cx).focus_handle(cx).is_focused(window));
+        input.update(cx, |state, cx| {
+            state.set_value("asset-passphrase-sentinel", window, cx)
+        });
+        window.render_frame(cx);
+        assert!(
+            gpui_kit::base::test_support::snapshots(window)
+                .iter()
+                .all(|node| {
+                    [node.label(), node.value()]
+                        .into_iter()
+                        .flatten()
+                        .all(|text| !text.contains("asset-passphrase-sentinel"))
+                })
+        );
         assert!(!retained.sync_operation_state().busy);
+        window.click("sync-asset-change-direction", cx);
+        window.render_frame(cx);
+        assert!(input.read(cx).value().is_empty());
+        assert!(window.try_find("sync-asset-confirmation").is_none());
+        window.click("sync-asset-pull", cx);
+        window.render_frame(cx);
+        let input = asset_passphrase(&view, cx);
+        assert!(input.read(cx).value().is_empty());
+        input.update(cx, |state, cx| {
+            state.set_value("second-passphrase", window, cx)
+        });
         window.click("sync-asset-confirm", cx);
         assert!(view.read(cx).asset_editor.is_none());
+        assert!(input.read(cx).value().is_empty());
+        window.render_frame(cx);
+        assert_eq!(window.find("sync-operation-status").focused(), Some(true));
         view.update(cx, |v, cx| v.suspend(cx));
     })
     .unwrap();
@@ -763,6 +797,243 @@ async fn asset_controls_require_confirmation_and_clear_passphrase_on_leave(
     })
     .unwrap();
     owner.shutdown();
+}
+
+fn asset_passphrase(view: &Entity<SyncView>, cx: &App) -> Entity<InputState> {
+    view.read(cx)
+        .asset_editor
+        .as_ref()
+        .unwrap()
+        .review
+        .as_ref()
+        .unwrap()
+        .passphrase
+        .as_ref()
+        .unwrap()
+        .clone()
+}
+
+#[gpui_kit::test]
+async fn asset_transfers_keep_scope_and_report_real_loopback_results(cx: &mut TestAppContext) {
+    use crate::runtime::sync::test_support::asset_server;
+    use std::sync::atomic::Ordering;
+
+    cx.executor().allow_parking();
+    let server_runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_io()
+        .worker_threads(1)
+        .build()
+        .unwrap();
+    let server = server_runtime.block_on(asset_server());
+    let root = tempfile::tempdir().unwrap();
+    let settings = root.path().join("sync_folders.toml");
+    let config = format!(
+        "[webdav]\nenabled=true\nurl='{}'\nusername='fixture-user'\npassword='fixture-password'\n",
+        server.url
+    );
+    std::fs::write(&settings, &config).unwrap();
+    let local = root
+        .path()
+        .join("desktop-resource-fixture/home/.claude/settings.json");
+    std::fs::create_dir_all(local.parent().unwrap()).unwrap();
+    std::fs::write(&local, b"fixture-original").unwrap();
+
+    let owner = RuntimeOwner::new().unwrap();
+    let retained = services(&owner, root.path()).with_sync_loopback_fixture();
+    let (handle, view) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        cx.set_global(crate::locales::Language::English);
+        gpui_kit::open_window(
+            WindowOptions {
+                window_bounds: Some(WindowBounds::Windowed(gpui_kit::Bounds::centered(
+                    None,
+                    size(px(960.), px(640.)),
+                    cx,
+                ))),
+                ..Default::default()
+            },
+            cx,
+            |window, cx| cx.new(|cx| SyncView::new(retained.clone(), window, cx)),
+        )
+        .unwrap()
+    });
+    view.update(cx, |view, cx| view.open("Local".into(), cx));
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        view.read(cx).snapshot.is_some()
+    })
+    .await;
+
+    let review = |window: &mut Window, cx: &mut App, all, direction| {
+        window.render_frame(cx);
+        if all {
+            window.click("sync-assets-all", cx);
+        } else {
+            window.click("sync-asset-details-claude-settings", cx);
+            window.render_frame(cx);
+            window.click(("sync-asset", 1usize), cx);
+        }
+        window.render_frame(cx);
+        assert!(window.find("sync-detail").visible());
+        assert!(window.try_find("sync-asset-list").is_none());
+        window.click(direction, cx);
+        window.render_frame(cx);
+        assert_eq!(window.find("sync-asset-force").checked(), Some(false));
+        if let Some(legacy) = window.try_find("sync-asset-v1") {
+            assert_eq!(legacy.checked(), Some(false));
+        }
+        let input = asset_passphrase(&view, cx);
+        input.update(cx, |state, cx| {
+            state.set_value("fixture-operation-passphrase", window, cx)
+        });
+    };
+    let submit = |window: &mut Window, cx: &mut App| {
+        window.scroll(
+            "sync-page",
+            gpui_kit::ScrollDelta::Pixels(gpui_kit::point(px(0.), px(-800.))),
+            cx,
+        );
+        window.click("sync-asset-confirm", cx);
+        assert!(view.read(cx).asset_editor.is_none());
+    };
+    let status = |window: &mut Window, cx: &mut App, expected| {
+        window.render_frame(cx);
+        assert_eq!(window.find("sync-operation-status").label(), Some(expected));
+    };
+
+    cx.update_window(handle, |_, window, cx| {
+        review(window, cx, false, "sync-asset-push");
+        assert_eq!(server.requests.load(Ordering::Relaxed), 0);
+        assert!(window.try_find("sync-asset-v1").is_none());
+        submit(window, cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        !view.read(cx).operation.busy
+    })
+    .await;
+    let uploaded = server.settings.lock().unwrap().clone().unwrap();
+    assert!(!String::from_utf8_lossy(&uploaded).contains("fixture-original"));
+    std::fs::write(&local, b"fixture-edit").unwrap();
+
+    cx.update_window(handle, |_, window, cx| {
+        status(window, cx, "Asset transfer completed · 1/1");
+        review(window, cx, false, "sync-asset-sync");
+        assert!(
+            window
+                .find("sync-asset-transfer-consequence")
+                .label()
+                .unwrap()
+                .contains("reports a conflict")
+        );
+        submit(window, cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        !view.read(cx).operation.busy
+    })
+    .await;
+    assert_eq!(
+        server.settings.lock().unwrap().as_deref(),
+        Some(uploaded.as_slice())
+    );
+    assert_eq!(std::fs::read(&local).unwrap(), b"fixture-edit");
+
+    cx.update_window(handle, |_, window, cx| {
+        status(window, cx, "Asset transfer failed · 0/1");
+        assert!(
+            labels(window).contains("Claude Code · settings.json · Failed · Both copies exist.")
+        );
+        review(window, cx, false, "sync-asset-sync");
+        window.click("sync-asset-force", cx);
+        window.render_frame(cx);
+        assert!(
+            window
+                .find("sync-asset-transfer-consequence")
+                .label()
+                .unwrap()
+                .contains("current environment overwrites WebDAV")
+        );
+        submit(window, cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        !view.read(cx).operation.busy
+    })
+    .await;
+    assert_ne!(
+        server.settings.lock().unwrap().as_deref(),
+        Some(uploaded.as_slice())
+    );
+    assert_eq!(std::fs::read(&local).unwrap(), b"fixture-edit");
+    *server.settings.lock().unwrap() = Some(b"fixture-legacy".to_vec());
+
+    cx.update_window(handle, |_, window, cx| {
+        status(window, cx, "Asset transfer completed · 1/1");
+        review(window, cx, true, "sync-asset-pull");
+        assert!(labels(window).contains("CCR Platforms"));
+        assert!(labels(window).contains("Codex · AGENTS.md"));
+        window.click("sync-asset-force", cx);
+        window.click("sync-asset-v1", cx);
+        submit(window, cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        !view.read(cx).operation.busy
+    })
+    .await;
+    assert_eq!(std::fs::read(&local).unwrap(), b"fixture-legacy");
+    assert_eq!(
+        server.settings.lock().unwrap().as_deref(),
+        Some(b"fixture-legacy".as_slice())
+    );
+    let expected_requests = server.requests.load(Ordering::Relaxed);
+    cx.update_window(handle, |_, window, cx| {
+        status(window, cx, "Asset transfer partially completed · 1/5");
+        let state = view.read(cx);
+        let Some(Ok(SyncOutcome::Assets(rows))) = &state.operation.result else {
+            panic!("asset report expected");
+        };
+        let backup = rows
+            .iter()
+            .find(|row| row.id == "claude-settings")
+            .unwrap()
+            .result
+            .as_ref()
+            .unwrap()
+            .as_ref()
+            .unwrap();
+        assert_eq!(std::fs::read(backup).unwrap(), b"fixture-edit");
+        assert!(labels(window).contains("Claude Code · settings.json · Completed · Backup:"));
+        review(window, cx, false, "sync-asset-push");
+        std::fs::write(&settings, format!("{config}# changed elsewhere\n")).unwrap();
+        submit(window, cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        !view.read(cx).operation.busy
+    })
+    .await;
+    assert_eq!(
+        retained.sync_operation_state().result,
+        Some(Err(SyncError::Conflict))
+    );
+    assert_eq!(server.requests.load(Ordering::Relaxed), expected_requests);
+    assert!(
+        !std::fs::read_to_string(settings)
+            .unwrap()
+            .contains("fixture-operation-passphrase")
+    );
+    retained.select_environment(EnvironmentId::Ssh("other-test-environment".into()));
+    view.update(cx, |view, cx| view.open("Other SSH host".into(), cx));
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(window.try_find("sync-operation-status").is_none());
+        window.remove_window();
+    })
+    .unwrap();
+    owner.shutdown();
+    drop(server);
+    server_runtime.shutdown_background();
 }
 
 #[gpui_kit::test]

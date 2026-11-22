@@ -3,6 +3,8 @@ use ccr_app::environments::EnvironmentPolicy;
 use ccr_app::runtime::EnvironmentId;
 mod operations;
 mod remote;
+#[cfg(test)]
+pub(crate) mod test_support;
 pub use operations::FolderResult;
 pub use operations::{
     AssetDirection, AssetRequest, AssetRow, ConnectionTestStatus, FolderChange, FolderPatch,

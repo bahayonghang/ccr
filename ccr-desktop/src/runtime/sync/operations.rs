@@ -259,7 +259,7 @@ impl Drop for Pending {
 }
 
 impl Services {
-    #[cfg(feature = "native-sync-fixture")]
+    #[cfg(any(test, feature = "native-sync-fixture"))]
     pub(crate) fn with_sync_loopback_fixture(mut self) -> Self {
         self.sync_operations = Arc::new(SyncOperations {
             loopback_fixture: true,
