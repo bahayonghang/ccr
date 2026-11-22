@@ -994,7 +994,7 @@ async fn asset_transfers_keep_scope_and_report_real_loopback_results(cx: &mut Te
     let root = tempfile::tempdir().unwrap();
     let settings = root.path().join("sync_folders.toml");
     let config = format!(
-        "[webdav]\nenabled=true\nurl='{}dav-team/'\nusername='fixture-user'\npassword='fixture-password'\nbase_remote_path='/fixture-team/assets/'\n",
+        "[webdav]\nenabled=true\nurl='{}Team%20A/'\nusername='fixture-user'\npassword='fixture-password'\nbase_remote_path='/fixture-team/assets%20shared/'\n",
         server.url
     );
     std::fs::write(&settings, &config).unwrap();
@@ -1070,7 +1070,7 @@ async fn asset_transfers_keep_scope_and_report_real_loopback_results(cx: &mut Te
         review(window, cx, false, "sync-asset-push");
         assert_eq!(
             window.find("sync-asset-transfer-webdav").label(),
-            Some(format!("WebDAV address · {}dav-team/", server.url).as_str())
+            Some(format!("WebDAV address · {}Team%20A/", server.url).as_str())
         );
         assert_eq!(server.requests.load(Ordering::Relaxed), 0);
         assert!(window.try_find("sync-asset-v1").is_none());
@@ -1144,7 +1144,7 @@ async fn asset_transfers_keep_scope_and_report_real_loopback_results(cx: &mut Te
         assert!(labels(window).contains("Codex · AGENTS.md"));
         window.click("sync-asset-force", cx);
         window.render_frame(cx);
-        assert!(labels(window).contains("WebDAV asset base path · /fixture-team/assets"));
+        assert!(labels(window).contains("WebDAV asset base path · /fixture-team/assets%20shared"));
         assert!(
             labels(window)
                 .contains("When a local file is replaced, its previous contents are backed up.")

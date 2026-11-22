@@ -16,7 +16,8 @@ use std::path::{Path, PathBuf};
 
 use ccr_core::core::log_redact::redact_log_text;
 use ccr_sync::{
-    SyncFolderManager, SyncFoldersConfig, WebDavConfig, sync::assets::normalize_remote_base,
+    SyncFolderManager, SyncFoldersConfig, WebDavConfig,
+    sync::{assets::normalize_remote_base, normalize_href_identity},
 };
 
 use super::{ConfigSource, Services};
@@ -139,11 +140,24 @@ pub enum SyncSnapshot {
 
 fn displayable_webdav_path(path: &str, webdav: &WebDavConfig) -> bool {
     let username = webdav.username.trim();
-    !path.contains(['\\', ':', '@', '?', '#', '%'])
-        && !path.chars().any(char::is_control)
-        && (username.is_empty() || !path.split('/').any(|part| part == username))
-        && !webdav.password.occurs_in(path)
-        && redact_log_text(path) == path
+    let safe_text = |text: &str| {
+        !text.contains(['\\', ':', '@', '?', '#'])
+            && !text.chars().any(char::is_control)
+            && (username.is_empty() || !text.contains(username))
+            && !webdav.password.occurs_in(text)
+            && redact_log_text(text) == text
+    };
+    if !safe_text(path) {
+        return false;
+    }
+    let Ok(mut decoded) = normalize_href_identity(path) else {
+        return false;
+    };
+    // Preserve the trailing separator when checking for literal credentials.
+    if path.ends_with('/') && decoded != "/" {
+        decoded.push('/');
+    }
+    !decoded.contains('%') && safe_text(&decoded)
 }
 
 fn asset_base_for_display(webdav: &WebDavConfig) -> Option<String> {
@@ -501,9 +515,25 @@ enabled = true
             let SyncSnapshot::Present(local) = read_file(&path).unwrap() else {
                 panic!("expected config");
             };
+            assert_eq!(local.asset_remote_base.as_deref(), Some("/assets"));
             local.url
         };
-        assert_ne!(read_endpoint("team-a"), read_endpoint("team-b"));
+        for (scope, path_prefix) in [
+            ("team-a", "/team-a/"),
+            ("team-b", "/team-b/"),
+            ("Team%20A", "/Team%20A/"),
+            ("Team%20B", "/Team%20B/"),
+            ("团队甲", "/%E5%9B%A2%E9%98%9F%E7%94%B2/"),
+            ("团队乙", "/%E5%9B%A2%E9%98%9F%E4%B9%99/"),
+        ] {
+            assert_eq!(
+                read_endpoint(scope),
+                SyncUrl::Endpoint {
+                    origin: "https://dav.example.test".into(),
+                    path_prefix: Some(path_prefix.into()),
+                },
+            );
+        }
     }
 
     #[test]
@@ -530,6 +560,55 @@ enabled = true
                 "/space%20secret/",
                 "space secret",
                 "space%20secret",
+                true,
+            ),
+            (
+                "https://dav.example.test/fixture%2Dcredential/",
+                "/fixture%2Dcredential/",
+                "fixture-credential/",
+                "fixture%2Dcredential",
+                true,
+            ),
+            (
+                "https://dav.example.test/accounts/fixture-user-files/",
+                "/accounts/fixture%2Duser-files",
+                "fixture-password",
+                "fixture-user",
+                true,
+            ),
+            (
+                "https://dav.example.test/accounts/%66ixture-user-files/",
+                "/accounts/fixture-user-files",
+                "fixture-password",
+                "fixture-user",
+                true,
+            ),
+            (
+                "https://dav.example.test/unsafe%2Fsegment/",
+                "/unsafe%5Csegment/",
+                "fixture-password",
+                "unsafe",
+                true,
+            ),
+            (
+                "https://dav.example.test/unsafe%0Asegment/",
+                "/unsafe%00segment/",
+                "fixture-password",
+                "unsafe",
+                true,
+            ),
+            (
+                "https://dav.example.test/unsafe%252Fsegment/",
+                "/unsafe%250Asegment/",
+                "fixture-password",
+                "unsafe",
+                true,
+            ),
+            (
+                "https://dav.example.test/unsafe/%2e%2e/other/",
+                "/unsafe/%2e%2e/other/",
+                "fixture-password",
+                "other",
                 true,
             ),
             (
