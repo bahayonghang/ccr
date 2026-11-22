@@ -1603,6 +1603,7 @@ mod tests {
             since: Some(june_30),
             until: Some(june_30),
             timezone: ReportTimezone::Local,
+            ..Default::default()
         };
         assert_eq!(
             dashboard

@@ -7,7 +7,7 @@
 mod capabilities;
 mod db;
 mod error;
-#[cfg(feature = "test-fixtures")]
+#[cfg(any(test, feature = "test-fixtures"))]
 pub mod fixtures;
 mod insights;
 mod paths;
