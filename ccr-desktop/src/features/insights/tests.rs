@@ -90,7 +90,10 @@ async fn import_controls_reject_fixture_then_reattach_and_cancel_retained_work(
         services.select_environment(ccr_app::runtime::EnvironmentId::Local("other".into()));
         window.render_frame(cx);
         assert!(
-            window.try_find("insights-import-status").is_none(),
+            window
+                .find("insights-import-status")
+                .label()
+                .is_some_and(|text| text.starts_with("Import uses")),
             "another environment exposed the running import"
         );
         assert!(window.try_find("insights-import-cancel").is_none());
@@ -133,10 +136,7 @@ async fn import_controls_reject_fixture_then_reattach_and_cancel_retained_work(
         services.select_environment(ccr_app::runtime::EnvironmentId::Local("other".into()));
         window.render_frame(cx);
         assert!(
-            window
-                .find("insights-import-status")
-                .label()
-                .is_some_and(|text| text.starts_with("Import uses")),
+            window.try_find("insights-import-status").is_none(),
             "another environment exposed the import terminal"
         );
         assert!(window.try_find("insights-import-cancel").is_none());
