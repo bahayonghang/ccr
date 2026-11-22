@@ -228,7 +228,7 @@ impl InsightsView {
             Some(Panel::Filters) => Some(self.report_advanced_fields(cx).into_any_element()),
             Some(Panel::Sync) => self.usage_controls.sync_focus.as_ref().map(|focus| {
                 if focus.entry_pending.replace(false) {
-                        Self::focus_sync_after_mount(focus.dismiss.downgrade(), window, cx);
+                    Self::focus_sync_after_mount(focus.dismiss.downgrade(), window, cx);
                 }
                 self.sync_panel(focus, cx)
             }),

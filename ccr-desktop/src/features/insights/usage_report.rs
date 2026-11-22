@@ -20,6 +20,7 @@ pub(super) struct Navigation {
     pub(super) scroll: ScrollHandle,
     main_focus: FocusHandle,
     detail_focus: FocusHandle,
+    detail_focus_pending: bool,
     heatmap: heatmap::State,
 }
 
@@ -33,6 +34,7 @@ impl Navigation {
             scroll: ScrollHandle::new(),
             main_focus: cx.focus_handle().tab_stop(false),
             detail_focus: cx.focus_handle().tab_stop(false),
+            detail_focus_pending: false,
             heatmap: heatmap::State::new(cx),
         }
     }
@@ -41,6 +43,7 @@ impl Navigation {
         self.page = Page::Overview;
         self.ranking = None;
         self.analysis = None;
+        self.detail_focus_pending = false;
         self.earlier_cursors.clear();
         self.heatmap.reset();
         self.scroll_to_start();
@@ -138,12 +141,27 @@ impl InsightsView {
     }
 
     pub(super) fn render_usage_page(
-        &self,
+        &mut self,
         root: gpui_kit::base::ObservedElement<gpui_kit::Stateful<Div>>,
         auxiliary: Div,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> AnyElement {
+        if std::mem::take(&mut self.usage_report.detail_focus_pending) && self.detail_open {
+            // The next frame now sees the mounted detail and its Back to table button.
+            let guard = (self.generation, self.usage_report.page, self.section);
+            let view = cx.weak_entity();
+            window.on_next_frame(move |window, cx| {
+                let _ = view.update(cx, |this, cx| {
+                    if guard == (this.generation, this.usage_report.page, this.section)
+                        && this.detail_open
+                    {
+                        window.focus(&this.usage_report.detail_focus, cx);
+                        window.focus_next(cx);
+                    }
+                });
+            });
+        }
         let report = match self.snapshot.as_deref() {
             Some(InsightsSnapshot::Usage(report)) => Some(report),
             _ => None,
@@ -544,22 +562,20 @@ impl InsightsView {
                     .border_2()
                     .border_color(gpui_kit::transparent_black())
                     .focus_visible(|style| style.border_color(cx.theme().ring))
-                    .on_key_down(
-                        cx.listener(|this, event: &gpui_kit::KeyDownEvent, window, cx| {
-                            match event.keystroke.key.as_str() {
-                                "down" => this.select_offset(true, cx),
-                                "up" => this.select_offset(false, cx),
-                                "enter" => {
-                                    let index = (0..this.row_count())
-                                        .find(|&i| this.row_key(i) == this.selected.as_deref())
-                                        .unwrap_or(0);
-                                    this.open_usage_detail(index, window, cx);
-                                }
-                                _ => return,
+                    .on_key_down(cx.listener(|this, event: &gpui_kit::KeyDownEvent, _, cx| {
+                        match event.keystroke.key.as_str() {
+                            "down" => this.select_offset(true, cx),
+                            "up" => this.select_offset(false, cx),
+                            "enter" => {
+                                let index = (0..this.row_count())
+                                    .find(|&i| this.row_key(i) == this.selected.as_deref())
+                                    .unwrap_or(0);
+                                this.open_usage_detail(index, cx);
                             }
-                            cx.stop_propagation();
-                        }),
-                    )
+                            _ => return,
+                        }
+                        cx.stop_propagation();
+                    }))
                     .child(rows),
             )
     }
@@ -577,17 +593,15 @@ impl InsightsView {
             .aria_selected(selected)
             .aria_position_in_set(index + 1)
             .aria_size_of_set(self.row_count())
-            .on_a11y_action(gpui_kit::AccessibleAction::Click, move |_, window, cx| {
-                let _ = weak.update(cx, |this, cx| this.open_usage_detail(index, window, cx));
+            .on_a11y_action(gpui_kit::AccessibleAction::Click, move |_, _, cx| {
+                let _ = weak.update(cx, |this, cx| this.open_usage_detail(index, cx));
             })
             .h(theme::text_size(theme::ROW_HEIGHT))
             .border_b_1()
             .border_color(cx.theme().border)
             .when(selected, |row| row.bg(cx.theme().secondary))
             .hover(|style| style.bg(cx.theme().muted))
-            .on_click(
-                cx.listener(move |this, _, window, cx| this.open_usage_detail(index, window, cx)),
-            )
+            .on_click(cx.listener(move |this, _, _, cx| this.open_usage_detail(index, cx)))
             .child(report_columns(label, row.left, row.right, cx).h_full())
             .into_any_element()
     }
@@ -639,12 +653,12 @@ impl InsightsView {
             )
     }
 
-    fn open_usage_detail(&mut self, index: usize, window: &mut Window, cx: &mut Context<Self>) {
+    fn open_usage_detail(&mut self, index: usize, cx: &mut Context<Self>) {
         if self.row_key(index).is_none() {
             return;
         }
         self.select(index, cx);
-        self.restore_usage_focus(true, window, cx);
+        self.usage_report.detail_focus_pending = true;
     }
 
     fn close_usage_detail(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -655,28 +669,9 @@ impl InsightsView {
             self.scroll
                 .scroll_to_item(index, gpui_kit::ScrollStrategy::Top);
         }
-        self.restore_usage_focus(false, window, cx);
+        self.usage_report.detail_focus_pending = false;
+        window.focus(&self.focus, cx);
         cx.notify();
-    }
-
-    fn restore_usage_focus(&self, detail: bool, window: &mut Window, cx: &Context<Self>) {
-        let guard = (self.generation, self.usage_report.page, self.section);
-        let view = cx.weak_entity();
-        window.on_next_frame(move |window, cx| {
-            let _ = view.update(cx, |this, cx| {
-                if guard != (this.generation, this.usage_report.page, this.section)
-                    || this.detail_open != detail
-                {
-                    return;
-                }
-                if detail {
-                    window.focus(&this.usage_report.detail_focus, cx);
-                    window.focus_next(cx);
-                } else {
-                    window.focus(&this.focus, cx);
-                }
-            });
-        });
     }
 }
 
