@@ -809,7 +809,35 @@ async fn assets_can_be_inspected_without_webdav_and_narrow_details_return_focus(
         window.render_frame(cx);
         assert!(window.try_find("sync-asset-distribution").is_none());
         assert!(!nested.join("sync_folders.toml").exists());
-        window.click("sync-asset-details-claude-settings", cx);
+        use gpui_kit::{InputEvent, Keystroke, MouseButton, MouseDownEvent, MouseUpEvent};
+        let position = window
+            .find("sync-asset-details-claude-settings")
+            .bounds()
+            .center();
+        window.dispatch_event(
+            MouseDownEvent {
+                button: MouseButton::Left,
+                position,
+                modifiers: Default::default(),
+                click_count: 1,
+                first_mouse: false,
+            }
+            .to_platform_input(),
+            cx,
+        );
+        window.render_frame(cx);
+        window.dispatch_event(
+            MouseUpEvent {
+                button: MouseButton::Left,
+                position,
+                modifiers: Default::default(),
+                click_count: 1,
+            }
+            .to_platform_input(),
+            cx,
+        );
+        // Native GPUI drains the queue before drawing the detail tree.
+        window.simulate_next_frame(cx);
         window.render_frame(cx);
         assert!(window.try_find("sync-asset-list").is_none());
         let rendered_path = window.find("sync-asset-environment-path");
@@ -820,7 +848,11 @@ async fn assets_can_be_inspected_without_webdav_and_narrow_details_return_focus(
         window.simulate_next_frame(cx);
         window.render_frame(cx);
         assert_eq!(window.find("sync-asset-back").focused(), Some(true));
-        window.press("escape", cx);
+        assert!(window.find("sync-asset-back").bounds().size.width < px(260.));
+        assert!(window.find("sync-asset-inspect").bounds().size.width < px(260.));
+        window.dispatch_keystroke(Keystroke::parse("escape").unwrap(), cx);
+        // The row is also absent up to the first list draw.
+        window.simulate_next_frame(cx);
         window.render_frame(cx);
         window.simulate_next_frame(cx);
         window.render_frame(cx);

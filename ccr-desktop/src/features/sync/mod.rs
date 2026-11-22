@@ -67,6 +67,7 @@ pub struct SyncView {
     editor: Option<Editor>,
     asset_editor: Option<assets::AssetEditor>,
     asset_detail: Option<usize>,
+    asset_detail_focus: Option<(u64, asset_details::AssetDetailFocus)>,
     asset_row_anchors: [FocusHandle; ccr_sync::sync::assets::SYNC_ASSETS.len()],
     asset_back_anchor: FocusHandle,
     asset_transfer_anchor: FocusHandle,
@@ -116,6 +117,7 @@ impl SyncView {
             editor: None,
             asset_editor: None,
             asset_detail: None,
+            asset_detail_focus: None,
             asset_row_anchors: std::array::from_fn(|_| cx.focus_handle().tab_stop(false)),
             asset_back_anchor: cx.focus_handle().tab_stop(false),
             asset_transfer_anchor: cx.focus_handle().tab_stop(false),
@@ -150,6 +152,7 @@ impl SyncView {
         self.editor = None;
         self.asset_editor = None;
         self.asset_detail = None;
+        self.asset_detail_focus = None;
         self.confirmation = None;
         self.management_confirmation = None;
         self.management_focus = false;
@@ -181,6 +184,7 @@ impl SyncView {
         self.preparing_disconnect = false;
         self.asset_editor = None;
         self.asset_detail = None;
+        self.asset_detail_focus = None;
         self.reset_folder_panel();
         self.generation += 1;
         let key = RequestKey {

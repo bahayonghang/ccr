@@ -55,7 +55,7 @@ impl SyncView {
         cx.notify();
     }
 
-    fn send_asset(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    fn send_asset(&mut self, cx: &mut Context<Self>) {
         if self.busy || self.operation.busy {
             return;
         }
@@ -78,7 +78,7 @@ impl SyncView {
             }),
             cx,
         );
-        self.close_asset_details(window, cx);
+        self.close_asset_details(cx);
     }
 
     pub(super) fn asset_draft_blocked(&self) -> bool {
@@ -375,8 +375,8 @@ impl SyncView {
                                                     .size(px(theme::META_SIZE)),
                                             ),
                                     )
-                                    .on_click(cx.listener(move |this, _, window, cx| {
-                                        this.open_asset_details(index, window, cx);
+                                    .on_click(cx.listener(move |this, _, _, cx| {
+                                        this.open_asset_details(index, cx);
                                     })),
                                 self.asset_draft_blocked() || self.asset_editor.is_some(),
                                 false,
@@ -431,7 +431,7 @@ impl SyncView {
             if let Some(direction) = editor.confirmation {
                 section = section.child(div().id("sync-asset-confirmation").test_support().flex().flex_col().gap(px(theme::CONTROL_GAP))
                     .child(match direction{AssetDirection::Push=>text(cx,"Upload the selected configuration assets to the saved WebDAV account?","将所选配置资产上传到已保存的 WebDAV 账户？"),AssetDirection::Pull=>text(cx,"Download the selected configuration assets and apply them locally? Existing local data will be backed up when replacement is allowed.","下载所选配置资产并应用到本地？允许覆盖时，会备份已有本地数据。"),AssetDirection::Sync=>text(cx,"Synchronize selected assets using the displayed replacement and legacy import choices?","按上方覆盖和旧数据导入选项同步所选资产？")})
-                    .child(semantics::button(Button::new("sync-asset-confirm").label(text(cx,"Confirm transfer","确认传输")).on_click(cx.listener(|this,_,window,cx|this.send_asset(window, cx))),locked,false,cx)));
+                    .child(semantics::button(Button::new("sync-asset-confirm").label(text(cx,"Confirm transfer","确认传输")).on_click(cx.listener(|this,_,_,cx|this.send_asset(cx))),locked,false,cx)));
             }
         }
         Some(section)

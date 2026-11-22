@@ -14,7 +14,7 @@ impl Render for SyncView {
             .or_else(|| self.render_editor(cx))
             .or_else(|| self.render_folder_details(window, cx))
             .or_else(|| {
-                self.render_asset_details(cx)
+                self.render_asset_details(window, cx)
                     .map(IntoElement::into_any_element)
             });
         let editing = details.is_some();
@@ -34,6 +34,7 @@ impl Render for SyncView {
             body = body.flex_col();
         }
         if !editing || split {
+            self.finish_asset_list_focus(window, cx);
             let mut list = div()
                 .flex()
                 .flex_col()
@@ -52,6 +53,8 @@ impl Render for SyncView {
                 .child(self.render_folders(cx));
             body = body.child(list);
         }
+        // A different panel may have superseded either focus destination.
+        self.asset_detail_focus = None;
         if let Some(details) = details {
             body = body.child(detail_panel(split, cx).child(details));
         } else if split && let Some(result) = result {
@@ -84,7 +87,7 @@ impl Render for SyncView {
                         this.cancel_asset_edit(window, cx);
                         cx.stop_propagation();
                     } else if this.asset_detail.is_some() {
-                        this.close_asset_details(window, cx);
+                        this.close_asset_details(cx);
                         cx.stop_propagation();
                     } else if this.dismiss_folder_panel(window, cx) {
                         cx.stop_propagation();

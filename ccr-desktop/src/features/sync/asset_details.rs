@@ -4,13 +4,14 @@ use ccr_sync::sync::assets::SYNC_ASSETS;
 use gpui_kit::Role;
 use gpui_kit::component::ActiveTheme;
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum AssetDetailFocus {
+    Back,
+    Row(usize),
+}
+
 impl SyncView {
-    pub(super) fn open_asset_details(
-        &mut self,
-        index: usize,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
+    pub(super) fn open_asset_details(&mut self, index: usize, cx: &mut Context<Self>) {
         if self.environment != self.services.environment()
             || self.asset_draft_blocked()
             || self.asset_editor.is_some()
@@ -18,24 +19,53 @@ impl SyncView {
             return;
         }
         self.reset_folder_panel();
+        self.generation += 1;
         self.asset_detail = Some(index);
-        self.restore_action_focus(self.asset_back_anchor.clone(), window, cx);
+        self.asset_detail_focus = Some((self.generation, AssetDetailFocus::Back));
         cx.notify();
     }
 
-    pub(super) fn close_asset_details(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    pub(super) fn close_asset_details(&mut self, cx: &mut Context<Self>) {
         if self.asset_editor.is_some() {
             return;
         }
         let Some(index) = self.asset_detail.take() else {
             return;
         };
-        self.restore_action_focus(self.asset_row_anchors[index].clone(), window, cx);
+        self.generation += 1;
+        self.asset_detail_focus = Some((self.generation, AssetDetailFocus::Row(index)));
         cx.notify();
     }
 
-    pub(super) fn render_asset_details(&mut self, cx: &mut Context<Self>) -> Option<layout::Panel> {
+    pub(super) fn finish_asset_list_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if let Some((generation, AssetDetailFocus::Row(index))) = self.asset_detail_focus
+            && generation == self.generation
+            && self.asset_detail.is_none()
+            && self.asset_editor.is_none()
+            && !self.asset_draft_blocked()
+            && self.environment == self.services.environment()
+        {
+            self.asset_detail_focus = None;
+            self.restore_action_focus(self.asset_row_anchors[index].clone(), window, cx);
+        }
+    }
+
+    pub(super) fn render_asset_details(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Option<layout::Panel> {
         let index = self.asset_detail?;
+        // The next native frame drains callbacks before drawing. Schedule
+        // entry now so its tab stop exists in the completed frame.
+        if self.asset_detail_focus == Some((self.generation, AssetDetailFocus::Back))
+            && !self.asset_draft_blocked()
+            && self.asset_editor.is_none()
+            && self.environment == self.services.environment()
+        {
+            self.asset_detail_focus = None;
+            self.restore_action_focus(self.asset_back_anchor.clone(), window, cx);
+        }
         let asset = &SYNC_ASSETS[index];
         let name = asset_name(asset);
         let (local, remote) = self.asset_statuses(asset.id, cx);
@@ -49,13 +79,14 @@ impl SyncView {
             .child(
                 div()
                     .id("sync-asset-back-anchor")
+                    .self_start()
                     .track_focus(&self.asset_back_anchor)
                     .tab_stop(false)
                     .child(semantics::ghost_button(
                         Button::new("sync-asset-back")
                             .label(text(cx, "Back to assets", "返回资产列表"))
-                            .on_click(cx.listener(|this, _, window, cx| {
-                                this.close_asset_details(window, cx);
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.close_asset_details(cx);
                             })),
                         self.asset_editor.is_some(),
                         false,
@@ -112,9 +143,11 @@ impl SyncView {
                 "查看当前环境资产以读取完整路径。",
             ));
         }
-        pane = pane
-            .children(self.render_local_inventory_status(cx))
-            .child(div().child(self.inspect_environment_button("sync-asset-inspect", cx)));
+        pane = pane.children(self.render_local_inventory_status(cx)).child(
+            div()
+                .self_start()
+                .child(self.inspect_environment_button("sync-asset-inspect", cx)),
+        );
         if self.is_ssh() && asset.id == "ccr-platforms" {
             pane = pane.child(text(
                 cx,
@@ -126,6 +159,7 @@ impl SyncView {
             pane = pane.child(
                 div()
                     .id("sync-asset-transfer-anchor")
+                    .self_start()
                     .track_focus(&self.asset_transfer_anchor)
                     .tab_stop(false)
                     .child(semantics::ghost_button(
