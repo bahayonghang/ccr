@@ -372,7 +372,13 @@ impl InsightsView {
             .flex_col()
             .flex_shrink_0()
             .gap(px(theme::SECTION_GAP))
-            .child(report_panel(cx).child(tabs).children(table))
+            .child(
+                report_panel(cx)
+                    .id("usage-ranking-panel")
+                    .test_support()
+                    .child(tabs)
+                    .children(table),
+            )
             .children(
                 report
                     .heatmap
@@ -465,7 +471,11 @@ impl InsightsView {
         .h(theme::text_size(theme::ROW_HEIGHT) * count.min(6) as f32)
         .w_full();
         div()
-            .child(report_columns(headers.0, headers.1, headers.2, cx))
+            .child(
+                report_columns(headers.0, headers.1, headers.2, cx)
+                    .id("usage-table-header")
+                    .test_support(),
+            )
             .child(
                 div()
                     .id("insights-list-focus")
@@ -521,7 +531,7 @@ impl InsightsView {
             .on_click(
                 cx.listener(move |this, _, window, cx| this.open_usage_detail(index, window, cx)),
             )
-            .child(report_columns(label, row.left, row.right, cx))
+            .child(report_columns(label, row.left, row.right, cx).h_full())
             .into_any_element()
     }
 
@@ -565,7 +575,8 @@ impl InsightsView {
                     .id("insights-exact-detail")
                     .test_support()
                     .role(Role::Label)
-                    .aria_label(exact)
+                    .aria_label(exact.clone())
+                    .aria_value(exact)
                     .p(px(theme::CONTROL_GAP))
                     .children(lines.into_iter().map(|line| div().child(line))),
             )
@@ -655,7 +666,6 @@ fn report_columns(
 ) -> Div {
     div()
         .w_full()
-        .h_full()
         .px(px(theme::CONTROL_GAP))
         .flex()
         .items_center()

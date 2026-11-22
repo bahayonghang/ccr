@@ -297,6 +297,7 @@ fn heat_legend(max: i64, cx: &App) -> AnyElement {
         .test_support()
         .role(Role::Label)
         .aria_label(exact.clone())
+        .aria_value(exact.clone())
         .flex()
         .items_center()
         .gap(px(GAP))

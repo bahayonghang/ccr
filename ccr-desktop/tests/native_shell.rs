@@ -3122,9 +3122,17 @@ async fn usage_rankings_heatmap_and_records_share_scope_in_both_entries(cx: &mut
     });
     let (handle, _) = cx.update(|cx| {
         gpui_kit::init(cx);
-        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
-            cx.new(|cx| Shell::new(services, window, cx))
-        })
+        gpui_kit::open_window(
+            WindowOptions {
+                window_bounds: Some(gpui_kit::WindowBounds::Windowed(gpui_kit::Bounds::new(
+                    gpui_kit::point(gpui_kit::px(0.), gpui_kit::px(0.)),
+                    gpui_kit::size(gpui_kit::px(1280.), gpui_kit::px(800.)),
+                ))),
+                ..Default::default()
+            },
+            cx,
+            |window, cx| cx.new(|cx| Shell::new(services, window, cx)),
+        )
         .unwrap_or_else(|error| panic!("window: {error}"))
     });
     wait_for_environment(cx, handle);
@@ -3142,6 +3150,33 @@ async fn usage_rankings_heatmap_and_records_share_scope_in_both_entries(cx: &mut
                 .is_some_and(|value| value.contains("16"))
         );
         assert!(window.find("usage-rank:Unknown agent (retired)").visible());
+        window.click("usage-view-details", cx);
+        window.render_frame(cx);
+
+        let panel = window.find("usage-ranking-panel").bounds();
+        let header = window.find("usage-table-header").bounds();
+        let grid_range = window.find("usage-heat-range").bounds();
+        assert!(
+            header.size.height <= gpui_kit::px(48.),
+            "column headers must fit within one row, got {:?}",
+            header.size.height,
+        );
+        for id in [
+            "insights-row:antigravity",
+            "insights-row:Unknown agent (retired)",
+        ] {
+            let row = window.find(id);
+            assert!(row.visible());
+            assert!(row.bounds().top() >= header.bottom());
+            assert!(
+                row.bounds().bottom() <= panel.bottom(),
+                "ranking row {id} paints outside its reading panel",
+            );
+        }
+        let first_row_top = window.find("insights-row:antigravity").bounds().top();
+        assert!(first_row_top - header.bottom() <= gpui_kit::px(12.));
+        assert!(panel.bottom() < grid_range.top());
+        window.click("usage-view-overview", cx);
         window.click("usage-source", cx);
         window.click("usage-source-antigravity", cx);
     })
@@ -3158,6 +3193,10 @@ async fn usage_rankings_heatmap_and_records_share_scope_in_both_entries(cx: &mut
         assert_eq!(
             window.find(date).value(),
             Some(format!("{month_ago} · 9 requests").as_str())
+        );
+        assert_eq!(
+            window.find("usage-heat-legend").value(),
+            Some("0 – 16 requests per day"),
         );
         window.click(format!("usage-heat-{first_heatmap_day}"), cx);
         window.press("end", cx);
@@ -3179,12 +3218,12 @@ async fn usage_rankings_heatmap_and_records_share_scope_in_both_entries(cx: &mut
         window.simulate_next_frame(cx);
         window.render_frame(cx);
         assert_eq!(window.find("usage-return-to-table").focused(), Some(true));
-        assert!(
-            window
-                .find("insights-exact-detail")
-                .label()
-                .is_some_and(|label| label.contains("fixture-prices"))
-        );
+        let detail = window.find("insights-exact-detail");
+        assert_eq!(detail.role(), Some(gpui_kit::Role::Label));
+        assert!(detail.value().is_some_and(|value| {
+            value.contains("fixture-prices") && value.contains("Project · /repo/p1")
+        }));
+        assert_eq!(detail.label(), detail.value());
         window.press("escape", cx);
         window.render_frame(cx);
         window.simulate_next_frame(cx);
