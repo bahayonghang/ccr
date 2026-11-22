@@ -146,7 +146,7 @@ pub struct OperationState {
 pub struct SyncOperations {
     state: Mutex<OperationState>,
     updates: watch::Sender<Arc<OperationState>>,
-    #[cfg(test)]
+    #[cfg(any(test, feature = "native-sync-fixture"))]
     loopback_fixture: bool,
 }
 
@@ -155,7 +155,7 @@ impl Default for SyncOperations {
         Self {
             state: Mutex::new(OperationState::default()),
             updates: watch::channel(Arc::new(OperationState::default())).0,
-            #[cfg(test)]
+            #[cfg(any(test, feature = "native-sync-fixture"))]
             loopback_fixture: false,
         }
     }
@@ -187,6 +187,15 @@ impl Drop for Pending {
 }
 
 impl Services {
+    #[cfg(feature = "native-sync-fixture")]
+    pub(crate) fn with_sync_loopback_fixture(mut self) -> Self {
+        self.sync_operations = Arc::new(SyncOperations {
+            loopback_fixture: true,
+            ..SyncOperations::default()
+        });
+        self
+    }
+
     pub fn sync_operation_state(&self) -> Arc<OperationState> {
         self.sync_operations.updates.borrow().clone()
     }
@@ -235,7 +244,11 @@ impl Services {
             {
                 owner.loopback_fixture
             }
-            #[cfg(not(test))]
+            #[cfg(all(not(test), feature = "native-sync-fixture"))]
+            {
+                local && owner.loopback_fixture
+            }
+            #[cfg(not(any(test, feature = "native-sync-fixture")))]
             {
                 false
             }
@@ -576,13 +589,13 @@ pub(super) async fn execute(
         auto_sync: false,
     };
     // The fixture flag cannot enable external HTTP: the domain validates loopback.
-    #[cfg(test)]
+    #[cfg(any(test, feature = "native-sync-fixture"))]
     let service = if loopback {
         SyncService::new_for_test_loopback(&config).await
     } else {
         SyncService::new(&config).await
     };
-    #[cfg(not(test))]
+    #[cfg(not(any(test, feature = "native-sync-fixture")))]
     let service = SyncService::new(&config).await;
     let service = service.map_err(|_| SyncError::Invalid)?;
     if matches!(operation, Operation::Test { .. }) {

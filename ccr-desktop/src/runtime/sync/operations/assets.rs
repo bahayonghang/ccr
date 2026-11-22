@@ -42,7 +42,7 @@ fn service(
     let config: SyncFoldersConfig =
         toml::from_str(&snapshot.content).map_err(|_| SyncError::Unreadable)?;
     let roots = roots(source)?;
-    #[cfg(test)]
+    #[cfg(any(test, feature = "native-sync-fixture"))]
     if loopback {
         return Ok(AssetService::for_test_loopback(config.webdav, roots));
     }

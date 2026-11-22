@@ -226,6 +226,90 @@ pub(crate) fn read_file(path: &Path) -> Result<SyncSnapshot, SyncError> {
     Ok(SyncSnapshot::Present(local))
 }
 
+#[cfg(feature = "native-sync-fixture")]
+pub(super) fn validate_native_fixture(
+    profiles: &Path,
+    registry: &Path,
+    checkout: &Path,
+) -> Result<(), &'static str> {
+    use std::io::Read;
+
+    const ERROR: &str = "Sync fixture requires a marked directory under outputs/desktop";
+    const IDENTITY: &[u8] = b"ccr-gpui-sync-fixture-v1";
+
+    let checkout = checkout.canonicalize().map_err(|_| ERROR)?;
+    let outputs = checkout.join("outputs").join("desktop");
+    if outputs.canonicalize().map_err(|_| ERROR)? != outputs {
+        return Err(ERROR);
+    }
+    let root = registry.parent().ok_or(ERROR)?;
+    let canonical_root = root.canonicalize().map_err(|_| ERROR)?;
+    if !root.is_absolute()
+        || canonical_root == outputs
+        || !canonical_root.starts_with(&outputs)
+        || profiles.parent() != Some(root)
+        || profiles.file_name() != Some(std::ffi::OsStr::new("profiles.toml"))
+        || registry.file_name() != Some(std::ffi::OsStr::new("config.toml"))
+    {
+        return Err(ERROR);
+    }
+    if profiles.symlink_metadata().is_ok()
+        && profiles.canonicalize().map_err(|_| ERROR)? != canonical_root.join("profiles.toml")
+    {
+        return Err(ERROR);
+    }
+    for path in [
+        registry,
+        &root.join("profiles.db"),
+        &root.join(".ccr-gpui-sync-fixture"),
+    ] {
+        if path.canonicalize().map_err(|_| ERROR)?
+            != canonical_root.join(path.file_name().ok_or(ERROR)?)
+            || !path.is_file()
+        {
+            return Err(ERROR);
+        }
+    }
+    let mut identity = Vec::new();
+    std::fs::File::open(root.join(".ccr-gpui-sync-fixture"))
+        .map_err(|_| ERROR)?
+        .take(IDENTITY.len() as u64 + 1)
+        .read_to_end(&mut identity)
+        .map_err(|_| ERROR)?;
+    if identity != IDENTITY {
+        return Err(ERROR);
+    }
+    Ok(())
+}
+
+#[cfg(all(test, feature = "native-sync-fixture"))]
+#[test]
+#[allow(clippy::unwrap_used)]
+fn native_fixture_requires_an_isolated_catalog_and_exact_marker() {
+    let checkout = tempfile::tempdir().unwrap();
+    let root = checkout.path().join("outputs/desktop/sample");
+    std::fs::create_dir_all(&root).unwrap();
+    let profiles = root.join("profiles.toml");
+    let registry = root.join("config.toml");
+    std::fs::write(&registry, "").unwrap();
+    std::fs::write(root.join("profiles.db"), "").unwrap();
+    let marker = root.join(".ccr-gpui-sync-fixture");
+
+    assert!(validate_native_fixture(&profiles, &registry, checkout.path()).is_err());
+    std::fs::write(&marker, "ccr-gpui-sync-fixture-v1\n").unwrap();
+    assert!(validate_native_fixture(&profiles, &registry, checkout.path()).is_err());
+    std::fs::write(&marker, "ccr-gpui-sync-fixture-v1").unwrap();
+    assert!(validate_native_fixture(&profiles, &registry, checkout.path()).is_ok());
+    assert!(
+        validate_native_fixture(
+            &checkout.path().join("profiles.toml"),
+            &registry,
+            checkout.path()
+        )
+        .is_err()
+    );
+}
+
 fn canonical_file(source: &ConfigSource) -> Result<PathBuf, SyncError> {
     match source {
         ConfigSource::Benchmark(layout) => Ok(layout.path("ccr/sync_folders.toml")),

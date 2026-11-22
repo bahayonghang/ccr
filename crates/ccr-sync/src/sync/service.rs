@@ -68,13 +68,14 @@ impl SyncService {
         use reqwest_dav::re_exports::url::Host;
         let url = validate_webdav_url(&config.webdav_url, true)?;
         if !url.host().is_some_and(|host| match host {
-            Host::Domain(domain) => domain.eq_ignore_ascii_case("localhost"),
             Host::Ipv4(address) => address.is_loopback(),
             Host::Ipv6(address) => address.is_loopback(),
+            Host::Domain(_) => false,
         }) {
             return Err(CcrError::SyncError("sync_fixture_loopback_required".into()));
         }
-        Self::new_with_limits_and_policy(config, SyncLimits::default(), true).await
+        let agent = super::transport::build_fixture_http_client()?;
+        Self::with_client(config, SyncLimits::default(), url, agent)
     }
 
     /// 🏗️ 从配置创建同步服务
@@ -99,13 +100,21 @@ impl SyncService {
         limits: SyncLimits,
         allow_insecure_loopback: bool,
     ) -> Result<Self> {
-        let validated_url = validate_webdav_url(&config.webdav_url, allow_insecure_loopback)?;
+        let url = validate_webdav_url(&config.webdav_url, allow_insecure_loopback)?;
+        let agent = build_http_client(allow_insecure_loopback)?;
+        Self::with_client(config, limits, url, agent)
+    }
+
+    fn with_client(
+        config: &SyncConfig,
+        limits: SyncLimits,
+        validated_url: reqwest_dav::re_exports::url::Url,
+        agent: reqwest_dav::re_exports::reqwest::Client,
+    ) -> Result<Self> {
         tracing::debug!(
             "🔌 创建 WebDAV 客户端: {}",
             validated_url.origin().ascii_serialization()
         );
-        let agent = build_http_client(allow_insecure_loopback)?;
-
         // 🔧 构建 WebDAV 客户端（Basic Auth 是密码的合法明文消费点，走 expose()）
         let client = ClientBuilder::new()
             .set_agent(agent)

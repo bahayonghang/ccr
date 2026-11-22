@@ -18,7 +18,9 @@ desktop-doctor:
 [positional-arguments]
 desktop-dev *args:
     import subprocess, sys
-    sys.exit(subprocess.call([sys.executable, "scripts/desktop.py", "cargo", "run", "--locked", "--bin", "ccr-gpui", "--", *sys.argv[1:]]))
+    args = sys.argv[1:]
+    features = ["--features", "native-sync-fixture"] if "--fixture-sync-loopback" in args else []
+    sys.exit(subprocess.call([sys.executable, "scripts/desktop.py", "cargo", "run", "--locked", *features, "--bin", "ccr-gpui", "--", *args]))
 
 desktop-build:
     {{python}} scripts/desktop.py verify{{native_exit}}
