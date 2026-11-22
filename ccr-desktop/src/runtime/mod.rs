@@ -60,6 +60,7 @@ pub enum LaunchMode {
     AppWithInsights {
         source: ConfigSource,
         paths: insights::InsightsPaths,
+        import_fixture: Option<insights::import::Scenario>,
     },
 }
 
@@ -75,6 +76,7 @@ impl LaunchMode {
         let mut insights_usage = None;
         let mut insights_archive = None;
         let mut insights_home = None;
+        let mut import_fixture = None;
         while let Some(arg) = args.next() {
             match arg.to_str() {
                 Some("--benchmark-fixture-root") => {
@@ -100,6 +102,18 @@ impl LaunchMode {
                     insights_home = Some(PathBuf::from(
                         args.next().ok_or("Missing insights provider home")?,
                     ))
+                }
+                Some("--fixture-usage-import") => {
+                    if import_fixture.is_some() {
+                        return Err("Usage import fixture may be supplied only once");
+                    }
+                    import_fixture = Some(
+                        args.next()
+                            .and_then(|value| {
+                                value.to_str().and_then(insights::import::Scenario::parse)
+                            })
+                            .ok_or("Expected --fixture-usage-import cancel or partial")?,
+                    );
                 }
                 Some("--fixture-profiles") => {
                     profiles = Some(PathBuf::from(
@@ -135,6 +149,7 @@ impl LaunchMode {
                 || insights_usage.is_some()
                 || insights_archive.is_some()
                 || insights_home.is_some()
+                || import_fixture.is_some()
             {
                 return Err(
                     "Benchmark source cannot be combined with probe, legacy fixture or insights options",
@@ -186,8 +201,23 @@ impl LaunchMode {
             ),
         }?;
         match (mode, insights) {
-            (Self::App(source), Some(paths)) => Ok(Self::AppWithInsights { source, paths }),
-            (mode, None) => Ok(mode),
+            (Self::App(source), Some(paths)) => {
+                if import_fixture.is_some() {
+                    insights::import::Scenario::validate(
+                        &source,
+                        &paths,
+                        &std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                            .join("../outputs/desktop"),
+                    )?;
+                }
+                Ok(Self::AppWithInsights {
+                    source,
+                    paths,
+                    import_fixture,
+                })
+            }
+            (mode, None) if import_fixture.is_none() => Ok(mode),
+            (_, None) => Err("Usage import fixture requires explicit insights paths"),
             _ => Err("Insights cannot be combined with probe mode"),
         }
     }
@@ -215,6 +245,7 @@ pub struct Services {
     pub(super) checkin_operations: Arc<checkin::CheckinOperations>,
     pub(super) sync_operations: Arc<sync::SyncOperations>,
     pub(super) usage_import: Arc<insights::import::ImportOwner>,
+    pub(super) import_fixture: Option<insights::import::Scenario>,
     pub(super) observer: Arc<insights::observer::Owner>,
     pub(super) benchmark_s2: Arc<std::sync::OnceLock<Arc<benchmark::stream::Adapter>>>,
     pub(super) ssh: Arc<std::sync::OnceLock<Arc<ccr_app::environments::ssh::Workspace>>>,
@@ -269,6 +300,7 @@ impl Services {
             monitoring: Default::default(),
             sync_operations: Default::default(),
             usage_import: Default::default(),
+            import_fixture: None,
             observer: Default::default(),
             checkin_operations: Default::default(),
             platform_file_operations: Default::default(),
@@ -277,6 +309,14 @@ impl Services {
             benchmark_s2: Default::default(),
         }
     }
+    pub(crate) fn with_import_fixture(
+        mut self,
+        scenario: Option<insights::import::Scenario>,
+    ) -> Self {
+        self.import_fixture = scenario;
+        self
+    }
+
     pub fn with_insights_paths(mut self, paths: insights::InsightsPaths) -> Self {
         let previous = self.insights_paths();
         self.insights_paths = Some(paths);

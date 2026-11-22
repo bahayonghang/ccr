@@ -42,25 +42,67 @@ async fn import_controls_reject_fixture_then_reattach_and_cancel_retained_work(
     std::fs::create_dir_all(root.path().join("home")).unwrap();
     let services = services(&owner, root.path());
     let requests = InsightsRequests::new(&services);
-    let (handle, view) = cx.update(|cx| {
+    let (handle, shell) = cx.update(|cx| {
         gpui_kit::init(cx);
         gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
-            cx.new(|cx| InsightsView::new(services.clone(), window, cx))
+            cx.new(|cx| {
+                crate::shell::Shell::new_with_preferences(
+                    services.clone(),
+                    Ok(Default::default()),
+                    window,
+                    cx,
+                )
+            })
         })
         .unwrap()
     });
-    cx.update_window(handle, |_, _, cx| {
-        view.update(cx, |this, cx| this.open_product(InsightsPage::Usage, cx))
-    })
-    .unwrap();
+    let view = cx.update(|cx| shell.read(cx).insights_view());
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
-        window.click("usage-sync-menu", cx);
-        window.click("insights-import", cx);
+        window.click("nav-usage", cx);
+        window.click("usage-range-menu", cx);
+        window.click("usage-range-90", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+        !view.read(cx).loading
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("insights-refresh", cx);
+        assert_eq!(requests.import_snapshot().status, Status::Idle);
+        assert!(window.try_find("insights-import-confirmation").is_none());
+        for _ in 0..64 {
+            if window.find("usage-sync-menu").focused() == Some(true) {
+                break;
+            }
+            window.press("tab", cx);
+        }
+        assert_eq!(window.find("usage-sync-menu").focused(), Some(true));
+        window.press("enter", cx);
         window.render_frame(cx);
-        assert_eq!(
-            view.read(cx).import_error,
-            Some(crate::runtime::insights::import::Failure::FixtureDisabled)
+        assert_eq!(requests.import_snapshot().status, Status::Idle);
+        assert!(
+            window
+                .find("insights-import-confirmation")
+                .label()
+                .is_some_and(|label| label.contains("All sources")
+                    && label.contains("30 days")
+                    && label.contains("Fixture"))
+        );
+        window.press("tab", cx);
+        assert_ne!(window.find("usage-sync-menu").focused(), Some(true));
+        window.press("escape", cx);
+        assert_eq!(window.find("usage-sync-menu").focused(), Some(true));
+        assert!(window.try_find("insights-import-confirmation").is_none());
+        window.press("enter", cx);
+        window.click("insights-import", cx);
+        assert_eq!(requests.import_snapshot().status, Status::Idle);
+        assert!(
+            window
+                .find("insights-import-availability")
+                .label()
+                .is_some_and(|label| label.contains("disabled for fixture"))
         );
     })
     .unwrap();
@@ -73,6 +115,13 @@ async fn import_controls_reject_fixture_then_reattach_and_cancel_retained_work(
         window.render_frame(cx);
         window.click("insights-import-days-7", cx);
         window.render_frame(cx);
+        assert_eq!(requests.import_snapshot().status, Status::Idle);
+        assert!(
+            window
+                .find("insights-import-confirmation")
+                .label()
+                .is_some_and(|label| label.contains("Codex") && label.contains("Last 7 days"))
+        );
         window.click("insights-import", cx);
     })
     .unwrap();
@@ -90,10 +139,7 @@ async fn import_controls_reject_fixture_then_reattach_and_cancel_retained_work(
         services.select_environment(ccr_app::runtime::EnvironmentId::Local("other".into()));
         window.render_frame(cx);
         assert!(
-            window
-                .find("insights-import-status")
-                .label()
-                .is_some_and(|text| text.starts_with("Import uses")),
+            window.try_find("insights-import-status").is_none(),
             "another environment exposed the running import"
         );
         assert!(window.try_find("insights-import-cancel").is_none());
@@ -114,9 +160,11 @@ async fn import_controls_reject_fixture_then_reattach_and_cancel_retained_work(
     .unwrap();
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
+        assert!(window.try_find("insights-import-confirmation").is_none());
+        window.click("usage-sync-menu", cx);
         window.click("insights-import-source", cx);
-        window.render_frame(cx);
         assert!(window.try_find("insights-import-source-claude").is_none());
+        window.click("insights-import-dismiss", cx);
         window.click("insights-policies-tab", cx);
         window.render_frame(cx);
         window.click("insights-usage", cx);
@@ -132,6 +180,10 @@ async fn import_controls_reject_fixture_then_reattach_and_cancel_retained_work(
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         assert!(window.try_find("insights-import-status").is_some());
+        assert_eq!(
+            window.find("usage-range-menu").label(),
+            Some("Last 90 days")
+        );
         let environment = services.environment();
         services.select_environment(ccr_app::runtime::EnvironmentId::Local("other".into()));
         window.render_frame(cx);
@@ -179,6 +231,9 @@ async fn shell_usage_exposes_policy_writes_without_a_usage_database(cx: &mut Tes
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-usage", cx);
+        assert!(window.try_find("tool-install").is_some());
+        assert!(window.try_find("insights-capabilities").is_some());
+        assert!(window.try_find("insights-observer-tab").is_some());
         assert_eq!(
             window.find("insights-policies-tab").label(),
             Some("Budget and pricing")
@@ -635,48 +690,105 @@ async fn rendered_archive_drill_in_pages_real_provider_messages_and_clears_plain
 }
 
 #[gpui_kit::test]
-async fn platform_import_locks_source_to_its_platform_context(cx: &mut TestAppContext) {
-    use crate::runtime::insights::import::{Status, ToolUpdate};
+async fn platform_import_locks_source_and_keeps_read_only_report_after_partial_sync(
+    cx: &mut TestAppContext,
+) {
+    use crate::runtime::insights::import::{Scenario, Status, ToolUpdate};
     cx.executor().allow_parking();
     let owner = RuntimeOwner::new().unwrap();
     let root = tempfile::tempdir().unwrap();
-    std::fs::create_dir_all(root.path().join("llmusage")).unwrap();
+    let usage = create_projection_db(&root.path().join("llmusage"));
+    let original_db = std::fs::read(&usage.db_path).unwrap();
     std::fs::create_dir_all(root.path().join("home")).unwrap();
-    let services = services(&owner, root.path());
+    let services = services(&owner, root.path()).with_import_fixture(Some(Scenario::Partial));
     let requests = InsightsRequests::new(&services);
-    requests.fixture_import(false);
-    let (handle, view) = cx.update(|cx| {
+    let (handle, _) = cx.update(|cx| {
         gpui_kit::init(cx);
-        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
-            cx.new(|cx| InsightsView::new(services, window, cx))
-        })
+        gpui_kit::open_window(
+            WindowOptions {
+                window_bounds: Some(gpui_kit::WindowBounds::Windowed(
+                    gpui_kit::Bounds::centered(None, gpui_kit::size(px(960.), px(640.)), cx),
+                )),
+                ..WindowOptions::default()
+            },
+            cx,
+            |window, cx| {
+                cx.new(|cx| {
+                    crate::shell::Shell::new_with_preferences(
+                        services,
+                        Ok(Default::default()),
+                        window,
+                        cx,
+                    )
+                })
+            },
+        )
         .unwrap()
     });
     cx.update_window(handle, |_, window, cx| {
-        view.update(cx, |this, cx| {
-            this.open_platform(InsightsPage::Usage, Platform::Codex, window, cx)
-        });
         window.render_frame(cx);
+        window.click("nav-codex", cx);
+        if !window.find("tool-platform-usage").visible() {
+            window.scroll(
+                "platform-tab-scroll",
+                gpui_kit::ScrollDelta::Pixels(gpui_kit::point(px(-800.), px(0.))),
+                cx,
+            );
+            window.render_frame(cx);
+        }
+        window.click("tool-platform-usage", cx);
+        window.render_frame(cx);
+        assert!(window.find("usage-sync-menu").visible());
+        window.click("usage-range-menu", cx);
+        window.click("usage-range-90", cx);
         window.click("usage-sync-menu", cx);
         window.click("insights-import-source", cx);
-        window.render_frame(cx);
         assert!(window.try_find("insights-import-source-claude").is_none());
+        assert!(window.try_find("insights-import-source-claude").is_none());
+        assert!(
+            window
+                .find("insights-import-confirmation")
+                .label()
+                .is_some_and(|label| label.contains("Codex") && label.contains("Last 30 days"))
+        );
+        assert_eq!(requests.import_snapshot().status, Status::Idle);
+        assert!(window.find("insights-import").visible());
         window.click("insights-import", cx);
+        window.render_frame(cx);
+        assert!(window.find("insights-import-cancel").visible());
     })
     .unwrap();
-    cx.wait_for(handle, Duration::from_secs(10), |_, _| {
-        requests.import_snapshot().status == Status::Finished
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window
+            .try_find("insights-import-status")
+            .is_some_and(|node| {
+                node.label().is_some_and(|label| {
+                    label.contains("Import partially completed")
+                        && label.contains("Source errors 1")
+                })
+            })
     })
     .await;
+    assert_eq!(requests.import_snapshot().status, Status::Finished);
     assert_eq!(
         requests.import_snapshot().options.source,
         Some(SourceKind::Codex)
     );
+    assert_eq!(requests.import_snapshot().options.recent_days, 30);
     assert!(matches!(
         requests.import_snapshot().tools,
         ToolUpdate::NotStarted
     ));
-    cx.update_window(handle, |_, window, _| window.remove_window())
-        .unwrap();
+    cx.update_window(handle, |_, window, _| {
+        assert_eq!(
+            window.find("usage-range-menu").label(),
+            Some("Last 90 days")
+        );
+        assert!(window.try_find("insights-import-cancel").is_none());
+        window.remove_window();
+    })
+    .unwrap();
+    assert_eq!(std::fs::read(&usage.db_path).unwrap(), original_db);
+    assert!(!root.path().join("observer.db").exists());
     owner.shutdown();
 }

@@ -15,9 +15,13 @@ use ccr_app::{
 use std::sync::{Arc, Mutex};
 use tokio::sync::watch;
 
+mod fixture;
+pub use fixture::Scenario;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Failure {
     LocalOnly,
+    SshUnavailable,
     Unconfigured,
     FixtureDisabled,
     SourceRoot,
@@ -217,16 +221,88 @@ impl InsightsRequests {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(wait);
     }
-    pub fn cancel_import(&self) {
-        self.services.usage_import.update(|state| {
-            if state.snapshot.status.active() {
-                state.snapshot.status = Status::CancelRequested;
-                if let Some(cancel) = &state.cancel {
-                    cancel.request_cancel();
-                }
-            }
-        });
+    pub fn cancel_import_run(&self, environment: &EnvironmentId, run: u64) {
+        let owner = &self.services.usage_import;
+        let mut state = owner
+            .state
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if state.snapshot.run != run
+            || state.snapshot.environment.as_ref() != Some(environment)
+            || !matches!(state.snapshot.status, Status::Queued | Status::Running)
+        {
+            return;
+        }
+        state.snapshot.status = Status::CancelRequested;
+        if let Some(cancel) = &state.cancel {
+            cancel.request_cancel();
+        }
+        owner.updates.send_replace(Arc::new(state.snapshot.clone()));
     }
+
+    #[cfg(test)]
+    pub fn cancel_import(&self) {
+        let snapshot = self.import_snapshot();
+        if let Some(environment) = snapshot.environment.as_ref() {
+            self.cancel_import_run(environment, snapshot.run);
+        }
+    }
+
+    #[cfg(test)]
+    fn test_fixture_plan(&self) -> Option<bool> {
+        *self
+            .services
+            .usage_import
+            .fixture
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    fn local_import_paths(&self) -> Result<super::InsightsPaths, Failure> {
+        let paths = self
+            .paths
+            .as_ref()
+            .filter(|paths| paths.usage_root.is_absolute() && paths.provider_home.is_absolute())
+            .ok_or(Failure::Unconfigured)?;
+        if self.services.source.is_fixture() {
+            if self.services.import_fixture.is_none() {
+                #[cfg(test)]
+                if self.test_fixture_plan().is_some() {
+                    return Ok(paths.clone());
+                }
+                return Err(Failure::FixtureDisabled);
+            }
+        } else if super::local_insights_paths()
+            .is_none_or(|local| local.provider_home != paths.provider_home)
+        {
+            return Err(Failure::SourceRoot);
+        }
+        Ok(paths.clone())
+    }
+
+    pub fn check_import_target(&self, environment: &EnvironmentId) -> Result<(), Failure> {
+        if self.services.source.is_benchmark() {
+            return Err(Failure::FixtureDisabled);
+        }
+        match environment {
+            EnvironmentId::Local(_) => self.local_import_paths().map(|_| ()),
+            EnvironmentId::Ssh(_) => self
+                .services
+                .remote_configuration_io(environment)
+                .map(|_| ())
+                .map_err(|_| Failure::SshUnavailable),
+            _ => Err(Failure::LocalOnly),
+        }
+    }
+
+    pub fn import_is_fixture(&self) -> bool {
+        self.services.source.is_fixture()
+    }
+
+    pub fn import_is_synthetic(&self) -> bool {
+        self.services.import_fixture.is_some()
+    }
+
     pub fn start_import(&self, key: RequestKey) -> Result<(), Failure> {
         self.start_import_with_options(key, Options::default())
     }
@@ -260,23 +336,17 @@ impl InsightsRequests {
         }
         options.recent_days = options.recent_days.max(1);
         let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
-        let remote = if local {
-            None
-        } else {
-            Some(
+        let remote = match &key.environment {
+            EnvironmentId::Local(_) => None,
+            EnvironmentId::Ssh(_) => Some(
                 self.services
                     .remote_configuration_io(&key.environment)
-                    .map_err(|_| {
-                        if matches!(key.environment, EnvironmentId::Ssh(_)) {
-                            Failure::Process
-                        } else {
-                            Failure::LocalOnly
-                        }
-                    })?,
-            )
+                    .map_err(|_| Failure::SshUnavailable)?,
+            ),
+            _ => return Err(Failure::LocalOnly),
         };
         let paths = if local {
-            self.paths.clone().ok_or(Failure::Unconfigured)?
+            self.local_import_paths()?
         } else {
             let root = self.remote_cache().map_err(|_| Failure::Unconfigured)?;
             super::InsightsPaths {
@@ -285,31 +355,11 @@ impl InsightsRequests {
                 archive_db: root.join("unavailable-archive.db"),
             }
         };
-        if !paths.usage_root.is_absolute() || !paths.provider_home.is_absolute() {
-            return Err(Failure::Unconfigured);
-        }
-        let fixture = self.services.source.is_fixture();
+        let native_fixture = self.services.import_fixture;
         #[cfg(test)]
-        let fixture_plan = *self
-            .services
-            .usage_import
-            .fixture
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        #[cfg(not(test))]
-        let fixture_plan: Option<bool> = None;
-        if local && fixture && fixture_plan.is_none() {
-            return Err(Failure::FixtureDisabled);
-        }
-        if local
-            && !fixture
-            && super::local_insights_paths()
-                .is_none_or(|local| local.provider_home != paths.provider_home)
-        {
-            return Err(Failure::SourceRoot);
-        }
+        let fixture_plan = self.test_fixture_plan();
         #[cfg(test)]
-        if local && fixture {
+        if local && native_fixture.is_none() && fixture_plan.is_some() {
             validate_fixture(&self.services.source, &paths)?;
         }
         let owner = self.services.usage_import.clone();
@@ -397,6 +447,9 @@ impl InsightsRequests {
                                 .await?;
                                 return Ok(summary);
                             }
+                            if let Some(scenario) = native_fixture {
+                                return scenario.run(options, &worker_owner, &cancel).await;
+                            }
                             let observe = |event| {
                                 worker_owner.event(event);
                                 std::future::ready(Ok(()))
@@ -416,17 +469,19 @@ impl InsightsRequests {
                         })
                     });
                 if let Ok(summary) = &result {
+                    let update_tools =
+                        local && options.includes_claude() && native_fixture.is_none();
                     worker_owner.update(|state| {
                         state.snapshot.total_seen = Some(summary.total_seen);
                         state.snapshot.records_imported = summary.total_inserted as u64;
-                        state.snapshot.tools = if local && options.includes_claude() {
+                        state.snapshot.tools = if update_tools {
                             ToolUpdate::Running
                         } else {
                             ToolUpdate::NotStarted
                         };
                     });
                     let tools =
-                        if local && options.includes_claude() {
+                        if update_tools {
                             Some(requests.ingest_observer_tools(&paths.provider_home, || {
                                 cancel.is_cancelled()
                             }))
@@ -469,12 +524,14 @@ impl InsightsRequests {
                         Err(_) => Status::Failed(Failure::Process),
                     };
                 });
-                let (event, failed) = match &result {
-                    Ok(_) => ("usage.import.completed", false),
-                    Err(LlmusageAdapterError::Cancelled) => ("usage.import.cancelled", false),
-                    Err(_) => ("usage.import.failed", true),
-                };
-                monitoring.terminal(&monitor_source, "usage", event, failed);
+                if native_fixture.is_none() {
+                    let (event, failed) = match &result {
+                        Ok(_) => ("usage.import.completed", false),
+                        Err(LlmusageAdapterError::Cancelled) => ("usage.import.cancelled", false),
+                        Err(_) => ("usage.import.failed", true),
+                    };
+                    monitoring.terminal(&monitor_source, "usage", event, failed);
+                }
                 pending.done = true;
                 match result {
                     Ok(_) => Completion::Success(()),

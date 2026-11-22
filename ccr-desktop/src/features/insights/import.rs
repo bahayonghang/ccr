@@ -1,10 +1,12 @@
 use super::*;
-use crate::runtime::insights::import::{Failure, Options, Status, ToolUpdate};
+use crate::runtime::insights::import::{Failure, Options, Snapshot, Status, ToolUpdate};
+use ccr_app::runtime::EnvironmentId;
 
 #[derive(Default)]
 pub(super) struct Scope {
     options: Options,
     choose_source: bool,
+    ssh_name: Option<(EnvironmentId, String)>,
 }
 
 pub(super) fn source_label(source: Option<SourceKind>, cx: &gpui_kit::App) -> &'static str {
@@ -26,13 +28,18 @@ fn failure(error: Failure, cx: &gpui_kit::App) -> &'static str {
     match error {
         Failure::LocalOnly => text(
             cx,
-            "Usage import is available in Local only.",
-            "用量导入仅支持本地环境。",
+            "This execution environment does not support usage import.",
+            "当前执行环境不支持用量导入。",
+        ),
+        Failure::SshUnavailable => text(
+            cx,
+            "Usage import is unavailable. Connect the selected SSH host to continue.",
+            "用量导入不可用，请先连接所选 SSH 主机。",
         ),
         Failure::Unconfigured => text(
             cx,
-            "Usage import paths are unavailable.",
-            "用量导入路径不可用。",
+            "Usage import paths are unavailable. Check the configured usage and provider roots.",
+            "用量导入路径不可用，请检查用量和会话来源目录。",
         ),
         Failure::FixtureDisabled => text(
             cx,
@@ -51,8 +58,8 @@ fn failure(error: Failure, cx: &gpui_kit::App) -> &'static str {
         ),
         Failure::MissingCli => text(
             cx,
-            "Install the llmusage CLI before importing.",
-            "请先安装 llmusage CLI 再导入。",
+            "llmusage is missing in this environment. Open Usage → Install llmusage.",
+            "当前执行环境缺少 llmusage。请打开「用量」→「安装 llmusage」。",
         ),
         Failure::TimedOut => text(
             cx,
@@ -125,140 +132,291 @@ impl InsightsView {
         }
         options
     }
-    fn start_import(&mut self, cx: &mut Context<Self>) {
-        let result = self.requests.start_import_with_options(
-            RequestKey {
-                environment: self.requests.environment(),
-                platform: Platform::Claude,
-                generation: self.generation,
-                request_id: self.generation,
-            },
-            self.effective_import_options(),
-        );
-        self.import_error = result.err();
+    pub(crate) fn set_import_environment_name(&mut self, environment: EnvironmentId, name: String) {
+        self.import_scope.ssh_name = Some((environment, name));
+    }
+
+    pub(super) fn close_import_source_menu(&mut self) {
+        self.import_scope.choose_source = false;
+    }
+
+    fn import_environment_name(&self, environment: &EnvironmentId, cx: &gpui_kit::App) -> String {
+        match environment {
+            EnvironmentId::Local(id) => {
+                let name = if self.requests.import_is_fixture() {
+                    text(cx, "Fixture", "演示环境")
+                } else {
+                    text(cx, "Local", "本地")
+                };
+                if id == "local" || id == "fixture" {
+                    name.into()
+                } else {
+                    format!("{name} · {id}")
+                }
+            }
+            EnvironmentId::Ssh(id) => {
+                let name = self
+                    .import_scope
+                    .ssh_name
+                    .as_ref()
+                    .filter(|(captured, _)| captured == environment)
+                    .map_or(id.as_str(), |(_, name)| name);
+                format!("SSH · {name}")
+            }
+            EnvironmentId::Wsl(id) => format!("WSL · {id}"),
+        }
+    }
+
+    fn confirm_import(
+        &mut self,
+        environment: EnvironmentId,
+        options: Options,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.requests.environment() != environment || self.effective_import_options() != options
+        {
+            return;
+        }
+        self.import_error = self
+            .requests
+            .start_import_with_options(
+                RequestKey {
+                    environment,
+                    platform: self.platform_scope.unwrap_or(Platform::Claude),
+                    generation: self.generation,
+                    request_id: self.generation,
+                },
+                options,
+            )
+            .err();
+        if self.import_error.is_none() {
+            self.usage_controls.dismiss_panel(window, cx);
+            self.close_import_source_menu();
+        }
         cx.notify();
     }
+
     pub(super) fn import_controls(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        self.import_controls_inner(false, cx)
+        let environment = self.requests.environment();
+        let options = self.effective_import_options();
+        let active = self.requests.import_snapshot().status.active();
+        let unavailable = self.requests.check_import_target(&environment).err();
+        let synthetic = self.requests.import_is_synthetic();
+        let scope = format!(
+            "{} · {} · {}",
+            self.import_environment_name(&environment, cx),
+            source_label(options.source, cx),
+            recent_days(options.recent_days, cx)
+        );
+        let mode = if synthetic {
+            text(
+                cx,
+                "Synthetic import · Sample progress only",
+                "合成导入 · 仅演示任务进度",
+            )
+        } else {
+            text(
+                cx,
+                "Sync scans provider sessions with llmusage in this execution environment.",
+                "同步使用当前执行环境的 llmusage 扫描会话。",
+            )
+        };
+        let diagnostic = unavailable
+            .or(self.import_error)
+            .or(active.then_some(Failure::Busy))
+            .map(|error| failure(error, cx));
+        div()
+            .flex()
+            .flex_col()
+            .gap(px(theme::CONTROL_GAP))
+            .child(self.import_scope_controls(active, cx))
+            .child(
+                div()
+                    .id("insights-import-confirmation")
+                    .test_support()
+                    .role(gpui_kit::Role::Label)
+                    .aria_label(scope.clone())
+                    .child(scope),
+            )
+            .child(
+                div()
+                    .text_size(crate::theme::text_size(theme::META_SIZE))
+                    .child(mode),
+            )
+            .children(
+                diagnostic
+                    .map(|message| import_message("insights-import-availability", message.into())),
+            )
+            .child(
+                div()
+                    .flex()
+                    .flex_wrap()
+                    .gap(px(theme::CONTROL_GAP))
+                    .child(semantics::button(
+                        Button::new("insights-import")
+                            .label(text(cx, "Confirm sync", "确认同步"))
+                            .on_click(cx.listener(move |this, _, window, cx| {
+                                this.confirm_import(environment.clone(), options, window, cx);
+                            })),
+                        active || unavailable.is_some(),
+                        active,
+                        cx,
+                    ))
+                    .child(semantics::ghost_button(
+                        Button::new("insights-import-dismiss")
+                            .label(text(cx, "Close", "关闭"))
+                            .on_click(cx.listener(|this, _, window, cx| {
+                                this.usage_controls.dismiss_panel(window, cx);
+                                this.close_import_source_menu();
+                                cx.notify();
+                            })),
+                        false,
+                        false,
+                        cx,
+                    )),
+            )
     }
+
     pub(super) fn retained_import_controls(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        self.import_controls_inner(true, cx)
-    }
-    fn import_controls_inner(
-        &self,
-        retained_only: bool,
-        cx: &mut Context<Self>,
-    ) -> impl IntoElement {
         let snapshot = self.requests.import_snapshot();
-        let active = snapshot.status.active();
-        let snapshot = if snapshot.environment.as_ref() == Some(&self.requests.environment()) {
-            snapshot
-        } else {
-            Default::default()
+        let environment = self.requests.environment();
+        let run = snapshot.run;
+        let belongs_here = snapshot.environment.as_ref() == Some(&environment);
+        let active = snapshot.status.active() && belongs_here;
+        div()
+            .flex()
+            .flex_wrap()
+            .items_center()
+            .gap(px(theme::CONTROL_GAP))
+            .children(belongs_here.then(|| {
+                import_message(
+                    "insights-import-status",
+                    self.import_status(&snapshot, &environment, cx),
+                )
+            }))
+            .children(active.then(|| {
+                semantics::button(
+                    Button::new("insights-import-cancel")
+                        .label(text(cx, "Cancel import", "取消导入"))
+                        .ghost()
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            if this.requests.environment() == environment {
+                                this.requests.cancel_import_run(&environment, run);
+                                this.import_error = None;
+                                cx.notify();
+                            }
+                        })),
+                    snapshot.status == Status::CancelRequested,
+                    snapshot.status == Status::CancelRequested,
+                    cx,
+                )
+            }))
+    }
+
+    fn import_status(
+        &self,
+        snapshot: &Snapshot,
+        environment: &EnvironmentId,
+        cx: &gpui_kit::App,
+    ) -> String {
+        let partial = snapshot.source_errors > 0
+            || matches!(
+                snapshot.tools,
+                ToolUpdate::Failed | ToolUpdate::Finished { errors: 1.., .. }
+            );
+        let status = match snapshot.status {
+            Status::Idle => "",
+            Status::Queued => text(cx, "Usage import queued", "用量导入已排队"),
+            Status::Running => text(
+                cx,
+                "Usage import running; leaving this page keeps it running.",
+                "正在导入用量，离开页面后仍继续运行。",
+            ),
+            Status::CancelRequested => text(
+                cx,
+                "Cancellation requested; waiting for process cleanup.",
+                "已请求取消，正在等待进程清理。",
+            ),
+            Status::Cancelled => text(
+                cx,
+                "Usage import cancelled after process cleanup.",
+                "用量导入已取消，进程清理已结束。",
+            ),
+            Status::Failed(error) => failure(error, cx),
+            Status::Finished if partial => text(cx, "Import partially completed", "用量已部分更新"),
+            Status::Finished => text(cx, "Import finished", "用量导入已完成"),
         };
-        let mut status = if let Some(error) = self.import_error.filter(|_| !retained_only) {
-            failure(error, cx).to_string()
-        } else {
-            match snapshot.status {
-                Status::Idle => text(cx, "Import uses the installed llmusage CLI and default provider directories in the current execution environment.", "导入使用当前执行环境中已安装的 llmusage CLI 和默认会话来源目录。").to_string(),
-                Status::Queued => text(cx, "Usage import queued", "用量导入已排队").to_string(),
-                Status::Running => text(cx, "Usage import running; leaving this page keeps it running.", "正在导入用量，离开页面后仍继续运行。").to_string(),
-                Status::CancelRequested => text(cx, "Cancellation requested; waiting for process cleanup.", "已请求取消，正在等待进程清理。").to_string(),
-                Status::Cancelled => text(cx, "Usage import cancelled after process cleanup.", "用量导入已取消，进程清理已结束。").to_string(),
-                Status::Failed(error) => failure(error, cx).to_string(),
-                Status::Finished => if is_chinese(cx) {
-                    format!("导入完成：扫描 {} 个文件，读取 {} 条，新增 {} 条，来源错误 {}", snapshot.files_scanned, snapshot.total_seen.unwrap_or(0), snapshot.records_imported, snapshot.source_errors)
-                } else {
-                    format!("Import finished: {} files, {} seen, {} inserted, {} source errors", snapshot.files_scanned, snapshot.total_seen.unwrap_or(0), snapshot.records_imported, snapshot.source_errors)
-                },
-            }
-        };
+        let mut status = format!(
+            "{status} · {} · {} · {}",
+            self.import_environment_name(environment, cx),
+            source_label(snapshot.options.source, cx),
+            recent_days(snapshot.options.recent_days, cx),
+        );
+        let files = snapshot.files_scanned;
+        let inserted = snapshot.records_imported;
+        let source_errors = snapshot.source_errors;
+        if let Some(seen) = snapshot.total_seen {
+            status.push_str(&if is_chinese(cx) {
+                format!(" · 扫描 {files} 个文件，读取 {seen} 条，新增 {inserted} 条，来源错误 {source_errors}")
+            } else {
+                format!(" · {files} files, {seen} seen, {inserted} inserted · Source errors {source_errors}")
+            });
+        } else if snapshot.status == Status::Running {
+            status.push_str(&if is_chinese(cx) {
+                format!(" · 已扫描 {files} 个文件，新增 {inserted} 条")
+            } else {
+                format!(" · {files} files scanned, {inserted} inserted")
+            });
+        }
         match snapshot.tools {
             ToolUpdate::NotStarted => {}
             ToolUpdate::Running => status.push_str(text(
                 cx,
-                " Updating Claude tool history.",
-                " 正在更新 Claude 工具记录。",
+                " · Updating Claude tool history",
+                " · 正在更新 Claude 工具记录",
+            )),
+            ToolUpdate::Failed if snapshot.status == Status::Cancelled => status.push_str(text(
+                cx,
+                " · Tool history update cancelled. Usage changes already saved.",
+                " · 工具记录更新已取消，已保存的用量数据会保留。",
             )),
             ToolUpdate::Failed => status.push_str(text(
                 cx,
-                " Tool history did not finish; completed usage changes remain.",
-                " 工具记录更新未完成，已完成的用量变更仍保留。",
+                " · Tool history update failed. Usage changes already saved.",
+                " · 工具记录更新失败，已保存的用量数据会保留。",
             )),
             ToolUpdate::Finished {
                 files,
                 calls,
                 errors,
             } => status.push_str(&if is_chinese(cx) {
-                format!(" 工具记录：扫描 {files} 个文件、处理 {calls} 行、错误 {errors}。")
+                format!(" · 工具记录扫描 {files} 个文件、处理 {calls} 行、错误 {errors}")
             } else {
-                format!(" Tool history: {files} files, {calls} rows processed, {errors} errors.")
+                format!(
+                    " · Tool history scanned {files} files, processed {calls} rows, {errors} errors"
+                )
             }),
         }
-        if snapshot.status == Status::Cancelled && snapshot.total_seen.is_some() {
-            status.push_str(&if is_chinese(cx) {
-                format!(" 用量阶段已写入 {} 条，工具更新已取消；未回滚已完成变更。",snapshot.records_imported)
-            } else { format!(" Usage already inserted {} records; tool update was cancelled. Completed changes were not rolled back.",snapshot.records_imported) });
-        }
-        if snapshot.run > 0 {
-            status.push_str(&if is_chinese(cx) {
-                format!(
-                    " 本次来源：{}，最近 {} 天。",
-                    source_label(snapshot.options.source, cx),
-                    snapshot.options.recent_days
-                )
-            } else {
-                format!(
-                    " Run scope: {}, last {} days.",
-                    source_label(snapshot.options.source, cx),
-                    snapshot.options.recent_days
-                )
-            });
-        }
-        div()
-            .flex()
-            .flex_col()
-            .gap(px(theme::CONTROL_GAP))
-            .children((!retained_only).then(|| self.import_scope_controls(active, cx)))
-            .child(
-                div()
-                    .flex()
-                    .gap(px(theme::CONTROL_GAP))
-                    .children((!retained_only).then(|| {
-                        semantics::button(
-                            Button::new("insights-import")
-                                .label(text(cx, "Sync usage", "同步用量"))
-                                .on_click(cx.listener(|this, _, _, cx| this.start_import(cx))),
-                            active,
-                            active,
-                            cx,
-                        )
-                    }))
-                    .children((snapshot.run > 0).then(|| {
-                        semantics::button(
-                            Button::new("insights-import-cancel")
-                                .label(text(cx, "Cancel import", "取消导入"))
-                                .ghost()
-                                .on_click(cx.listener(|this, _, _, cx| {
-                                    this.requests.cancel_import();
-                                    this.import_error = None;
-                                    cx.notify();
-                                })),
-                            !snapshot.status.active() || snapshot.status == Status::CancelRequested,
-                            false,
-                            cx,
-                        )
-                    })),
-            )
-            .child(
-                div()
-                    .id("insights-import-status")
-                    .test_support()
-                    .role(gpui_kit::Role::Status)
-                    .aria_label(status.clone())
-                    .text_size(crate::theme::text_size(theme::META_SIZE))
-                    .child(status),
-            )
+        status
+    }
+}
+
+fn import_message(id: &'static str, message: String) -> impl IntoElement {
+    div()
+        .id(id)
+        .test_support()
+        .role(gpui_kit::Role::Status)
+        .aria_label(message.clone())
+        .text_size(crate::theme::text_size(theme::META_SIZE))
+        .child(message)
+}
+
+fn recent_days(days: u32, cx: &gpui_kit::App) -> String {
+    if is_chinese(cx) {
+        format!("最近 {days} 天")
+    } else {
+        format!("Last {days} days")
     }
 }
 
@@ -291,15 +449,12 @@ impl InsightsView {
         for days in [7, 30, 90] {
             controls = controls.child(semantics::button(
                 Button::new(SharedString::from(format!("insights-import-days-{days}")))
-                    .label(if is_chinese(cx) {
-                        format!("最近 {days} 天")
-                    } else {
-                        format!("Last {days} days")
-                    })
+                    .label(recent_days(days, cx))
                     .ghost()
                     .toggled(self.import_scope.options.recent_days == days)
                     .on_click(cx.listener(move |this, _, _, cx| {
                         this.import_scope.options.recent_days = days;
+                        this.import_error = None;
                         cx.notify();
                     })),
                 active,

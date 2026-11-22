@@ -142,9 +142,13 @@ pub fn run() {
                     }
                     services
                 }
-                runtime::LaunchMode::AppWithInsights { source, paths } => {
-                    runtime::Services::new(executor, source).with_insights_paths(paths)
-                }
+                runtime::LaunchMode::AppWithInsights {
+                    source,
+                    paths,
+                    import_fixture,
+                } => runtime::Services::new(executor, source)
+                    .with_insights_paths(paths)
+                    .with_import_fixture(import_fixture),
             };
             *ssh_services.lock().unwrap_or_else(|p| p.into_inner()) = Some(services.clone());
             cx.spawn(async move |cx| {

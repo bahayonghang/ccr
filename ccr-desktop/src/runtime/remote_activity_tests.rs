@@ -506,7 +506,10 @@ async fn ssh_usage_offline_import_reports_connection_failure_without_admission()
     let f = Fixture::new().await;
     f.workspace.disconnect().await;
     let requests = insights::InsightsRequests::new(&f.services);
-    assert_eq!(requests.start_import(f.key(110)), Err(Failure::Process));
+    assert_eq!(
+        requests.start_import(f.key(110)),
+        Err(Failure::SshUnavailable)
+    );
     let mut unsupported = f.key(111);
     unsupported.environment = EnvironmentId::Wsl("synthetic-distro".into());
     assert_eq!(requests.start_import(unsupported), Err(Failure::LocalOnly));

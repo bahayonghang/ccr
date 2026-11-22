@@ -475,6 +475,15 @@ impl Shell {
         if self.lens == Lens::Profiles && self.configurations.read(cx).showing_history(cx) {
             return;
         }
+        let usage_report = (self.destination == Destination::Usage && self.lens == Lens::Primary)
+            || self.lens == Lens::Usage;
+        if usage_report && self.active_environment.is_ssh() {
+            let environment = self.active_environment.id.clone();
+            let name = self.environment_name(cx);
+            self.insights.update(cx, |view, _| {
+                view.set_import_environment_name(environment, name);
+            });
+        }
         if self.active_environment.is_ssh()
             && !self.independent_destination()
             && (!self.remote_configuration_destination()
@@ -1069,6 +1078,18 @@ impl Shell {
                         "连接当前 SSH 主机后读取其配置。",
                     ))
                     .child(self.environment_recovery(cx))
+                    .children(
+                        (((self.destination == Destination::Usage && self.lens == Lens::Primary)
+                            || self.lens == Lens::Usage)
+                            && import.is_none())
+                        .then(|| {
+                            text(
+                                cx,
+                                "Usage import is unavailable until this SSH host is connected.",
+                                "连接当前 SSH 主机后才能导入用量。",
+                            )
+                        }),
+                    )
                     .children(installation)
                     .children(import)
                     .children((self.lens == Lens::Profiles).then(|| {

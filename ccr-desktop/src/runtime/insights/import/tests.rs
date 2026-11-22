@@ -49,7 +49,7 @@ fn imports_reject_unconnected_remote_fixture_and_custom_provider_roots_before_ad
     let requests = fixture(&owner, root.path());
     assert_eq!(
         requests.start_import(key(EnvironmentId::Ssh("remote".into()))),
-        Err(Failure::Process)
+        Err(Failure::SshUnavailable)
     );
     assert_eq!(
         requests.start_import(key(EnvironmentId::Local("fixture".into()))),
@@ -124,6 +124,10 @@ fn import_survives_view_detachment_and_cancel_waits_for_the_runner() {
         requests.start_import(key(EnvironmentId::Local("fixture".into()))),
         Err(Failure::Busy)
     );
+    let run = requests.import_snapshot().run;
+    requests.cancel_import_run(&EnvironmentId::Local("other".into()), run);
+    requests.cancel_import_run(&EnvironmentId::Local("fixture".into()), run - 1);
+    assert_eq!(requests.import_snapshot().status, Status::Running);
     requests.cancel_import();
     assert!(matches!(
         requests.import_snapshot().status,

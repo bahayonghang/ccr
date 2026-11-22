@@ -793,6 +793,15 @@ async fn ssh_offline_retained_import_stays_visible_through_navigation_and_cleanu
             window.viewport_size()
         );
         window.click("usage-sync-menu", cx);
+        assert!(
+            window
+                .find("insights-import-confirmation")
+                .label()
+                .is_some_and(|label| label.contains("SSH · Build fixture")
+                    && label.contains("All sources")
+                    && label.contains("Last 30 days"))
+        );
+        assert_eq!(requests.import_snapshot().status, Status::Idle);
         window.click("insights-import", cx);
     })
     .unwrap();

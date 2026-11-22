@@ -128,6 +128,17 @@ just gpui-dev --fixture-profiles <absolute-fixture>/profiles.toml --fixture-regi
 
 原生观测 fixture 的三个路径须原样使用生成的 `fixture.json` 字段；不要重新拼接或移除 Windows `\\?\` 前缀，否则会改变来源身份。
 
+原生同步验收可在上述参数后追加 `--fixture-usage-import cancel` 或
+`--fixture-usage-import partial`。profiles 的父目录须位于当前源码 checkout 的
+`outputs/desktop/` 下，目录中须有 `.ccr-gpui-usage-import-fixture`，内容为
+`ccr-gpui-usage-import-fixture-v1`（UTF-8，无换行）。profiles、registry 和三个观测路径
+也须在该目录内。菜单以「合成导入」标示演示；只在确认同步后启动，固定产生所选来源的
+演示进度，不启动 llmusage 子进程、连接 SSH 或写入用量库和 Claude 工具记录。
+`cancel` 可在运行后 30 秒内点「取消导入」，界面先显示等待清理，再显示已取消。
+`partial` 报告新增 2 条和 1 个来源错误，供核对部分更新及报表条件保留。普通 fixture
+仍禁用导入。
+
+
 指令文件入口已接入四个平台的固定用户文件，使用原始修订令牌保存、冲突保留草稿、离页清空临时明文。MCP 管理支持 Claude 用户/项目、Codex 和 Antigravity 的新增、编辑和删除，保存固定来源与原始版本，省略的凭据不被覆盖。OpenCode MCP 使用平台源文件编辑器；旧 Claude settings MCP 只读。
 
 同步页支持 WebDAV 设置、文件夹管理及连接测试、推送和拉取，复用现有同步服务和备份事务。普通文件夹按既有明文合同传输，界面提示内容范围；固定敏感资产已接通现有 v2 加密与备份，v1 明文仅在显式确认后导入本地。签到页提供服务商/账户管理、签到、余额和记录，凭据通过现有加密 owner 保存。任务离页后继续由应用持有，返回恢复结果；已接显式 CDK 充值、手工 WAF 管理/校验、记录筛选与账户月度数据；内嵌浏览器 WAF 登录仍受 WebView 依赖限制。

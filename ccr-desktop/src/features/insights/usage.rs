@@ -90,7 +90,7 @@ impl Controls {
         self.providers_supported = Some(report.providers_supported);
     }
 
-    fn dismiss_panel(&mut self, window: &mut Window, cx: &mut App) {
+    pub(super) fn dismiss_panel(&mut self, window: &mut Window, cx: &mut App) {
         if let Some(focus) = self.trigger_focus.as_ref() {
             window.focus(focus, cx);
         }
@@ -211,6 +211,7 @@ impl InsightsView {
                 cx.listener(|this, event: &gpui_kit::KeyDownEvent, window, cx| {
                     if event.keystroke.key == "escape" && this.usage_controls.panel.is_some() {
                         this.usage_controls.dismiss_panel(window, cx);
+                        this.close_import_source_menu();
                         cx.stop_propagation();
                         cx.notify();
                     }
@@ -222,6 +223,10 @@ impl InsightsView {
                     .child(filters)
                     .child(actions),
             )
+            .children(
+                self.has_retained_import()
+                    .then(|| self.retained_import_controls(cx)),
+            )
             .children(panel.map(|panel| {
                 div()
                     .bg(cx.theme().background)
@@ -231,11 +236,20 @@ impl InsightsView {
                     .p(px(theme::CONTROL_GAP))
                     .child(panel)
             }))
-            .children(
-                (controls.panel != Some(Panel::Sync) && self.has_retained_import())
-                    .then(|| self.retained_import_controls(cx)),
-            )
             .children(self.applied_filters(cx))
+            .children((self.error == Some(InsightsError::Missing.message())).then(|| {
+                div()
+                    .text_size(crate::theme::text_size(theme::META_SIZE))
+                    .child(if self.requests.check_import_target(&self.requests.environment()).is_ok() {
+                        text(cx,
+                            "To create the usage database, open Sync usage. If llmusage is missing, open Usage → Install llmusage.",
+                            "打开「同步用量」可建立用量库。缺少 llmusage 时，请打开「用量」→「安装 llmusage」。")
+                    } else {
+                        text(cx,
+                            "Open Sync usage to check availability in this environment.",
+                            "请打开「同步用量」查看当前环境的可用操作。")
+                    })
+            }))
     }
 
     fn panel_button(
@@ -253,6 +267,7 @@ impl InsightsView {
             .on_click(
                 cx.listener(move |this, event: &gpui_kit::ClickEvent, window, cx| {
                     this.usage_controls.close_panel();
+                    this.close_import_source_menu();
                     if !open {
                         this.usage_controls.panel = Some(panel);
                         if event.is_keyboard() {
