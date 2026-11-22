@@ -46,6 +46,16 @@ pub struct OverviewPayload {
     pub last_export_at: Option<String>,
 }
 
+/// The range's recorded estimate and the certainty of its pricing coverage.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum RecordedCost {
+    Unavailable,
+    Partial(f64),
+    /// The bucket has several pricing statuses and cannot establish coverage.
+    Mixed(f64),
+    Known(f64),
+}
+
 // 上 wire 的投影 DTO（被 ccr-ui Tauri 命令直接返回或嵌入响应体）在 ts feature 下
 // 生成 TypeScript 绑定；i64 字段一律 ts(as = "f64")：wire 是 serde_json number，
 // 映射为 number 而非 ts-rs 默认的 bigint（用量数值 << 2^53，无精度风险）。

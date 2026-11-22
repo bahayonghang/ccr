@@ -18,7 +18,7 @@ use ccr_app::{
             HomeInsightsSnapshot, InsightsSessionCounts, assemble_home_insights,
             merge_home_insights,
         },
-        read::{UsageSnapshot, read_dashboard_at},
+        read::{UsageSnapshot, read_dashboard_at, read_usage_page_at},
         report_clock::ReportClock,
     },
 };
@@ -344,6 +344,10 @@ pub enum InsightsQuery {
         generated_at: DateTime<Utc>,
     },
     Usage(QueryFilter),
+    UsagePage {
+        filter: QueryFilter,
+        as_of: DateTime<Utc>,
+    },
     Logs {
         filter: QueryFilter,
         cursor: Option<String>,
@@ -562,7 +566,9 @@ impl InsightsRequests {
             let source =
                 SourceKind::parse_id(platform.short_name()).ok_or(InsightsError::Unsupported)?;
             match &query {
-                InsightsQuery::Usage(filter) | InsightsQuery::Logs { filter, .. }
+                InsightsQuery::Usage(filter)
+                | InsightsQuery::UsagePage { filter, .. }
+                | InsightsQuery::Logs { filter, .. }
                     if filter.source == Some(source) => {}
                 InsightsQuery::Sessions(request)
                     if request.agents.as_ref().is_some_and(|agents| {
@@ -629,21 +635,9 @@ impl InsightsRequests {
                             .map(InsightsSnapshot::Home)
                             .map_err(|_| InsightsError::Archive)
                     }
-                    InsightsQuery::Usage(filter) => {
-                        // Cohort: successful report body after DB open. Excludes
-                        // admission/queue, open_dashboard, failures, join and UI.
-                        let as_of = self.services.benchmark_clock().map(|(as_of, _)| as_of);
-                        let started = std::time::Instant::now();
-                        let report = read_dashboard_at(&dashboard, &filter, Some(366), as_of);
-                        let elapsed = started.elapsed();
-                        if report.is_ok() {
-                            self.services
-                                .usage_report_latency
-                                .lock()
-                                .unwrap_or_else(std::sync::PoisonError::into_inner)
-                                .record(elapsed);
-                        }
-                        report.map(InsightsSnapshot::Usage).map_err(Into::into)
+                    InsightsQuery::Usage(filter) => self.read_usage(&dashboard, &filter, None),
+                    InsightsQuery::UsagePage { filter, as_of } => {
+                        self.read_usage(&dashboard, &filter, Some(as_of))
                     }
                     InsightsQuery::Logs { filter, cursor } => dashboard
                         .logs(&LogsQuery {
@@ -659,6 +653,31 @@ impl InsightsRequests {
                 }
             }
         }
+    }
+
+    fn read_usage(
+        &self,
+        dashboard: &ccr_usage::Dashboard,
+        filter: &QueryFilter,
+        page_clock: Option<DateTime<Utc>>,
+    ) -> Result<InsightsSnapshot, InsightsError> {
+        // Cohort: successful report body after DB open. Excludes
+        // admission/queue, open_dashboard, failures, join and UI.
+        let started = std::time::Instant::now();
+        let report = if let Some(as_of) = page_clock {
+            read_usage_page_at(dashboard, filter, as_of)
+        } else {
+            let as_of = self.services.benchmark_clock().map(|(as_of, _)| as_of);
+            read_dashboard_at(dashboard, filter, Some(366), as_of)
+        };
+        if report.is_ok() {
+            self.services
+                .usage_report_latency
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .record(started.elapsed());
+        }
+        report.map(InsightsSnapshot::Usage).map_err(Into::into)
     }
 
     pub fn load_workbench(

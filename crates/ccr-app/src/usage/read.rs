@@ -1,13 +1,15 @@
 //! Read-only usage report assembly shared by native and Tauri consumers.
 use ccr_usage::{
     DailyTrendDto, Dashboard, HeatmapPoint, ModelBreakdown, OverviewPayload, ProjectBreakdown,
-    ProviderBreakdownDto, QueryFilter, SourceBreakdownDto, UsageError,
+    ProviderBreakdownDto, QueryFilter, RecordedCost, SourceBreakdownDto, UsageError,
 };
 
 /// Canonical values, without wire-format or presentation rounding.
 #[derive(Debug)]
 pub struct UsageSnapshot {
     pub overview: OverviewPayload,
+    /// Available on the Usage page projection, which reads pricing coverage.
+    pub recorded_cost: Option<RecordedCost>,
     pub trends: Vec<DailyTrendDto>,
     pub models: Vec<ModelBreakdown>,
     pub providers: Vec<ProviderBreakdownDto>,
@@ -33,6 +35,26 @@ pub fn read_dashboard_at(
     heatmap_days: Option<u32>,
     as_of: Option<chrono::DateTime<chrono::Utc>>,
 ) -> Result<UsageSnapshot, UsageError> {
+    read_snapshot(dashboard, filter, heatmap_days, as_of, false)
+}
+
+/// The Usage page follows one reporting clock, keeps source comparisons scoped,
+/// and reads coverage for the same filters.
+pub fn read_usage_page_at(
+    dashboard: &Dashboard,
+    filter: &QueryFilter,
+    as_of: chrono::DateTime<chrono::Utc>,
+) -> Result<UsageSnapshot, UsageError> {
+    read_snapshot(dashboard, filter, Some(366), Some(as_of), true)
+}
+
+fn read_snapshot(
+    dashboard: &Dashboard,
+    filter: &QueryFilter,
+    heatmap_days: Option<u32>,
+    as_of: Option<chrono::DateTime<chrono::Utc>>,
+    usage_page: bool,
+) -> Result<UsageSnapshot, UsageError> {
     if filter
         .since
         .zip(filter.until)
@@ -47,7 +69,14 @@ pub fn read_dashboard_at(
     let trends = dashboard.trends_daily(filter)?;
     let models = dashboard.model_breakdown(filter)?;
     let projects = dashboard.project_breakdown(filter)?;
-    let sources = dashboard.source_breakdown(filter)?;
+    let (sources, recorded_cost) = if usage_page {
+        (
+            dashboard.scoped_source_breakdown(filter)?,
+            Some(dashboard.recorded_cost(filter)?),
+        )
+    } else {
+        (dashboard.source_breakdown(filter)?, None)
+    };
     let (providers, providers_supported) = match dashboard.provider_breakdown(filter) {
         Ok(rows) => (rows, true),
         Err(UsageError::SchemaUnsupported { .. } | UsageError::FeatureUnavailable { .. })
@@ -65,6 +94,7 @@ pub fn read_dashboard_at(
         .transpose()?;
     Ok(UsageSnapshot {
         overview,
+        recorded_cost,
         trends,
         models,
         providers,

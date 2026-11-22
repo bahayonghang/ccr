@@ -1,7 +1,7 @@
 //! Calendar-spaced bars. Missing dates remain gaps; every observed bar is keyboard reachable.
 use super::claude::format_exact_usd;
 #[cfg(test)]
-use super::claude::format_recorded_cost;
+use super::format_recorded_cost;
 use super::*;
 use chrono::{Duration, NaiveDate};
 use gpui_kit::component::tooltip::Tooltip;

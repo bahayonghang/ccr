@@ -13,8 +13,8 @@ use crate::{
     queries::{
         DailyTrendDto, HeatmapPoint, HomeOverviewPayload, HomeOverviewPlatformStats,
         HomeOverviewSeriesItem, HomeOverviewSummary, ModelBreakdown, OverviewPayload,
-        ProjectBreakdown, ProviderBreakdownDto, SourceBreakdownDto, TaggedProviderBreakdown,
-        TokenSummary, UsageRecordDto,
+        ProjectBreakdown, ProviderBreakdownDto, RecordedCost, SourceBreakdownDto,
+        TaggedProviderBreakdown, TokenSummary, UsageRecordDto,
     },
     source::{SourceKind, parse_source_filter},
     timezone::{ResolvedZone, parse_stored_timestamp, register_functions},
@@ -384,6 +384,49 @@ impl Dashboard {
         })
     }
 
+    /// The use of 'mixed' in llmusage means contributing events disagree on
+    /// pricing status. Its amount can contribute, and its coverage is uncertain.
+    /// The known states include the historical priced and legacy-alias values.
+    pub fn recorded_cost(&self, filter: &QueryFilter) -> Result<RecordedCost, UsageError> {
+        self.ensure_feature_for_filter(FeatureKey::ModelBreakdown, filter)?;
+        let zone = self.zone(filter.timezone);
+        let filter = filter.bucket_filter(None, &zone, self.schema_version())?;
+        let sql = format!(
+            r#"
+            WITH filtered AS (
+                SELECT cost_with_cache_usd, pricing_status,
+                       pricing_status IN ('static', 'snapshot', 'source_reported', 'priced', 'legacy_alias') AS priced
+                FROM usage_bucket_30m{}
+            )
+            SELECT COUNT(*), COUNT(CASE WHEN priced THEN 1 END),
+                   COUNT(CASE WHEN pricing_status = 'mixed' THEN 1 END),
+                   COALESCE(SUM(CASE WHEN priced OR pricing_status = 'mixed'
+                                     THEN cost_with_cache_usd ELSE 0 END), 0.0)
+            FROM filtered
+            "#,
+            filter.where_sql()
+        );
+        let (total, priced, mixed, amount) =
+            self.conn
+                .query_row(&sql, params_from_iter(filter.param_refs()), |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, i64>(1)?,
+                        row.get::<_, i64>(2)?,
+                        row.get(3)?,
+                    ))
+                })?;
+        Ok(if mixed > 0 {
+            RecordedCost::Mixed(amount)
+        } else if priced == 0 {
+            RecordedCost::Unavailable
+        } else if priced == total {
+            RecordedCost::Known(amount)
+        } else {
+            RecordedCost::Partial(amount)
+        })
+    }
+
     pub fn trends_daily(&self, filter: &QueryFilter) -> Result<Vec<DailyTrendDto>, UsageError> {
         self.ensure_feature_for_filter(FeatureKey::DailyTrends, filter)?;
         let zone = self.zone(filter.timezone);
@@ -612,10 +655,17 @@ impl Dashboard {
         &self,
         filter: &QueryFilter,
     ) -> Result<Vec<SourceBreakdownDto>, UsageError> {
+        self.scoped_source_breakdown(&filter.without_source())
+    }
+
+    /// Source comparison inside the selected report scope, including its denominator.
+    pub fn scoped_source_breakdown(
+        &self,
+        filter: &QueryFilter,
+    ) -> Result<Vec<SourceBreakdownDto>, UsageError> {
         self.ensure_feature_for_filter(FeatureKey::HomeOverview, filter)?;
-        let source_filter = filter.without_source();
-        let zone = self.zone(source_filter.timezone);
-        let sql_filter = source_filter.bucket_filter(None, &zone, self.schema_version())?;
+        let zone = self.zone(filter.timezone);
+        let sql_filter = filter.bucket_filter(None, &zone, self.schema_version())?;
         let local_date = zone.local_date_expr("hour_start");
         let sql = format!(
             r#"

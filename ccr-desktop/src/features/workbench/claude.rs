@@ -12,17 +12,6 @@ use gpui_kit::component::{
 use gpui_kit::prelude::FluentBuilder;
 use gpui_kit::{App, AppContext, Div};
 
-pub(super) fn format_recorded_cost(value: f64) -> String {
-    if value != 0. && value.abs() < 0.01 {
-        return if value < 0. {
-            ">−$0.01".into()
-        } else {
-            "<$0.01".into()
-        };
-    }
-    format!("${value:.2}")
-}
-
 /// 精确值表用固定六位小数，去掉二进制浮点尾巴又不丢可核对精度。
 pub(super) fn format_exact_usd(value: f64) -> String {
     let rounded = (value * 1_000_000.).round() / 1_000_000.;

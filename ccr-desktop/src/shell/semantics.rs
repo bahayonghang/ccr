@@ -42,6 +42,12 @@ pub fn ghost_button(button: Button, disabled: bool, busy: bool, cx: &App) -> But
     states(button, disabled, busy)
 }
 
+pub fn disclosure(button: Button, expanded: bool) -> Button {
+    Builder(button)
+        .a11y_synthetic_children(move |tree| tree.parent_node().set_expanded(expanded))
+        .0
+}
+
 // 禁用与忙碌的交互和无障碍语义：两种按钮外观共用。
 fn states(button: Button, disabled: bool, busy: bool) -> Button {
     Builder(button.disabled(disabled).tab_stop(!disabled))

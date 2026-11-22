@@ -55,6 +55,7 @@ async fn import_controls_reject_fixture_then_reattach_and_cancel_retained_work(
     .unwrap();
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
+        window.click("usage-sync-menu", cx);
         window.click("insights-import", cx);
         window.render_frame(cx);
         assert_eq!(
@@ -89,10 +90,7 @@ async fn import_controls_reject_fixture_then_reattach_and_cancel_retained_work(
         services.select_environment(ccr_app::runtime::EnvironmentId::Local("other".into()));
         window.render_frame(cx);
         assert!(
-            window
-                .find("insights-import-status")
-                .label()
-                .is_some_and(|text| text.starts_with("Import uses")),
+            window.try_find("insights-import-status").is_none(),
             "another environment exposed the running import"
         );
         assert!(window.try_find("insights-import-cancel").is_none());
@@ -659,6 +657,7 @@ async fn platform_import_locks_source_to_its_platform_context(cx: &mut TestAppCo
             this.open_platform(InsightsPage::Usage, Platform::Codex, window, cx)
         });
         window.render_frame(cx);
+        window.click("usage-sync-menu", cx);
         window.click("insights-import-source", cx);
         window.render_frame(cx);
         assert!(window.try_find("insights-import-source-claude").is_none());

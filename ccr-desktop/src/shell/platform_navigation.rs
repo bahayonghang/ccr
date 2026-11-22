@@ -270,8 +270,10 @@ mod tests {
             // 全局用量目的地按原用途保留页内切换。
             window.click("nav-usage", cx);
             for id in [
-                "insights-usage",
+                "usage-heading",
+                "usage-toolbar",
                 "insights-capabilities",
+                "insights-policies-tab",
                 "insights-observer-tab",
             ] {
                 assert!(window.try_find(id).is_some(), "global usage lost {id}");

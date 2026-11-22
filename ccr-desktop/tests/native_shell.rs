@@ -785,6 +785,483 @@ fn local_noon_bucket(day: chrono::NaiveDate) -> String {
 }
 
 #[gpui_kit::test]
+async fn usage_landing_shares_the_inclusive_thirty_day_report_across_entries(
+    cx: &mut TestAppContext,
+) {
+    use ccr_gpui::runtime::insights::InsightsPaths;
+    use ccr_usage::fixtures::{SeedBucket, create_projection_db, seed_bucket};
+    use chrono::{Duration as Days, Local};
+
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
+    let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
+    let paths = create_projection_db(&root.path().join("llmusage"));
+    let today = Local::now().date_naive();
+    let start = today - Days::days(29);
+    let conn = rusqlite::Connection::open(&paths.db_path).unwrap_or_else(|e| panic!("db: {e}"));
+    for (source, date, tokens, requests, cost) in [
+        ("codex", today, 300, 3, 1.25),
+        ("codex", today, 100, 1, 0.25),
+        ("claude", start, 200, 2, 0.50),
+        ("claude", start - Days::days(1), 800, 8, 8.00),
+        ("codex", today + Days::days(1), 900, 9, 9.00),
+        ("codex", today - Days::days(2), 0, 0, 0.00),
+    ] {
+        seed_bucket(
+            &conn,
+            &SeedBucket {
+                source: source.into(),
+                hour_start: local_noon_bucket(date),
+                total_tokens: tokens,
+                event_count: requests,
+                cost_with_cache_usd: cost,
+                ..Default::default()
+            },
+        );
+    }
+    drop(conn);
+    let services = Services::new(
+        owner.handle(),
+        ConfigSource::Fixture {
+            profiles: root.path().join("profiles.toml"),
+            registry: root.path().join("config.toml"),
+            delay: Duration::ZERO,
+        },
+    )
+    .with_insights_paths(InsightsPaths {
+        usage_root: paths.root_dir,
+        archive_db: root.path().join("archive.db"),
+        provider_home: root.path().join("home"),
+    });
+    let (handle, _) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(
+            WindowOptions {
+                window_bounds: Some(gpui_kit::WindowBounds::Windowed(gpui_kit::Bounds::new(
+                    gpui_kit::point(gpui_kit::px(0.), gpui_kit::px(0.)),
+                    gpui_kit::size(gpui_kit::px(1280.), gpui_kit::px(800.)),
+                ))),
+                ..Default::default()
+            },
+            cx,
+            |window, cx| cx.new(|cx| Shell::new(services, window, cx)),
+        )
+        .unwrap_or_else(|e| panic!("window: {e}"))
+    });
+    wait_for_environment(cx, handle);
+    for (navigation, title, cost, tokens, requests, days) in [
+        ("nav-usage", "usage-heading", "$2.00", "600", "6", "2"),
+        (
+            "nav-codex",
+            "platform-tab-heading",
+            "$1.50",
+            "400",
+            "4",
+            "1",
+        ),
+    ] {
+        cx.update_window(handle, |_, window, cx| {
+            window.click(navigation, cx);
+            if navigation != "nav-usage" {
+                window.click("tool-platform-usage", cx);
+            }
+            assert_eq!(window.find(title).role(), Some(gpui_kit::Role::Heading));
+            assert_eq!(window.find(title).label(), Some("Usage"));
+            let headings = gpui_kit::base::test_support::snapshots(window)
+                .into_iter()
+                .filter(|node| {
+                    node.role() == Some(gpui_kit::Role::Heading) && node.label() == Some("Usage")
+                })
+                .count();
+            assert_eq!(headings, 1);
+        })
+        .unwrap_or_else(|e| panic!("navigation: {e}"));
+        cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+            window.try_find("usage-cost").is_some_and(|node| {
+                node.value()
+                    .and_then(|value| value.strip_prefix("Recorded cost (USD) · "))
+                    == Some(cost)
+            })
+        })
+        .await;
+        cx.update_window(handle, |_, window, _| {
+            assert_eq!(
+                window.find("usage-date-range").value(),
+                Some(format!("{start} – {today} · Local").as_str())
+            );
+            assert_eq!(
+                window.find("usage-tokens").value(),
+                Some(format!("Tokens · {tokens}").as_str())
+            );
+            assert_eq!(
+                window.find("usage-requests").value(),
+                Some(format!("Requests · {requests}").as_str())
+            );
+            assert_eq!(
+                window.find("usage-active-days").value(),
+                Some(format!("Active days · {days}").as_str())
+            );
+        })
+        .unwrap_or_else(|e| panic!("usage report: {e}"));
+    }
+    cx.update_window(handle, |_, window, cx| {
+        window.click("insights-section-Sources", cx)
+    })
+    .unwrap_or_else(|e| panic!("open scoped sources: {e}"));
+    cx.wait_for(handle, Duration::from_secs(3), |window, _| {
+        window.try_find("insights-row:codex").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, _| {
+        assert!(
+            window.try_find("insights-row:claude").is_none(),
+            "Codex Usage cannot expose Claude data"
+        );
+    })
+    .unwrap_or_else(|e| panic!("scoped source rows: {e}"));
+    cx.update_window(handle, |_, window, _| window.remove_window())
+        .unwrap_or_else(|e| panic!("close: {e}"));
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+async fn usage_filters_keep_applied_dates_and_scope_during_rapid_navigation(
+    cx: &mut TestAppContext,
+) {
+    use ccr_gpui::runtime::insights::InsightsPaths;
+    use ccr_usage::fixtures::{SeedBucket, create_projection_db, seed_bucket};
+    use chrono::{Duration as Days, Local};
+
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
+    let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
+    let paths = create_projection_db(&root.path().join("llmusage"));
+    let today = Local::now().date_naive();
+    let older = today - Days::days(12);
+    let conn = rusqlite::Connection::open(&paths.db_path).unwrap_or_else(|e| panic!("db: {e}"));
+    for (source, date, model, provider, project, tokens) in [
+        ("codex", today, "gpt", "openai", "work", 700),
+        ("claude", older, "sonnet", "anthropic", "work", 11),
+        ("claude", older, "sonnet", "anthropic", "home", 31),
+        ("claude", older, "sonnet", "other", "work", 43),
+        ("claude", older, "haiku", "anthropic", "work", 19),
+    ] {
+        seed_bucket(
+            &conn,
+            &SeedBucket {
+                source: source.into(),
+                hour_start: local_noon_bucket(date),
+                model: model.into(),
+                provider_label: provider.into(),
+                project_hash: project.into(),
+                total_tokens: tokens,
+                ..Default::default()
+            },
+        );
+    }
+    drop(conn);
+    let services = Services::new(
+        owner.handle(),
+        ConfigSource::Fixture {
+            profiles: root.path().join("profiles.toml"),
+            registry: root.path().join("config.toml"),
+            delay: Duration::ZERO,
+        },
+    )
+    .with_insights_paths(InsightsPaths {
+        usage_root: paths.root_dir,
+        archive_db: root.path().join("archive.db"),
+        provider_home: root.path().join("home"),
+    });
+    let (handle, _) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(
+            WindowOptions {
+                window_bounds: Some(gpui_kit::WindowBounds::Windowed(gpui_kit::Bounds::new(
+                    gpui_kit::point(gpui_kit::px(0.), gpui_kit::px(0.)),
+                    gpui_kit::size(gpui_kit::px(960.), gpui_kit::px(640.)),
+                ))),
+                ..Default::default()
+            },
+            cx,
+            |window, cx| cx.new(|cx| Shell::new(services, window, cx)),
+        )
+        .unwrap_or_else(|e| panic!("window: {e}"))
+    });
+    wait_for_environment(cx, handle);
+    cx.update_window(handle, |_, window, cx| {
+        window.scroll(
+            "nav-dashboard",
+            gpui_kit::ScrollDelta::Pixels(gpui_kit::point(gpui_kit::px(0.), gpui_kit::px(-400.))),
+            cx,
+        );
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        window.click("nav-usage", cx);
+        assert_eq!(window.find("nav-usage").checked(), Some(true));
+        assert!(
+            window.try_find("usage-range-menu").is_some(),
+            "missing reporting period control"
+        );
+        window.click("usage-range-menu", cx);
+        window.click("usage-range-7", cx);
+    })
+    .unwrap_or_else(|e| panic!("seven-day report: {e}"));
+    wait_for_usage_tokens(cx, handle, "700").await;
+    cx.update_window(handle, |_, window, cx| {
+        let cost = window.find("usage-cost").bounds();
+        let tokens = window.find("usage-tokens").bounds();
+        let requests = window.find("usage-requests").bounds();
+        let days = window.find("usage-active-days").bounds();
+        assert_eq!(cost.left(), requests.left());
+        assert_eq!(tokens.left(), days.left());
+        assert!(requests.top() > cost.bottom());
+        for id in [
+            "usage-range-menu",
+            "usage-source",
+            "usage-filters",
+            "insights-refresh",
+            "usage-sync-menu",
+        ] {
+            assert!(window.find(id).visible(), "{id} in the narrow toolbar");
+        }
+        window.click("usage-range-menu", cx);
+        window.click("usage-range-custom", cx);
+        for (id, value) in [
+            ("insights-filter-4", "2025-02-30"),
+            ("insights-filter-5", "2025-03-01"),
+        ] {
+            window.click(id, cx);
+            window.press("ctrl-a", cx);
+            window.input(value, cx);
+        }
+        window.click("usage-apply-dates", cx);
+        assert!(window.find("usage-date-error").visible());
+        assert_eq!(window.find("usage-tokens").value(), Some("Tokens · 700"));
+        assert_eq!(
+            window.find("usage-date-range").value(),
+            Some(format!("{} – {today} · Local", today - Days::days(6)).as_str())
+        );
+        for id in ["insights-filter-4", "insights-filter-5"] {
+            window.click(id, cx);
+            window.press("ctrl-a", cx);
+            window.input(&older.to_string(), cx);
+        }
+        window.click("usage-apply-dates", cx);
+        window.click("usage-source", cx);
+        window.click("usage-source-claude", cx);
+        window.click("usage-filters", cx);
+        for (id, value) in [
+            ("insights-filter-1", "sonnet"),
+            ("insights-filter-2", "anthropic"),
+            ("insights-filter-3", "work"),
+        ] {
+            window.click(id, cx);
+            window.input(value, cx);
+        }
+        window.click("usage-apply-filters", cx);
+    })
+    .unwrap_or_else(|e| panic!("custom report: {e}"));
+    wait_for_usage_tokens(cx, handle, "11").await;
+    cx.update_window(handle, |_, window, cx| {
+        assert_eq!(
+            window.find("usage-date-range").value(),
+            Some(format!("{older} – {older} · Local").as_str())
+        );
+        assert_eq!(
+            window.find("usage-filter-chip-model").value(),
+            Some("sonnet")
+        );
+        window.click("usage-clear-filters", cx);
+    })
+    .unwrap_or_else(|e| panic!("clear report filters: {e}"));
+    wait_for_usage_tokens(cx, handle, "104").await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("usage-range-menu", cx);
+        window.click("usage-range-90", cx);
+        window.click("nav-grok", cx);
+        window.click("tool-platform-usage", cx);
+        assert!(
+            window.try_find("usage-source").is_none(),
+            "fixed platform has no source selector"
+        );
+        assert_eq!(window.find("usage-platform").value(), Some("grok"));
+        window.click("nav-usage", cx);
+    })
+    .unwrap_or_else(|e| panic!("report navigation: {e}"));
+    wait_for_usage_tokens(cx, handle, "804").await;
+    cx.update_window(handle, |_, window, _| {
+        assert_eq!(
+            window.find("usage-date-range").value(),
+            Some(format!("{} – {today} · Local", today - Days::days(29)).as_str())
+        );
+        assert!(window.try_find("usage-filter-chip-model").is_none());
+    })
+    .unwrap_or_else(|e| panic!("fresh report: {e}"));
+    cx.update_window(handle, |_, window, _| window.remove_window())
+        .unwrap_or_else(|e| panic!("close: {e}"));
+    owner.shutdown();
+}
+
+async fn wait_for_usage_tokens(
+    cx: &mut TestAppContext,
+    handle: gpui_kit::AnyWindowHandle,
+    tokens: &str,
+) {
+    cx.wait_for(handle, Duration::from_secs(3), |window, _| {
+        window.try_find("usage-tokens").is_some_and(|node| {
+            node.value()
+                .and_then(|value| value.strip_prefix("Tokens · "))
+                == Some(tokens)
+        })
+    })
+    .await;
+}
+
+#[gpui_kit::test]
+async fn usage_landing_distinguishes_missing_empty_and_pricing_states(cx: &mut TestAppContext) {
+    use ccr_gpui::runtime::insights::InsightsPaths;
+    use ccr_usage::fixtures::{
+        SeedBucket, create_projection_db, seed_bucket, seed_run_log, set_schema_version,
+    };
+    use chrono::Local;
+
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap_or_else(|e| panic!("runtime: {e}"));
+    let root = tempfile::tempdir().unwrap_or_else(|e| panic!("fixture: {e}"));
+    let usage_root = root.path().join("llmusage");
+    let services = Services::new(
+        owner.handle(),
+        ConfigSource::Fixture {
+            profiles: root.path().join("profiles.toml"),
+            registry: root.path().join("config.toml"),
+            delay: Duration::ZERO,
+        },
+    )
+    .with_insights_paths(InsightsPaths {
+        usage_root: usage_root.clone(),
+        archive_db: root.path().join("archive.db"),
+        provider_home: root.path().join("home"),
+    });
+    let (handle, _) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(
+            WindowOptions {
+                window_bounds: Some(gpui_kit::WindowBounds::Windowed(gpui_kit::Bounds::new(
+                    gpui_kit::point(gpui_kit::px(0.), gpui_kit::px(0.)),
+                    gpui_kit::size(gpui_kit::px(1280.), gpui_kit::px(800.)),
+                ))),
+                ..Default::default()
+            },
+            cx,
+            |window, cx| cx.new(|cx| Shell::new(services, window, cx)),
+        )
+        .unwrap_or_else(|e| panic!("window: {e}"))
+    });
+    wait_for_environment(cx, handle);
+    cx.update_window(handle, |_, window, cx| {
+        window.click("nav-usage", cx);
+        assert!(
+            window.find("insights-status").label().is_some(),
+            "report state must be accessible"
+        );
+    })
+    .unwrap_or_else(|e| panic!("open usage: {e}"));
+    wait_for_usage_status(cx, handle, "No llmusage database").await;
+    assert!(!usage_root.exists());
+
+    let paths = create_projection_db(&usage_root);
+    cx.update_window(handle, |_, window, cx| window.click("insights-refresh", cx))
+        .unwrap_or_else(|e| panic!("refresh empty DB: {e}"));
+    wait_for_usage_status(cx, handle, "No records in this range").await;
+    let conn = rusqlite::Connection::open(&paths.db_path).unwrap_or_else(|e| panic!("db: {e}"));
+    let today = Local::now().date_naive();
+    let sync = local_noon_bucket(today);
+    for (model, status) in [("priced-zero", "static"), ("no-price", "unpriced")] {
+        seed_bucket(
+            &conn,
+            &SeedBucket {
+                model: model.into(),
+                hour_start: local_noon_bucket(today),
+                cost_with_cache_usd: 0.,
+                pricing_status: status.into(),
+                ..Default::default()
+            },
+        );
+    }
+    seed_run_log(&conn, "claude", "recent", &sync);
+    drop(conn);
+    cx.update_window(handle, |_, window, cx| window.click("insights-refresh", cx))
+        .unwrap_or_else(|e| panic!("refresh populated DB: {e}"));
+    wait_for_usage_tokens(cx, handle, "200").await;
+    cx.update_window(handle, |_, window, cx| {
+        assert_eq!(
+            window.find("usage-cost-state").label(),
+            Some("Partial estimate")
+        );
+        assert!(
+            window
+                .find("usage-last-sync")
+                .label()
+                .is_some_and(|s| s.contains("any source") && s.contains("12:00"))
+        );
+        window.click("usage-filters", cx);
+        window.click("insights-filter-1", cx);
+        window.input("no-price", cx);
+        window.click("usage-apply-filters", cx);
+    })
+    .unwrap_or_else(|e| panic!("filter unpriced: {e}"));
+    wait_for_usage_tokens(cx, handle, "100").await;
+    cx.update_window(handle, |_, window, cx| {
+        assert_eq!(
+            window.find("usage-cost-state").label(),
+            Some("Estimate unavailable")
+        );
+        window.click("usage-filters", cx);
+        window.click("insights-filter-1", cx);
+        window.press("ctrl-a", cx);
+        window.input("priced-zero", cx);
+        window.click("usage-apply-filters", cx);
+    })
+    .unwrap_or_else(|e| panic!("filter priced zero: {e}"));
+    cx.wait_for(handle, Duration::from_secs(3), |window, _| {
+        window
+            .try_find("usage-cost")
+            .is_some_and(|node| node.label() == Some("Recorded cost (USD) · $0.00"))
+    })
+    .await;
+    set_schema_version(&paths, 10);
+    cx.update_window(handle, |_, window, cx| window.click("insights-refresh", cx))
+        .unwrap_or_else(|e| panic!("refresh old schema: {e}"));
+    wait_for_usage_tokens(cx, handle, "100").await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("usage-filters", cx);
+        window.click("insights-filter-2", cx);
+        window.input("openai", cx);
+        window.click("usage-apply-filters", cx);
+        assert!(window.find("usage-provider-error").visible());
+        assert_eq!(window.find("usage-tokens").value(), Some("Tokens · 100"));
+    })
+    .unwrap_or_else(|e| panic!("unsupported provider filter: {e}"));
+    cx.update_window(handle, |_, window, _| window.remove_window())
+        .unwrap_or_else(|e| panic!("close: {e}"));
+    owner.shutdown();
+}
+
+async fn wait_for_usage_status(
+    cx: &mut TestAppContext,
+    handle: gpui_kit::AnyWindowHandle,
+    prefix: &str,
+) {
+    cx.wait_for(handle, Duration::from_secs(3), |window, _| {
+        window
+            .try_find("insights-status")
+            .is_some_and(|node| node.label().is_some_and(|label| label.starts_with(prefix)))
+    })
+    .await;
+}
+
+#[gpui_kit::test]
 fn overview_layout_matches_the_real_shell_chrome(cx: &mut TestAppContext) {
     use ccr_gpui::runtime::insights::InsightsPaths;
     use ccr_usage::fixtures::{SeedBucket, create_projection_db, seed_bucket};
@@ -1457,9 +1934,9 @@ async fn platform_workbench_is_default_and_scoped_navigation_keeps_platform(
         assert!(!page_labels(window).contains("claude-workbench"));
         window.click("tool-platform-usage", cx);
         assert!(window.find("page-codex").visible());
-        assert_eq!(window.find("insights-filter-0").value(), Some("codex"));
+        assert_eq!(window.find("usage-platform").value(), Some("codex"));
         window.click("nav-usage", cx);
-        assert_eq!(window.find("insights-filter-0").value(), Some(""));
+        assert_eq!(window.find("usage-source").label(), Some("All sources"));
         window.click("nav-grok", cx);
         assert!(window.try_find("tool-platform-mcp").is_none());
         assert!(window.try_find("workbench-mcp").is_none());
@@ -1610,7 +2087,7 @@ async fn platform_workbench_claude_partial_costs_recover_and_link_to_daily_repor
         assert!(window.find("claude-cost-exact-table").visible());
         assert!(window.try_find("workbench-usage").is_none());
         window.click("tool-platform-usage", cx);
-        assert_eq!(window.find("insights-filter-0").value(), Some("claude"));
+        assert_eq!(window.find("usage-platform").value(), Some("claude"));
         window.click("tool-home", cx);
         assert!(window.find("platform-workbench").visible());
         window.remove_window();

@@ -478,7 +478,7 @@ fn heading(label: &'static str) -> gpui_kit::Div {
         .child(label)
 }
 
-fn compact_count(value: i64) -> String {
+pub(super) fn compact_count(value: i64) -> String {
     let n = value.unsigned_abs();
     for (threshold, suffix) in [
         (1_000_000_000_000, "T"),

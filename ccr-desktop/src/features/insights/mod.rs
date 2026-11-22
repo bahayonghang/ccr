@@ -6,6 +6,7 @@ mod policies;
 mod rows;
 mod session_operations;
 mod sessions;
+mod usage;
 use crate::{
     locales::{is_chinese, localized_line, service_error, text},
     runtime::{
@@ -84,6 +85,8 @@ pub struct InsightsView {
     platform_scope: Option<Platform>,
     section: Section,
     snapshot: Option<Arc<InsightsSnapshot>>,
+    submitted_usage: Option<QueryFilter>,
+    usage_controls: usage::Controls,
     fields: Vec<Entity<InputState>>,
     utc: bool,
     generation: u64,
@@ -155,6 +158,8 @@ impl InsightsView {
             platform_scope: None,
             section: Section::Sources,
             snapshot: None,
+            submitted_usage: None,
+            usage_controls: Default::default(),
             fields,
             utc,
             generation: 0,
@@ -210,6 +215,8 @@ impl InsightsView {
         self.generation += 1;
         self.loading = false;
         self.snapshot = None;
+        self.submitted_usage = None;
+        self.usage_controls.close_panel();
         self.selected = None;
         self.archive_id = None;
         self.detail_open = false;
@@ -235,6 +242,18 @@ impl InsightsView {
         } else {
             page
         };
+        if page == InsightsPage::Usage {
+            self.usage_controls = usage::Controls::new(
+                self.requests.report_clock().timezone,
+                self.platform_scope
+                    .and_then(crate::features::workbench::source),
+            );
+            self.section = if self.platform_scope.is_some() {
+                Section::Models
+            } else {
+                Section::Sources
+            };
+        }
         self.set_page(page, cx);
     }
 
@@ -395,11 +414,21 @@ impl InsightsView {
                 })
             }
             InsightsPage::Usage => {
-                let filter = self.filter(cx)?;
+                let clock = self.requests.report_clock();
+                let filter = if self.surface == Surface::Usage {
+                    self.usage_controls.filter(clock)
+                } else {
+                    self.filter(cx)?
+                };
                 Ok(if self.section == Section::Logs {
                     InsightsQuery::Logs {
                         filter,
                         cursor: self.cursor.clone(),
+                    }
+                } else if self.surface == Surface::Usage {
+                    InsightsQuery::UsagePage {
+                        filter,
+                        as_of: clock.as_of,
                     }
                 } else {
                     InsightsQuery::Usage(filter)
@@ -461,9 +490,13 @@ impl InsightsView {
                 return;
             }
         };
+        if let InsightsQuery::UsagePage { filter, .. } | InsightsQuery::Logs { filter, .. } = &query
+        {
+            self.submitted_usage = Some(filter.clone());
+        }
         let key = RequestKey {
             environment: self.requests.environment(),
-            platform: Platform::Claude,
+            platform: self.platform_scope.unwrap_or(Platform::Claude),
             generation: self.generation,
             request_id: self.generation,
         };
@@ -481,6 +514,12 @@ impl InsightsView {
                                 this.loading = false;
                                 match result.as_ref() {
                                     Completion::Success(snapshot) => {
+                                        if this.surface == Surface::Usage
+                                            && let InsightsSnapshot::Usage(report) =
+                                                snapshot.as_ref()
+                                        {
+                                            this.usage_controls.update_capabilities(report);
+                                        }
                                         this.snapshot = Some(snapshot.clone())
                                     }
                                     Completion::Failed(error)
@@ -726,6 +765,12 @@ impl InsightsView {
                 if self.surface == Surface::Usage && page == InsightsPage::Sessions {
                     continue;
                 }
+                if self.surface == Surface::Usage
+                    && self.page == InsightsPage::Usage
+                    && page == InsightsPage::Usage
+                {
+                    continue;
+                }
                 tabs = tabs.child(semantics::tab(
                     semantics::button(
                         Button::new(id)
@@ -765,6 +810,9 @@ impl InsightsView {
                 self.loading,
                 cx,
             ));
+        }
+        if self.surface == Surface::Usage {
+            return sections;
         }
         sections = sections.child(semantics::tab(
             semantics::button(
@@ -820,23 +868,7 @@ impl Render for InsightsView {
         let mut tabs = self.product_tabs(cx);
         // 平台内嵌时页头已提供唯一 h1，这里不再重复标题。
         if self.surface == Surface::Usage && self.platform_scope.is_none() {
-            root = root
-                .child(
-                    div()
-                        .text_size(crate::theme::text_size(theme::TITLE_SIZE))
-                        .font_weight(gpui_kit::FontWeight::SEMIBOLD)
-                        .child(text(cx, "Usage", "用量")),
-                )
-                .child(
-                    div()
-                        .text_size(crate::theme::text_size(theme::META_SIZE))
-                        .text_color(cx.theme().muted_foreground)
-                        .child(text(
-                            cx,
-                            "Figures stored in the current execution environment's usage database.",
-                            "这些数字来自当前执行环境的用量库。",
-                        )),
-                );
+            root = root.child(usage::heading(cx));
         }
         if self.page == InsightsPage::Capabilities {
             return root
@@ -856,16 +888,44 @@ impl Render for InsightsView {
                 .child(self.observer.clone())
                 .into_any_element();
         }
-        tabs = tabs.child(semantics::button(
-            Button::new("insights-refresh")
-                .label(text(cx, "Refresh", "刷新"))
-                .on_click(cx.listener(|this, _, _, cx| this.refresh(cx))),
-            self.loading,
-            self.loading,
-            cx,
-        ));
-        root = root.child(tabs);
-        if self.page == InsightsPage::Usage {
+        let usage_page = self.surface == Surface::Usage && self.page == InsightsPage::Usage;
+        if usage_page {
+            let report = match self.snapshot.as_deref() {
+                Some(InsightsSnapshot::Usage(report)) => Some(report),
+                _ => None,
+            };
+            let readings = report.filter(|report| report.overview.bucket_count > 0);
+            root =
+                root.overflow_y_scroll()
+                    .child(self.report_toolbar(cx))
+                    .children(
+                        self.submitted_usage
+                            .as_ref()
+                            .map(|filter| usage::context_row(filter, report, cx)),
+                    )
+                    .children(
+                        (readings.is_some() || (self.loading && self.section != Section::Logs))
+                            .then(|| {
+                                usage::readings(
+                                    readings,
+                                    window.viewport_size().width < px(theme::SPLIT_WIDTH),
+                                    cx,
+                                )
+                            }),
+                    )
+                    .children(self.platform_scope.is_none().then_some(tabs));
+        } else {
+            tabs = tabs.child(semantics::button(
+                Button::new("insights-refresh")
+                    .label(text(cx, "Refresh", "刷新"))
+                    .on_click(cx.listener(|this, _, _, cx| this.refresh(cx))),
+                self.loading,
+                self.loading,
+                cx,
+            ));
+            root = root.child(tabs);
+        }
+        if self.page == InsightsPage::Usage && !usage_page {
             root = root.child(self.import_controls(cx));
         }
         if self.page == InsightsPage::Sessions {
@@ -953,7 +1013,7 @@ impl Render for InsightsView {
                     ),
             );
         }
-        if self.page != InsightsPage::Home {
+        if self.page != InsightsPage::Home && !usage_page {
             let mut filters = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
             let indices: &[usize] = if self.page == InsightsPage::Usage {
                 &[0, 1, 2, 3, 4, 5]
@@ -996,7 +1056,7 @@ impl Render for InsightsView {
             root = root.child(filters);
         }
         if self.page == InsightsPage::Usage {
-            root=root.child(self.usage_sections(cx)).child(div().text_size(crate::theme::text_size(theme::META_SIZE)).child(text(cx,"Source IDs: claude, codex, opencode, antigravity, kimi_code, pi, grok, zcode, deepseek_harness. Inclusive dates in selected reporting zone.","来源为九个规范 ID；日期按所选报告时区包含首尾日。")));
+            root = root.child(self.usage_sections(cx));
         }
         if self.page == InsightsPage::Home {
             root=root.child(div().text_size(crate::theme::text_size(theme::META_SIZE)).child(text(cx,"All-history usage and indexed sessions; seven-day windows use the local reporting date. Usage filters do not affect this join.","全历史用量与已索引会话；七日窗口按本地报告日期。用量筛选不影响此联合报告。")));
@@ -1004,21 +1064,44 @@ impl Render for InsightsView {
         if self.page == InsightsPage::Sessions {
             root=root.child(div().text_size(crate::theme::text_size(theme::META_SIZE)).child(text(cx,"Archive refresh reads explicit provider roots into CCR summaries; no usage sync/import is started. Transcript plaintext stays scoped to this view; leave to clear it.","归档刷新只读指定提供方并更新 CCR 摘要，不启动用量同步或导入。正文仅在本页临时显示，不写日志，离页清除。")));
         }
-        root = root.child(
+        let status = if self.loading {
+            Some(text(cx, "Reading on background worker", "正在后台读取").to_string())
+        } else if let Some(error) = self.error {
+            Some(service_error(cx, error).to_string())
+        } else if usage_page {
+            match self.snapshot.as_deref() {
+                Some(InsightsSnapshot::Usage(report)) if report.overview.bucket_count == 0 => {
+                    Some(text(cx, "No records in this range.", "此区间没有记录。").into())
+                }
+                Some(InsightsSnapshot::Usage(report))
+                    if self.section == Section::Providers && !report.providers_supported =>
+                {
+                    Some(
+                        text(
+                            cx,
+                            "Provider breakdown unavailable for this database.",
+                            "当前数据库不支持提供商明细。",
+                        )
+                        .into(),
+                    )
+                }
+                _ => None,
+            }
+        } else if self.surface == Surface::Workbench {
+            Some(self.summary())
+        } else {
+            Some(self.product_status(cx))
+        };
+        let has_status = status.is_some();
+        root = root.children(status.map(|status| {
             div()
                 .id("insights-status")
                 .test_support()
                 .role(gpui_kit::Role::Status)
-                .child(if self.loading {
-                    text(cx, "Reading on background worker", "正在后台读取").to_string()
-                } else if let Some(error) = self.error {
-                    service_error(cx, error).to_string()
-                } else if self.surface == Surface::Workbench {
-                    self.summary()
-                } else {
-                    self.product_status(cx)
-                }),
-        );
+                .aria_label(status.clone())
+                .text_color(cx.theme().muted_foreground)
+                .child(status)
+        }));
         if let Some(InsightsSnapshot::Sessions { statuses, .. }) = self.snapshot.as_deref() {
             root = root.child(
                 div()
@@ -1121,39 +1204,46 @@ impl Render for InsightsView {
                 .child(div().min_w(px(100.)).text_right().child(headers.1.clone()))
                 .child(div().min_w(px(100.)).text_right().child(headers.2.clone())),
         );
-        root = root.child(
-            div()
-                .id("insights-list-focus")
-                .test_support()
-                .track_focus(&self.focus)
-                .tab_stop(true)
-                .role(gpui_kit::Role::ListBox)
-                .aria_label(text(cx, "Exact-value report rows", "精确数值报告行"))
-                .flex_1()
-                .min_h_0()
-                .on_key_down(cx.listener(|this, event: &gpui_kit::KeyDownEvent, _, cx| {
-                    match event.keystroke.key.as_str() {
-                        "down" => this.select_offset(true, cx),
-                        "up" => this.select_offset(false, cx),
-                        "enter" => {
-                            if let Some(index) = (0..this.row_count())
-                                .find(|&i| this.row_key(i) == this.selected.as_deref())
-                            {
-                                this.select(index, cx);
-                            }
+        let row_list = div()
+            .id("insights-list-focus")
+            .test_support()
+            .track_focus(&self.focus)
+            .tab_stop(true)
+            .role(gpui_kit::Role::ListBox)
+            .aria_label(text(cx, "Exact-value report rows", "精确数值报告行"))
+            .min_h_0()
+            .on_key_down(cx.listener(|this, event: &gpui_kit::KeyDownEvent, _, cx| {
+                match event.keystroke.key.as_str() {
+                    "down" => this.select_offset(true, cx),
+                    "up" => this.select_offset(false, cx),
+                    "enter" => {
+                        if let Some(index) = (0..this.row_count())
+                            .find(|&i| this.row_key(i) == this.selected.as_deref())
+                        {
+                            this.select(index, cx);
                         }
-                        "escape" => {
-                            this.detail_open = false;
-                            this.selected = None;
-                            cx.notify();
-                        }
-                        _ => return,
                     }
-                    cx.stop_propagation();
-                }))
-                .child(list),
-        );
-        if !self.loading && self.error.is_none() && self.snapshot.is_some() && count == 0 {
+                    "escape" => {
+                        this.detail_open = false;
+                        this.selected = None;
+                        cx.notify();
+                    }
+                    _ => return,
+                }
+                cx.stop_propagation();
+            }))
+            .child(list);
+        root = root.child(if usage_page {
+            row_list.flex_shrink_0().h(px(260.))
+        } else {
+            row_list.flex_1()
+        });
+        if (!usage_page || !has_status)
+            && !self.loading
+            && self.error.is_none()
+            && self.snapshot.is_some()
+            && count == 0
+        {
             root = root.child(if self.surface == Surface::Usage {
                 text(
                     cx,

@@ -30,6 +30,17 @@ mod claude_trend;
 mod grok;
 mod rolling;
 
+pub(super) fn format_recorded_cost(value: f64) -> String {
+    if value != 0. && value.abs() < 0.01 {
+        return if value < 0. {
+            ">−$0.01".into()
+        } else {
+            "<$0.01".into()
+        };
+    }
+    format!("${value:.2}")
+}
+
 pub fn name(platform: Platform) -> &'static str {
     match platform {
         Platform::Claude => "Claude Code",
@@ -401,7 +412,7 @@ impl WorkbenchView {
                         ),
                         (
                             text(cx, "Recorded cost (USD)", "记录费用（USD）"),
-                            claude::format_recorded_cost(usage.overview.total_cost_usd),
+                            format_recorded_cost(usage.overview.total_cost_usd),
                         ),
                     ] {
                         totals = totals.child(
@@ -478,7 +489,7 @@ impl WorkbenchView {
                                         .child(format!(
                                             "{} / {}",
                                             row.request_count,
-                                            claude::format_recorded_cost(row.cost_usd)
+                                            format_recorded_cost(row.cost_usd)
                                         )),
                                 ),
                         );

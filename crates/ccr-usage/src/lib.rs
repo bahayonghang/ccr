@@ -34,7 +34,7 @@ pub use paths::{AppPaths, discover_llmusage_paths};
 pub use queries::{
     DailyTrendDto, HeatmapPoint, HomeOverviewPayload, HomeOverviewPlatformStats,
     HomeOverviewSeriesItem, HomeOverviewSummary, ModelBreakdown, OverviewPayload, ProjectBreakdown,
-    ProviderBreakdownDto, SourceBreakdownDto, TaggedProviderBreakdown, TokenSummary,
+    ProviderBreakdownDto, RecordedCost, SourceBreakdownDto, TaggedProviderBreakdown, TokenSummary,
     UsageRecordDto, generated_at,
 };
 pub use source::{SourceKind, canonical_source_id, parse_source_filter, platform_scope_label};

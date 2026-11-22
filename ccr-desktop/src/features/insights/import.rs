@@ -7,7 +7,7 @@ pub(super) struct Scope {
     choose_source: bool,
 }
 
-fn source_label(source: Option<SourceKind>, cx: &gpui_kit::App) -> &'static str {
+pub(super) fn source_label(source: Option<SourceKind>, cx: &gpui_kit::App) -> &'static str {
     match source {
         None => text(cx, "All sources", "全部来源"),
         Some(SourceKind::Claude) => "Claude Code",

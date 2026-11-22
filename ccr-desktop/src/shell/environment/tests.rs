@@ -784,6 +784,15 @@ async fn ssh_offline_retained_import_stays_visible_through_navigation_and_cleanu
     .await;
     cx.update_window(handle, |_, window, cx| {
         window.click("nav-usage", cx);
+        let sync = window.find("usage-sync-menu");
+        assert!(
+            sync.visible(),
+            "sync {:?}, toolbar {:?}, frame {:?}",
+            sync.bounds(),
+            window.find("usage-toolbar").bounds(),
+            window.viewport_size()
+        );
+        window.click("usage-sync-menu", cx);
         window.click("insights-import", cx);
     })
     .unwrap();
