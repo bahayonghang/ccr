@@ -1,8 +1,11 @@
+mod focus;
+
 use super::asset_details::AssetDetailFocus;
 use super::assets::asset_name;
 use super::*;
 use crate::runtime::sync::{AssetDirection, AssetRequest};
 use ccr_sync::sync::assets::{SYNC_ASSETS, SyncAssetDefinition, asset_by_id};
+use focus::{Control, TransferFocus};
 use gpui_kit::component::{ActiveTheme, Disableable, FocusTrapElement, checkbox::Checkbox};
 use gpui_kit::{AnyElement, Pixels, Point};
 
@@ -12,6 +15,7 @@ pub(super) struct AssetEditor {
     // None denotes all five fixed assets. A single index is also the originating detail.
     target: Option<usize>,
     return_offset: Point<Pixels>,
+    focus: TransferFocus,
     pub(super) review: Option<AssetReview>,
 }
 
@@ -40,7 +44,12 @@ impl AssetReview {
 }
 
 impl SyncView {
-    pub(super) fn edit_asset(&mut self, target: Option<usize>, cx: &mut Context<Self>) {
+    pub(super) fn edit_asset(
+        &mut self,
+        target: Option<usize>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         if self.asset_transfer_locked()
             || self.asset_editor.is_some()
             || target.is_some_and(|index| self.asset_detail != Some(index))
@@ -59,6 +68,7 @@ impl SyncView {
             generation: self.generation,
             target,
             return_offset: self.folder_focus.scroll.offset(),
+            focus: TransferFocus::new(window, cx),
             review: None,
         });
         self.reveal_asset_editor(cx);
@@ -252,13 +262,18 @@ impl SyncView {
                 })),
         );
 
-        let cancel = semantics::ghost_button(
-            Button::new("sync-asset-discard")
-                .label(text(cx, "Cancel", "取消"))
-                .on_click(cx.listener(|this, _, window, cx| this.cancel_asset_edit(window, cx))),
-            false,
-            false,
-            cx,
+        let cancel = editor.focus.track(
+            Control::Cancel,
+            semantics::ghost_button(
+                Button::new("sync-asset-discard")
+                    .label(text(cx, "Cancel", "取消"))
+                    .on_click(
+                        cx.listener(|this, _, window, cx| this.cancel_asset_edit(window, cx)),
+                    ),
+                false,
+                false,
+                cx,
+            ),
         );
         let content = if let Some(review) = &editor.review {
             self.render_asset_review(editor, review, locked, cancel, cx)
@@ -268,23 +283,26 @@ impl SyncView {
                 .children(
                     [
                         (
+                            Control::Upload,
                             AssetDirection::Push,
                             "sync-asset-push",
                             text(cx, "Upload", "上传"),
                         ),
                         (
+                            Control::Download,
                             AssetDirection::Pull,
                             "sync-asset-pull",
                             text(cx, "Download", "下载"),
                         ),
                         (
+                            Control::Sync,
                             AssetDirection::Sync,
                             "sync-asset-sync",
                             text(cx, "Sync", "同步"),
                         ),
                     ]
-                    .map(|(direction, id, label)| {
-                        semantics::button(
+                    .map(|(control, direction, id, label)| {
+                        let button = semantics::button(
                             Button::new(id).label(label).on_click(cx.listener(
                                 move |this, _, window, cx| {
                                     this.review_asset_transfer(direction, window, cx)
@@ -293,7 +311,8 @@ impl SyncView {
                             locked,
                             false,
                             cx,
-                        )
+                        );
+                        editor.focus.track(control, button)
                     }),
                 )
                 .child(cancel)
@@ -317,7 +336,7 @@ impl SyncView {
         editor: &AssetEditor,
         review: &AssetReview,
         locked: bool,
-        cancel: Button,
+        cancel: impl IntoElement,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let (direction, consequence) = transfer_explanation(review, cx);
@@ -328,6 +347,7 @@ impl SyncView {
         let includes_file = definitions.iter().any(|asset| asset.id != "ccr-platforms");
         let passphrase_label = text(cx, "Operation passphrase", "本次操作口令");
         let legacy = review.direction != AssetDirection::Push && review.passphrase.is_some();
+        let focus = &editor.focus;
         div()
             .id("sync-asset-confirmation")
             .test_support()
@@ -352,13 +372,20 @@ impl SyncView {
                     .max_w(px(360.))
                     .gap(px(4.))
                     .child(passphrase_label)
-                    .child(Input::new(input).aria_label(passphrase_label).accessibility_id("sync-asset-passphrase").disabled(locked))
+                    .child(focus.track(
+                        Control::Passphrase,
+                        Input::new(input)
+                            .aria_label(passphrase_label)
+                            .accessibility_id("sync-asset-passphrase")
+                            .disabled(locked),
+                    ))
                     .child(div().text_color(cx.theme().muted_foreground).child(text(cx,
                         "Sensitive assets require this operation’s passphrase and upload with v2 encryption.",
                         "敏感资产使用本次操作的口令，上传时采用 v2 加密。",
                     )))
             }))
-            .child(sync_actions().child(
+            .child(sync_actions().child(focus.track(
+                Control::Overwrite,
                 Checkbox::new("sync-asset-force")
                     .label(text(cx, "Allow overwrite", "允许覆盖"))
                     .checked(review.force)
@@ -369,14 +396,15 @@ impl SyncView {
                             cx.notify();
                         }
                     })),
-            ))
+            )))
             .children(legacy.then(|| {
                 div()
                     .flex()
                     .flex_col()
                     .min_w_0()
                     .gap(px(4.))
-                    .child(sync_actions().child(
+                    .child(sync_actions().child(focus.track(
+                        Control::PlaintextImport,
                         Checkbox::new("sync-asset-v1")
                             .label(text(cx, "Import plaintext v1 once", "仅本次导入明文 v1"))
                             .checked(review.import_v1)
@@ -387,7 +415,7 @@ impl SyncView {
                                     cx.notify();
                                 }
                             })),
-                    ))
+                    )))
                     .child(div().text_color(cx.theme().muted_foreground).child(text(cx,
                         "Allows a one-time import of plaintext v1 only if this operation downloads the copy.",
                         "仅在此操作下载副本时，允许读取并导入旧版明文 v1。",
@@ -414,23 +442,29 @@ impl SyncView {
             }))
             .child(
                 sync_actions()
-                    .child(semantics::ghost_button(
-                        Button::new("sync-asset-change-direction")
-                            .label(text(cx, "Change direction", "更改方向"))
-                            .on_click(cx.listener(|this, _, window, cx| this.choose_asset_direction(window, cx))),
-                        locked,
-                        false,
-                        cx,
+                    .child(focus.track(
+                        Control::ChangeDirection,
+                        semantics::ghost_button(
+                            Button::new("sync-asset-change-direction")
+                                .label(text(cx, "Change direction", "更改方向"))
+                                .on_click(cx.listener(|this, _, window, cx| this.choose_asset_direction(window, cx))),
+                            locked,
+                            false,
+                            cx,
+                        ),
                     ))
                     .child(cancel)
-                    .child(semantics::button(
-                        Button::new("sync-asset-confirm")
-                            .label(text(cx, "Confirm transfer", "确认传输"))
-                            .primary()
-                            .on_click(cx.listener(|this, _, window, cx| this.send_asset(window, cx))),
-                        locked,
-                        false,
-                        cx,
+                    .child(focus.track(
+                        Control::Confirm,
+                        semantics::button(
+                            Button::new("sync-asset-confirm")
+                                .label(text(cx, "Confirm transfer", "确认传输"))
+                                .primary()
+                                .on_click(cx.listener(|this, _, window, cx| this.send_asset(window, cx))),
+                            locked,
+                            false,
+                            cx,
+                        ),
                     )),
             )
     }

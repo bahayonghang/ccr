@@ -187,8 +187,8 @@ impl SyncView {
                     .child(semantics::ghost_button(
                         Button::new(("sync-asset", index))
                             .label(text(cx, "Transfer asset…", "传输资产…"))
-                            .on_click(cx.listener(move |this, _, _, cx| {
-                                this.edit_asset(Some(index), cx);
+                            .on_click(cx.listener(move |this, _, window, cx| {
+                                this.edit_asset(Some(index), window, cx);
                             })),
                         self.asset_transfer_locked(),
                         false,

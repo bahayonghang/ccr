@@ -218,8 +218,8 @@ impl SyncView {
                             .child(semantics::ghost_button(
                                 Button::new("sync-assets-all")
                                     .label(text(cx, "Transfer all assets…", "传输全部资产…"))
-                                    .on_click(cx.listener(|this, _, _, cx| {
-                                        this.edit_asset(None, cx);
+                                    .on_click(cx.listener(|this, _, window, cx| {
+                                        this.edit_asset(None, window, cx);
                                     })),
                                 self.asset_transfer_locked()
                                     || self.asset_editor.is_some()

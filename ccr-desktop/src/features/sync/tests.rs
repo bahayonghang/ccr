@@ -2,6 +2,7 @@
 #![allow(clippy::unwrap_used)]
 use super::*;
 use crate::runtime::ConfigSource;
+use crate::runtime::preferences::{DesktopPreferences, TypographyPreferences};
 use crate::runtime::sync::SyncLocal;
 use crate::shell::Shell;
 use ccr_app::runtime::RuntimeOwner;
@@ -423,6 +424,16 @@ fn open(
     root: &std::path::Path,
     viewport: gpui_kit::Size<gpui_kit::Pixels>,
 ) -> gpui_kit::AnyWindowHandle {
+    open_with_preferences(cx, owner, root, viewport, DesktopPreferences::default())
+}
+
+fn open_with_preferences(
+    cx: &mut TestAppContext,
+    owner: &RuntimeOwner,
+    root: &std::path::Path,
+    viewport: gpui_kit::Size<gpui_kit::Pixels>,
+    preferences: DesktopPreferences,
+) -> gpui_kit::AnyWindowHandle {
     cx.update(|cx| {
         gpui_kit::init(cx);
         gpui_kit::open_window(
@@ -435,12 +446,7 @@ fn open(
             cx,
             |window, cx| {
                 cx.new(|cx| {
-                    Shell::new_with_preferences(
-                        services(owner, root),
-                        Ok(Default::default()),
-                        window,
-                        cx,
-                    )
+                    Shell::new_with_preferences(services(owner, root), Ok(preferences), window, cx)
                 })
             },
         )
@@ -842,6 +848,135 @@ fn asset_passphrase(view: &Entity<SyncView>, cx: &App) -> Entity<InputState> {
         .as_ref()
         .unwrap()
         .clone()
+}
+
+#[gpui_kit::test]
+async fn narrow_large_text_asset_review_keeps_keyboard_focus_in_view(cx: &mut TestAppContext) {
+    use gpui_kit::InputEvent;
+
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    std::fs::write(
+        root.path().join("sync_folders.toml"),
+        "[webdav]\nenabled=true\nurl='https://dav.example.test/team/'\nusername='fixture-user'\npassword='fixture-password'\n",
+    )
+    .unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let handle = open_with_preferences(
+        cx,
+        &owner,
+        root.path(),
+        size(px(960.), px(640.)),
+        DesktopPreferences {
+            theme: theme::Preference::Dark,
+            typography: TypographyPreferences {
+                ui_size: 20,
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+    );
+    cx.update_window(handle, |_, window, _| window.activate_window())
+        .unwrap();
+    cx.run_until_parked();
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.scroll(
+            "nav-dashboard",
+            gpui_kit::ScrollDelta::Pixels(gpui_kit::point(px(0.), px(-540.))),
+            cx,
+        );
+        window.click("nav-sync", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window
+            .try_find("sync-webdav-config")
+            .is_some_and(|status| status.label() == Some("Saved · Enabled"))
+    })
+    .await;
+
+    let pump = |window: &mut Window, cx: &mut App| {
+        for _ in 0..3 {
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
+        }
+    };
+    let press = |window: &mut Window, key, cx: &mut App| {
+        let keystroke = gpui_kit::Keystroke::parse(key).unwrap();
+        window.dispatch_event(
+            gpui_kit::KeyDownEvent {
+                keystroke: keystroke.clone(),
+                is_held: false,
+                prefer_character_input: false,
+            }
+            .to_platform_input(),
+            cx,
+        );
+        window.dispatch_event(gpui_kit::KeyUpEvent { keystroke }.to_platform_input(), cx);
+        pump(window, cx);
+    };
+    let visible_focus = |window: &Window, target: gpui_kit::base::test_support::ElementSnapshot| {
+        assert_eq!(target.focused(), Some(true), "{target:?}");
+        let bounds = target.bounds();
+        let page = window.find("sync-page").bounds();
+        assert!(
+            target.visible()
+                && bounds.top() >= page.top() + px(2.)
+                && bounds.bottom() <= page.bottom() - px(2.),
+            "{target:?} is clipped by {page:?}",
+        );
+    };
+    let passphrase = |window: &Window| {
+        gpui_kit::base::test_support::snapshots(window)
+            .into_iter()
+            .find(|node| node.label() == Some("Operation passphrase"))
+            .unwrap()
+    };
+    cx.update_window(handle, |_, window, cx| {
+        assert_eq!(window.rem_size(), px(20.));
+        window.scroll(
+            "sync-page",
+            gpui_kit::ScrollDelta::Pixels(gpui_kit::point(px(0.), px(-180.))),
+            cx,
+        );
+        window.click("sync-assets-all", cx);
+        pump(window, cx);
+        visible_focus(window, window.find("sync-asset-push"));
+        press(window, "tab", cx);
+        visible_focus(window, window.find("sync-asset-pull"));
+        press(window, "enter", cx);
+        visible_focus(window, passphrase(window));
+    })
+    .unwrap();
+    let actions = [
+        "sync-asset-force",
+        "sync-asset-v1",
+        "sync-asset-change-direction",
+        "sync-asset-discard",
+        "sync-asset-confirm",
+    ];
+    for (key, action) in actions.into_iter().map(|id| ("tab", id)).chain(
+        actions[..actions.len() - 1]
+            .iter()
+            .rev()
+            .map(|id| ("shift-tab", *id)),
+    ) {
+        cx.update_window(handle, |_, window, cx| {
+            press(window, key, cx);
+            visible_focus(window, window.find(action));
+        })
+        .unwrap();
+    }
+    cx.update_window(handle, |_, window, cx| {
+        press(window, "shift-tab", cx);
+        visible_focus(window, passphrase(window));
+        press(window, "escape", cx);
+        visible_focus(window, window.find("sync-assets-all"));
+        window.remove_window();
+    })
+    .unwrap();
+    owner.shutdown();
 }
 
 #[gpui_kit::test]
