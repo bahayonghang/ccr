@@ -15,7 +15,9 @@ pub use operations::{
 use std::path::{Path, PathBuf};
 
 use ccr_core::core::log_redact::redact_log_text;
-use ccr_sync::{SyncFolderManager, SyncFoldersConfig};
+use ccr_sync::{
+    SyncFolderManager, SyncFoldersConfig, WebDavConfig, sync::assets::normalize_remote_base,
+};
 
 use super::{ConfigSource, Services};
 use ccr_app::runtime::{AdmissionError, RequestKey, TaskSubscription};
@@ -71,7 +73,7 @@ impl SyncError {
                 "Asset decryption failed. Check the passphrase and envelope. Local data was not replaced."
             }
             Self::AssetConflict => {
-                "Both copies exist. Explicitly allow replacement to continue; downloads create a local backup."
+                "Both copies exist. Review the overwrite consequences before retrying."
             }
             Self::LegacyFolders => {
                 "Legacy folder entries are read-only. Migrate them to the canonical folders schema with CCR before editing."
@@ -120,6 +122,7 @@ pub struct SyncLocal {
     pub revision: String,
     pub webdav_enabled: bool,
     pub url: SyncUrl,
+    pub asset_remote_base: Option<String>,
     pub username_present: bool,
     pub password_present: bool,
     pub folders: Vec<SyncFolderRow>,
@@ -151,6 +154,24 @@ fn host_only(url: &str) -> Option<String> {
     }
 }
 
+fn asset_base_for_display(webdav: &WebDavConfig) -> Option<String> {
+    let base = normalize_remote_base(&webdav.base_remote_path).replace('\\', "/");
+    let base = if base.is_empty() {
+        "/".to_owned()
+    } else {
+        base
+    };
+    // Only project a directory label. Leave URL-like or encoded text out of the snapshot.
+    let username = webdav.username.trim();
+    let password = webdav.password.expose();
+    (!base.contains([':', '@', '?', '#', '%'])
+        && !base.chars().any(char::is_control)
+        && (username.is_empty() || !base.split('/').any(|part| part == username))
+        && (password.is_empty() || !base.contains(password))
+        && redact_log_text(&base) == base)
+        .then_some(base)
+}
+
 fn folder_row(folder: &ccr_sync::SyncFolder) -> SyncFolderRow {
     SyncFolderRow {
         identity: Some(ccr_core::core::content_version_token(
@@ -178,6 +199,7 @@ fn project(config: SyncFoldersConfig, revision: String) -> SyncLocal {
         revision,
         webdav_enabled: config.webdav.enabled,
         url,
+        asset_remote_base: asset_base_for_display(&config.webdav),
         username_present,
         password_present,
         folders,
@@ -421,6 +443,7 @@ enabled = true
         };
         assert!(local.webdav_enabled);
         assert_eq!(local.url, SyncUrl::Host("dav.example.test".into()));
+        assert_eq!(local.asset_remote_base.as_deref(), Some("/ccr-sync"));
         assert!(local.username_present);
         assert!(local.password_present);
         assert_eq!(local.folders.len(), 1);
@@ -443,6 +466,7 @@ enabled = false
 url = "https://sync-user-sentinel:sync-password-sentinel@dav.example.test/dav/"
 username = "sync-user-sentinel"
 password = "sync-password-sentinel"
+base_remote_path = "/an-accidental-copy/sync-password-sentinel"
 [[folder]]
 name = "hidden-folder"
 local_path = "/tmp/hidden"
@@ -453,6 +477,7 @@ remote_path = "/remote"
             panic!("expected config");
         };
         assert_eq!(local.url, SyncUrl::Stored);
+        assert_eq!(local.asset_remote_base, None);
         assert!(!local.webdav_enabled);
         assert!(!format!("{local:?}").contains("sync-password-sentinel"));
 

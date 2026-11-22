@@ -460,7 +460,7 @@ impl Shell {
         self.jobs.update(cx, |view, cx| view.suspend(cx));
         self.install.update(cx, |view, cx| view.suspend(cx));
         self.monitoring.update(cx, |view, cx| view.suspend(cx));
-        self.sync.update(cx, |view, cx| view.suspend(cx));
+        self.sync.update(cx, |view, cx| view.suspend(window, cx));
         self.overview.update(cx, |view, cx| view.suspend(cx));
         self.workbench.update(cx, |view, cx| view.suspend(cx));
     }

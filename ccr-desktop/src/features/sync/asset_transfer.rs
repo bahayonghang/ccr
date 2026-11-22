@@ -84,12 +84,21 @@ impl SyncView {
     }
 
     pub(super) fn cancel_asset_edit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if let Some(editor) = self.asset_editor.take() {
-            if let Some(review) = &editor.review {
-                review.clear_passphrase(window, cx);
-            }
+        if let Some(editor) = self.discard_asset_editor(window, cx) {
             self.return_from_asset_editor(&editor, cx);
         }
+    }
+
+    pub(super) fn discard_asset_editor(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Option<AssetEditor> {
+        let editor = self.asset_editor.take()?;
+        if let Some(review) = &editor.review {
+            review.clear_passphrase(window, cx);
+        }
+        Some(editor)
     }
 
     fn review_asset_transfer(
@@ -202,10 +211,20 @@ impl SyncView {
                 self.environment_label(cx),
             ));
         if let Some(SyncSnapshot::Present(local)) = &self.snapshot {
-            pane = pane.child(sync_status(
-                "sync-asset-transfer-webdav",
-                super::webdav::url_line(cx, &local.url),
-            ));
+            pane = pane
+                .child(sync_status(
+                    "sync-asset-transfer-webdav",
+                    super::webdav::url_line(cx, &local.url),
+                ))
+                .children(local.asset_remote_base.as_ref().map(|base| {
+                    sync_status(
+                        "sync-asset-transfer-base",
+                        format!(
+                            "{} · {base}",
+                            text(cx, "WebDAV asset base path", "WebDAV 资产根路径")
+                        ),
+                    )
+                }));
         }
         if editor.target.is_none() {
             pane = pane.child(text(
@@ -242,8 +261,7 @@ impl SyncView {
             cx,
         );
         let content = if let Some(review) = &editor.review {
-            let includes_instructions = editor.definitions().iter().any(|asset| !asset.sensitive);
-            Self::render_asset_review(review, includes_instructions, locked, cancel, cx)
+            self.render_asset_review(editor, review, locked, cancel, cx)
                 .into_any_element()
         } else {
             sync_actions()
@@ -295,13 +313,19 @@ impl SyncView {
     }
 
     fn render_asset_review(
+        &self,
+        editor: &AssetEditor,
         review: &AssetReview,
-        includes_instructions: bool,
         locked: bool,
         cancel: Button,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
-        let (direction, force) = transfer_explanation(review, cx);
+        let (direction, consequence) = transfer_explanation(review, cx);
+        let definitions = editor.definitions();
+        let includes_instructions = definitions.iter().any(|asset| !asset.sensitive);
+        let replaces_on_download = review.direction == AssetDirection::Pull && review.force;
+        let includes_platforms = definitions.iter().any(|asset| asset.id == "ccr-platforms");
+        let includes_file = definitions.iter().any(|asset| asset.id != "ccr-platforms");
         let passphrase_label = text(cx, "Operation passphrase", "本次操作口令");
         let legacy = review.direction != AssetDirection::Push && review.passphrase.is_some();
         div()
@@ -312,7 +336,7 @@ impl SyncView {
             .min_w_0()
             .gap(px(theme::CONTROL_GAP))
             .child(sync_status("sync-asset-transfer-direction", direction))
-            .child(sync_status("sync-asset-transfer-consequence", force))
+            .child(sync_status("sync-asset-transfer-consequence", consequence))
             .children(includes_instructions.then(|| {
                 text(
                     cx,
@@ -365,9 +389,28 @@ impl SyncView {
                             })),
                     ))
                     .child(div().text_color(cx.theme().muted_foreground).child(text(cx,
-                        "Imports a legacy plaintext copy with a one-time read from WebDAV.",
-                        "从 WebDAV 单次读取并导入旧版明文副本。",
+                        "Allows a one-time import of plaintext v1 only if this operation downloads the copy.",
+                        "仅在此操作下载副本时，允许读取并导入旧版明文 v1。",
                     )))
+            }))
+            .children((replaces_on_download && includes_file).then(|| {
+                sync_status(
+                    "sync-asset-file-backup",
+                    if self.is_ssh() {
+                        text(cx, "When a file is replaced, its previous contents are backed up on the SSH host.", "替换文件时，原内容会在 SSH 主机上备份。")
+                    } else {
+                        text(cx, "When a local file is replaced, its previous contents are backed up.", "替换本地文件时会先备份原内容。")
+                    },
+                )
+            }))
+            .children((replaces_on_download && includes_platforms).then(|| {
+                sync_status(
+                    "sync-asset-platform-backup",
+                    text(cx,
+                        "CCR Platforms downloads containing profiles.db use database transactions with rollback. A separate directory backup is available only when the download replaces the directory as a whole.",
+                        "下载 CCR Platforms 时，profiles.db 在数据库事务内更新，事务失败时回滚。只有整体替换目录时才会保留独立的目录备份。",
+                    ),
+                )
             }))
             .child(
                 sync_actions()
@@ -416,14 +459,14 @@ fn transfer_explanation(review: &AssetReview, cx: &App) -> (&'static str, &'stat
             if review.force {
                 text(
                     cx,
-                    "Download backs up and replaces existing data in this environment.",
-                    "下载会备份并替换当前环境中的已有数据。",
+                    "Download can replace an existing copy in this environment.",
+                    "下载可替换当前环境中已有的副本。",
                 )
             } else {
                 text(
                     cx,
-                    "Existing data in this environment causes a conflict. Allow overwrite to back it up and replace it.",
-                    "当前环境已有数据时会报告冲突。允许覆盖后会先备份，再替换。",
+                    "An existing copy in this environment causes a conflict.",
+                    "当前环境已有副本时会报告冲突。",
                 )
             },
         ),

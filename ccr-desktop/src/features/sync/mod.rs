@@ -145,7 +145,12 @@ impl SyncView {
         window.focus_next(cx);
     }
 
-    pub fn suspend(&mut self, cx: &mut Context<Self>) {
+    pub fn suspend(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        drop(self.discard_asset_editor(window, cx));
+        self.reset(cx);
+    }
+
+    fn reset(&mut self, cx: &mut Context<Self>) {
         self.task = None;
         self.gate.clear();
         self.generation += 1;
@@ -175,7 +180,8 @@ impl SyncView {
     pub fn refresh(&mut self, cx: &mut Context<Self>) {
         let environment = self.services.environment();
         if self.environment != environment {
-            self.suspend(cx);
+            // Shell parks the current view with its window before changing environments.
+            self.reset(cx);
             self.environment = environment;
             self.environment_name = None;
         }
@@ -492,11 +498,9 @@ fn sync_error(cx: &App, error: SyncError) -> &'static str {
             error.message(),
             "资产解密失败，请检查口令和加密封装。当前环境中的数据已保留。",
         ),
-        SyncError::AssetConflict => text(
-            cx,
-            error.message(),
-            "两端都有副本。允许覆盖后可重试，下载会先备份当前环境的数据。",
-        ),
+        SyncError::AssetConflict => {
+            text(cx, error.message(), "两端都有副本。请核对覆盖后果再重试。")
+        }
         SyncError::Operation => text(
             cx,
             error.message(),

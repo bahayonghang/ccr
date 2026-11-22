@@ -60,6 +60,7 @@ async fn ssh_sync_unavailable_database_and_disconnect_controls_do_not_start_acti
             revision: "synthetic-revision".into(),
             webdav_enabled: true,
             url: SyncUrl::Host("fixture.invalid".into()),
+            asset_remote_base: Some("/fixture-root".into()),
             username_present: true,
             password_present: true,
             folders: Vec::new(),
@@ -68,6 +69,10 @@ async fn ssh_sync_unavailable_database_and_disconnect_controls_do_not_start_acti
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         assert!(labels(window).contains("Profile databases, disconnecting WebDAV"));
+        assert!(
+            labels(window)
+                .contains("All-assets transfer includes CCR Platforms and requires Local.")
+        );
         window.click("sync-disconnect", cx);
         window.click("sync-assets-all", cx);
         window.click("sync-asset-details-ccr-platforms", cx);
@@ -102,9 +107,13 @@ async fn ssh_sync_unavailable_database_and_disconnect_controls_do_not_start_acti
             window.find("sync-asset-transfer-environment").label(),
             Some("Execution environment · SSH")
         );
+        window.click("sync-asset-force", cx);
+        window.render_frame(cx);
+        assert!(labels(window).contains("previous contents are backed up on the SSH host"));
         input.update(cx, |state, cx| {
             state.set_value("discarded-passphrase", window, cx)
         });
+        window.focus(&input.read(cx).focus_handle(cx), cx);
         window.press("escape", cx);
         window.render_frame(cx);
         window.simulate_next_frame(cx);
@@ -343,7 +352,7 @@ async fn saved_settings_and_operation_results_survive_leaving_the_view(cx: &mut 
         });
         username.update(cx, |state, cx| state.set_value("fixture-user", window, cx));
         window.click("sync-save", cx);
-        view.update(cx, |this, cx| this.suspend(cx));
+        view.update(cx, |this, cx| this.suspend(window, cx));
     })
     .unwrap();
     cx.wait_for(handle, Duration::from_secs(10), |_, _| {
@@ -364,7 +373,7 @@ async fn saved_settings_and_operation_results_survive_leaving_the_view(cx: &mut 
             Some(Ok(SyncOutcome::Saved))
         ));
         window.click("sync-test", cx);
-        view.update(cx, |this, cx| this.suspend(cx));
+        view.update(cx, |this, cx| this.suspend(window, cx));
     })
     .unwrap();
     cx.wait_for(handle, Duration::from_secs(10), |_, _| {
@@ -768,7 +777,7 @@ async fn asset_controls_require_confirmation_and_clear_passphrase_on_leave(
         assert!(input.read(cx).value().is_empty());
         window.render_frame(cx);
         assert_eq!(window.find("sync-operation-status").focused(), Some(true));
-        view.update(cx, |v, cx| v.suspend(cx));
+        view.update(cx, |v, cx| v.suspend(window, cx));
     })
     .unwrap();
     cx.wait_for(handle, Duration::from_secs(10), |_, _| {
@@ -791,8 +800,27 @@ async fn asset_controls_require_confirmation_and_clear_passphrase_on_leave(
         );
         window.click("sync-assets-all", cx);
         window.render_frame(cx);
-        view.update(cx, |v, cx| v.suspend(cx));
+        window.click("sync-asset-pull", cx);
+        window.render_frame(cx);
+        let input = asset_passphrase(&view, cx);
+        input.update(cx, |state, cx| {
+            state.set_value("populated-draft-on-leave", window, cx)
+        });
+        view.update(cx, |v, cx| v.suspend(window, cx));
         assert!(view.read(cx).asset_editor.is_none());
+        assert!(input.read(cx).value().is_empty());
+    })
+    .unwrap();
+    view.update(cx, |v, cx| v.refresh(cx));
+    cx.wait_for(handle, Duration::from_secs(10), |_, cx| !view.read(cx).busy)
+        .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("sync-assets-all", cx);
+        window.render_frame(cx);
+        window.click("sync-asset-pull", cx);
+        window.render_frame(cx);
+        assert!(asset_passphrase(&view, cx).read(cx).value().is_empty());
         window.remove_window();
     })
     .unwrap();
@@ -828,7 +856,7 @@ async fn asset_transfers_keep_scope_and_report_real_loopback_results(cx: &mut Te
     let root = tempfile::tempdir().unwrap();
     let settings = root.path().join("sync_folders.toml");
     let config = format!(
-        "[webdav]\nenabled=true\nurl='{}'\nusername='fixture-user'\npassword='fixture-password'\n",
+        "[webdav]\nenabled=true\nurl='{}'\nusername='fixture-user'\npassword='fixture-password'\nbase_remote_path='/fixture-team/assets/'\n",
         server.url
     );
     std::fs::write(&settings, &config).unwrap();
@@ -973,6 +1001,20 @@ async fn asset_transfers_keep_scope_and_report_real_loopback_results(cx: &mut Te
         assert!(labels(window).contains("CCR Platforms"));
         assert!(labels(window).contains("Codex · AGENTS.md"));
         window.click("sync-asset-force", cx);
+        window.render_frame(cx);
+        assert!(labels(window).contains("WebDAV asset base path · /fixture-team/assets"));
+        assert!(
+            labels(window)
+                .contains("When a local file is replaced, its previous contents are backed up.")
+        );
+        assert!(labels(window).contains(
+            "CCR Platforms downloads containing profiles.db use database transactions with rollback"
+        ));
+        window.scroll(
+            "sync-page",
+            gpui_kit::ScrollDelta::Pixels(gpui_kit::point(px(0.), px(-400.))),
+            cx,
+        );
         window.click("sync-asset-v1", cx);
         submit(window, cx);
     })

@@ -229,6 +229,17 @@ impl SyncView {
                             )),
                     ),
             )
+            .children(self.is_ssh().then(|| {
+                sync_status(
+                    "sync-assets-all-unavailable",
+                    text(
+                        cx,
+                        "All-assets transfer includes CCR Platforms and requires Local.",
+                        "全部资产包含 CCR Platforms，需切换到本地执行。",
+                    ),
+                )
+                .text_color(cx.theme().muted_foreground)
+            }))
             .child(
                 div()
                     .text_size(theme::text_size(theme::META_SIZE))
