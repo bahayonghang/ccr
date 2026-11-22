@@ -91,3 +91,20 @@ release。共享 `ccr-sync` 77 项及 4 个 doctest 通过，1 项忽略，严�
 通过，分别忽略 0、1、4 项测试。完整门禁也完成 Windows release。原生验证使用合成 HTTP
 loopback 和本机文件。生产 HTTPS WebDAV、真实 SSH、系统高对比度、减少动态效果和其他
 系统未实测。
+
+
+## #237 配置资产传输
+
+候选 `8d6d551855d3e8a2780f1e82add9689a8ebe9f55`。通过 `just gpui-dev --fixture-sync-loopback` 启动，debug SHA-256 为
+`DBA131B5928B5BB1228128ED52F58F8962CDA6DAE3B15DBF974F1D16BA75000D`。
+
+- 1280×800 浅色核对 Claude Code 的 `settings.json`、本地环境、WebDAV 地址、资产根路径及上传后果。Enter 进入确认，口令显示圆点，覆盖默认关闭。Windows 可访问文本、配置和运行日志未出现合成口令。[掩码确认与显式覆盖](237-final-wide-confirm.jpg)
+- 在较早候选 `68ec2cb3` 完成首次上传，在最终候选显式允许覆盖并复跑。最终合成 WebDAV 收到 MKCOL 201、PUT 201。读回对象为 `ccr-sync-encrypted-asset` v2、AES-256-GCM，资产 ID 为 `claude-settings`。界面显示运行中，离开后回到本地同步页，保留逐项成功 1/1。[运行中](237-final-wide-running.jpg) · [返回原环境](237-final-wide-retained.jpg)
+- 在 960×640 深色、英文 UI 字号 20 下，较早候选的 Tab 把焦点移到视口外。最终候选自动滚动，完整显示覆盖、v1 和确认按钮的焦点环。两项权限默认关闭，键盘单独切换覆盖后仍保留 v1 关闭。下载确认分别说明文件备份、CCR Platforms 数据库事务回滚和 v1 仅适用于实际下载。Shift+Tab 回到口令框，Esc 恢复「Transfer all assets…」的焦点和滚动位置。预览、更改选项及取消前后的合成 WebDAV 请求数均为 33。[修复前](237-narrow-focus-before-fix.jpg) · [英文大字](237-final-narrow-large-list.jpg) · [覆盖焦点](237-final-overwrite-focus.jpg) · [v1 焦点](237-final-v1-focus.jpg) · [确认焦点和后果](237-final-confirm-focus.jpg) · [反向 Tab](237-final-return-to-input.jpg) · [Esc 返回](237-final-escape-original.jpg)
+- 控件和运行时夹具检查了默认冲突、覆盖后双端均存在时从当前环境发布、批量部分成功与备份、配置失效禁止请求、环境结果、离页及改方向主动清空口令。SSH 夹具覆盖单项入口和全部资产限制。SSH 文件确实替换时，备份留在主机，现有适配器未提供可显示的备份路径。
+
+候选同步定向 39 项通过，`just gpui-test-ui` 46 项通过、1 项忽略，`just gpui-ci`
+主库 430 项通过、4 项忽略，并完成 Windows release。`ccr-core` 凭据 8 项测试及严格
+Clippy 通过。独立 Standards 与 Spec 确认同主机目标区分、脱敏与口令清理，最终键盘修复
+通过 Standards 复查。生产 HTTPS WebDAV、真实 SSH、系统高对比度、减少动态效果与其他
+系统未实测。
