@@ -206,8 +206,7 @@ impl LaunchMode {
                     insights::import::Scenario::validate(
                         &source,
                         &paths,
-                        &std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                            .join("../outputs/desktop"),
+                        &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".."),
                     )?;
                 }
                 Ok(Self::AppWithInsights {
@@ -479,6 +478,41 @@ mod tests {
             Ok(LaunchMode::App(ConfigSource::Fixture { .. }))
         ));
     }
+    #[test]
+    fn usage_import_fixture_launch_accepts_the_documented_outputs_root()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let outputs = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../outputs/desktop");
+        std::fs::create_dir_all(&outputs)?;
+        let root = tempfile::tempdir_in(outputs)?;
+        std::fs::write(
+            root.path().join(".ccr-gpui-usage-import-fixture"),
+            b"ccr-gpui-usage-import-fixture-v1",
+        )?;
+        let args = [
+            ("--fixture-profiles", "profiles.toml"),
+            ("--fixture-registry", "registry.toml"),
+            ("--insights-usage-root", "usage"),
+            ("--insights-archive-db", "archive.db"),
+            ("--insights-provider-home", "home"),
+        ]
+        .into_iter()
+        .flat_map(|(flag, name)| {
+            [
+                OsString::from(flag),
+                root.path().join(name).into_os_string(),
+            ]
+        })
+        .chain(["--fixture-usage-import", "cancel"].map(OsString::from));
+        assert!(matches!(
+            LaunchMode::parse(args),
+            Ok(LaunchMode::AppWithInsights {
+                import_fixture: Some(insights::import::Scenario::Cancel),
+                ..
+            })
+        ));
+        Ok(())
+    }
+
     #[test]
     fn native_settings_capture_requires_an_explicit_isolated_fixture() {
         let owner = ccr_app::runtime::RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
