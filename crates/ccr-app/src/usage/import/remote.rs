@@ -80,9 +80,22 @@ impl Snapshot {
                 "remote_snapshot_requires_python3_sqlite_and_readable_database".into(),
             ));
         }
-        let target = std::str::from_utf8(&output.stdout)
-            .map_err(|_| LlmusageAdapterError::Cli("remote_snapshot_path".into()))?
-            .trim();
+        let stdout = std::str::from_utf8(&output.stdout)
+            .map_err(|_| LlmusageAdapterError::Cli("remote_snapshot_path".into()))?;
+        if output.stderr.is_empty()
+            && stdout
+                .lines()
+                .eq([ccr_usage::snapshot::DB_MISSING_RESPONSE])
+        {
+            io.check_authority().map_err(failure)?;
+            if cancel.is_cancelled() {
+                return Err(LlmusageAdapterError::Cancelled);
+            }
+            return Err(LlmusageAdapterError::DbMissing(
+                Path::new(&root).join("llmusage.db"),
+            ));
+        }
+        let target = stdout.trim();
         let prefix = format!("{root}/.ccr-snapshot-");
         let suffix = target
             .strip_prefix(&prefix)

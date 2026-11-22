@@ -216,6 +216,65 @@ async fn ssh_usage_snapshot_projection_schema_gates_and_cache_are_host_private()
 }
 
 #[tokio::test]
+async fn ssh_usage_report_distinguishes_missing_database_from_snapshot_failure() {
+    use ccr_app::environments::ssh_security::posix_single_quote as quote;
+    use insights::InsightsError;
+
+    let f = Fixture::new().await;
+    ccr_usage::fixtures::create_projection_db(&f.root.path().join("poison-usage"));
+    let command = [
+        "python3",
+        "-c",
+        ccr_usage::snapshot::BACKUP_SCRIPT,
+        "/srv/activity/.llmusage",
+    ]
+    .map(quote)
+    .join(" ");
+    let requests = insights::InsightsRequests::new(&f.services);
+    let query = || insights::InsightsQuery::UsagePage {
+        filter: ccr_usage::QueryFilter::default(),
+        as_of: f.services.report_clock().as_of,
+    };
+
+    let missing = "ccr_usage_snapshot_db_missing_v1\n";
+    for (index, (success, stdout, stderr, expected)) in [
+        (true, missing, "", InsightsError::Missing),
+        (
+            false,
+            "",
+            "python3: not found",
+            InsightsError::RemoteSnapshot,
+        ),
+        (
+            false,
+            "",
+            "PermissionError: llmusage.db",
+            InsightsError::RemoteSnapshot,
+        ),
+        (
+            true,
+            missing,
+            "unconfirmed helper failure",
+            InsightsError::RemoteSnapshot,
+        ),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        f.transport
+            .set_exec_output(&command, success, stdout, stderr);
+        let key = f.key(index as u64 + 1);
+        let result = done(requests.load(key, query()).unwrap()).await;
+        assert!(
+            matches!(result.as_ref(), Completion::Failed(actual) if *actual == expected),
+            "unexpected SSH usage outcome for helper result ({success}, {stdout:?}, {stderr:?})"
+        );
+    }
+    assert_eq!(requests.environment(), f.key(0).environment);
+    f.finish().await;
+}
+
+#[tokio::test]
 async fn ssh_usage_stream_keeps_legal_multimegabyte_progress_and_waits_for_terminal() {
     use ccr_app::usage::import::{
         SyncCommandOptions, error::LlmusageAdapterError, remote::run_sync,

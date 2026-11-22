@@ -244,6 +244,9 @@ impl InsightsRequests {
                 cancel,
             ))
             .map_err(|error| match error {
+                ccr_app::usage::import::error::LlmusageAdapterError::DbMissing(_) => {
+                    InsightsError::Missing
+                }
                 ccr_app::usage::import::error::LlmusageAdapterError::SchemaUnsupported {
                     ..
                 }

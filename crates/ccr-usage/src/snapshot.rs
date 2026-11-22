@@ -2,6 +2,9 @@
 use crate::{AppPaths, UsageError, open_dashboard};
 use rusqlite::{Connection, OpenFlags};
 
+/// Successful helper response when the live database path is absent.
+pub const DB_MISSING_RESPONSE: &str = "ccr_usage_snapshot_db_missing_v1";
+
 /// Python's standard SQLite backup API includes committed WAL pages. The source
 /// is opened read-only; only a fresh owner-private directory receives writes.
 pub const BACKUP_SCRIPT: &str = r#"import contextlib, os, pathlib, sqlite3, sys, tempfile, time
@@ -13,6 +16,11 @@ def unlinked(path):
             raise RuntimeError('snapshot_symlink')
 unlinked(root)
 unlinked(source)
+try:
+    source.lstat()
+except FileNotFoundError:
+    print('ccr_usage_snapshot_db_missing_v1', flush=True)
+    sys.exit(0)
 deadline = time.monotonic() + 8
 def progress(status, remaining, total):
     if time.monotonic() > deadline or total * page_size > 64 * 1024 * 1024:
@@ -86,6 +94,34 @@ mod tests {
             .output()
             .unwrap()
     }
+    #[test]
+    fn backup_reports_an_absent_database_before_creating_staging() {
+        let fixture = tempfile::tempdir().unwrap();
+        let root = fixture.path().join(".llmusage");
+        let assert_missing = |output: std::process::Output| {
+            assert!(output.status.success());
+            assert!(output.stderr.is_empty());
+            assert_eq!(
+                String::from_utf8(output.stdout).unwrap().trim_end(),
+                DB_MISSING_RESPONSE
+            );
+        };
+
+        assert_missing(python(BACKUP_SCRIPT, &root));
+        assert!(!root.exists());
+        std::fs::create_dir(&root).unwrap();
+        assert_missing(python(BACKUP_SCRIPT, &root));
+        assert_eq!(std::fs::read_dir(&root).unwrap().count(), 0);
+
+        let source = root.join("llmusage.db");
+        std::fs::write(&source, b"unreadable SQLite bytes").unwrap();
+        let output = python(BACKUP_SCRIPT, &root);
+        assert!(!output.status.success());
+        assert!(output.stdout.is_empty());
+        assert_eq!(std::fs::read(&source).unwrap(), b"unreadable SQLite bytes");
+        assert_eq!(std::fs::read_dir(&root).unwrap().count(), 1);
+    }
+
     #[test]
     fn backup_includes_committed_wal_without_modifying_source_and_schema_is_read_only() {
         let root = tempfile::tempdir().unwrap();
