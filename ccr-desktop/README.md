@@ -20,6 +20,8 @@ GPUI 使用 russh 持久连接与 SFTP，平台设置/方案/账户、指令/扩
 
 平台页已接入固定路径下的设置字段补丁、原始版本源码编辑、Claude/Codex/Grok 账户与 OpenCode/Codex 供应商操作。用量与会话页通过共享应用层读取 Home/Usage 和归档会话，保留精确数值、过滤、分页与 provider fidelity。Codex OAuth 已接入共享控制器、手动回调和取消清理；用量导入已接入安装的 llmusage CLI、状态与取消，Codex quota 请求沿用现有服务并明确触发。Codex 账户页提供登录、添加／导入、配额和回调诊断四个入口。展开只显示任务内容，退出前可保留或丢弃草稿。三种配额目标和 OAuth 的回调、提交、取消均用隔离替身验证，Windows 原生窗口另行检查了按键和焦点。演示模式禁用真实授权与外部配额请求。
 
+侧栏和 Claude Code、Codex、Grok、Antigravity、OpenCode 平台内的「用量」共享概览、明细与记录。概览默认最近 30 天，提供费用、Token、请求、活跃天数、上一等长周期和逐日精确值。明细包含排行与独立覆盖 366 天的请求热力图，记录可翻页和展开。平台内固定本平台。刷新只读取当前报表；同步使用独立的来源和日期范围，明确确认后才启动导入。Windows 合成导入的启动步骤见下方原生 fixture 说明。[用量重设计 #228](https://github.com/bahayonghang/ccr/issues/228)
+
 `just gpui-dev --probe` 保留 **01 原生输入探针**，仅使用内存状态，不读取个人配置。
 编译、headless interaction 与原生运行的证据分别记录在
 [01 evidence](../.trellis/tasks/10-17-gpui-01-foundation/evidence.md) 和
