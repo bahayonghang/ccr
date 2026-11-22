@@ -56,3 +56,22 @@ Standards 与 Spec 两位独立审查者复查了修复。确认焦点、保存�
 和路径读取失败均有回归覆盖。人工走查浅深主题的实色阅读面、布局与焦点环，错误和确认风险
 带可读文字。系统高对比度、减少动态效果、其他系统、生产 WebDAV 和真实 SSH 主机未实测。
 父票还需完整首屏矩阵、大字、英文及资产和文件夹端到端走查。
+
+## #236 配置资产与远端分布
+
+候选 `24bf5e8aba71ac61317e3f528a12383fc0f6c7d2`。`just gpui-dev --fixture-sync-loopback`
+启动的候选 debug SHA-256 为 `62ad663a208ad3214a422dc610c233948bef36902b3865f39077c5514b00b0db`。
+
+- 1280×800 浅色从真实侧栏打开同步，首屏含 CCR、Claude Code、Codex 共五项固定资产、保护方式、两种独立检查和文件夹入口。缺少探测时仅显示状态文案。[最终默认首屏](236-final-five-assets-wide.jpg)
+- 较早候选 `a5162f4f` 的宽窗检查首先显示本地盘点结果。显式远端检查产生一组 207、200、两次 404 和一次 503。可访问状态为存在 2、缺失 2、未知 1，与五行一致。随后合成服务全部返回 503，旧条和旧计数消失。[宽窗三态](236-mixed-remote-wide.jpg) · [失败](236-remote-failed.jpg)
+- 最终候选在 960×640 深色复验独立本地读取、键盘显式远端检查及三态计数。打开详情后显示完整路径和保护方式，焦点进入「返回资产列表」，Esc 还给 `settings.json` 原行。单项传输打开口令表单，Esc 返回传输发起按钮。[窄窗计数](236-final-mixed-narrow.jpg) · [详情](236-narrow-detail-focus.jpg) · [返回](236-narrow-row-return.jpg) · [传输入口](236-transfer-opener-return.jpg)
+- 修复前，实际点击资产行后焦点跳到侧栏，Esc 无法返回。修复将焦点安排在详情和返回列表挂载后的帧中。回归测试先执行 Windows 的回调再绘制，复现并验证这一顺序。[修复前证据](236-native-focus-before-fix.jpg)
+- 读取异常的本地资产仍可获得独立 WebDAV 证据。无 WebDAV 配置的本地盘点、连接中 SSH、切换环境、探测中配置变更、逐项未知及失败由合成传输与运行时测试覆盖。截图和 Windows 可访问文本未含已存凭据。
+
+`just gpui-lint` 及候选上的 `just gpui-test-ui`、`just gpui-ci` 通过。同步定向 35 项通过，
+UI 门禁 46 项通过、1 项忽略。完整 GPUI 门禁主库 426 项通过、4 项忽略，并完成 Windows
+release。共享 `ccr-sync` 77 项及 4 个 doctest 通过，1 项忽略，严格 Clippy 通过。
+共享 crate 源码和锁文件从复验提交到候选一致。Spec 复查确认远端探测独立于本地路径，
+资产入参仍绑定执行环境与 WebDAV 修订，原传输入口保留。
+
+生产 WebDAV、真实 SSH、系统高对比度、减少动态效果与其他系统未实测。
