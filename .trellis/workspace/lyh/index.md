@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-3.md`
-- **Total Sessions**: 180
-- **Last Active**: 2026-11-19
+- **Total Sessions**: 181
+- **Last Active**: 2026-11-22
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-3.md` | ~1960 | Active |
+| `journal-3.md` | ~1969 | Active |
 | `journal-2.md` | ~1982 | Archived |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
@@ -31,6 +31,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 181 | 2026-11-22 | GPUI 用量重设计规格（#228） | - | `dev` |
 | 180 | 2026-11-19 | GPUI 配置方案与账户重设计规格（#220） | - | `dev` |
 | 179 | 2026-11-17 | SSH关闭核验依据与公开收口准备（#205） | - | `feature/ssh-environment` |
 | 178 | 2026-11-17 | SSH授权补验与本地归档准备（#205） | `aa34e28e6a2efebfd724ee8d1fad4ca9199032ae`, `5d0e2e2356dc392463611daf005726aa84efd454`, `55a164ed9db1ccf28edce72710aff67fa4c6114c`, `8e297eba5dba10cd29e770bcf73b8e8a2c7e0944`, `3ebfbadaa509db4a73d6195fa6e778eef3b2b137` | `feature/ssh-environment` |

@@ -1958,3 +1958,12 @@ Topics: [.trellis/research/archive/2026-11/ssh-environment-finalization.md](../.
 经用户确认，Claude Code、Codex、Grok 的两页设计已更新到[配置方案与账户设计](../../../ccr-desktop/DESIGN.md#profiles-工作面)，待实施。[父规格 #220](https://github.com/bahayonghang/ccr/issues/220) 的四张实施票已核验正文、标签、父子关系及两条原生依赖。#221 与 #223 可独立开始。
 
 记录器因历史 Session 28 重号在写前退出；本条沿用此前追加方式，在记录锁内校验原文件与新编号后追加，并更新索引。
+
+## Session 181: GPUI 用量重设计规格（#228）
+
+**Date**: 2026-11-22
+**Branch**: `dev`
+
+[用量分析设计](../../../ccr-desktop/DESIGN.md#用量分析分阶段实施)已批准，待实施。[父规格 #228](https://github.com/bahayonghang/ccr/issues/228)和五张子票已核验正文、标签、父子关系及原生依赖。#229 可先开始，#230–#233 各只依赖 #229。
+
+记录器因历史 Session 28 重号在写入前退出。本条在记录锁内核验后追加并同步索引。
