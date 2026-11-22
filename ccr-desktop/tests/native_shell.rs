@@ -1154,11 +1154,13 @@ async fn wait_for_usage_tokens(
     tokens: &str,
 ) {
     cx.wait_for(handle, Duration::from_secs(3), |window, _| {
-        window.try_find("usage-tokens").is_some_and(|node| {
-            node.value()
-                .and_then(|value| value.strip_prefix("Tokens · "))
-                == Some(tokens)
-        })
+        // A same-scope refresh keeps the previous readings visible while it rechecks capabilities.
+        window.try_find("insights-status").is_none()
+            && window.try_find("usage-tokens").is_some_and(|node| {
+                node.value()
+                    .and_then(|value| value.strip_prefix("Tokens · "))
+                    == Some(tokens)
+            })
     })
     .await;
 }
