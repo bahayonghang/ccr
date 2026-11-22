@@ -110,7 +110,8 @@ fn toolbar_row() -> Div {
 }
 
 impl InsightsView {
-    pub(super) fn report_toolbar(&self, cx: &mut Context<Self>) -> impl IntoElement {
+    #[inline(never)]
+    fn report_toolbar_row(&self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
         let controls = &self.usage_controls;
         let mut row = toolbar_row().child(self.panel_button(
             "usage-range-menu",
@@ -195,7 +196,18 @@ impl InsightsView {
                 cx,
             ));
 
-        let panel = match controls.panel {
+        toolbar_row()
+            .justify_between()
+            .child(filters)
+            .child(actions)
+            .into_any_element()
+    }
+
+    // Keep button construction off the same stack frame as the expanded panel.
+    // Native Windows debug UI threads reserve 1 MiB.
+    #[inline(never)]
+    pub(super) fn report_toolbar(&self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
+        let panel = match self.usage_controls.panel {
             Some(Panel::Dates) => Some(self.report_periods(cx).into_any_element()),
             Some(Panel::Custom) => Some(self.report_custom_dates(cx).into_any_element()),
             Some(Panel::Sources) => Some(self.report_sources(cx).into_any_element()),
@@ -220,12 +232,7 @@ impl InsightsView {
                     }
                 }),
             )
-            .child(
-                toolbar_row()
-                    .justify_between()
-                    .child(filters)
-                    .child(actions),
-            )
+            .child(self.report_toolbar_row(cx))
             .children(
                 self.has_retained_import()
                     .then(|| self.retained_import_controls(cx)),
@@ -253,6 +260,7 @@ impl InsightsView {
                             "请打开「同步用量」查看当前环境的可用操作。")
                     })
             }))
+            .into_any_element()
     }
 
     fn panel_button(

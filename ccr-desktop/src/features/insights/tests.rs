@@ -208,6 +208,28 @@ async fn import_controls_reject_fixture_then_reattach_and_cancel_retained_work(
     owner.shutdown();
 }
 
+#[cfg(windows)]
+#[test]
+fn usage_sync_keyboard_path_fits_windows_stack() {
+    // Native debug starts with a 1 MiB main stack. Normal test workers have
+    // more room, so replay the existing keyboard flow at the native limit.
+    let output = std::process::Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            "features::insights::tests::import_controls_reject_fixture_then_reattach_and_cancel_retained_work",
+        ])
+        .env("RUST_MIN_STACK", "1048576")
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        output.status.success() && stdout.contains("1 passed"),
+        "1 MiB usage interaction failed: {}\n{stdout}\n{}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr),
+    );
+}
+
 #[gpui_kit::test]
 async fn shell_usage_exposes_policy_writes_without_a_usage_database(cx: &mut TestAppContext) {
     cx.executor().allow_parking();
