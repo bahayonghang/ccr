@@ -47,6 +47,7 @@ fn report_preserves_provider_splits_pricing_and_complete_filter_without_writes()
         since: Some(day),
         until: Some(day),
         timezone: ReportTimezone::Utc,
+        ..Default::default()
     };
     let report = read_dashboard(&dashboard, &filter, None).unwrap();
     assert_eq!(report.overview.total.total_tokens, 100);
@@ -160,4 +161,78 @@ fn captured_clock_controls_last24h_and_heatmap_without_changing_explicit_filter(
     assert_eq!(report.overview.total.total_tokens, 100);
     assert_eq!(explicit.since, Some(day));
     assert_eq!(explicit.until, Some(day));
+}
+
+#[test]
+fn usage_page_merges_aliases_within_the_selected_scope_and_keeps_unknown_sources() {
+    let temp = tempfile::tempdir().unwrap();
+    let paths = create_projection_db(temp.path());
+    let conn = Connection::open(&paths.db_path).unwrap();
+    for (source, date, project, count) in [
+        ("gemini", "2026-07-01T00:00:00Z", "p1", 2),
+        ("antigravity", "2026-07-01T00:30:00Z", "p1", 3),
+        ("antigravity_ide", "2026-07-03T00:00:00Z", "p1", 5),
+        ("antigravity", "2026-07-01T01:00:00Z", "p2", 13),
+        ("legacy Project Source", "2026-07-01T00:00:00Z", "p1", 7),
+    ] {
+        seed_bucket(
+            &conn,
+            &SeedBucket {
+                source: source.into(),
+                hour_start: date.into(),
+                project_hash: project.into(),
+                event_count: count,
+                ..Default::default()
+            },
+        );
+    }
+    drop(conn);
+    let dashboard = ccr_usage::open_dashboard(paths).unwrap();
+    let day = NaiveDate::from_ymd_opt(2026, 7, 1).unwrap();
+    let at = chrono::DateTime::parse_from_rfc3339("2026-07-04T00:00:00Z")
+        .unwrap()
+        .with_timezone(&chrono::Utc);
+    let filter = QueryFilter {
+        source: Some(SourceKind::Antigravity),
+        since: Some(day),
+        until: Some(day),
+        project_hash: Some("p1".into()),
+        timezone: ReportTimezone::Utc,
+        ..Default::default()
+    };
+    let report = read_usage_page_at(&dashboard, &filter, at).unwrap();
+    assert_eq!(report.overview.total_events, 5);
+    assert_eq!(report.trends[0].request_count, 5);
+    assert_eq!(report.models[0].event_count, 5);
+    assert_eq!(report.providers[0].request_count, 5);
+    assert_eq!(report.projects[0].event_count, 5);
+    assert_eq!(report.sources.len(), 1);
+    assert_eq!(report.sources[0].event_count, 5);
+    assert_eq!(report.sources[0].active_days, 1);
+    assert_eq!(report.sources[0].share_tokens, 1.0);
+    let heatmap = report.heatmap.unwrap();
+    assert_eq!(heatmap.len(), 366);
+    assert_eq!(heatmap[364].date, "2026-07-03");
+    assert_eq!(heatmap[364].event_count, 5);
+
+    let all = read_usage_page_at(
+        &dashboard,
+        &QueryFilter {
+            source: None,
+            ..filter.clone()
+        },
+        at,
+    )
+    .unwrap();
+    assert_eq!(all.sources.len(), 2);
+    assert_eq!(all.sources[0].source, "antigravity");
+    assert_eq!(all.sources[1].source, "legacy Project Source");
+    assert!((all.sources[0].share_tokens - 2.0 / 3.0).abs() < f64::EPSILON);
+    let legacy = dashboard.source_breakdown(&filter).unwrap();
+    assert!(
+        legacy
+            .iter()
+            .any(|row| row.source == "legacy Project Source")
+    );
+    assert_eq!(dashboard.overview(&filter).unwrap().total_events, 3);
 }

@@ -76,7 +76,7 @@ impl Controls {
         };
         filter.since = dates.map(|(since, _)| since);
         filter.until = dates.map(|(_, until)| until);
-        filter
+        filter.for_usage_page()
     }
 
     pub(super) fn close_panel(&mut self) {

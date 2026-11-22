@@ -31,6 +31,14 @@ pub enum ReportTimezone {
     Utc,
 }
 
+/// Controls how typed source filters and returned source identities treat stored aliases.
+#[derive(Debug, Default, Clone, Copy)]
+pub enum SourceProjection {
+    #[default]
+    Stored,
+    UsagePage,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct QueryFilter {
     pub source: Option<SourceKind>,
@@ -40,6 +48,7 @@ pub struct QueryFilter {
     pub until: Option<NaiveDate>,
     pub project_hash: Option<String>,
     pub timezone: ReportTimezone,
+    pub source_projection: SourceProjection,
 }
 
 #[derive(Debug, Clone)]
@@ -110,10 +119,17 @@ impl QueryFilter {
         let prefix = alias.map(|value| format!("{value}.")).unwrap_or_default();
         let mut filter = SqlFilter::new();
         if let Some(source) = self.source {
-            filter.push(
-                format!("{prefix}source = ?"),
-                source.storage_key(schema_version).to_string(),
-            );
+            let (column, value) = match self.source_projection {
+                SourceProjection::Stored => (
+                    format!("{prefix}source"),
+                    source.storage_key(schema_version),
+                ),
+                SourceProjection::UsagePage => (
+                    self.projected_source(&format!("{prefix}source")),
+                    source.as_str(),
+                ),
+            };
+            filter.push(format!("{column} = ?"), value.to_string());
         }
         if let Some(model) = self.model.as_ref() {
             filter.push(format!("{prefix}model = ?"), model.clone());
@@ -141,16 +157,18 @@ impl QueryFilter {
         Ok(filter)
     }
 
-    fn without_source(&self) -> Self {
-        Self {
-            source: None,
-            model: self.model.clone(),
-            provider: self.provider.clone(),
-            since: self.since,
-            until: self.until,
-            project_hash: self.project_hash.clone(),
-            timezone: self.timezone,
+    fn projected_source(&self, column: &str) -> String {
+        match self.source_projection {
+            SourceProjection::Stored => {
+                format!("CASE WHEN {column} = 'gemini' THEN 'antigravity' ELSE {column} END")
+            }
+            SourceProjection::UsagePage => format!("ccr_usage_source_key({column})"),
         }
+    }
+
+    pub fn for_usage_page(mut self) -> Self {
+        self.source_projection = SourceProjection::UsagePage;
+        self
     }
 
     pub fn with_provider(mut self, provider: Option<String>) -> Self {
@@ -172,7 +190,7 @@ pub fn build_filter(
         since: parse_optional_date(start_date.as_deref(), "start_date")?,
         until: parse_optional_date(end_date.as_deref(), "end_date")?,
         project_hash: None,
-        timezone: ReportTimezone::Local,
+        ..Default::default()
     })
 }
 
@@ -214,6 +232,13 @@ impl Dashboard {
         .map_err(|error| UsageError::DbUnreadable(error.to_string()))?;
         conn.busy_timeout(std::time::Duration::from_secs(5))?;
         register_functions(&conn)?;
+        conn.create_scalar_function(
+            "ccr_usage_source_key",
+            1,
+            rusqlite::functions::FunctionFlags::SQLITE_DETERMINISTIC
+                | rusqlite::functions::FunctionFlags::SQLITE_UTF8,
+            |ctx| Ok(canonical_source_key(ctx.get_raw(0).as_str()?)),
+        )?;
         let schema_version = read_schema_version(&conn)?;
         if schema_version.unwrap_or_default() < MIN_SUPPORTED_SCHEMA_VERSION {
             return Err(UsageError::SchemaUnsupported {
@@ -655,7 +680,11 @@ impl Dashboard {
         &self,
         filter: &QueryFilter,
     ) -> Result<Vec<SourceBreakdownDto>, UsageError> {
-        self.scoped_source_breakdown(&filter.without_source())
+        self.scoped_source_breakdown(&QueryFilter {
+            source: None,
+            source_projection: SourceProjection::Stored,
+            ..filter.clone()
+        })
     }
 
     /// Source comparison inside the selected report scope, including its denominator.
@@ -667,10 +696,11 @@ impl Dashboard {
         let zone = self.zone(filter.timezone);
         let sql_filter = filter.bucket_filter(None, &zone, self.schema_version())?;
         let local_date = zone.local_date_expr("hour_start");
+        let source = filter.projected_source("source");
         let sql = format!(
             r#"
             SELECT
-                CASE WHEN source = 'gemini' THEN 'antigravity' ELSE source END AS canonical_source,
+                {source} AS canonical_source,
                 COALESCE(SUM(event_count), 0),
                 COALESCE(SUM(total_tokens), 0),
                 COALESCE(SUM(cost_with_cache_usd), 0.0),
@@ -799,15 +829,16 @@ impl Dashboard {
         } else {
             "NULL"
         };
+        let source = query.filter.projected_source("e.source");
         let sql = format!(
             r#"
             SELECT
                 e.event_key,
-                CASE WHEN e.source = 'gemini' THEN 'antigravity' ELSE e.source END,
+                {source},
                 COALESCE(e.project_path, e.project_ref, e.project_label, e.project_hash, ''),
                 COALESCE({raw_expr}, ''),
                 e.event_at,
-                CASE WHEN e.source = 'gemini' THEN 'antigravity' ELSE e.source END,
+                {source},
                 e.model,
                 e.input_tokens,
                 e.output_tokens + e.reasoning_output_tokens,

@@ -45,7 +45,13 @@ pub fn read_usage_page_at(
     filter: &QueryFilter,
     as_of: chrono::DateTime<chrono::Utc>,
 ) -> Result<UsageSnapshot, UsageError> {
-    read_snapshot(dashboard, filter, Some(366), Some(as_of), true)
+    read_snapshot(
+        dashboard,
+        &filter.clone().for_usage_page(),
+        Some(366),
+        Some(as_of),
+        true,
+    )
 }
 
 fn read_snapshot(

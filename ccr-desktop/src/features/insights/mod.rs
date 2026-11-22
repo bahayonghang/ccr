@@ -7,6 +7,7 @@ mod rows;
 mod session_operations;
 mod sessions;
 mod usage;
+mod usage_report;
 use crate::{
     locales::{is_chinese, localized_line, service_error, text},
     runtime::{
@@ -87,6 +88,7 @@ pub struct InsightsView {
     snapshot: Option<Arc<InsightsSnapshot>>,
     submitted_usage: Option<QueryFilter>,
     usage_controls: usage::Controls,
+    usage_report: usage_report::Navigation,
     fields: Vec<Entity<InputState>>,
     utc: bool,
     generation: u64,
@@ -160,6 +162,7 @@ impl InsightsView {
             snapshot: None,
             submitted_usage: None,
             usage_controls: Default::default(),
+            usage_report: usage_report::Navigation::new(cx),
             fields,
             utc,
             generation: 0,
@@ -193,7 +196,11 @@ impl InsightsView {
         }
     }
     pub fn focus_main(&self, window: &mut Window, cx: &mut Context<Self>) {
-        window.focus(&self.focus, cx);
+        if self.surface == Surface::Usage && self.page == InsightsPage::Usage {
+            self.focus_usage_main(window, cx);
+        } else {
+            window.focus(&self.focus, cx);
+        }
     }
     pub fn clear_environment(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.suspend(cx);
@@ -216,6 +223,7 @@ impl InsightsView {
         self.loading = false;
         self.snapshot = None;
         self.submitted_usage = None;
+        self.usage_report.suspend();
         self.usage_controls.close_panel();
         self.selected = None;
         self.archive_id = None;
@@ -322,6 +330,9 @@ impl InsightsView {
         }
     }
     pub fn refresh(&mut self, cx: &mut Context<Self>) {
+        if self.surface == Surface::Usage && self.page == InsightsPage::Usage {
+            self.reset_usage_data();
+        }
         if self.page == InsightsPage::Sessions {
             self.observe_session_operations(cx);
         }
@@ -416,7 +427,9 @@ impl InsightsView {
             InsightsPage::Usage => {
                 let clock = self.requests.report_clock();
                 let filter = if self.surface == Surface::Usage {
-                    self.usage_controls.filter(clock)
+                    self.submitted_usage
+                        .clone()
+                        .unwrap_or_else(|| self.usage_controls.filter(clock))
                 } else {
                     self.filter(cx)?
                 };
@@ -579,6 +592,9 @@ impl InsightsView {
                 let Some(cursor) = page.next_cursor.clone() else {
                     return;
                 };
+                if self.surface == Surface::Usage {
+                    self.usage_report.earlier_cursors.push(self.cursor.clone());
+                }
                 self.cursor = Some(cursor);
             }
             Some(InsightsSnapshot::Sessions { page, .. }) => {
@@ -811,9 +827,6 @@ impl InsightsView {
                 cx,
             ));
         }
-        if self.surface == Surface::Usage {
-            return sections;
-        }
         sections = sections.child(semantics::tab(
             semantics::button(
                 Button::new("insights-timezone")
@@ -888,44 +901,19 @@ impl Render for InsightsView {
                 .child(self.observer.clone())
                 .into_any_element();
         }
-        let usage_page = self.surface == Surface::Usage && self.page == InsightsPage::Usage;
-        if usage_page {
-            let report = match self.snapshot.as_deref() {
-                Some(InsightsSnapshot::Usage(report)) => Some(report),
-                _ => None,
-            };
-            let readings = report.filter(|report| report.overview.bucket_count > 0);
-            root =
-                root.overflow_y_scroll()
-                    .child(self.report_toolbar(cx))
-                    .children(
-                        self.submitted_usage
-                            .as_ref()
-                            .map(|filter| usage::context_row(filter, report, cx)),
-                    )
-                    .children(
-                        (readings.is_some() || (self.loading && self.section != Section::Logs))
-                            .then(|| {
-                                usage::readings(
-                                    readings,
-                                    window.viewport_size().width < px(theme::SPLIT_WIDTH),
-                                    cx,
-                                )
-                            }),
-                    )
-                    .children(self.platform_scope.is_none().then_some(tabs));
-        } else {
-            tabs = tabs.child(semantics::button(
-                Button::new("insights-refresh")
-                    .label(text(cx, "Refresh", "刷新"))
-                    .on_click(cx.listener(|this, _, _, cx| this.refresh(cx))),
-                self.loading,
-                self.loading,
-                cx,
-            ));
-            root = root.child(tabs);
+        if self.surface == Surface::Usage && self.page == InsightsPage::Usage {
+            return self.render_usage_page(root, tabs, window, cx);
         }
-        if self.page == InsightsPage::Usage && !usage_page {
+        tabs = tabs.child(semantics::button(
+            Button::new("insights-refresh")
+                .label(text(cx, "Refresh", "刷新"))
+                .on_click(cx.listener(|this, _, _, cx| this.refresh(cx))),
+            self.loading,
+            self.loading,
+            cx,
+        ));
+        root = root.child(tabs);
+        if self.page == InsightsPage::Usage {
             root = root.child(self.import_controls(cx));
         }
         if self.page == InsightsPage::Sessions {
@@ -1013,7 +1001,7 @@ impl Render for InsightsView {
                     ),
             );
         }
-        if self.page != InsightsPage::Home && !usage_page {
+        if self.page != InsightsPage::Home {
             let mut filters = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
             let indices: &[usize] = if self.page == InsightsPage::Usage {
                 &[0, 1, 2, 3, 4, 5]
@@ -1068,31 +1056,11 @@ impl Render for InsightsView {
             Some(text(cx, "Reading on background worker", "正在后台读取").to_string())
         } else if let Some(error) = self.error {
             Some(service_error(cx, error).to_string())
-        } else if usage_page {
-            match self.snapshot.as_deref() {
-                Some(InsightsSnapshot::Usage(report)) if report.overview.bucket_count == 0 => {
-                    Some(text(cx, "No records in this range.", "此区间没有记录。").into())
-                }
-                Some(InsightsSnapshot::Usage(report))
-                    if self.section == Section::Providers && !report.providers_supported =>
-                {
-                    Some(
-                        text(
-                            cx,
-                            "Provider breakdown unavailable for this database.",
-                            "当前数据库不支持提供商明细。",
-                        )
-                        .into(),
-                    )
-                }
-                _ => None,
-            }
         } else if self.surface == Surface::Workbench {
             Some(self.summary())
         } else {
             Some(self.product_status(cx))
         };
-        let has_status = status.is_some();
         root = root.children(status.map(|status| {
             div()
                 .id("insights-status")
@@ -1233,17 +1201,8 @@ impl Render for InsightsView {
                 cx.stop_propagation();
             }))
             .child(list);
-        root = root.child(if usage_page {
-            row_list.flex_shrink_0().h(px(260.))
-        } else {
-            row_list.flex_1()
-        });
-        if (!usage_page || !has_status)
-            && !self.loading
-            && self.error.is_none()
-            && self.snapshot.is_some()
-            && count == 0
-        {
+        root = root.child(row_list.flex_1());
+        if !self.loading && self.error.is_none() && self.snapshot.is_some() && count == 0 {
             root = root.child(if self.surface == Surface::Usage {
                 text(
                     cx,

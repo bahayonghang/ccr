@@ -905,6 +905,7 @@ async fn usage_landing_shares_the_inclusive_thirty_day_report_across_entries(
         .unwrap_or_else(|e| panic!("usage report: {e}"));
     }
     cx.update_window(handle, |_, window, cx| {
+        window.click("usage-view-details", cx);
         window.click("insights-section-Sources", cx)
     })
     .unwrap_or_else(|e| panic!("open scoped sources: {e}"));
@@ -3003,5 +3004,251 @@ fn platform_tab_focus_survives_crossing_the_wide_layout_breakpoint(cx: &mut Test
     }
     cx.update_window(handle, |_, window, _| window.remove_window())
         .unwrap_or_else(|e| panic!("close: {e}"));
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+async fn usage_rankings_heatmap_and_records_share_scope_in_both_entries(cx: &mut TestAppContext) {
+    use ccr_gpui::runtime::insights::InsightsPaths;
+    use ccr_usage::fixtures::{
+        SeedBucket, SeedEvent, create_projection_db, seed_bucket, seed_event,
+    };
+    use chrono::{Days, Local};
+
+    cx.executor().allow_parking();
+    let owner = RuntimeOwner::new().unwrap_or_else(|error| panic!("runtime: {error}"));
+    let root = tempfile::tempdir().unwrap_or_else(|error| panic!("fixture: {error}"));
+    let paths = create_projection_db(&root.path().join("llmusage"));
+    let today = Local::now().date_naive();
+    let first_heatmap_day = today - Days::new(365);
+    let month_ago = today - Days::new(45);
+    let conn = rusqlite::Connection::open(&paths.db_path)
+        .unwrap_or_else(|error| panic!("fixture database: {error}"));
+    for (key, source, date, count) in [
+        ("a", "gemini", today, 11),
+        ("b", "antigravity_ide", today, 5),
+        ("old", "gemini", month_ago, 9),
+        ("other", "Unknown agent (retired)", today, 7),
+    ] {
+        seed_bucket(
+            &conn,
+            &SeedBucket {
+                source: source.into(),
+                hour_start: local_noon_bucket(date),
+                model: if key == "other" {
+                    "other-model"
+                } else {
+                    "scoped-model"
+                }
+                .into(),
+                event_count: count,
+                ..Default::default()
+            },
+        );
+    }
+    for index in 0..101 {
+        seed_event(
+            &conn,
+            &SeedEvent {
+                event_key: format!("alias-event-{index:03}"),
+                source: if index % 2 == 0 {
+                    "gemini"
+                } else {
+                    "antigravity_ide"
+                }
+                .into(),
+                model: "scoped-model".into(),
+                event_at: local_noon_bucket(today),
+                pricing_source: Some("fixture-prices".into()),
+                ..Default::default()
+            },
+        );
+    }
+    seed_event(
+        &conn,
+        &SeedEvent {
+            event_key: "unmapped-record".into(),
+            source: "Unknown agent (retired)".into(),
+            event_at: local_noon_bucket(today),
+            ..Default::default()
+        },
+    );
+    drop(conn);
+
+    let services = Services::new(
+        owner.handle(),
+        ConfigSource::Fixture {
+            profiles: root.path().join("profiles.toml"),
+            registry: root.path().join("config.toml"),
+            delay: Duration::ZERO,
+        },
+    )
+    .with_insights_paths(InsightsPaths {
+        usage_root: paths.root_dir.clone(),
+        archive_db: root.path().join("archive.db"),
+        provider_home: root.path().join("home"),
+    });
+    let (handle, _) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+            cx.new(|cx| Shell::new(services, window, cx))
+        })
+        .unwrap_or_else(|error| panic!("window: {error}"))
+    });
+    wait_for_environment(cx, handle);
+    cx.update_window(handle, |_, window, cx| window.click("nav-usage", cx))
+        .unwrap_or_else(|error| panic!("open Usage: {error}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("usage-rank:antigravity").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        assert!(
+            window
+                .find("usage-rank:antigravity")
+                .value()
+                .is_some_and(|value| value.contains("16"))
+        );
+        assert!(window.find("usage-rank:Unknown agent (retired)").visible());
+        window.click("usage-source", cx);
+        window.click("usage-source-antigravity", cx);
+    })
+    .unwrap_or_else(|error| panic!("choose source: {error}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("usage-rank:scoped-model").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("usage-view-details", cx);
+        window.render_frame(cx);
+        assert_eq!(window.find("insights-section-Models").checked(), Some(true));
+        let date = format!("usage-heat-{month_ago}");
+        assert_eq!(
+            window.find(date).value(),
+            Some(format!("{month_ago} · 9 requests").as_str())
+        );
+        window.click(format!("usage-heat-{first_heatmap_day}"), cx);
+        window.press("end", cx);
+        window.render_frame(cx);
+        assert_eq!(
+            window.find("usage-heat-selected").value(),
+            Some(format!("{today} · 16 requests").as_str())
+        );
+        window.click("usage-view-records", cx);
+    })
+    .unwrap_or_else(|error| panic!("open details and records: {error}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("insights-row:alias-event-100").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("insights-row:alias-event-100", cx);
+        window.render_frame(cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert_eq!(window.find("usage-return-to-table").focused(), Some(true));
+        assert!(
+            window
+                .find("insights-exact-detail")
+                .label()
+                .is_some_and(|label| label.contains("fixture-prices"))
+        );
+        window.press("escape", cx);
+        window.render_frame(cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert_eq!(window.find("insights-list-focus").focused(), Some(true));
+        window.press("enter", cx);
+        window.render_frame(cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert!(window.find("insights-exact-detail").visible());
+        window.click("usage-return-to-table", cx);
+        window.click("insights-next", cx);
+    })
+    .unwrap_or_else(|error| panic!("inspect and page records: {error}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("insights-row:alias-event-000").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        assert!(window.try_find("insights-next").is_none());
+        window.click("usage-source", cx);
+        window.click("usage-source-all", cx);
+    })
+    .unwrap_or_else(|error| panic!("clear source: {error}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("insights-row:unmapped-record").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("nav-antigravity", cx);
+        window.click("tool-platform-usage", cx);
+    })
+    .unwrap_or_else(|error| panic!("open Antigravity Usage: {error}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("usage-rank:scoped-model").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        assert!(window.try_find("usage-source").is_none());
+        assert!(window.try_find("usage-rank:other-model").is_none());
+        window.click("usage-view-records", cx);
+    })
+    .unwrap_or_else(|error| panic!("open Antigravity records: {error}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("insights-row:alias-event-100").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        assert!(window.try_find("insights-row:unmapped-record").is_none());
+        window.click("usage-view-details", cx);
+        window.click("insights-section-Providers", cx);
+        assert!(window.try_find("usage-provider-unsupported").is_none());
+        window.click("usage-filters", cx);
+        window.click("insights-filter-2", cx);
+        window.input("missing-provider", cx);
+        window.click("usage-apply-filters", cx);
+    })
+    .unwrap_or_else(|error| panic!("apply nonmatching provider: {error}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("usage-ranking-empty").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        assert!(window.try_find("usage-provider-unsupported").is_none());
+        assert!(window.try_find("usage-heat-empty").is_some());
+        window.click("usage-clear-filters", cx);
+    })
+    .unwrap_or_else(|error| panic!("provider supported but empty: {error}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("insights-row:openai").is_some()
+    })
+    .await;
+    let conn = rusqlite::Connection::open(&paths.db_path)
+        .unwrap_or_else(|error| panic!("old schema fixture: {error}"));
+    conn.execute(
+        "UPDATE meta SET value = '13' WHERE key = 'schema_version'",
+        [],
+    )
+    .unwrap_or_else(|error| panic!("select schema 13: {error}"));
+    drop(conn);
+    cx.update_window(handle, |_, window, cx| window.click("insights-refresh", cx))
+        .unwrap_or_else(|error| panic!("refresh downgraded fixture: {error}"));
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("usage-provider-unsupported").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        assert!(window.try_find("usage-ranking-empty").is_none());
+        window.click("usage-filters", cx);
+        window.click("insights-filter-2", cx);
+        window.input("missing-provider", cx);
+        window.click("usage-apply-filters", cx);
+        window.render_frame(cx);
+        assert!(window.find("usage-provider-error").visible());
+        window.remove_window();
+    })
+    .unwrap_or_else(|error| panic!("close: {error}"));
     owner.shutdown();
 }
