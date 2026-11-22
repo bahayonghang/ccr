@@ -3,6 +3,7 @@ mod assets;
 mod management;
 use super::*;
 pub(super) use assets::error as asset_error;
+pub(super) use assets::inventory_outcome;
 pub use assets::{AssetDirection, AssetRequest, AssetResult, AssetRow};
 use ccr_app::platform_settings::{Document, Format, SaveOutcome};
 use ccr_app::runtime::Completion;
@@ -142,6 +143,13 @@ pub struct OperationState {
     pub environment: Option<EnvironmentId>,
     pub result: Option<Result<SyncOutcome, SyncError>>,
     connection_test: Option<ConnectionTest>,
+    asset_inventory: Option<InventoryCheck>,
+}
+
+#[derive(Clone, Debug)]
+struct InventoryCheck {
+    probe: bool,
+    revision: String,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -159,6 +167,18 @@ struct ConnectionTest {
 }
 
 impl OperationState {
+    /// Identify the latest inventory using its captured environment and saved revision.
+    pub fn asset_inventory(
+        &self,
+        environment: &EnvironmentId,
+        revision: Option<&str>,
+    ) -> Option<bool> {
+        let check = self.asset_inventory.as_ref()?;
+        (self.environment.as_ref() == Some(environment)
+            && (!check.probe || revision == Some(check.revision.as_str())))
+        .then_some(check.probe)
+    }
+
     pub fn visible_in(self: Arc<Self>, environment: &EnvironmentId) -> Arc<Self> {
         if self
             .environment
@@ -276,6 +296,13 @@ impl Services {
                 kind: Some(operation.kind()),
                 environment: Some(key.environment.clone()),
                 result: None,
+                asset_inventory: match &operation {
+                    Operation::AssetInventory { revision, probe } => Some(InventoryCheck {
+                        probe: *probe,
+                        revision: revision.clone(),
+                    }),
+                    _ => None,
+                },
                 connection_test: match &operation {
                     Operation::Test { revision } => Some(ConnectionTest {
                         environment: key.environment.clone(),

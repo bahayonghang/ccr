@@ -486,6 +486,33 @@ fn operations_are_local_owned_and_fixture_network_is_refused_after_detach() {
     assert!(!services.sync_operation_state().busy);
 }
 
+async fn read_dav_request(socket: &mut tokio::net::TcpStream) -> Vec<u8> {
+    let mut request = Vec::new();
+    let mut chunk = [0; 4096];
+    let (end, length) = loop {
+        let count = socket.read(&mut chunk).await.unwrap();
+        assert_ne!(count, 0);
+        request.extend_from_slice(&chunk[..count]);
+        if let Some(end) = request.windows(4).position(|part| part == b"\r\n\r\n") {
+            let length = String::from_utf8_lossy(&request[..end])
+                .lines()
+                .find_map(|line| {
+                    let (name, value) = line.split_once(':')?;
+                    name.eq_ignore_ascii_case("content-length")
+                        .then(|| value.trim().parse::<usize>().unwrap())
+                })
+                .unwrap_or(0);
+            break (end + 4, length);
+        }
+    };
+    while request.len() < end + length {
+        let count = socket.read(&mut chunk).await.unwrap();
+        assert_ne!(count, 0);
+        request.extend_from_slice(&chunk[..count]);
+    }
+    request
+}
+
 async fn server(
     status: &'static str,
     body: &'static [u8],
@@ -495,29 +522,7 @@ async fn server(
     let address = listener.local_addr().unwrap();
     let task = tokio::spawn(async move {
         let (mut socket, _) = listener.accept().await.unwrap();
-        let mut request = Vec::new();
-        let mut chunk = [0; 4096];
-        let (end, length) = loop {
-            let count = socket.read(&mut chunk).await.unwrap();
-            assert_ne!(count, 0);
-            request.extend_from_slice(&chunk[..count]);
-            if let Some(end) = request.windows(4).position(|part| part == b"\r\n\r\n") {
-                let length = String::from_utf8_lossy(&request[..end])
-                    .lines()
-                    .find_map(|line| {
-                        let (name, value) = line.split_once(':')?;
-                        name.eq_ignore_ascii_case("content-length")
-                            .then(|| value.trim().parse::<usize>().unwrap())
-                    })
-                    .unwrap_or(0);
-                break (end + 4, length);
-            }
-        };
-        while request.len() < end + length {
-            let count = socket.read(&mut chunk).await.unwrap();
-            assert_ne!(count, 0);
-            request.extend_from_slice(&chunk[..count]);
-        }
+        let request = read_dav_request(&mut socket).await;
         let headers = format!(
             "HTTP/1.1 {status}\r\nContent-Type: application/xml\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
             body.len() + extra_length
@@ -530,6 +535,130 @@ async fn server(
     (format!("http://{address}/"), task)
 }
 
+#[tokio::test]
+async fn ssh_asset_inventory_scopes_webdav_evidence_and_keeps_incomplete_checks_unknown() {
+    use std::sync::atomic::{AtomicU8, Ordering};
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}/", listener.local_addr().unwrap());
+    let fixture = SshFixture::new(&url).await;
+    let config_path = ".ccr/sync_folders.toml";
+    let config = fixture
+        .transport
+        .file("sync.fixture.invalid", "/srv/sync/.ccr/sync_folders.toml")
+        .unwrap();
+    fixture.set(config_path, "[broken WebDAV");
+    fixture.set(".claude/CLAUDE.md", "# Synthetic instructions");
+
+    let SyncOutcome::AssetInventory(environment) = fixture
+        .run(Operation::AssetInventory {
+            revision: String::new(),
+            probe: false,
+        })
+        .await
+        .unwrap()
+    else {
+        panic!("expected current environment inventory");
+    };
+    assert_eq!(environment.len(), 5);
+    assert!(environment.iter().all(|row| row.remote_exists.is_none()));
+    let instructions = environment
+        .iter()
+        .find(|row| row.id == "claude-memory")
+        .unwrap();
+    assert_eq!(instructions.local_exists, Some(true));
+    assert_eq!(
+        instructions.local_path.as_deref(),
+        Some("/srv/sync/.claude/CLAUDE.md")
+    );
+    assert!(
+        tokio::time::timeout(Duration::from_millis(25), listener.accept())
+            .await
+            .is_err()
+    );
+
+    fixture.set(config_path, &config);
+    let failure_mode = Arc::new(AtomicU8::new(0));
+    let server_mode = failure_mode.clone();
+    let remote_config = fixture.transport.clone();
+    let changed_config = format!("{config}\n# Edited while checking WebDAV\n");
+    let server = tokio::spawn(async move {
+        loop {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let request = read_dav_request(&mut socket).await;
+            let request = String::from_utf8_lossy(&request);
+            let target = request.split_whitespace().nth(1).unwrap();
+            let mode = server_mode.load(Ordering::Acquire);
+            if mode == 3 {
+                remote_config.set_file(
+                    "sync.fixture.invalid",
+                    "/srv/sync/.ccr/sync_folders.toml",
+                    &changed_config,
+                );
+            }
+            let status = match (mode, target) {
+                (2, _) => "503 Service Unavailable",
+                (1, path) if path.ends_with("/codex/config.toml") => "503 Service Unavailable",
+                (_, path) if path.ends_with("/claude/CLAUDE.md") => "200 OK",
+                _ => "404 Not Found",
+            };
+            let response =
+                format!("HTTP/1.1 {status}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+            socket.write_all(response.as_bytes()).await.unwrap();
+            socket.shutdown().await.unwrap();
+        }
+    });
+    let revision = fixture.revision();
+    let probe = || Operation::AssetInventory {
+        revision: revision.clone(),
+        probe: true,
+    };
+    for (mode, expected) in [(0, [1, 4, 0]), (1, [1, 3, 1])] {
+        failure_mode.store(mode, Ordering::Release);
+        let SyncOutcome::AssetInventory(remote) = fixture.run(probe()).await.unwrap() else {
+            panic!("expected WebDAV inventory");
+        };
+        assert_eq!(
+            [Some(true), Some(false), None].map(|state| {
+                remote
+                    .iter()
+                    .filter(|row| row.remote_exists == state)
+                    .count()
+            }),
+            expected
+        );
+        assert_eq!(
+            remote
+                .iter()
+                .find(|row| row.id == "claude-memory")
+                .unwrap()
+                .remote_exists,
+            Some(true)
+        );
+        let state = fixture.services.sync_operation_state();
+        let active = fixture.key().environment;
+        assert_eq!(state.asset_inventory(&active, Some(&revision)), Some(true));
+        assert_eq!(state.asset_inventory(&active, Some("new revision")), None);
+        assert_eq!(
+            state
+                .visible_in(&EnvironmentId::Local("fixture".into()))
+                .result,
+            None
+        );
+    }
+
+    failure_mode.store(2, Ordering::Release);
+    assert_eq!(fixture.run(probe()).await, Err(SyncError::Operation));
+    assert_eq!(
+        fixture.services.sync_operation_state().result,
+        Some(Err(SyncError::Operation))
+    );
+
+    failure_mode.store(3, Ordering::Release);
+    assert_eq!(fixture.run(probe()).await, Err(SyncError::Conflict));
+    server.abort();
+    fixture.finish().await;
+}
 #[tokio::test]
 async fn explicit_connection_test_keeps_the_shared_lock_and_scopes_its_result() {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();

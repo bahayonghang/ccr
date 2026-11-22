@@ -4,8 +4,9 @@ use ccr_app::runtime::EnvironmentId;
 mod operations;
 mod remote;
 pub use operations::{
-    AssetDirection, AssetRequest, ConnectionTestStatus, FolderChange, FolderPatch, Operation,
-    OperationKind, OperationState, PasswordUpdate, SettingsPatch, SyncOperations, SyncOutcome,
+    AssetDirection, AssetRequest, AssetRow, ConnectionTestStatus, FolderChange, FolderPatch,
+    Operation, OperationKind, OperationState, PasswordUpdate, SettingsPatch, SyncOperations,
+    SyncOutcome,
 };
 
 use std::path::{Path, PathBuf};
@@ -18,6 +19,7 @@ use ccr_app::runtime::{AdmissionError, RequestKey, TaskSubscription};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SyncError {
+    AssetRead,
     AssetPassphrase,
     AssetLegacy,
     AssetDecrypt,
@@ -57,6 +59,7 @@ impl SyncError {
             Self::LegacyRemaining => {
                 "Canonical WebDAV credentials were cleared, but legacy cleanup did not finish. Read the configuration and disconnect again."
             }
+            Self::AssetRead => "The asset paths could not be inspected. / 无法检查资产路径。",
             Self::AssetPassphrase => "An operation passphrase is required for sensitive assets.",
             Self::AssetLegacy => {
                 "Plaintext v1 import requires explicit permission. Remote data has not been re-encrypted."

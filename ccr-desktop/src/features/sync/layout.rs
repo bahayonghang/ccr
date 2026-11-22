@@ -10,7 +10,11 @@ impl Render for SyncView {
         let split = window.viewport_size().width >= theme::data_row_height(theme::SPLIT_WIDTH, cx);
         let details = self
             .render_management_confirmation(window, cx)
-            .or_else(|| self.render_editor(cx));
+            .or_else(|| self.render_editor(cx))
+            .or_else(|| {
+                self.render_asset_details(cx)
+                    .map(IntoElement::into_any_element)
+            });
         let editing = details.is_some();
         let mut result = if editing {
             None
@@ -70,6 +74,9 @@ impl Render for SyncView {
                         cx.stop_propagation();
                     } else if this.editor.is_some() && !this.busy && !this.operation.busy {
                         this.close_editor(window, cx);
+                        cx.stop_propagation();
+                    } else if this.editor.is_none() && this.asset_detail.is_some() {
+                        this.close_asset_details(window, cx);
                         cx.stop_propagation();
                     }
                 }),

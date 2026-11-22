@@ -70,10 +70,16 @@ async fn ssh_sync_unavailable_database_and_disconnect_controls_do_not_start_acti
         assert!(labels(window).contains("Profile databases, disconnecting WebDAV"));
         window.click("sync-disconnect", cx);
         window.click("sync-assets-all", cx);
-        window.click(("sync-asset", 0usize), cx);
+        window.click("sync-asset-details-ccr-platforms", cx);
+        window.render_frame(cx);
+        assert!(window.try_find(("sync-asset", 0usize)).is_none());
         assert!(view.read(cx).asset_editor.is_none());
         assert!(view.read(cx).management_confirmation.is_none());
         assert!(!view.read(cx).operation.busy);
+        window.click("sync-asset-back", cx);
+        window.render_frame(cx);
+        window.click("sync-asset-details-claude-settings", cx);
+        window.render_frame(cx);
         window.click(("sync-asset", 1usize), cx);
         assert!(view.read(cx).asset_editor.is_some());
     })
@@ -708,6 +714,75 @@ async fn asset_controls_require_confirmation_and_clear_passphrase_on_leave(
         window.render_frame(cx);
         view.update(cx, |v, cx| v.suspend(cx));
         assert!(view.read(cx).asset_editor.is_none());
+        window.remove_window();
+    })
+    .unwrap();
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+async fn assets_can_be_inspected_without_webdav_and_narrow_details_return_focus(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    let nested = root.path().join("long-asset-fixture".repeat(8));
+    let claude = nested
+        .join("desktop-resource-fixture")
+        .join("home")
+        .join(".claude");
+    std::fs::create_dir_all(&claude).unwrap();
+    let path = claude.join("settings.json");
+    std::fs::write(&path, "{}").unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let handle = open(cx, &owner, &nested, size(px(960.), px(640.)));
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("nav-sync", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("sync-absent").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(window.try_find("sync-asset-distribution").is_none());
+        window.click("sync-assets-local", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(5), |window, _| {
+        window
+            .try_find("sync-asset-details-claude-settings")
+            .is_some_and(|row| {
+                row.label()
+                    .is_some_and(|label| label.contains("Environment: present"))
+            })
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(window.try_find("sync-asset-distribution").is_none());
+        assert!(!nested.join("sync_folders.toml").exists());
+        window.click("sync-asset-details-claude-settings", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("sync-asset-list").is_none());
+        let rendered_path = window.find("sync-asset-environment-path");
+        assert_eq!(rendered_path.label(), path.to_str());
+        assert!(
+            rendered_path.bounds().size.width <= window.find("sync-detail").bounds().size.width
+        );
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert_eq!(window.find("sync-asset-back").focused(), Some(true));
+        window.press("escape", cx);
+        window.render_frame(cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert_eq!(
+            window.find("sync-asset-details-claude-settings").focused(),
+            Some(true)
+        );
         window.remove_window();
     })
     .unwrap();

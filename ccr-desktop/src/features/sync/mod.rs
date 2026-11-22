@@ -1,4 +1,5 @@
 //! Canonical sync settings and retained WebDAV operations.
+mod asset_details;
 mod assets;
 mod folders;
 mod layout;
@@ -64,6 +65,9 @@ pub struct SyncView {
     management_anchor: FocusHandle,
     editor: Option<Editor>,
     asset_editor: Option<assets::AssetEditor>,
+    asset_detail: Option<usize>,
+    asset_row_anchors: [FocusHandle; ccr_sync::sync::assets::SYNC_ASSETS.len()],
+    asset_back_anchor: FocusHandle,
     folder_editor: Option<FolderEditor>,
     folder_delete: Option<FolderTarget>,
     selected: Option<usize>,
@@ -107,6 +111,9 @@ impl SyncView {
             management_anchor: cx.focus_handle().tab_stop(false),
             editor: None,
             asset_editor: None,
+            asset_detail: None,
+            asset_row_anchors: std::array::from_fn(|_| cx.focus_handle().tab_stop(false)),
+            asset_back_anchor: cx.focus_handle().tab_stop(false),
             folder_editor: None,
             folder_delete: None,
             selected: None,
@@ -134,6 +141,7 @@ impl SyncView {
         self.observation = None;
         self.editor = None;
         self.asset_editor = None;
+        self.asset_detail = None;
         self.confirmation = None;
         self.management_confirmation = None;
         self.management_focus = false;
@@ -164,6 +172,7 @@ impl SyncView {
         self.management_focus = false;
         self.preparing_disconnect = false;
         self.asset_editor = None;
+        self.asset_detail = None;
         self.folder_delete = None;
         self.folder_editor = None;
         self.generation += 1;
@@ -380,12 +389,13 @@ fn folder_label(cx: &App, folder: &SyncFolderRow) -> String {
 
 impl SyncView {
     fn render_operation_status(&self, cx: &App) -> Option<layout::Panel> {
-        if self.operation.kind == Some(OperationKind::Test)
-            || matches!(
-                self.operation.result,
-                Some(Ok(SyncOutcome::ClearPrepared(_)))
-            )
-        {
+        if matches!(
+            self.operation.kind,
+            Some(OperationKind::Test | OperationKind::AssetInventory)
+        ) || matches!(
+            self.operation.result,
+            Some(Ok(SyncOutcome::ClearPrepared(_)))
+        ) {
             return None;
         }
         let status = if self.operation.busy {
