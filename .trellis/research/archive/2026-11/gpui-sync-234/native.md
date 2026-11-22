@@ -108,3 +108,66 @@ loopback 和本机文件。生产 HTTPS WebDAV、真实 SSH、系统高对比度
 Clippy 通过。独立 Standards 与 Spec 确认同主机目标区分、脱敏与口令清理，最终键盘修复
 通过 Standards 复查。生产 HTTPS WebDAV、真实 SSH、系统高对比度、减少动态效果与其他
 系统未实测。
+
+
+## #234 整体验收
+
+整体验收候选 `bd46514f9285ff9a9977dd70f6e49d79dd5469fa`。原生 debug SHA-256
+为 `17156627589F95783B7E8B5BEA7524F8268DB1E6A136C7948478D5D5F88149B2`。截图通过 `just gpui-dev --fixture-sync-loopback` 启动。
+对照仍使用相同的合成本地配置、启用但尚未测试的 WebDAV、相同字号 14 和滚动起点。
+Windows 画面包含原生边框和标题栏；表中尺寸为逻辑客户区。
+
+| 逻辑客户区 | 浅色改版前 → 后 | 深色改版前 → 后 |
+| --- | --- | --- |
+| 1280×800 | [前](before-wide-light.jpg) → [后](after-wide-light.jpg) | [前](before-wide-dark.jpg) → [后](after-wide-dark.jpg) |
+| 960×640 | [前](before-narrow-light.jpg) → [后](after-narrow-light.jpg) | [前](before-narrow-dark.jpg) → [后](after-narrow-dark.jpg) |
+
+旧宽窗首屏只露出首项配置资产，旧窄窗路径延伸出内容区。最终宽窗同时显示当前环境、WebDAV 状态、
+五项资产和普通文件夹。详情、确认和结果按需占用右栏。窄窗保持单列，文件夹列表经纵向滚动可达，
+路径可在详情完整阅读。[窄窗路径](234-narrow-folder-path.jpg) · [宽窗换行](234-wide-folder-long-path.jpg)
+
+### Windows 原生交互
+
+- 1280×800 深色编辑并保存合成 WebDAV URL，保留已存凭据，焦点返回设置按钮。含空格与中文的编码路径读回自配置，确认面板可见且可访问文本读出完整目标，Esc 返回「传输全部资产…」。此场景只做预览。[保存](234-settings-encoded-saved.jpg) · [确认](234-encoded-confirmation.jpg) · [返回](234-encoded-return.jpg)
+- 1280×800 浅色打开同步并盘点本地资产，合成 WebDAV 请求总数保持 36。显式远端探测才发送 5 次请求，结果为 207、200、200、503、404，页面短条、文字及逐行状态一致为存在 3、缺失 1、未知 1。已上传的合成加密资产因此计入存在数。[探测三态](234-remote-three-states.jpg)
+- 960×640 深色普通文件夹确认用文字说明 HTTPS 原内容、替换、整体备份及语义不同的 `profiles.db` 原地事务，Esc 恢复所选文件夹的下载按钮。1280×800 实际批量上传两个启用项，收到 PUT 201 与 503，显示 1/2 部分完成及逐项错误，停用项无请求。[下载确认](234-folder-backup-contract.jpg) · [返回](234-folder-backup-return.jpg) · [实际部分完成](234-final-folder-partial.jpg)
+- 960×640 深色英文、UI 字号 20，Tab 依次到覆盖、v1、改方向、取消和确认，确认控件与焦点环完整可见。两个选项默认关闭。Esc 还原列表焦点，未执行下载。[大字确认](234-final-large-keyboard.jpg) · [返回发起控件](234-final-large-escape.jpg)
+- 960×640 手动从离线合成 SSH 切回本地。打开同步时仍保留选中的 SSH 环境，只有显式点击后才显示本地配置，且本地状态仍是未测试。已连接 SSH 的权限、版本冲突与部分写入由隔离运行时或 Shell 测试验证。[SSH 离线](234-ssh-offline-retained.jpg) · [显式切回](234-ssh-explicit-local.jpg)
+
+### Standards
+
+基线到最终候选的独立评审确认，两项行为问题已修复。本地普通文件夹下载确认解释了独立备份形成的
+条件和数据库事务。单项文件夹失败恢复为 Monitoring 的错误终态，同时保留逐项结果。可选的单项与
+批量确认状态合并暂缓，以保持此次修正聚焦行为。无阻塞项。
+
+### Spec
+
+独立评审并复查备份说明、同主机编码路径的区分、路径中的字面或编码凭据、URL 主机名中的已保存
+用户名。最终源码通过这四项复查。运行时测试验证主机或路径含凭据时，摘要只显示安全信息。
+Windows 验收使用合成用户名、密码和操作口令。
+
+### 设计检查与范围
+
+两种主题的实色阅读面、焦点环、动作层级、留白和不可用状态经原生人工走查。原生独立视觉评审为
+`ship`。960×640 时，共用侧栏底边可露出下一项导航的一部分，同步操作区仍可达。实色阅读面主文
+浅色/深色对比分别约 14.81:1 / 13.84:1，辅助文 5.50:1 / 6.53:1，半透明焦点环叠在阅读面
+约 3.35:1 / 3.62:1。数值按现行 token 计算，主题单测同时覆盖合成阅读面和实际绘制的焦点环。
+
+Ego Browser 打开设计参考页并读取同尺寸、同主题的渲染样式。浏览器截图接口超时，未得到参考页
+四张截图。Rust-only 源码的 design-atlas 扫描器返回 2，无受支持文件，机械门禁未运行。
+未实测生产 HTTPS WebDAV、真实 SSH 主机、其他系统、系统高对比度和减少动态效果。
+
+### 同一候选的本地门禁
+
+| 命令 | 结果 |
+| --- | --- |
+| `python ccr-desktop/scripts/desktop.py cargo test --locked --lib sync -- --skip export_bindings` | 退出 0，41 项通过。 |
+| `just gpui-test-ui` | 退出 0，46 项通过、1 项忽略。 |
+| `just gpui-ci` | 退出 0，主库 432 项通过、4 项忽略，其他测试目标和 Windows release 构建通过。 |
+| `cargo test --locked -p ccr-sync --all-features -- --skip export_bindings` | 退出 0，77 项与 4 个 doctest 通过，1 项忽略。 |
+| `cargo clippy --locked -p ccr-sync --all-targets --all-features -- -D warnings -D clippy::unwrap_used` | 退出 0。 |
+| 根 `just ci` | 退出 0，17 个阶段通过，含工作区测试与 release、Tauri Rust 与绑定校验、前端构建及覆盖率、VS Code 扩展包校验。墙钟 25 分 48 秒。 |
+
+根 CI 使用与实际 Cargo 匹配的 Rust 1.98.0 编译器。根和 Tauri Rust 测试沿用默认并行，
+类型绑定由独立配方执行。Rust 双锁文件审计保留了 8 条和 17 条已允许警告，前端依赖审计报告 0 条。
+以上是本地证据。
