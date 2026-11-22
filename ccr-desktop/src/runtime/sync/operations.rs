@@ -279,6 +279,7 @@ impl Services {
     /// Side effects outlive a detached view. Active transfers finish using the
     /// domain's bounded request/operation budgets; no false cancellation is exposed.
     pub fn start_sync(&self, key: RequestKey, operation: Operation) -> Result<(), SyncError> {
+        let kind = operation.kind();
         let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
         let remote = (!local).then(|| {
             self.remote_configuration_io(&key.environment)
@@ -295,7 +296,7 @@ impl Services {
             }
             *state = OperationState {
                 busy: true,
-                kind: Some(operation.kind()),
+                kind: Some(kind),
                 environment: Some(key.environment.clone()),
                 result: None,
                 asset_inventory: match &operation {
@@ -358,15 +359,24 @@ impl Services {
                             }
                         })
                     });
+                let failed = match &result {
+                    Err(_) => true,
+                    Ok(SyncOutcome::Batch(rows))
+                        if matches!(kind, OperationKind::Push | OperationKind::Pull) =>
+                    {
+                        rows.iter().any(|row| row.result.is_err())
+                    }
+                    Ok(_) => false,
+                };
                 monitoring.terminal(
                     &source,
                     "sync",
-                    if result.is_ok() {
-                        "sync.operation.completed"
-                    } else {
+                    if failed {
                         "sync.operation.failed"
+                    } else {
+                        "sync.operation.completed"
                     },
-                    result.is_err(),
+                    failed,
                 );
                 owner.finish(result.clone());
                 pending.finished = true;

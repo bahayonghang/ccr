@@ -488,6 +488,85 @@ fn operations_are_local_owned_and_fixture_network_is_refused_after_detach() {
     assert!(!services.sync_operation_state().busy);
 }
 
+#[tokio::test]
+async fn selected_folder_failure_retains_its_row_and_reports_an_error_event() {
+    use crate::runtime::monitoring::Requests;
+    use ccr_app::runtime::TaskEvent;
+    use ccr_types::{MonitoringFeedQuery, MonitoringLevel};
+
+    let root = tempfile::tempdir().unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let source = source(root.path());
+    config(root.path(), "https://fixture.invalid/");
+    let revision = revision(&source);
+    let services = Services::new(owner.handle(), source);
+    let key = RequestKey {
+        environment: services.environment(),
+        platform: Platform::Claude,
+        generation: 1,
+        request_id: 1,
+    };
+    let mut updates = services.observe_sync();
+    services
+        .start_sync(
+            key.clone(),
+            Operation::TransferFolders {
+                revision,
+                upload: true,
+                selected: Some(0),
+            },
+        )
+        .unwrap();
+    let result = tokio::time::timeout(
+        Duration::from_secs(10),
+        updates.wait_for(|state| state.result.is_some()),
+    )
+    .await
+    .unwrap()
+    .unwrap()
+    .result
+    .clone();
+    assert_eq!(
+        result,
+        Some(Ok(SyncOutcome::Batch(vec![FolderResult {
+            name: "fixture".into(),
+            result: Err(SyncError::FixtureNetwork),
+        }])))
+    );
+
+    let mut feed = Requests::new(&services)
+        .refresh(
+            RequestKey {
+                request_id: 2,
+                ..key
+            },
+            MonitoringFeedQuery {
+                channel: Some("sync".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    let report = tokio::time::timeout(Duration::from_secs(10), async {
+        while let Some(event) = feed.next().await {
+            if let TaskEvent::Terminal(result) = event {
+                let Completion::Success(report) = result.as_ref() else {
+                    panic!("monitoring read failed");
+                };
+                return report.clone();
+            }
+        }
+        panic!("monitoring read had no result");
+    })
+    .await
+    .unwrap();
+    assert_eq!(report.entries.len(), 1);
+    assert_eq!(report.entries[0].level, MonitoringLevel::Error);
+    assert_eq!(report.entries[0].event_type, "sync.operation.failed");
+    tokio::task::spawn_blocking(move || owner.shutdown())
+        .await
+        .unwrap();
+}
+
 async fn read_dav_request(socket: &mut tokio::net::TcpStream) -> Vec<u8> {
     let mut request = Vec::new();
     let mut chunk = [0; 4096];
