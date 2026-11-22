@@ -201,8 +201,8 @@ impl SyncView {
             ),
             (false, false) => text(
                 cx,
-                "Download transfers the original contents over HTTPS and replaces the destination. An existing destination is backed up before replacement.",
-                "通过 HTTPS 下载原始内容并替换目标。已有目标会在替换前备份。",
+                "Download transfers the original contents over HTTPS and replaces local data. A separate backup is kept only when an existing target is replaced as a whole. An existing profiles.db is updated in place using a database transaction, including inside a downloaded folder.",
+                "通过 HTTPS 下载原始内容并替换本地数据。只有整体替换已有目标时才会保留单独的备份。已有 profiles.db 会通过数据库事务原地更新，包括文件夹内的数据库。",
             ),
             (false, true) => text(
                 cx,

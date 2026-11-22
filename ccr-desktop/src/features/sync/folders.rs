@@ -1128,6 +1128,12 @@ mod controls {
             window.render_frame(cx);
             window.click("sync-pull", cx);
             window.render_frame(cx);
+            let warning = window.find("sync-folder-transfer-warning");
+            let warning = warning.label().unwrap();
+            assert!(warning.contains("over HTTPS"));
+            assert!(warning.contains("replaced as a whole"));
+            assert!(warning.contains("profiles.db"));
+            assert!(warning.contains("transaction"));
             let config_file = root.path().join("sync_folders.toml");
             let newer = std::fs::read_to_string(&config_file).unwrap() + "\n# changed elsewhere\n";
             std::fs::write(&config_file, newer).unwrap();
