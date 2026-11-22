@@ -7,10 +7,12 @@ pub(super) type Panel = gpui_kit::base::ObservedElement<Stateful<Div>>;
 impl Render for SyncView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.finish_editor_save(window, cx);
+        self.finish_folder_save(window, cx);
         let split = window.viewport_size().width >= theme::data_row_height(theme::SPLIT_WIDTH, cx);
         let details = self
             .render_management_confirmation(window, cx)
             .or_else(|| self.render_editor(cx))
+            .or_else(|| self.render_folder_details(cx))
             .or_else(|| {
                 self.render_asset_details(cx)
                     .map(IntoElement::into_any_element)
@@ -69,17 +71,22 @@ impl Render for SyncView {
                     if event.keystroke.key != "escape" {
                         return;
                     }
-                    if this.management_confirmation.is_some() {
+                    if this.management_confirmation.is_some() || this.confirmation.is_some() {
                         this.cancel_management(window, cx);
                         cx.stop_propagation();
-                    } else if this.editor.is_some() && !this.busy && !this.operation.busy {
+                    } else if this.editor.is_some() {
+                        if this.busy || this.operation.busy {
+                            return;
+                        }
                         this.close_editor(window, cx);
                         cx.stop_propagation();
                     } else if this.asset_editor.is_some() {
                         this.cancel_asset_edit(window, cx);
                         cx.stop_propagation();
-                    } else if this.editor.is_none() && this.asset_detail.is_some() {
+                    } else if this.asset_detail.is_some() {
                         this.close_asset_details(window, cx);
+                        cx.stop_propagation();
+                    } else if this.dismiss_folder_panel(window, cx) {
                         cx.stop_propagation();
                     }
                 }),
@@ -89,6 +96,7 @@ impl Render for SyncView {
             .size_full()
             .min_w_0()
             .overflow_y_scroll()
+            .track_scroll(&self.folder_focus.scroll)
             .p(px(
                 if window.viewport_size().width < px(theme::NARROW_WIDTH) {
                     theme::NARROW_CONTENT_PADDING
@@ -120,7 +128,7 @@ impl Render for SyncView {
 }
 
 impl SyncView {
-    fn render_environment(&self, cx: &App) -> impl IntoElement {
+    pub(super) fn environment_label(&self, cx: &App) -> String {
         let environment = if self.is_ssh() {
             self.environment_name
                 .as_ref()
@@ -128,75 +136,20 @@ impl SyncView {
         } else {
             text(cx, "Local", "本地").into()
         };
-        let label = format!(
+        format!(
             "{} · {environment}",
             text(cx, "Execution environment", "执行环境")
-        );
+        )
+    }
+
+    fn render_environment(&self, cx: &App) -> impl IntoElement {
+        let label = self.environment_label(cx);
         div()
             .id("sync-environment")
             .test_support()
             .aria_label(label.clone())
             .text_color(cx.theme().muted_foreground)
             .child(label)
-    }
-
-    fn render_folders(&mut self, cx: &mut Context<Self>) -> impl IntoElement {
-        let mut panel = reading_panel("sync-folders", cx).child(section_heading(text(
-            cx,
-            "Sync folders",
-            "同步文件夹",
-        )));
-        if let Some(SyncSnapshot::Present(local)) = &self.snapshot {
-            if local.folders.is_empty() {
-                panel = panel.child(div().text_color(cx.theme().muted_foreground).child(text(
-                    cx,
-                    "No sync folders configured.",
-                    "尚未配置同步文件夹。",
-                )));
-            }
-            let blocked = self.busy
-                || self.operation.busy
-                || self.editor.is_some()
-                || self.management_confirmation.is_some();
-            panel = panel.children(local.folders.iter().enumerate().map(|(index, folder)| {
-                let label = folder_label(cx, folder);
-                div()
-                    .id(SharedString::from(format!("sync-folder-{index}")))
-                    .test_support()
-                    .flex()
-                    .flex_wrap()
-                    .min_w_0()
-                    .items_center()
-                    .gap(px(theme::CONTROL_GAP))
-                    .border_t_1()
-                    .border_color(cx.theme().border)
-                    .aria_label(label.clone())
-                    .child(div().flex_1().min_w_0().child(label))
-                    .child(semantics::ghost_button(
-                        Button::new(("sync-select", index))
-                            .label(if self.selected == Some(index) {
-                                text(cx, "Selected", "已选择")
-                            } else {
-                                text(cx, "Select", "选择")
-                            })
-                            .on_click(cx.listener(move |this, _, _, cx| {
-                                this.generation += 1;
-                                this.selected = Some(index);
-                                this.confirmation = None;
-                                this.folder_editor = None;
-                                this.folder_delete = None;
-                                cx.notify();
-                            })),
-                        blocked,
-                        false,
-                        cx,
-                    ))
-            }));
-        }
-        panel
-            .child(self.render_folder_controls(cx))
-            .child(self.render_selected_folder_operations(cx))
-            .child(self.render_batch_controls(cx))
     }
 }
 

@@ -26,6 +26,10 @@ impl SyncView {
         let Some(revision) = self.revision() else {
             return;
         };
+        self.reset_folder_panel();
+        if id.is_none() {
+            self.asset_detail = None;
+        }
         let passphrase = cx.new(|cx| InputState::new(window, cx).masked(true));
         window.focus(&passphrase.read(cx).focus_handle(cx), cx);
         self.asset_editor = Some(AssetEditor {
@@ -79,9 +83,7 @@ impl SyncView {
 
     pub(super) fn asset_draft_blocked(&self) -> bool {
         self.editor.is_some()
-            || self.folder_editor.is_some()
-            || self.folder_delete.is_some()
-            || self.confirmation.is_some()
+            || self.folder_decision_open()
             || self.management_confirmation.is_some()
     }
 
@@ -292,7 +294,6 @@ impl SyncView {
                                 Button::new("sync-assets-all")
                                     .label(text(cx, "All assets", "全部资产"))
                                     .on_click(cx.listener(|this, _, window, cx| {
-                                        this.asset_detail = None;
                                         this.edit_asset(None, window, cx);
                                     })),
                                 self.asset_transfer_locked()

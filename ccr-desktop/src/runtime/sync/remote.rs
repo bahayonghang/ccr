@@ -260,7 +260,7 @@ pub(super) async fn execute(
         | Operation::Test { revision }
         | Operation::Push { revision, .. }
         | Operation::Pull { revision, .. }
-        | Operation::Batch { revision, .. }
+        | Operation::TransferFolders { revision, .. }
         | Operation::AssetInventory { revision, .. } => revision,
         Operation::Assets(request) => &request.revision,
         Operation::PrepareClear { .. } | Operation::Clear { .. } => {
@@ -384,7 +384,9 @@ pub(super) async fn execute(
     let (selected, upload, batch) = match operation {
         Operation::Push { folder, .. } => (Some(folder), true, false),
         Operation::Pull { folder, .. } => (Some(folder), false, false),
-        Operation::Batch { upload, .. } => (None, upload, true),
+        Operation::TransferFolders {
+            selected, upload, ..
+        } => (selected, upload, true),
         _ => return Err(SyncError::Invalid),
     };
     let mut results = Vec::new();
@@ -436,6 +438,9 @@ pub(super) async fn execute(
             name: redact_log_text(&folder.name),
             result,
         });
+    }
+    if results.is_empty() {
+        return Err(SyncError::Invalid);
     }
     if batch {
         return Ok(SyncOutcome::Batch(results));

@@ -18,7 +18,7 @@ use crate::{
     theme,
 };
 use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent};
-use folders::{FolderEditor, FolderTarget};
+use folders::{FolderEditor, FolderFocus, FolderTarget};
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::button::{Button, ButtonVariants};
 use gpui_kit::component::input::{Input, InputState};
@@ -62,6 +62,7 @@ pub struct SyncView {
     edit_anchor: FocusHandle,
     disconnect_anchor: FocusHandle,
     batch_anchors: [FocusHandle; 2],
+    selected_transfer_anchors: [FocusHandle; 2],
     management_anchor: FocusHandle,
     editor: Option<Editor>,
     asset_editor: Option<assets::AssetEditor>,
@@ -70,10 +71,11 @@ pub struct SyncView {
     asset_back_anchor: FocusHandle,
     asset_transfer_anchor: FocusHandle,
     all_assets_transfer_anchor: FocusHandle,
+    folder_focus: FolderFocus,
     folder_editor: Option<FolderEditor>,
     folder_delete: Option<FolderTarget>,
     selected: Option<usize>,
-    confirmation: Option<OperationKind>,
+    confirmation: Option<management::FolderTransfer>,
     management_confirmation: Option<management::Confirmation>,
     management_focus: bool,
     preparing_disconnect: bool,
@@ -88,9 +90,7 @@ impl SyncView {
     pub fn has_environment_draft(&self) -> bool {
         self.editor.is_some()
             || self.asset_editor.is_some()
-            || self.folder_editor.is_some()
-            || self.confirmation.is_some()
-            || self.folder_delete.is_some()
+            || self.folder_decision_open()
             || self.management_confirmation.is_some()
     }
     pub fn new(services: Services, _window: &mut Window, cx: &mut Context<Self>) -> Self {
@@ -110,6 +110,7 @@ impl SyncView {
             edit_anchor: cx.focus_handle().tab_stop(false),
             disconnect_anchor: cx.focus_handle().tab_stop(false),
             batch_anchors: std::array::from_fn(|_| cx.focus_handle().tab_stop(false)),
+            selected_transfer_anchors: std::array::from_fn(|_| cx.focus_handle().tab_stop(false)),
             management_anchor: cx.focus_handle().tab_stop(false),
             editor: None,
             asset_editor: None,
@@ -118,6 +119,7 @@ impl SyncView {
             asset_back_anchor: cx.focus_handle().tab_stop(false),
             asset_transfer_anchor: cx.focus_handle().tab_stop(false),
             all_assets_transfer_anchor: cx.focus_handle().tab_stop(false),
+            folder_focus: FolderFocus::new(cx),
             folder_editor: None,
             folder_delete: None,
             selected: None,
@@ -150,8 +152,8 @@ impl SyncView {
         self.management_confirmation = None;
         self.management_focus = false;
         self.preparing_disconnect = false;
-        self.folder_editor = None;
-        self.folder_delete = None;
+        self.reset_folder_panel();
+        self.folder_focus.suspend();
         cx.notify();
     }
 
@@ -177,8 +179,7 @@ impl SyncView {
         self.preparing_disconnect = false;
         self.asset_editor = None;
         self.asset_detail = None;
-        self.folder_delete = None;
-        self.folder_editor = None;
+        self.reset_folder_panel();
         self.generation += 1;
         let key = RequestKey {
             environment: self.environment.clone(),
@@ -206,6 +207,11 @@ impl SyncView {
                                             SyncSnapshot::Present(local) => local.folders.iter().position(|folder| folder.enabled),
                                             SyncSnapshot::Absent => None,
                                         };
+                                        let folder_count = match snapshot {
+                                            SyncSnapshot::Present(local) => local.folders.len(),
+                                            SyncSnapshot::Absent => 0,
+                                        };
+                                        this.folder_focus.set_rows(folder_count, cx);
                                         this.snapshot = Some(snapshot.clone());
                                     }
                                     Completion::Failed(error) | Completion::CleanupFailed(error) => {
@@ -281,6 +287,7 @@ impl SyncView {
                             this.preparing_disconnect = false;
                         }
                         this.operation = state;
+                        this.record_folder_completion();
                         if saved {
                             if let Some(editor) = &mut this.editor
                                 && matches!(this.operation.result, Some(Ok(SyncOutcome::Saved)))
@@ -290,8 +297,6 @@ impl SyncView {
                             } else {
                                 this.editor = None;
                             }
-                            this.folder_editor = None;
-                            this.folder_delete = None;
                             this.refresh(cx);
                         }
                         cx.notify();
@@ -356,39 +361,6 @@ impl SyncView {
             });
         });
     }
-
-    fn transfer(&mut self, kind: OperationKind, cx: &mut Context<Self>) {
-        let (Some(revision), Some(folder)) = (self.revision(), self.selected) else {
-            return;
-        };
-        self.start(
-            match kind {
-                OperationKind::Push => Operation::Push { revision, folder },
-                OperationKind::Pull => Operation::Pull { revision, folder },
-                _ => return,
-            },
-            cx,
-        );
-    }
-}
-
-fn folder_label(cx: &App, folder: &SyncFolderRow) -> String {
-    let state = if folder.enabled {
-        text(cx, "enabled", "已启用")
-    } else {
-        text(cx, "disabled", "已停用")
-    };
-    if is_chinese(cx) {
-        format!(
-            "{} · {state} · 本地 {} · 远程 {}",
-            folder.name, folder.local_path, folder.remote_path
-        )
-    } else {
-        format!(
-            "{} · {state} · local {} · remote {}",
-            folder.name, folder.local_path, folder.remote_path
-        )
-    }
 }
 
 impl SyncView {
@@ -418,12 +390,7 @@ impl SyncView {
                     "WebDAV 账户已断开，文件夹定义已保留。",
                 )
                 .to_string(),
-                Ok(SyncOutcome::Batch(results)) => format!(
-                    "{}: {}/{}",
-                    text(cx, "Folders completed", "文件夹已完成"),
-                    results.iter().filter(|r| r.result.is_ok()).count(),
-                    results.len()
-                ),
+                Ok(SyncOutcome::Batch(results)) => Self::folder_result_summary(results, cx),
                 Ok(SyncOutcome::Assets(results)) => format!(
                     "{}: {}/{}",
                     text(cx, "Assets completed", "资产已完成"),
@@ -455,97 +422,17 @@ impl SyncView {
                 Err(error) => sync_error(cx, *error).to_string(),
             })
         };
-        status.map(|status| sync_status("sync-operation-status", status))
-    }
-
-    fn render_selected_folder_operations(&mut self, cx: &mut Context<Self>) -> impl IntoElement {
-        let locked = self.busy || self.operation.busy || self.management_confirmation.is_some();
-        let mut section = div().flex().flex_col().gap(px(theme::CONTROL_GAP));
-        section = section.child(
-            sync_actions().children(
-                [
-                    (
-                        OperationKind::Push,
-                        "sync-push",
-                        text(cx, "Upload selected folder", "上传所选文件夹"),
-                    ),
-                    (
-                        OperationKind::Pull,
-                        "sync-pull",
-                        text(cx, "Download selected folder", "下载所选文件夹"),
-                    ),
-                ]
-                .into_iter()
-                .map(|(kind, id, label)| {
-                    semantics::button(
-                        Button::new(id).label(label).ghost().on_click(cx.listener(
-                            move |this, _, _, cx| {
-                                this.confirmation = Some(kind);
-                                cx.notify();
-                            },
-                        )),
-                        locked
-                            || self.editor.is_some()
-                            || self.folder_editor.is_some()
-                            || !self
-                                .selected_folder()
-                                .is_some_and(|folder| folder.enabled && folder.identity.is_some()),
-                        false,
-                        cx,
-                    )
-                }),
-            ),
-        );
-        if let Some(kind) = self.confirmation {
-            let warning = if kind == OperationKind::Push {
-                text(
-                    cx,
-                    "Upload the selected folder as stored over HTTPS and overwrite matching remote content? Files can contain credentials. This ordinary folder transfer does not apply the encrypted asset envelope.",
-                    "通过 HTTPS 上传所选文件夹的原始内容并覆盖对应远程内容？文件可能包含凭据。普通文件夹传输不会应用加密资产封装。",
-                )
-            } else {
-                text(
-                    cx,
-                    "Replace the selected local folder with remote content? The sync service stages the download and preserves a backup before replacement.",
-                    "用远程内容替换所选本地文件夹？同步服务会先暂存下载内容，并在替换前保留备份。",
-                )
-            };
-            section = section.child(
-                div()
-                    .id("sync-confirmation")
-                    .test_support()
+        status.map(|status| {
+            let mut panel = sync_status("sync-operation-status", status);
+            if let Some(Ok(SyncOutcome::Batch(results))) = &self.operation.result {
+                panel = panel
                     .flex()
                     .flex_col()
                     .gap(px(theme::CONTROL_GAP))
-                    .child(warning)
-                    .child(
-                        sync_actions()
-                            .child(semantics::button(
-                                Button::new("sync-transfer-cancel")
-                                    .label(text(cx, "Cancel", "取消"))
-                                    .ghost()
-                                    .on_click(cx.listener(|this, _, _, cx| {
-                                        this.confirmation = None;
-                                        cx.notify();
-                                    })),
-                                false,
-                                false,
-                                cx,
-                            ))
-                            .child(semantics::button(
-                                Button::new("sync-transfer-confirm")
-                                    .label(text(cx, "Confirm transfer", "确认传输"))
-                                    .on_click(
-                                        cx.listener(move |this, _, _, cx| this.transfer(kind, cx)),
-                                    ),
-                                locked,
-                                false,
-                                cx,
-                            )),
-                    ),
-            );
-        }
-        section
+                    .children(self.render_folder_results(results, cx));
+            }
+            panel
+        })
     }
 }
 

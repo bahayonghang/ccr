@@ -11,20 +11,25 @@ impl SyncView {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        if self.environment != self.services.environment() || self.asset_draft_blocked() {
+        if self.environment != self.services.environment()
+            || self.asset_draft_blocked()
+            || self.asset_editor.is_some()
+        {
             return;
         }
+        self.reset_folder_panel();
         self.asset_detail = Some(index);
-        self.asset_editor = None;
         self.restore_action_focus(self.asset_back_anchor.clone(), window, cx);
         cx.notify();
     }
 
     pub(super) fn close_asset_details(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.asset_editor.is_some() {
+            return;
+        }
         let Some(index) = self.asset_detail.take() else {
             return;
         };
-        self.asset_editor = None;
         self.restore_action_focus(self.asset_row_anchors[index].clone(), window, cx);
         cx.notify();
     }
@@ -52,7 +57,7 @@ impl SyncView {
                             .on_click(cx.listener(|this, _, window, cx| {
                                 this.close_asset_details(window, cx);
                             })),
-                        false,
+                        self.asset_editor.is_some(),
                         false,
                         cx,
                     )),

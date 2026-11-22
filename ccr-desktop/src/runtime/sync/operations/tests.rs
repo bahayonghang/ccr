@@ -1142,3 +1142,161 @@ async fn sensitive_asset_v2_roundtrip_and_explicit_v1_import_preserve_local_data
     );
     server.abort();
 }
+
+#[tokio::test]
+async fn folder_workbench_rejects_empty_ssh_batch_instead_of_reporting_success() {
+    let f = SshFixture::new("https://fixture.invalid/").await;
+    assert_eq!(
+        f.run(Operation::Folder {
+            revision: f.revision(),
+            change: FolderChange::Enabled {
+                identity: ccr_core::core::content_version_token(b"shared"),
+                enabled: false,
+            },
+        })
+        .await,
+        Ok(SyncOutcome::FolderSaved)
+    );
+    assert_eq!(
+        f.run(Operation::TransferFolders {
+            revision: f.revision(),
+            upload: true,
+            selected: None,
+        })
+        .await,
+        Err(SyncError::Invalid)
+    );
+    f.finish().await;
+}
+
+#[tokio::test]
+async fn folder_workbench_ssh_download_reports_partial_publication_refusal_and_completion() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}/", listener.local_addr().unwrap());
+    let f = SshFixture::new(&url).await;
+    f.set(".claude/shared/one.txt", "old-one");
+    f.set(".claude/shared/two.txt", "old-two");
+    f.set(".claude/good.txt", "old-good");
+    f.set(".claude/profiles.db", "fixture-db");
+    f.transport.fail_path(
+        "rename",
+        "/srv/sync/.claude/shared/two.txt",
+        "ssh_write_outcome_unknown",
+    );
+    for (name, local, remote) in [
+        ("database", "~/.claude/profiles.db", "/db"),
+        ("good", "~/.claude/good.txt", "/good.txt"),
+    ] {
+        assert_eq!(
+            f.run(Operation::Folder {
+                revision: f.revision(),
+                change: FolderChange::Add(FolderPatch {
+                    name: Some(name.into()),
+                    local_path: Some(local.into()),
+                    remote_path: Some(remote.into()),
+                }),
+            })
+            .await,
+            Ok(SyncOutcome::FolderSaved)
+        );
+    }
+
+    // Complete the independent folder before the partial write revokes SSH authority.
+    let current = f
+        .transport
+        .file("sync.fixture.invalid", "/srv/sync/.ccr/sync_folders.toml")
+        .unwrap();
+    let mut reordered: SyncFoldersConfig = toml::from_str(&current).unwrap();
+    reordered.folders.reverse();
+    f.set(
+        ".ccr/sync_folders.toml",
+        &toml::to_string(&reordered).unwrap(),
+    );
+
+    let webdav = tokio::spawn(async move {
+        for _ in 0..4 {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut request = Vec::new();
+            while !request.windows(4).any(|bytes| bytes == b"\r\n\r\n") {
+                assert_ne!(socket.read_buf(&mut request).await.unwrap(), 0);
+            }
+            let (status, body) = if request.starts_with(b"PROPFIND /data ") {
+                let body = ["/data/one.txt", "/data/two.txt"].map(|path| format!(
+                    r#"<D:response><D:href>{path}</D:href><D:propstat><D:prop><D:resourcetype/><D:getcontentlength>8</D:getcontentlength><D:getlastmodified>Sun, 26 Jul 2026 00:00:00 GMT</D:getlastmodified></D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response>"#,
+                )).concat();
+                (
+                    "207 Multi-Status",
+                    format!(r#"<D:multistatus xmlns:D="DAV:">{body}</D:multistatus>"#),
+                )
+            } else {
+                let content = [
+                    (b"GET /data/one.txt ".as_slice(), "new-one!"),
+                    (b"GET /data/two.txt ".as_slice(), "new-two!"),
+                    (b"GET /good.txt ".as_slice(), "new-good"),
+                ]
+                .into_iter()
+                .find_map(|(line, content)| request.starts_with(line).then_some(content))
+                .unwrap_or_else(|| {
+                    let line = request
+                        .split(|byte| *byte == b'\r')
+                        .next()
+                        .unwrap_or_default();
+                    panic!(
+                        "Unexpected loopback request: {}",
+                        String::from_utf8_lossy(line)
+                    );
+                });
+                ("200 OK", content.to_owned())
+            };
+            let response = format!(
+                "HTTP/1.1 {status}\r\nContent-Type: application/xml\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                body.len()
+            );
+            socket.write_all(response.as_bytes()).await.unwrap();
+            socket.shutdown().await.unwrap();
+        }
+    });
+    let result = f
+        .run(Operation::TransferFolders {
+            revision: f.revision(),
+            selected: None,
+            upload: false,
+        })
+        .await;
+    assert_eq!(
+        result,
+        Ok(SyncOutcome::Batch(vec![
+            FolderResult {
+                name: "good".into(),
+                result: Ok(None)
+            },
+            FolderResult {
+                name: "database".into(),
+                result: Err(SyncError::RemoteDatabase)
+            },
+            FolderResult {
+                name: "shared".into(),
+                result: Err(SyncError::RemotePartial)
+            },
+        ]))
+    );
+    webdav.await.unwrap();
+    for (path, content) in [
+        ("/srv/sync/.claude/shared/one.txt", "new-one!"),
+        ("/srv/sync/.claude/shared/two.txt", "old-two"),
+        ("/srv/sync/.claude/good.txt", "new-good"),
+        ("/srv/sync/.claude/profiles.db", "fixture-db"),
+    ] {
+        assert_eq!(
+            f.transport.file("sync.fixture.invalid", path).as_deref(),
+            Some(content)
+        );
+    }
+    assert!(
+        f.transport
+            .batches()
+            .iter()
+            .any(|batch| batch.starts_with("rename /srv/sync/.claude/shared/one.txt.bak."))
+    );
+    f.finish().await;
+}

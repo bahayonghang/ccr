@@ -5,20 +5,12 @@ use gpui_kit::{AnyElement, Focusable};
 
 impl SyncView {
     pub(super) fn edit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.busy
-            || self.operation.busy
-            || self.editor.is_some()
-            || self.folder_editor.is_some()
-            || self.management_confirmation.is_some()
-        {
+        if self.busy || self.operation.busy || self.has_environment_draft() {
             return;
         }
         let Some(revision) = self.revision() else {
             return;
         };
-        self.confirmation = None;
-        self.asset_editor = None;
-        self.folder_delete = None;
         let url = cx.new(|cx| InputState::new(window, cx));
         window.focus(&url.read(cx).focus_handle(cx), cx);
         self.editor = Some(Editor {
@@ -93,9 +85,7 @@ impl SyncView {
     }
 
     pub(super) fn render_webdav(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        let locked = self.busy || self.operation.busy;
-        let editing = self.editor.is_some() || self.folder_editor.is_some();
-        let confirming = self.management_confirmation.is_some();
+        let locked = self.busy || self.operation.busy || self.has_environment_draft();
         let present = matches!(self.snapshot, Some(SyncSnapshot::Present(_)));
         let (config_status, color) = match &self.snapshot {
             _ if self.busy => (
@@ -225,7 +215,7 @@ impl SyncView {
                                 })
                                 .primary()
                                 .on_click(cx.listener(|this, _, window, cx| this.edit(window, cx))),
-                            locked || editing || confirming || self.snapshot.is_none(),
+                            locked || self.snapshot.is_none(),
                             false,
                             cx,
                         )),
@@ -237,8 +227,12 @@ impl SyncView {
                             "Read current environment config",
                             "读取当前环境配置",
                         ))
-                        .on_click(cx.listener(|this, _, _, cx| this.refresh(cx))),
-                    locked || editing || confirming,
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            if !this.has_environment_draft() {
+                                this.refresh(cx);
+                            }
+                        })),
+                    locked,
                     self.busy,
                     cx,
                 ))
@@ -246,11 +240,13 @@ impl SyncView {
                     Button::new("sync-test")
                         .label(text(cx, "Test connection", "测试连接"))
                         .on_click(cx.listener(|this, _, _, cx| {
-                            if let Some(revision) = this.revision() {
+                            if !this.has_environment_draft()
+                                && let Some(revision) = this.revision()
+                            {
                                 this.start(Operation::Test { revision }, cx);
                             }
                         })),
-                    locked || editing || confirming || !present,
+                    locked || !present,
                     matches!(test, Some(ConnectionTestStatus::Running)),
                     cx,
                 ))
@@ -259,8 +255,8 @@ impl SyncView {
         if self.is_ssh() {
             let limitations = text(
                 cx,
-                "Profile databases, disconnecting WebDAV and creating empty destination directories are unavailable in SSH. Multi-file publication can partially complete and leaves backups on the SSH host.",
-                "SSH 不支持方案数据库、断开 WebDAV 或新建纯空目标目录。多文件发布可能部分完成，备份保留在 SSH 主机。",
+                "Profile databases, disconnecting WebDAV and creating empty destination directories are unavailable in SSH. Multi-file publication can partially complete. Backups of replaced files stay on the SSH host.",
+                "SSH 不支持方案数据库、断开 WebDAV 或新建纯空目标目录。多文件发布可能部分完成。被替换文件的备份保留在 SSH 主机。",
             );
             section = section.child(
                 div()

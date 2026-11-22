@@ -57,9 +57,10 @@ pub enum Operation {
         revision: String,
         session: Arc<ccr_sync::sync::clear::ClearSession>,
     },
-    Batch {
+    TransferFolders {
         revision: String,
         upload: bool,
+        selected: Option<usize>,
     },
     Assets(AssetRequest),
     AssetInventory {
@@ -104,13 +105,14 @@ impl Operation {
         match self {
             Self::PrepareClear { .. } => OperationKind::PrepareClear,
             Self::Clear { .. } => OperationKind::Clear,
-            Self::Batch { upload, .. } => {
-                if *upload {
-                    OperationKind::BatchPush
-                } else {
-                    OperationKind::BatchPull
-                }
-            }
+            Self::TransferFolders {
+                upload, selected, ..
+            } => match (upload, selected) {
+                (true, Some(_)) => OperationKind::Push,
+                (false, Some(_)) => OperationKind::Pull,
+                (true, None) => OperationKind::BatchPush,
+                (false, None) => OperationKind::BatchPull,
+            },
             Self::Assets(_) => OperationKind::Assets,
             Self::AssetInventory { .. } => OperationKind::AssetInventory,
             Self::Save(_) => OperationKind::Save,
@@ -610,8 +612,13 @@ pub(super) async fn execute(
         Operation::Clear { revision, session } => {
             return management::clear(source, &revision, &session);
         }
-        Operation::Batch { revision, upload } => {
-            return management::batch(source, &revision, upload, loopback).await;
+        Operation::TransferFolders {
+            revision,
+            upload,
+            selected,
+        } => {
+            return management::transfer_folders(source, &revision, upload, selected, loopback)
+                .await;
         }
         Operation::Assets(request) => return assets::transfer(source, request, loopback).await,
         Operation::AssetInventory { revision, probe } => {
@@ -631,7 +638,7 @@ pub(super) async fn execute(
         }
         Operation::PrepareClear { .. }
         | Operation::Clear { .. }
-        | Operation::Batch { .. }
+        | Operation::TransferFolders { .. }
         | Operation::Save(_)
         | Operation::Folder { .. }
         | Operation::Assets(_)

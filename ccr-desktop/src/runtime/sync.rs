@@ -3,6 +3,7 @@ use ccr_app::environments::EnvironmentPolicy;
 use ccr_app::runtime::EnvironmentId;
 mod operations;
 mod remote;
+pub use operations::FolderResult;
 pub use operations::{
     AssetDirection, AssetRequest, AssetRow, ConnectionTestStatus, FolderChange, FolderPatch,
     Operation, OperationKind, OperationState, PasswordUpdate, SettingsPatch, SyncOperations,
@@ -54,7 +55,7 @@ impl SyncError {
                 "SSH sync cannot safely replace profile databases without a remote transaction owner. This asset was not transferred. / 缺少远端事务所有者，SSH 同步不能安全替换方案数据库，此资产未传输。"
             }
             Self::RemotePartial => {
-                "SSH publication stopped after some files were written. Their preimage backups remain on the SSH host. / SSH 发布在部分文件写入后中止，原内容备份保留在 SSH 主机。"
+                "SSH publication stopped after some files were written. Backups of replaced files remain on the SSH host. / SSH 发布在部分文件写入后中止。被替换文件的备份保留在 SSH 主机。"
             }
             Self::LegacyRemaining => {
                 "Canonical WebDAV credentials were cleared, but legacy cleanup did not finish. Read the configuration and disconnect again."
