@@ -24,6 +24,12 @@ enum FolderSaveFocus {
     Row(String),
 }
 
+/// A focus request consumed when the destination panel renders.
+enum FolderActionFocus {
+    List(FocusHandle),
+    Detail(FocusHandle),
+}
+
 pub(super) struct FolderFocus {
     pub(super) scroll: ScrollHandle,
     /// The list offset, while the folder detail or add form is open.
@@ -35,6 +41,7 @@ pub(super) struct FolderFocus {
     delete: FocusHandle,
     delete_confirmation: FocusHandle,
     form: FocusHandle,
+    pending_action: Option<FolderActionFocus>,
     save_pending: Option<FolderSaveFocus>,
     restore_after_save: Option<FolderSaveFocus>,
 }
@@ -51,6 +58,7 @@ impl FolderFocus {
             delete: cx.focus_handle().tab_stop(false),
             delete_confirmation: cx.focus_handle().tab_stop(false),
             form: cx.focus_handle().tab_stop(false),
+            pending_action: None,
             save_pending: None,
             restore_after_save: None,
         }
@@ -59,6 +67,10 @@ impl FolderFocus {
     pub(super) fn set_rows(&mut self, count: usize, cx: &mut Context<SyncView>) {
         self.rows
             .resize_with(count, || cx.focus_handle().tab_stop(false));
+    }
+
+    pub(super) fn clear_pending_action(&mut self) {
+        self.pending_action = None;
     }
 
     pub(super) fn suspend(&mut self) {
@@ -100,7 +112,7 @@ impl SyncView {
         self.folder_target().as_ref() == Some(target)
     }
 
-    fn show_folder(&mut self, index: usize, window: &mut Window, cx: &mut Context<Self>) {
+    fn show_folder(&mut self, index: usize, cx: &mut Context<Self>) {
         if self.has_environment_draft() {
             return;
         }
@@ -108,30 +120,28 @@ impl SyncView {
         self.generation += 1;
         self.folder_focus.list_offset = None;
         self.open_folder_panel();
-        self.restore_action_focus(self.folder_focus.detail.clone(), window, cx);
+        self.folder_focus.pending_action =
+            Some(FolderActionFocus::Detail(self.folder_focus.detail.clone()));
         cx.notify();
     }
 
     fn open_folder_panel(&mut self) {
         self.asset_detail = None;
+        self.folder_focus.clear_pending_action();
         self.folder_focus
             .list_offset
             .get_or_insert_with(|| self.folder_focus.scroll.offset());
         self.folder_focus.scroll.scroll_to_top_of_item(2);
     }
 
-    fn close_folder_panel(
-        &mut self,
-        anchor: FocusHandle,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
+    fn close_folder_panel(&mut self, anchor: FocusHandle, cx: &mut Context<Self>) {
         self.reset_folder_panel();
-        self.restore_action_focus(anchor, window, cx);
+        self.folder_focus.pending_action = Some(FolderActionFocus::List(anchor));
         cx.notify();
     }
 
     pub(super) fn reset_folder_panel(&mut self) {
+        self.folder_focus.clear_pending_action();
         if let Some(offset) = self.folder_focus.list_offset.take() {
             self.folder_focus.scroll.set_offset(offset);
         }
@@ -140,40 +150,38 @@ impl SyncView {
         self.folder_delete_focus = false;
     }
 
-    pub(super) fn dismiss_folder_panel(
-        &mut self,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) -> bool {
+    pub(super) fn dismiss_folder_panel(&mut self, cx: &mut Context<Self>) -> bool {
         if self.operation.busy && self.folder_focus.save_pending.is_some() {
             return false;
         }
         if let Some(editor) = self.folder_editor.take() {
             if editor.target.is_some() {
-                self.restore_action_focus(self.folder_focus.edit.clone(), window, cx);
+                self.folder_focus.pending_action =
+                    Some(FolderActionFocus::Detail(self.folder_focus.edit.clone()));
                 cx.notify();
             } else {
-                self.close_folder_panel(self.folder_focus.add.clone(), window, cx);
+                self.close_folder_panel(self.folder_focus.add.clone(), cx);
             }
         } else if self.folder_delete.take().is_some() {
             self.folder_delete_focus = false;
-            self.restore_action_focus(self.folder_focus.delete.clone(), window, cx);
+            self.folder_focus.pending_action =
+                Some(FolderActionFocus::Detail(self.folder_focus.delete.clone()));
             cx.notify();
         } else if self.folder_focus.list_offset.is_some() {
-            self.close_selected_folder(window, cx);
+            self.close_selected_folder(cx);
         } else {
             return false;
         }
         true
     }
 
-    fn close_selected_folder(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    fn close_selected_folder(&mut self, cx: &mut Context<Self>) {
         let anchor = self
             .selected
             .and_then(|index| self.folder_focus.rows.get(index))
             .unwrap_or(&self.folder_focus.add)
             .clone();
-        self.close_folder_panel(anchor, window, cx);
+        self.close_folder_panel(anchor, cx);
     }
 
     fn edit_folder(&mut self, existing: bool, window: &mut Window, cx: &mut Context<Self>) {
@@ -320,7 +328,18 @@ impl SyncView {
         }
     }
 
-    pub(super) fn render_folders(&self, cx: &mut Context<Self>) -> impl IntoElement {
+    pub(super) fn render_folders(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        if let Some(FolderActionFocus::List(anchor)) = self
+            .folder_focus
+            .pending_action
+            .take_if(|action| matches!(action, FolderActionFocus::List(_)))
+        {
+            self.restore_action_focus(anchor, window, cx);
+        }
         let mut panel = reading_panel("sync-folders", cx);
         let heading = section_heading(text(cx, "Sync folders", "同步文件夹"));
         let Some(SyncSnapshot::Present(local)) = &self.snapshot else {
@@ -387,9 +406,9 @@ impl SyncView {
                                     text(cx, "Folder details", "文件夹详情"),
                                     folder.name
                                 ))
-                                .on_click(cx.listener(move |this, _, window, cx| {
-                                    this.show_folder(index, window, cx)
-                                })),
+                                .on_click(
+                                    cx.listener(move |this, _, _, cx| this.show_folder(index, cx)),
+                                ),
                             expanded,
                         );
                         div()
@@ -478,17 +497,18 @@ impl SyncView {
         }
         panel = panel
             .child(
-                folder_action_anchor("sync-folder-detail-action", &self.folder_focus.detail).child(
-                    semantics::ghost_button(
-                        Button::new("sync-folder-back")
-                            .label(text(cx, "Back to sync list", "返回同步列表"))
-                            .on_click(cx.listener(|this, _, window, cx| {
-                                this.close_selected_folder(window, cx)
-                            })),
-                        self.folder_focus.save_pending.is_some(),
-                        false,
-                        cx,
-                    ),
+                sync_actions().child(
+                    folder_action_anchor("sync-folder-detail-action", &self.folder_focus.detail)
+                        .child(semantics::ghost_button(
+                            Button::new("sync-folder-back")
+                                .label(text(cx, "Back to sync list", "返回同步列表"))
+                                .on_click(
+                                    cx.listener(|this, _, _, cx| this.close_selected_folder(cx)),
+                                ),
+                            self.folder_focus.save_pending.is_some(),
+                            false,
+                            cx,
+                        )),
                 ),
             )
             .child(
@@ -519,7 +539,15 @@ impl SyncView {
                 .child(self.render_selected_folder_actions(folder, &target, cx))
                 .child(self.render_folder_transfers(Some(&target), cx));
         }
-        Some(panel.into_any_element())
+        let panel = panel.into_any_element();
+        if let Some(FolderActionFocus::Detail(anchor)) = self
+            .folder_focus
+            .pending_action
+            .take_if(|action| matches!(action, FolderActionFocus::Detail(_)))
+        {
+            self.restore_action_focus(anchor, window, cx);
+        }
+        Some(panel)
     }
 
     fn render_selected_folder_actions(
@@ -641,8 +669,8 @@ impl SyncView {
                     .child(semantics::ghost_button(
                         Button::new("sync-folder-cancel")
                             .label(text(cx, "Cancel", "取消"))
-                            .on_click(cx.listener(|this, _, window, cx| {
-                                this.dismiss_folder_panel(window, cx);
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.dismiss_folder_panel(cx);
                             })),
                         locked,
                         false,
@@ -682,7 +710,7 @@ impl SyncView {
                 .child(semantics::ghost_button(
                     Button::new("sync-folder-delete-cancel")
                         .label(text(cx, "Cancel", "取消"))
-                        .on_click(cx.listener(|this, _, window, cx| { this.dismiss_folder_panel(window, cx); })),
+                        .on_click(cx.listener(|this, _, _, cx| { this.dismiss_folder_panel(cx); })),
                     locked, false, cx,
                 ))
                 .child(semantics::button(
@@ -942,7 +970,10 @@ mod controls {
     use super::*;
     use ccr_app::runtime::RuntimeOwner;
     use gpui_kit::test::{TestAppContextExt, TestWindowExt};
-    use gpui_kit::{Bounds, TestAppContext, WindowBounds, WindowOptions, size};
+    use gpui_kit::{
+        Bounds, InputEvent, Keystroke, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent,
+        TestAppContext, WindowBounds, WindowOptions, size,
+    };
     use std::time::Duration;
 
     fn open_workbench(
@@ -1011,8 +1042,47 @@ mod controls {
         cx.update_window(handle, |_, window, cx| {
             window.render_frame(cx);
             assert!(window.try_find("sync-folder-detail").is_none());
-            window.click(("sync-select", 0usize), cx);
+            let position = window.find(("sync-select", 0usize)).bounds().center();
+            window.dispatch_event(
+                MouseMoveEvent {
+                    position,
+                    pressed_button: None,
+                    modifiers: Default::default(),
+                }
+                .to_platform_input(),
+                cx,
+            );
             window.render_frame(cx);
+            window.dispatch_event(
+                MouseDownEvent {
+                    button: MouseButton::Left,
+                    position,
+                    modifiers: Default::default(),
+                    click_count: 1,
+                    first_mouse: false,
+                }
+                .to_platform_input(),
+                cx,
+            );
+            window.render_frame(cx);
+            window.dispatch_event(
+                MouseUpEvent {
+                    button: MouseButton::Left,
+                    position,
+                    modifiers: Default::default(),
+                    click_count: 1,
+                }
+                .to_platform_input(),
+                cx,
+            );
+            // The Windows frame drains callbacks before the detail is drawn.
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
+            let back = window.find("sync-folder-back");
+            assert_eq!(back.focused(), Some(true));
+            assert!(back.bounds().size.width < px(240.));
             assert!(window.find("sync-folder-detail").visible());
             assert_eq!(
                 window.find("sync-folder-local-path").label(),
@@ -1048,7 +1118,9 @@ mod controls {
             window.simulate_next_frame(cx);
             window.render_frame(cx);
             assert_eq!(window.find("sync-push").focused(), Some(true));
-            window.press("escape", cx);
+            window.dispatch_keystroke(Keystroke::parse("escape").unwrap(), cx);
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
             window.simulate_next_frame(cx);
             window.render_frame(cx);
             assert_eq!(window.find(("sync-select", 0usize)).focused(), Some(true));

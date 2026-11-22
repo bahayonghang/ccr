@@ -50,7 +50,7 @@ impl Render for SyncView {
             }
             list = list
                 .child(reading_panel("sync-asset-list", cx).child(self.render_assets(cx)))
-                .child(self.render_folders(cx));
+                .child(self.render_folders(window, cx));
             body = body.child(list);
         }
         // A different panel may have superseded either focus destination.
@@ -64,6 +64,7 @@ impl Render for SyncView {
                     .child(result),
             );
         }
+        self.folder_focus.clear_pending_action();
         div()
             .id("sync-page")
             .test_support()
@@ -89,7 +90,7 @@ impl Render for SyncView {
                     } else if this.asset_detail.is_some() {
                         this.close_asset_details(cx);
                         cx.stop_propagation();
-                    } else if this.dismiss_folder_panel(window, cx) {
+                    } else if this.dismiss_folder_panel(cx) {
                         cx.stop_propagation();
                     }
                 }),
