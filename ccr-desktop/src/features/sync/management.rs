@@ -103,7 +103,7 @@ impl SyncView {
         let transfer = self
             .confirmation
             .as_ref()
-            .or_else(|| match &self.management_confirmation {
+            .or(match &self.management_confirmation {
                 Some(Confirmation::Batch(transfer)) => Some(transfer),
                 _ => None,
             });
