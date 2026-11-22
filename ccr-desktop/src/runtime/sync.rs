@@ -105,7 +105,10 @@ impl SyncError {
 pub enum SyncUrl {
     Missing,
     Stored,
-    Host(String),
+    Endpoint {
+        origin: String,
+        path_prefix: Option<String>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -134,42 +137,68 @@ pub enum SyncSnapshot {
     Present(SyncLocal),
 }
 
-fn host_only(url: &str) -> Option<String> {
-    let trimmed = url.trim();
-    if trimmed.is_empty() {
-        return None;
-    }
-    let rest = trimmed
-        .split_once("://")
-        .map(|(_, rest)| rest)
-        .unwrap_or(trimmed);
-    if rest.contains('@') || rest.contains(' ') {
-        return None;
-    }
-    let host = rest.split(['/', '?', '#']).next().unwrap_or("").trim();
-    if host.is_empty() {
-        None
-    } else {
-        Some(redact_log_text(host))
-    }
+fn displayable_webdav_path(path: &str, webdav: &WebDavConfig) -> bool {
+    let username = webdav.username.trim();
+    !path.contains(['\\', ':', '@', '?', '#', '%'])
+        && !path.chars().any(char::is_control)
+        && (username.is_empty() || !path.split('/').any(|part| part == username))
+        && !webdav.password.occurs_in(path)
+        && redact_log_text(path) == path
 }
 
 fn asset_base_for_display(webdav: &WebDavConfig) -> Option<String> {
-    let base = normalize_remote_base(&webdav.base_remote_path).replace('\\', "/");
+    if !displayable_webdav_path(&webdav.base_remote_path, webdav) {
+        return None;
+    }
+    let base = normalize_remote_base(&webdav.base_remote_path);
     let base = if base.is_empty() {
         "/".to_owned()
     } else {
         base
     };
-    // Only project a directory label. Leave URL-like or encoded text out of the snapshot.
-    let username = webdav.username.trim();
-    let password = webdav.password.expose();
-    (!base.contains([':', '@', '?', '#', '%'])
-        && !base.chars().any(char::is_control)
-        && (username.is_empty() || !base.split('/').any(|part| part == username))
-        && (password.is_empty() || !base.contains(password))
-        && redact_log_text(&base) == base)
-        .then_some(base)
+    displayable_webdav_path(&base, webdav).then_some(base)
+}
+
+fn webdav_endpoint_for_display(webdav: &WebDavConfig) -> Option<SyncUrl> {
+    let raw = webdav.url.trim();
+    // Check the original spelling alongside parsed components, since URL parsing
+    // can normalize backslashes, percent-encoded host text and dot segments.
+    let endpoint = raw.split(['?', '#']).next()?;
+    if endpoint.contains('\\') || endpoint.chars().any(char::is_control) {
+        return None;
+    }
+    let (_, destination) = endpoint.split_once("://")?;
+    let (authority, raw_path) = destination
+        .find('/')
+        .map_or((destination, "/"), |start| destination.split_at(start));
+    let url = reqwest::Url::parse(raw).ok()?;
+    if authority.is_empty()
+        || authority.contains(['@', '%'])
+        || !matches!(url.scheme(), "https" | "http")
+        || !url.username().is_empty()
+        || url.password().is_some()
+    {
+        return None;
+    }
+    let origin = url.origin().ascii_serialization();
+    if webdav.password.occurs_in(authority)
+        || webdav.password.occurs_in(&origin)
+        || redact_log_text(&origin) != origin
+    {
+        return None;
+    }
+    let path = url.path();
+    let path_prefix = (url.query().is_none()
+        && url.fragment().is_none()
+        && !webdav.password.occurs_in(endpoint)
+        && !webdav.password.occurs_in(&format!("{origin}{path}"))
+        && displayable_webdav_path(raw_path, webdav)
+        && displayable_webdav_path(path, webdav))
+    .then(|| path.to_owned());
+    Some(SyncUrl::Endpoint {
+        origin,
+        path_prefix,
+    })
 }
 
 fn folder_row(folder: &ccr_sync::SyncFolder) -> SyncFolderRow {
@@ -189,10 +218,8 @@ fn project(config: SyncFoldersConfig, revision: String) -> SyncLocal {
     let username_present = !config.webdav.username.trim().is_empty();
     let url = if config.webdav.url.trim().is_empty() {
         SyncUrl::Missing
-    } else if let Some(host) = host_only(&config.webdav.url) {
-        SyncUrl::Host(host)
     } else {
-        SyncUrl::Stored
+        webdav_endpoint_for_display(&config.webdav).unwrap_or(SyncUrl::Stored)
     };
     let folders = config.folders.iter().map(folder_row).collect();
     SyncLocal {
@@ -442,7 +469,13 @@ enabled = true
             panic!("expected config");
         };
         assert!(local.webdav_enabled);
-        assert_eq!(local.url, SyncUrl::Host("dav.example.test".into()));
+        assert_eq!(
+            local.url,
+            SyncUrl::Endpoint {
+                origin: "https://dav.example.test".into(),
+                path_prefix: Some("/dav/".into()),
+            }
+        );
         assert_eq!(local.asset_remote_base.as_deref(), Some("/ccr-sync"));
         assert!(local.username_present);
         assert!(local.password_present);
@@ -452,6 +485,85 @@ enabled = true
         assert!(!rendered.contains("sync-user-sentinel"));
         assert!(!rendered.contains("sync-password-sentinel"));
         assert!(!rendered.contains("connected"));
+    }
+
+    #[test]
+    fn same_host_webdav_endpoints_keep_their_distinct_paths() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("sync_folders.toml");
+        let read_endpoint = |scope| {
+            write(
+                &path,
+                &format!(
+                    "[webdav]\nenabled = true\nurl = 'https://dav.example.test/{scope}/'\nusername = 'fixture-user'\npassword = 'fixture-password'\nbase_remote_path = '/assets'\n"
+                ),
+            );
+            let SyncSnapshot::Present(local) = read_file(&path).unwrap() else {
+                panic!("expected config");
+            };
+            local.url
+        };
+        assert_ne!(read_endpoint("team-a"), read_endpoint("team-b"));
+    }
+
+    #[test]
+    fn unsafe_webdav_components_do_not_reach_the_snapshot() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("sync_folders.toml");
+        let cases = [
+            (
+                "https://dav.example.test/fixture-password-suffix/",
+                "/prefix-fixture-password",
+                "fixture-password",
+                "fixture-password",
+                true,
+            ),
+            (
+                r"https://dav.example.test/fixture\password/",
+                r"/fixture\password/",
+                r"fixture\password",
+                "fixture/password",
+                false,
+            ),
+            (
+                "https://dav.example.test/space%20secret/",
+                "/space%20secret/",
+                "space secret",
+                "space%20secret",
+                true,
+            ),
+            (
+                "https://dav.example.test/team/?token=query-sentinel#fragment-sentinel",
+                "/unsafe?query-sentinel",
+                "query-sentinel",
+                "query-sentinel",
+                true,
+            ),
+        ];
+        for (url, base, password, hidden, host_visible) in cases {
+            write(
+                &path,
+                &format!(
+                    "[webdav]\nenabled=true\nurl='{url}'\nusername='fixture-user'\npassword='{password}'\nbase_remote_path='{base}'\n"
+                ),
+            );
+            let SyncSnapshot::Present(local) = read_file(&path).unwrap() else {
+                panic!("expected config");
+            };
+            assert_eq!(local.asset_remote_base, None);
+            let expected = if host_visible {
+                SyncUrl::Endpoint {
+                    origin: "https://dav.example.test".into(),
+                    path_prefix: None,
+                }
+            } else {
+                SyncUrl::Stored
+            };
+            assert_eq!(local.url, expected);
+            let snapshot = format!("{local:?}");
+            assert!(!snapshot.contains(hidden));
+            assert!(!snapshot.contains("fragment-sentinel"));
+        }
     }
 
     #[test]
@@ -532,7 +644,13 @@ enabled = true
         };
         assert_eq!(local.folders.len(), 1);
         assert_eq!(local.folders[0].name, "saved-folder");
-        assert_eq!(local.url, SyncUrl::Host("dav.example.test".into()));
+        assert_eq!(
+            local.url,
+            SyncUrl::Endpoint {
+                origin: "https://dav.example.test".into(),
+                path_prefix: Some("/dav/".into()),
+            }
+        );
         let rendered = format!("{local:?}");
         assert!(!rendered.contains("sync-user-sentinel"));
         assert!(!rendered.contains("sync-password-sentinel"));

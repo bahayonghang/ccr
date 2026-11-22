@@ -374,8 +374,17 @@ pub(super) fn url_line(cx: &App, url: &SyncUrl) -> String {
     match url {
         SyncUrl::Missing => text(cx, "No WebDAV URL is stored.", "未保存 WebDAV URL。").into(),
         SyncUrl::Stored => text(cx, "A WebDAV URL is stored.", "已保存 WebDAV URL。").into(),
-        SyncUrl::Host(host) if is_chinese(cx) => format!("WebDAV 主机：{host}"),
-        SyncUrl::Host(host) => format!("WebDAV host: {host}"),
+        SyncUrl::Endpoint {
+            origin,
+            path_prefix: Some(prefix),
+        } => format!(
+            "{} · {origin}{prefix}",
+            text(cx, "WebDAV address", "WebDAV 地址")
+        ),
+        SyncUrl::Endpoint {
+            origin,
+            path_prefix: None,
+        } => format!("{} · {origin}", text(cx, "WebDAV host", "WebDAV 主机")),
     }
 }
 

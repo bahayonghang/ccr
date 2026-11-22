@@ -59,7 +59,10 @@ async fn ssh_sync_unavailable_database_and_disconnect_controls_do_not_start_acti
         this.snapshot = Some(SyncSnapshot::Present(SyncLocal {
             revision: "synthetic-revision".into(),
             webdav_enabled: true,
-            url: SyncUrl::Host("fixture.invalid".into()),
+            url: SyncUrl::Endpoint {
+                origin: "https://fixture.invalid".into(),
+                path_prefix: Some("/dav/".into()),
+            },
             asset_remote_base: Some("/fixture-root".into()),
             username_present: true,
             password_present: true,
@@ -856,7 +859,7 @@ async fn asset_transfers_keep_scope_and_report_real_loopback_results(cx: &mut Te
     let root = tempfile::tempdir().unwrap();
     let settings = root.path().join("sync_folders.toml");
     let config = format!(
-        "[webdav]\nenabled=true\nurl='{}'\nusername='fixture-user'\npassword='fixture-password'\nbase_remote_path='/fixture-team/assets/'\n",
+        "[webdav]\nenabled=true\nurl='{}dav-team/'\nusername='fixture-user'\npassword='fixture-password'\nbase_remote_path='/fixture-team/assets/'\n",
         server.url
     );
     std::fs::write(&settings, &config).unwrap();
@@ -930,6 +933,10 @@ async fn asset_transfers_keep_scope_and_report_real_loopback_results(cx: &mut Te
 
     cx.update_window(handle, |_, window, cx| {
         review(window, cx, false, "sync-asset-push");
+        assert_eq!(
+            window.find("sync-asset-transfer-webdav").label(),
+            Some(format!("WebDAV address · {}dav-team/", server.url).as_str())
+        );
         assert_eq!(server.requests.load(Ordering::Relaxed), 0);
         assert!(window.try_find("sync-asset-v1").is_none());
         submit(window, cx);
