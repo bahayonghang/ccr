@@ -17,7 +17,7 @@ pub(super) struct Navigation {
     ranking: Option<Section>,
     analysis: Option<Arc<InsightsSnapshot>>,
     pub(super) earlier_cursors: Vec<Option<String>>,
-    scroll: ScrollHandle,
+    pub(super) scroll: ScrollHandle,
     main_focus: FocusHandle,
     detail_focus: FocusHandle,
     heatmap: heatmap::State,
@@ -64,7 +64,7 @@ impl InsightsView {
             .source;
         if self
             .submitted_usage
-            .take()
+            .as_ref()
             .is_some_and(|filter| filter.source != source)
         {
             self.usage_report.ranking = None;
@@ -243,7 +243,11 @@ impl InsightsView {
                     cx,
                 )
             }))
-            // Daily trend and token composition render before the ranking summary.
+            .children(readings.map(|report| self.usage_trend(report, cx)))
+            .children(readings.map(|_| {
+                self.usage_trend
+                    .token_composition(window.viewport_size().width < px(theme::SPLIT_WIDTH), cx)
+            }))
             .children(readings.map(|report| self.usage_ranking(report, cx)))
     }
 

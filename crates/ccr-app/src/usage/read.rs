@@ -3,6 +3,7 @@ use ccr_usage::{
     DailyTrendDto, Dashboard, HeatmapPoint, ModelBreakdown, OverviewPayload, ProjectBreakdown,
     ProviderBreakdownDto, QueryFilter, RecordedCost, SourceBreakdownDto, UsageError,
 };
+use std::collections::BTreeMap;
 
 /// Canonical values, without wire-format or presentation rounding.
 #[derive(Debug)]
@@ -11,6 +12,8 @@ pub struct UsageSnapshot {
     /// Available on the Usage page projection, which reads pricing coverage.
     pub recorded_cost: Option<RecordedCost>,
     pub trends: Vec<DailyTrendDto>,
+    /// Usage-page pricing coverage for each present day.
+    pub daily_recorded_cost: BTreeMap<String, RecordedCost>,
     pub models: Vec<ModelBreakdown>,
     pub providers: Vec<ProviderBreakdownDto>,
     /// False is unsupported, not a measured empty provider distribution.
@@ -72,7 +75,19 @@ fn read_snapshot(
         Some(as_of) => dashboard.overview_at(filter, as_of)?,
         None => dashboard.overview(filter)?,
     };
-    let trends = dashboard.trends_daily(filter)?;
+    let mut daily_recorded_cost = BTreeMap::new();
+    let trends = if usage_page {
+        dashboard
+            .usage_daily_trends(filter)?
+            .into_iter()
+            .map(|(day, cost)| {
+                daily_recorded_cost.insert(day.date.clone(), cost);
+                day
+            })
+            .collect()
+    } else {
+        dashboard.trends_daily(filter)?
+    };
     let models = dashboard.model_breakdown(filter)?;
     let projects = dashboard.project_breakdown(filter)?;
     let (sources, recorded_cost) = if usage_page {
@@ -102,6 +117,7 @@ fn read_snapshot(
         overview,
         recorded_cost,
         trends,
+        daily_recorded_cost,
         models,
         providers,
         providers_supported,

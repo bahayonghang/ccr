@@ -8,6 +8,7 @@ mod session_operations;
 mod sessions;
 mod usage;
 mod usage_report;
+mod usage_trend;
 use crate::{
     locales::{is_chinese, localized_line, service_error, text},
     runtime::{
@@ -89,6 +90,7 @@ pub struct InsightsView {
     submitted_usage: Option<QueryFilter>,
     usage_controls: usage::Controls,
     usage_report: usage_report::Navigation,
+    usage_trend: usage_trend::State,
     fields: Vec<Entity<InputState>>,
     utc: bool,
     generation: u64,
@@ -149,6 +151,8 @@ impl InsightsView {
             InputEvent::PressEnter { .. } => this.search_sessions_now(cx),
             _ => {}
         });
+        let usage_report = usage_report::Navigation::new(cx);
+        let usage_trend = usage_trend::State::new(window, cx, usage_report.scroll.clone());
         Self {
             error: (!requests.configured()).then_some(InsightsError::Unconfigured.message()),
             requests,
@@ -162,7 +166,8 @@ impl InsightsView {
             snapshot: None,
             submitted_usage: None,
             usage_controls: Default::default(),
-            usage_report: usage_report::Navigation::new(cx),
+            usage_report,
+            usage_trend,
             fields,
             utc,
             generation: 0,
@@ -225,6 +230,7 @@ impl InsightsView {
         self.submitted_usage = None;
         self.usage_report.suspend();
         self.usage_controls.close_panel();
+        self.usage_trend.reset();
         self.selected = None;
         self.archive_id = None;
         self.detail_open = false;
@@ -505,6 +511,9 @@ impl InsightsView {
         };
         if let InsightsQuery::UsagePage { filter, .. } | InsightsQuery::Logs { filter, .. } = &query
         {
+            if self.submitted_usage.as_ref() != Some(filter) {
+                self.usage_trend.reset_range();
+            }
             self.submitted_usage = Some(filter.clone());
         }
         let key = RequestKey {
@@ -532,6 +541,7 @@ impl InsightsView {
                                                 snapshot.as_ref()
                                         {
                                             this.usage_controls.update_capabilities(report);
+                                            this.usage_trend.read_composition(report);
                                         }
                                         this.snapshot = Some(snapshot.clone())
                                     }
@@ -1270,3 +1280,6 @@ impl Render for InsightsView {
 }
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod usage_trend_tests;

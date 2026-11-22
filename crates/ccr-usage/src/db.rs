@@ -24,6 +24,33 @@ use crate::{
 // `src/store/run_log.rs` 的 `USAGE_IMPORT_COMMANDS`（main@adf657d）；升级 llmusage CLI 时一并核对。
 const USAGE_IMPORT_COMMANDS: [&str; 3] = ["sync", "sync --rebuild", "hook-run"];
 
+fn recorded_cost_columns() -> String {
+    const PRICED: &str =
+        "pricing_status IN ('static', 'snapshot', 'source_reported', 'priced', 'legacy_alias')";
+    const MIXED: &str = "pricing_status = 'mixed'";
+    format!(
+        "COUNT(*), COUNT(CASE WHEN {PRICED} THEN 1 END),
+         COUNT(CASE WHEN {MIXED} THEN 1 END),
+         COALESCE(SUM(CASE WHEN {PRICED} OR {MIXED} THEN cost_with_cache_usd ELSE 0 END), 0.0)"
+    )
+}
+
+fn read_recorded_cost(row: &rusqlite::Row<'_>, offset: usize) -> rusqlite::Result<RecordedCost> {
+    let total: i64 = row.get(offset)?;
+    let priced: i64 = row.get(offset + 1)?;
+    let mixed: i64 = row.get(offset + 2)?;
+    let amount = row.get(offset + 3)?;
+    Ok(if mixed > 0 {
+        RecordedCost::Mixed(amount)
+    } else if priced == 0 {
+        RecordedCost::Unavailable
+    } else if priced == total {
+        RecordedCost::Known(amount)
+    } else {
+        RecordedCost::Partial(amount)
+    })
+}
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum ReportTimezone {
     #[default]
@@ -32,14 +59,14 @@ pub enum ReportTimezone {
 }
 
 /// Controls how typed source filters and returned source identities treat stored aliases.
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum SourceProjection {
     #[default]
     Stored,
     UsagePage,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct QueryFilter {
     pub source: Option<SourceKind>,
     pub model: Option<String>,
@@ -416,43 +443,41 @@ impl Dashboard {
         self.ensure_feature_for_filter(FeatureKey::ModelBreakdown, filter)?;
         let zone = self.zone(filter.timezone);
         let filter = filter.bucket_filter(None, &zone, self.schema_version())?;
+        let columns = recorded_cost_columns();
         let sql = format!(
-            r#"
-            WITH filtered AS (
-                SELECT cost_with_cache_usd, pricing_status,
-                       pricing_status IN ('static', 'snapshot', 'source_reported', 'priced', 'legacy_alias') AS priced
-                FROM usage_bucket_30m{}
-            )
-            SELECT COUNT(*), COUNT(CASE WHEN priced THEN 1 END),
-                   COUNT(CASE WHEN pricing_status = 'mixed' THEN 1 END),
-                   COALESCE(SUM(CASE WHEN priced OR pricing_status = 'mixed'
-                                     THEN cost_with_cache_usd ELSE 0 END), 0.0)
-            FROM filtered
-            "#,
+            "SELECT {columns} FROM usage_bucket_30m{}",
             filter.where_sql()
         );
-        let (total, priced, mixed, amount) =
-            self.conn
-                .query_row(&sql, params_from_iter(filter.param_refs()), |row| {
-                    Ok((
-                        row.get::<_, i64>(0)?,
-                        row.get::<_, i64>(1)?,
-                        row.get::<_, i64>(2)?,
-                        row.get(3)?,
-                    ))
-                })?;
-        Ok(if mixed > 0 {
-            RecordedCost::Mixed(amount)
-        } else if priced == 0 {
-            RecordedCost::Unavailable
-        } else if priced == total {
-            RecordedCost::Known(amount)
-        } else {
-            RecordedCost::Partial(amount)
-        })
+        Ok(self
+            .conn
+            .query_row(&sql, params_from_iter(filter.param_refs()), |row| {
+                read_recorded_cost(row, 0)
+            })?)
     }
 
     pub fn trends_daily(&self, filter: &QueryFilter) -> Result<Vec<DailyTrendDto>, UsageError> {
+        self.read_daily_trends(filter, "", |_, trend| Ok(trend))
+    }
+
+    /// The Usage page reads the recorded estimates alongside each daily
+    /// bucket. The public trend DTO retains its legacy sum for other clients.
+    pub fn usage_daily_trends(
+        &self,
+        filter: &QueryFilter,
+    ) -> Result<Vec<(DailyTrendDto, RecordedCost)>, UsageError> {
+        self.ensure_feature_for_filter(FeatureKey::ModelBreakdown, filter)?;
+        let columns = format!(", {}", recorded_cost_columns());
+        self.read_daily_trends(filter, &columns, |row, trend| {
+            Ok((trend, read_recorded_cost(row, 9)?))
+        })
+    }
+
+    fn read_daily_trends<T>(
+        &self,
+        filter: &QueryFilter,
+        extra_columns: &str,
+        mut project: impl FnMut(&rusqlite::Row<'_>, DailyTrendDto) -> rusqlite::Result<T>,
+    ) -> Result<Vec<T>, UsageError> {
         self.ensure_feature_for_filter(FeatureKey::DailyTrends, filter)?;
         let zone = self.zone(filter.timezone);
         let sql_filter = filter.bucket_filter(None, &zone, self.schema_version())?;
@@ -468,7 +493,7 @@ impl Dashboard {
                 COALESCE(SUM(reasoning_output_tokens), 0),
                 COALESCE(SUM(total_tokens), 0),
                 COALESCE(SUM(event_count), 0),
-                COALESCE(SUM(cost_with_cache_usd), 0.0)
+                COALESCE(SUM(cost_with_cache_usd), 0.0){extra_columns}
             FROM usage_bucket_30m
             {}
             GROUP BY local_date
@@ -478,7 +503,7 @@ impl Dashboard {
         );
         let mut stmt = self.conn.prepare(&sql)?;
         let rows = stmt.query_map(params_from_iter(sql_filter.param_refs()), |row| {
-            Ok(DailyTrendDto {
+            let trend = DailyTrendDto {
                 date: row.get(0)?,
                 input_tokens: row.get(1)?,
                 cache_read_tokens: row.get(2)?,
@@ -488,7 +513,8 @@ impl Dashboard {
                 total_tokens: row.get(6)?,
                 request_count: row.get(7)?,
                 cost_usd: row.get(8)?,
-            })
+            };
+            project(row, trend)
         })?;
         Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
     }
@@ -1728,6 +1754,49 @@ mod tests {
                 ..
             }
         ));
+    }
+
+    #[test]
+    fn usage_daily_estimates_exclude_unpriced_amounts_without_changing_legacy_trends() {
+        let root = tempfile::tempdir().unwrap();
+        let paths = crate::fixtures::create_projection_db(root.path());
+        let conn = Connection::open(&paths.db_path).unwrap();
+        for (hour, pricing_status, cost_with_cache_usd) in [
+            ("2026-05-21T10:00:00Z", "static", 0.125),
+            ("2026-05-21T11:00:00Z", "missing", 8.),
+            ("2026-05-22T10:00:00Z", "mixed", 0.25),
+            ("2026-05-22T11:00:00Z", "source_reported", 0.125),
+        ] {
+            crate::fixtures::seed_bucket(
+                &conn,
+                &crate::fixtures::SeedBucket {
+                    hour_start: hour.into(),
+                    pricing_status: pricing_status.into(),
+                    cost_with_cache_usd,
+                    ..Default::default()
+                },
+            );
+        }
+        drop(conn);
+        let dashboard = crate::open_dashboard(paths).unwrap();
+        let filter = QueryFilter {
+            timezone: ReportTimezone::Utc,
+            ..Default::default()
+        };
+        let legacy = dashboard.trends_daily(&filter).unwrap();
+        let daily = dashboard.usage_daily_trends(&filter).unwrap();
+        assert_eq!(legacy[0].cost_usd, 8.125);
+        assert_eq!(
+            daily,
+            [
+                (legacy[0].clone(), RecordedCost::Partial(0.125)),
+                (legacy[1].clone(), RecordedCost::Mixed(0.375)),
+            ]
+        );
+        assert_eq!(
+            dashboard.recorded_cost(&filter).unwrap(),
+            RecordedCost::Mixed(0.5)
+        );
     }
 
     #[test]
