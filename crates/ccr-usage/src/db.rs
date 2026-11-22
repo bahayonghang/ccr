@@ -1922,10 +1922,11 @@ mod tests {
     }
 
     #[test]
-    fn usage_daily_estimates_exclude_unpriced_amounts_without_changing_legacy_trends() {
-        let root = tempfile::tempdir().unwrap();
+    fn usage_daily_estimates_exclude_unpriced_amounts_without_changing_legacy_trends()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let root = tempfile::tempdir()?;
         let paths = crate::fixtures::create_projection_db(root.path());
-        let conn = Connection::open(&paths.db_path).unwrap();
+        let conn = Connection::open(&paths.db_path)?;
         for (hour, pricing_status, cost_with_cache_usd) in [
             ("2026-05-21T10:00:00Z", "static", 0.125),
             ("2026-05-21T11:00:00Z", "missing", 8.),
@@ -1943,13 +1944,13 @@ mod tests {
             );
         }
         drop(conn);
-        let dashboard = crate::open_dashboard(paths).unwrap();
+        let dashboard = crate::open_dashboard(paths)?;
         let filter = QueryFilter {
             timezone: ReportTimezone::Utc,
             ..Default::default()
         };
-        let legacy = dashboard.trends_daily(&filter).unwrap();
-        let daily = dashboard.usage_daily_trends(&filter).unwrap();
+        let legacy = dashboard.trends_daily(&filter)?;
+        let daily = dashboard.usage_daily_trends(&filter)?;
         assert_eq!(legacy[0].cost_usd, 8.125);
         assert_eq!(
             daily,
@@ -1958,10 +1959,8 @@ mod tests {
                 (legacy[1].clone(), RecordedCost::Mixed(0.375)),
             ]
         );
-        assert_eq!(
-            dashboard.recorded_cost(&filter).unwrap(),
-            RecordedCost::Mixed(0.5)
-        );
+        assert_eq!(dashboard.recorded_cost(&filter)?, RecordedCost::Mixed(0.5));
+        Ok(())
     }
 
     #[test]
