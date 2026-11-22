@@ -461,32 +461,41 @@ impl Dashboard {
     }
 
     /// Report heading metadata for a cursor page, without recalculating charts or totals.
-    pub fn usage_record_context(
-        &self,
-        filter: &QueryFilter,
-    ) -> Result<UsageRecordContext, UsageError> {
+    pub fn usage_record_context(&self, filter: &QueryFilter) -> UsageRecordContext {
         let actual_range = if filter.since.is_none() && filter.until.is_none() {
-            self.ensure_feature_for_filter(FeatureKey::DailyTrends, filter)?;
-            let zone = self.zone(filter.timezone);
-            let bounds = filter.bucket_filter(None, &zone, self.schema_version())?;
-            let date = zone.local_date_expr("hour_start");
-            let sql = format!(
-                "SELECT MIN({date}), MAX({date}) FROM usage_bucket_30m {}",
-                bounds.where_sql()
-            );
-            self.conn
-                .query_row(&sql, params_from_iter(bounds.param_refs()), |row| {
-                    let first: Option<String> = row.get(0)?;
-                    let last: Option<String> = row.get(1)?;
-                    Ok(first.zip(last))
-                })?
+            self.usage_bucket_date_range(filter)
+                .unwrap_or_else(|error| {
+                    tracing::debug!(?error, "llmusage records: report date range unavailable");
+                    None
+                })
         } else {
             None
         };
-        Ok(UsageRecordContext {
+        UsageRecordContext {
             actual_range,
             last_sync_at: self.freshness().0,
-        })
+        }
+    }
+
+    fn usage_bucket_date_range(
+        &self,
+        filter: &QueryFilter,
+    ) -> Result<Option<(String, String)>, UsageError> {
+        self.ensure_feature_for_filter(FeatureKey::DailyTrends, filter)?;
+        let zone = self.zone(filter.timezone);
+        let bounds = filter.bucket_filter(None, &zone, self.schema_version())?;
+        let date = zone.local_date_expr("hour_start");
+        let sql = format!(
+            "SELECT MIN({date}), MAX({date}) FROM usage_bucket_30m {}",
+            bounds.where_sql()
+        );
+        Ok(self
+            .conn
+            .query_row(&sql, params_from_iter(bounds.param_refs()), |row| {
+                let first: Option<String> = row.get(0)?;
+                let last: Option<String> = row.get(1)?;
+                Ok(first.zip(last))
+            })?)
     }
 
     /// The use of 'mixed' in llmusage means contributing events disagree on
@@ -1919,6 +1928,45 @@ mod tests {
                 ..
             }
         ));
+    }
+
+    #[test]
+    fn records_remain_readable_without_the_daily_bucket_projection()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let root = tempfile::tempdir()?;
+        let paths = crate::fixtures::create_projection_db(root.path());
+        let conn = Connection::open(&paths.db_path)?;
+        crate::fixtures::seed_event(
+            &conn,
+            &crate::fixtures::SeedEvent {
+                event_key: "record-without-bucket".into(),
+                ..Default::default()
+            },
+        );
+        crate::fixtures::seed_run_log(&conn, "codex", "recent", "2026-11-01T20:00:00Z");
+        conn.execute("DROP TABLE usage_bucket_30m", [])?;
+        drop(conn);
+
+        let dashboard = crate::open_dashboard(paths)?;
+        dashboard.with_read_snapshot(|dashboard| {
+            let filter = QueryFilter::default().for_usage_page();
+            let context = dashboard.usage_record_context(&filter);
+            assert_eq!(context.actual_range, None);
+            assert_eq!(
+                context.last_sync_at.as_deref(),
+                Some("2026-11-01T20:00:00Z")
+            );
+            let page = dashboard.logs(&LogsQuery {
+                filter,
+                page_size: 100,
+                cursor: None,
+                include_total: true,
+                include_raw_json: false,
+            })?;
+            assert_eq!(page.total, Some(1));
+            Ok(())
+        })?;
+        Ok(())
     }
 
     #[test]

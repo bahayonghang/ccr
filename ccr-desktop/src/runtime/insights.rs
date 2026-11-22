@@ -646,9 +646,8 @@ impl InsightsRequests {
                         usage_page,
                     } => dashboard
                         .with_read_snapshot(|dashboard| {
-                            let context = usage_page
-                                .then(|| dashboard.usage_record_context(&filter))
-                                .transpose()?;
+                            let context =
+                                usage_page.then(|| dashboard.usage_record_context(&filter));
                             let page = dashboard.logs(&LogsQuery {
                                 filter,
                                 cursor,

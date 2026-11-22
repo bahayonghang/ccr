@@ -105,7 +105,12 @@ impl InsightsView {
         self.scroll.scroll_to_item(0, gpui_kit::ScrollStrategy::Top);
         match (current, page) {
             (_, Page::Records) => {
-                self.usage_report.analysis = self.snapshot.take();
+                // A retained snapshot still on screen during refresh must be re-read on return.
+                self.usage_report.analysis = if self.loading || self.error.is_some() {
+                    None
+                } else {
+                    self.snapshot.take()
+                };
                 self.section = Section::Logs;
                 self.cursor = None;
                 self.usage_report.earlier_cursors.clear();
