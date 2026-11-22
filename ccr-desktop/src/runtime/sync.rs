@@ -211,10 +211,13 @@ fn folder_from_value(value: &toml::Value) -> Result<SyncFolderRow, SyncError> {
 }
 
 pub(crate) fn read_file(path: &Path) -> Result<SyncSnapshot, SyncError> {
-    if !path.exists() {
-        return Ok(SyncSnapshot::Absent);
-    }
-    let text = std::fs::read_to_string(path).map_err(|_| SyncError::Unreadable)?;
+    let text = match std::fs::read_to_string(path) {
+        Ok(text) => text,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            return Ok(SyncSnapshot::Absent);
+        }
+        Err(_) => return Err(SyncError::Unreadable),
+    };
     let config: SyncFoldersConfig = toml::from_str(&text).map_err(|_| SyncError::Unreadable)?;
     let mut local = project(
         config,
@@ -374,6 +377,16 @@ mod tests {
         assert_eq!(snapshot, SyncSnapshot::Absent);
         assert!(!path.exists());
         assert!(!format!("{snapshot:?}").contains("jianguoyun"));
+    }
+
+    #[test]
+    fn invalid_config_path_reports_unreadable() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root
+            .path()
+            .join("invalid\0directory")
+            .join("sync_folders.toml");
+        assert_eq!(read_file(&path), Err(SyncError::Unreadable));
     }
 
     #[test]

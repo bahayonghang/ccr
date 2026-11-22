@@ -258,14 +258,10 @@ impl Services {
     /// domain's bounded request/operation budgets; no false cancellation is exposed.
     pub fn start_sync(&self, key: RequestKey, operation: Operation) -> Result<(), SyncError> {
         let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
-        let remote = if local {
-            None
-        } else {
-            Some(
-                self.remote_configuration_io(&key.environment)
-                    .map_err(|_| SyncError::Remote)?,
-            )
-        };
+        let remote = (!local).then(|| {
+            self.remote_configuration_io(&key.environment)
+                .map_err(|_| SyncError::Remote)
+        });
         let owner = self.sync_operations.clone();
         {
             let mut state = owner
@@ -291,6 +287,13 @@ impl Services {
             };
             owner.updates.send_replace(Arc::new(state.clone()));
         }
+        let remote = match remote.transpose() {
+            Ok(remote) => remote,
+            Err(error) => {
+                owner.finish(Err(error));
+                return Err(error);
+            }
+        };
         let pending = Pending {
             owner: owner.clone(),
             finished: false,

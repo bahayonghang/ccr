@@ -1,4 +1,5 @@
 use super::*;
+use gpui_kit::component::FocusTrapElement;
 
 pub(super) enum Confirmation {
     Clear {
@@ -48,13 +49,12 @@ impl SyncView {
         self.start(operation, cx);
     }
     pub(super) fn cancel_management(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        match self.management_confirmation.take() {
-            Some(Confirmation::Clear { .. }) => {
-                self.restore_action_focus(self.disconnect_anchor.clone(), window, cx);
-            }
-            Some(Confirmation::Batch { .. }) => self.focus_main(window, cx),
+        let anchor = match self.management_confirmation.take() {
+            Some(Confirmation::Clear { .. }) => &self.disconnect_anchor,
+            Some(Confirmation::Batch { upload, .. }) => &self.batch_anchors[usize::from(upload)],
             None => return,
-        }
+        };
+        self.restore_action_focus(anchor.clone(), window, cx);
         cx.notify();
     }
 
@@ -89,8 +89,6 @@ impl SyncView {
             div()
                 .id("sync-management-confirmation")
                 .test_support()
-                .track_focus(&self.management_anchor)
-                .tab_stop(false)
                 .flex()
                 .flex_col()
                 .gap(px(theme::CONTROL_GAP))
@@ -122,7 +120,8 @@ impl SyncView {
                             locked,
                             false,
                             cx,
-                        )),
+                        ))
+                        .focus_trap("sync-management-trap", &self.management_anchor),
                 )
                 .into_any_element(),
         )
@@ -175,27 +174,34 @@ impl SyncView {
                 text(cx, "Download enabled folders", "下载已启用文件夹"),
             ),
         ] {
-            actions = actions.child(semantics::button(
-                Button::new(id).label(label).ghost().on_click(cx.listener(
-                    move |this, _, _, cx| {
-                        if this.busy || this.operation.busy {
-                            return;
-                        }
-                        if let Some(revision) = this.revision() {
-                            this.management_confirmation = Some(Confirmation::Batch {
-                                revision,
-                                upload,
-                                generation: this.generation,
-                            });
-                            this.management_focus = true;
-                            cx.notify();
-                        }
-                    },
-                )),
-                blocked || !enabled,
-                false,
-                cx,
-            ));
+            let index = usize::from(upload);
+            actions = actions.child(
+                div()
+                    .id(("sync-batch-action", index))
+                    .track_focus(&self.batch_anchors[index])
+                    .tab_stop(false)
+                    .child(semantics::button(
+                        Button::new(id).label(label).ghost().on_click(cx.listener(
+                            move |this, _, _, cx| {
+                                if this.busy || this.operation.busy {
+                                    return;
+                                }
+                                if let Some(revision) = this.revision() {
+                                    this.management_confirmation = Some(Confirmation::Batch {
+                                        revision,
+                                        upload,
+                                        generation: this.generation,
+                                    });
+                                    this.management_focus = true;
+                                    cx.notify();
+                                }
+                            },
+                        )),
+                        blocked || !enabled,
+                        false,
+                        cx,
+                    )),
+            );
         }
         let mut root = div()
             .flex()

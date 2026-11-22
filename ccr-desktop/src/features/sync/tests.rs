@@ -2,11 +2,31 @@
 #![allow(clippy::unwrap_used)]
 use super::*;
 use crate::runtime::ConfigSource;
+use crate::runtime::sync::SyncLocal;
 use crate::shell::Shell;
 use ccr_app::runtime::RuntimeOwner;
 use gpui_kit::test::{TestAppContextExt, TestWindowExt};
 use gpui_kit::{AppContext, TestAppContext, WindowBounds, WindowOptions, px, size};
 use std::time::Duration;
+
+struct SyncWithNeighbor {
+    view: Entity<SyncView>,
+}
+
+impl Render for SyncWithNeighbor {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .size_full()
+            .flex()
+            .flex_col()
+            .child(
+                Button::new("sync-neighbor")
+                    .label("Neighbor")
+                    .on_click(|_, _, _| {}),
+            )
+            .child(div().min_h_0().flex_1().child(self.view.clone()))
+    }
+}
 
 #[gpui_kit::test]
 async fn ssh_sync_unavailable_database_and_disconnect_controls_do_not_start_actions(
@@ -97,7 +117,7 @@ async fn disconnect_and_batch_actions_preserve_versions_and_never_contact_fixtur
     std::fs::write(&legacy, b"legacy-private-fixture-password").unwrap();
     let (handle, view) = cx.update(|cx| {
         gpui_kit::init(cx);
-        gpui_kit::open_window(
+        let (handle, harness) = gpui_kit::open_window(
             WindowOptions {
                 window_bounds: Some(WindowBounds::Windowed(gpui_kit::Bounds::centered(
                     None,
@@ -107,9 +127,14 @@ async fn disconnect_and_batch_actions_preserve_versions_and_never_contact_fixtur
                 ..Default::default()
             },
             cx,
-            |window, cx| cx.new(|cx| SyncView::new(services(&owner, root.path()), window, cx)),
+            |window, cx| {
+                cx.new(|cx| SyncWithNeighbor {
+                    view: cx.new(|cx| SyncView::new(services(&owner, root.path()), window, cx)),
+                })
+            },
         )
-        .unwrap()
+        .unwrap();
+        (handle, harness.read(cx).view.clone())
     });
     view.update(cx, |this, cx| this.refresh(cx));
     cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
@@ -119,12 +144,37 @@ async fn disconnect_and_batch_actions_preserve_versions_and_never_contact_fixtur
     for action in ["sync-push-all", "sync-pull-all"] {
         cx.update_window(handle, |_, window, cx| {
             window.render_frame(cx);
+            view.update(cx, |view, cx| view.focus_main(window, cx));
+            window.press("shift-tab", cx);
+            window.render_frame(cx);
+            assert_eq!(window.find("sync-neighbor").focused(), Some(true));
             window.click(action, cx);
             window.render_frame(cx);
             assert!(window.find("sync-management-confirmation").visible());
-            window.click("sync-management-cancel", cx);
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
+            assert_eq!(window.find("sync-management-cancel").focused(), Some(true));
+            for (key, focused) in [
+                ("tab", "sync-management-confirm"),
+                ("tab", "sync-management-cancel"),
+                ("shift-tab", "sync-management-confirm"),
+                ("shift-tab", "sync-management-cancel"),
+            ] {
+                window.press(key, cx);
+                window.render_frame(cx);
+                assert_eq!(
+                    window.find(focused).focused(),
+                    Some(true),
+                    "{action} · {key}"
+                );
+            }
+            window.press("escape", cx);
+            window.render_frame(cx);
+            window.simulate_next_frame(cx);
             window.render_frame(cx);
             assert!(!view.read(cx).operation.busy);
+            assert!(window.try_find("sync-management-confirmation").is_none());
+            assert_eq!(window.find(action).focused(), Some(true));
             window.click(action, cx);
             window.render_frame(cx);
             window.click("sync-management-confirm", cx);
@@ -359,7 +409,9 @@ fn labels(window: &gpui_kit::Window) -> String {
 }
 
 #[gpui_kit::test]
-async fn sync_page_without_a_canonical_file_stays_absent(cx: &mut TestAppContext) {
+async fn sync_page_without_a_canonical_file_can_configure_and_return_focus_at_minimum_width(
+    cx: &mut TestAppContext,
+) {
     cx.executor().allow_parking();
     let root = tempfile::tempdir().unwrap();
     let owner = RuntimeOwner::new().unwrap();
@@ -403,6 +455,46 @@ async fn sync_page_without_a_canonical_file_stays_absent(cx: &mut TestAppContext
         window.simulate_next_frame(cx);
         window.render_frame(cx);
         assert_eq!(window.find("sync-edit").focused(), Some(true));
+
+        window.click("sync-edit", cx);
+        window.render_frame(cx);
+        window.input("https://dav.example.test/", cx);
+        window.press("tab", cx);
+        window.input("isolated-fixture", cx);
+        for _ in 0..6 {
+            window.press("tab", cx);
+        }
+        window.render_frame(cx);
+        assert_eq!(window.find("sync-save").focused(), Some(true));
+        window.press("enter", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("sync-operation-status").is_some());
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("sync-local").is_some() && window.try_find("sync-editor").is_none()
+            || window
+                .try_find("sync-operation-status")
+                .and_then(|node| {
+                    node.label()
+                        .map(|label| label.starts_with("Invalid WebDAV"))
+                })
+                .unwrap_or(false)
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert!(
+            window.try_find("sync-editor").is_none(),
+            "{}",
+            labels(window)
+        );
+        assert_eq!(window.find("sync-edit").focused(), Some(true));
+        assert_eq!(
+            window.find("sync-edit").label(),
+            Some("Edit WebDAV settings")
+        );
         window.remove_window();
     })
     .unwrap();

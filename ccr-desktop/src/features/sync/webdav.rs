@@ -22,6 +22,8 @@ impl SyncView {
         let url = cx.new(|cx| InputState::new(window, cx));
         window.focus(&url.read(cx).focus_handle(cx), cx);
         self.editor = Some(Editor {
+            focus: cx.focus_handle().tab_stop(false),
+            saved: false,
             revision,
             url,
             username: cx.new(|cx| InputState::new(window, cx)),
@@ -39,7 +41,21 @@ impl SyncView {
         cx.notify();
     }
 
-    pub(super) fn save(&mut self, cx: &mut Context<Self>) {
+    pub(super) fn finish_editor_save(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if !self.busy
+            && let Some(editor) = self.editor.take_if(|editor| editor.saved)
+            && (editor.focus.is_focused(window) || editor.focus.contains_focused(window, cx))
+        {
+            let anchor = if self.snapshot.is_some() {
+                &self.edit_anchor
+            } else {
+                &self.focus
+            };
+            self.restore_action_focus(anchor.clone(), window, cx);
+        }
+    }
+
+    pub(super) fn save(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let Some(editor) = &self.editor else {
             return;
         };
@@ -57,6 +73,8 @@ impl SyncView {
             PasswordMode::Clear => PasswordUpdate::Clear,
             PasswordMode::Keep => PasswordUpdate::Keep,
         };
+        let focus = editor.focus.clone();
+        let owns_focus = focus.contains_focused(window, cx);
         self.start(
             Operation::Save(SettingsPatch {
                 revision: editor.revision.clone(),
@@ -68,6 +86,10 @@ impl SyncView {
             }),
             cx,
         );
+        // The Save button loses its focus binding while the request is in flight.
+        if owns_focus && self.operation.busy && self.operation.kind == Some(OperationKind::Save) {
+            window.focus(&focus, cx);
+        }
     }
 
     pub(super) fn render_webdav(&self, cx: &mut Context<Self>) -> impl IntoElement {
@@ -263,6 +285,8 @@ impl SyncView {
         let editor = self.editor.as_ref()?;
         let locked = self.busy || self.operation.busy;
         let mut pane = div().id("sync-editor").test_support().flex().flex_col().gap(px(theme::CONTROL_GAP))
+            .track_focus(&editor.focus)
+            .tab_stop(false)
             .child(section_heading(text(cx, "WebDAV settings", "WebDAV 设置")))
             .child(div().text_color(cx.theme().muted_foreground).child(text(cx,
                 "Leave URL, username or base path blank to keep the saved value. Saving does not contact the server.",
@@ -329,7 +353,7 @@ impl SyncView {
                         Button::new("sync-save")
                             .label(text(cx, "Save settings", "保存设置"))
                             .primary()
-                            .on_click(cx.listener(|this, _, _, cx| this.save(cx))),
+                            .on_click(cx.listener(|this, _, window, cx| this.save(window, cx))),
                         locked,
                         self.operation.busy && self.operation.kind == Some(OperationKind::Save),
                         cx,

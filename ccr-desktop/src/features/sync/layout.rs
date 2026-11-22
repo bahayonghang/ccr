@@ -6,6 +6,7 @@ pub(super) type Panel = gpui_kit::base::ObservedElement<Stateful<Div>>;
 
 impl Render for SyncView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        self.finish_editor_save(window, cx);
         let split = window.viewport_size().width >= theme::data_row_height(theme::SPLIT_WIDTH, cx);
         let details = self
             .render_management_confirmation(window, cx)
@@ -67,7 +68,7 @@ impl Render for SyncView {
                     if this.management_confirmation.is_some() {
                         this.cancel_management(window, cx);
                         cx.stop_propagation();
-                    } else if this.editor.is_some() && !this.operation.busy {
+                    } else if this.editor.is_some() && !this.busy && !this.operation.busy {
                         this.close_editor(window, cx);
                         cx.stop_propagation();
                     }

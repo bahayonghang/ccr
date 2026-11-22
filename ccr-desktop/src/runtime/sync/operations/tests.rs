@@ -615,6 +615,22 @@ async fn explicit_connection_test_keeps_the_shared_lock_and_scopes_its_result() 
             .connection_test(&key.environment, &revision),
         Some(ConnectionTestStatus::Succeeded)
     );
+    fixture.workspace.disconnect().await;
+    assert_eq!(
+        fixture.services.start_sync(
+            key.clone(),
+            Operation::Test {
+                revision: revision.clone()
+            },
+        ),
+        Err(SyncError::Remote)
+    );
+    let failed = fixture.services.sync_operation_state();
+    assert!(!failed.busy);
+    assert_eq!(
+        failed.connection_test(&key.environment, &revision),
+        Some(ConnectionTestStatus::Failed(SyncError::Remote))
+    );
     fixture.finish().await;
 }
 

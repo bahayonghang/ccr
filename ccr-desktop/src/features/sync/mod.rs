@@ -10,7 +10,7 @@ use crate::{
         Services,
         sync::{
             FolderChange, FolderPatch, Operation, OperationKind, OperationState, PasswordUpdate,
-            SettingsPatch, SyncError, SyncFolderRow, SyncLocal, SyncOutcome, SyncSnapshot, SyncUrl,
+            SettingsPatch, SyncError, SyncFolderRow, SyncOutcome, SyncSnapshot, SyncUrl,
         },
     },
     shell::semantics,
@@ -29,6 +29,8 @@ use layout::{reading_panel, section_heading, sync_actions, sync_status};
 use std::sync::Arc;
 
 struct Editor {
+    focus: FocusHandle,
+    saved: bool,
     revision: String,
     url: Entity<InputState>,
     username: Entity<InputState>,
@@ -58,6 +60,7 @@ pub struct SyncView {
     focus: FocusHandle,
     edit_anchor: FocusHandle,
     disconnect_anchor: FocusHandle,
+    batch_anchors: [FocusHandle; 2],
     management_anchor: FocusHandle,
     editor: Option<Editor>,
     asset_editor: Option<assets::AssetEditor>,
@@ -100,6 +103,7 @@ impl SyncView {
             focus: cx.focus_handle().tab_stop(false),
             edit_anchor: cx.focus_handle().tab_stop(false),
             disconnect_anchor: cx.focus_handle().tab_stop(false),
+            batch_anchors: std::array::from_fn(|_| cx.focus_handle().tab_stop(false)),
             management_anchor: cx.focus_handle().tab_stop(false),
             editor: None,
             asset_editor: None,
@@ -265,7 +269,14 @@ impl SyncView {
                         }
                         this.operation = state;
                         if saved {
-                            this.editor = None;
+                            if let Some(editor) = &mut this.editor
+                                && matches!(this.operation.result, Some(Ok(SyncOutcome::Saved)))
+                            {
+                                // Keep the form's focus scope through the reload.
+                                editor.saved = true;
+                            } else {
+                                this.editor = None;
+                            }
                             this.folder_editor = None;
                             this.folder_delete = None;
                             this.refresh(cx);
@@ -304,11 +315,15 @@ impl SyncView {
         let prepare_disconnect = matches!(operation, Operation::PrepareClear { .. });
         let error = self.services.start_sync(key, operation).err();
         self.preparing_disconnect = prepare_disconnect && error.is_none();
-        self.message = error.map(SyncError::message);
         self.confirmation = None;
         self.management_confirmation = None;
         self.folder_delete = None;
         self.observe(cx);
+        self.message = error
+            .filter(|error| {
+                !matches!(self.operation.result.as_ref(), Some(Err(stored)) if stored == error)
+            })
+            .map(SyncError::message);
         cx.notify();
     }
 
