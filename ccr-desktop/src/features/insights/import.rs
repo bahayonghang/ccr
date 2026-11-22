@@ -1,6 +1,8 @@
+use super::usage::SyncFocus;
 use super::*;
 use crate::runtime::insights::import::{Failure, Options, Snapshot, Status, ToolUpdate};
 use ccr_app::runtime::EnvironmentId;
+use gpui_kit::{component::FocusTrapElement, prelude::FluentBuilder};
 
 #[derive(Default)]
 pub(super) struct Scope {
@@ -197,7 +199,31 @@ impl InsightsView {
         cx.notify();
     }
 
-    pub(super) fn import_controls(&self, cx: &mut Context<Self>) -> impl IntoElement {
+    pub(super) fn sync_panel(
+        &self,
+        focus: &SyncFocus,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::AnyElement {
+        div()
+            .id("usage-sync-panel")
+            .role(gpui_kit::Role::Dialog)
+            .aria_label(text(cx, "Sync usage", "同步用量"))
+            .child(self.import_menu(Some(&focus.dismiss), cx))
+            .focus_trap("usage-sync-trap", &focus.panel)
+            .tab_stop(false)
+            .into_any_element()
+    }
+
+    pub(super) fn import_controls(&self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
+        self.import_menu(None, cx)
+    }
+
+    #[inline(never)]
+    fn import_menu(
+        &self,
+        dismiss_focus: Option<&FocusHandle>,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::AnyElement {
         let environment = self.requests.environment();
         let options = self.effective_import_options();
         let active = self.requests.import_snapshot().status.active();
@@ -248,34 +274,63 @@ impl InsightsView {
                 diagnostic
                     .map(|message| import_message("insights-import-availability", message.into())),
             )
+            .child(self.import_decisions(
+                dismiss_focus,
+                environment,
+                options,
+                active,
+                unavailable.is_some(),
+                cx,
+            ))
+            .into_any_element()
+    }
+
+    #[inline(never)]
+    fn import_decisions(
+        &self,
+        dismiss_focus: Option<&FocusHandle>,
+        environment: EnvironmentId,
+        options: Options,
+        active: bool,
+        unavailable: bool,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::AnyElement {
+        let confirm = semantics::button(
+            Button::new("insights-import")
+                .label(text(cx, "Confirm sync", "确认同步"))
+                .on_click(cx.listener(move |this, _, window, cx| {
+                    this.confirm_import(environment.clone(), options, window, cx);
+                })),
+            active || unavailable,
+            active,
+            cx,
+        );
+        let dismiss = semantics::ghost_button(
+            Button::new("insights-import-dismiss")
+                .label(text(cx, "Close", "关闭"))
+                .on_click(cx.listener(|this, _, window, cx| {
+                    this.usage_controls.dismiss_panel(window, cx);
+                    this.close_import_source_menu();
+                    cx.notify();
+                })),
+            false,
+            false,
+            cx,
+        );
+        div()
+            .flex()
+            .flex_wrap()
+            .gap(px(theme::CONTROL_GAP))
+            .child(confirm)
             .child(
                 div()
-                    .flex()
-                    .flex_wrap()
-                    .gap(px(theme::CONTROL_GAP))
-                    .child(semantics::button(
-                        Button::new("insights-import")
-                            .label(text(cx, "Confirm sync", "确认同步"))
-                            .on_click(cx.listener(move |this, _, window, cx| {
-                                this.confirm_import(environment.clone(), options, window, cx);
-                            })),
-                        active || unavailable.is_some(),
-                        active,
-                        cx,
-                    ))
-                    .child(semantics::ghost_button(
-                        Button::new("insights-import-dismiss")
-                            .label(text(cx, "Close", "关闭"))
-                            .on_click(cx.listener(|this, _, window, cx| {
-                                this.usage_controls.dismiss_panel(window, cx);
-                                this.close_import_source_menu();
-                                cx.notify();
-                            })),
-                        false,
-                        false,
-                        cx,
-                    )),
+                    .id("usage-sync-dismiss-anchor")
+                    .when_some(dismiss_focus, |anchor, focus| {
+                        anchor.track_focus(focus).tab_stop(false)
+                    })
+                    .child(dismiss),
             )
+            .into_any_element()
     }
 
     pub(super) fn retained_import_controls(&self, cx: &mut Context<Self>) -> impl IntoElement {

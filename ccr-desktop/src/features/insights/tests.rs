@@ -79,8 +79,13 @@ async fn import_controls_reject_fixture_then_reattach_and_cancel_retained_work(
             window.press("tab", cx);
         }
         assert_eq!(window.find("usage-sync-menu").focused(), Some(true));
-        window.press("enter", cx);
+        window.press("shift-tab", cx);
+        assert_ne!(window.find("usage-sync-menu").focused(), Some(true));
+        window.click("usage-sync-menu", cx);
         window.render_frame(cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert_eq!(window.find("insights-import-dismiss").focused(), Some(true));
         assert_eq!(requests.import_snapshot().status, Status::Idle);
         assert!(
             window
@@ -91,8 +96,17 @@ async fn import_controls_reject_fixture_then_reattach_and_cancel_retained_work(
                     && label.contains("Fixture"))
         );
         window.press("tab", cx);
-        assert_ne!(window.find("usage-sync-menu").focused(), Some(true));
+        assert_eq!(window.find("insights-import-source").focused(), Some(true));
+        window.press("shift-tab", cx);
+        assert_eq!(window.find("insights-import-dismiss").focused(), Some(true));
         window.press("escape", cx);
+        assert_eq!(window.find("usage-sync-menu").focused(), Some(true));
+        assert!(window.try_find("insights-import-confirmation").is_none());
+        window.press("enter", cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert_eq!(window.find("insights-import-dismiss").focused(), Some(true));
+        window.press("enter", cx);
         assert_eq!(window.find("usage-sync-menu").focused(), Some(true));
         assert!(window.try_find("insights-import-confirmation").is_none());
         window.press("enter", cx);

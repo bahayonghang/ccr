@@ -6,6 +6,7 @@ use ccr_app::usage::{
 use ccr_usage::RecordedCost;
 use chrono::{DateTime, Datelike, Local, NaiveDate};
 use gpui_kit::{App, Div, Focusable, FontWeight, component::tooltip::Tooltip};
+use std::cell::{Cell, OnceCell};
 
 const MODEL_FIELD: usize = 1;
 const PROVIDER_FIELD: usize = 2;
@@ -44,12 +45,20 @@ enum Panel {
     Sync,
 }
 
+pub(super) struct SyncFocus {
+    pub(super) panel: FocusHandle,
+    pub(super) dismiss: FocusHandle,
+    entry_pending: Cell<bool>,
+}
+
 #[derive(Default)]
 pub(super) struct Controls {
     period: Period,
     selected: QueryFilter,
     panel: Option<Panel>,
     trigger_focus: Option<FocusHandle>,
+    sync_trigger: OnceCell<FocusHandle>,
+    sync_focus: Option<SyncFocus>,
     invalid_dates: bool,
     providers_supported: Option<bool>,
     invalid_provider: bool,
@@ -85,6 +94,7 @@ impl Controls {
     pub(super) fn close_panel(&mut self) {
         self.panel = None;
         self.trigger_focus = None;
+        self.sync_focus = None;
         self.invalid_dates = false;
         self.invalid_provider = false;
     }
@@ -94,7 +104,12 @@ impl Controls {
     }
 
     pub(super) fn dismiss_panel(&mut self, window: &mut Window, cx: &mut App) {
-        if let Some(focus) = self.trigger_focus.as_ref() {
+        if self.sync_focus.is_some() {
+            if let Some(anchor) = self.sync_trigger.get() {
+                window.focus(anchor, cx);
+                window.focus_next(cx);
+            }
+        } else if let Some(focus) = self.trigger_focus.as_ref() {
             window.focus(focus, cx);
         }
         self.close_panel();
@@ -189,12 +204,7 @@ impl InsightsView {
                 self.loading,
                 cx,
             ))
-            .child(self.panel_button(
-                "usage-sync-menu",
-                text(cx, "Sync usage", "同步用量"),
-                Panel::Sync,
-                cx,
-            ));
+            .child(self.sync_button(cx));
 
         toolbar_row()
             .justify_between()
@@ -206,13 +216,22 @@ impl InsightsView {
     // Keep button construction off the same stack frame as the expanded panel.
     // Native Windows debug UI threads reserve 1 MiB.
     #[inline(never)]
-    pub(super) fn report_toolbar(&self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
+    pub(super) fn report_toolbar(
+        &self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::AnyElement {
         let panel = match self.usage_controls.panel {
             Some(Panel::Dates) => Some(self.report_periods(cx).into_any_element()),
             Some(Panel::Custom) => Some(self.report_custom_dates(cx).into_any_element()),
             Some(Panel::Sources) => Some(self.report_sources(cx).into_any_element()),
             Some(Panel::Filters) => Some(self.report_advanced_fields(cx).into_any_element()),
-            Some(Panel::Sync) => Some(self.import_controls(cx).into_any_element()),
+            Some(Panel::Sync) => self.usage_controls.sync_focus.as_ref().map(|focus| {
+                if focus.entry_pending.replace(false) {
+                        Self::focus_sync_after_mount(focus.dismiss.downgrade(), window, cx);
+                }
+                self.sync_panel(focus, cx)
+            }),
             None => None,
         };
         div()
@@ -261,6 +280,66 @@ impl InsightsView {
                     })
             }))
             .into_any_element()
+    }
+
+    #[inline(never)]
+    fn sync_button(&self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
+        let open = self.usage_controls.panel == Some(Panel::Sync);
+        let trigger = self
+            .usage_controls
+            .sync_trigger
+            .get_or_init(|| cx.focus_handle());
+        let button = Button::new("usage-sync-menu")
+            .label(text(cx, "Sync usage", "同步用量"))
+            .toggled(open)
+            .on_click(cx.listener(|this, _, window, cx| this.toggle_sync_panel(window, cx)));
+        div()
+            .id("usage-sync-trigger-anchor")
+            .track_focus(trigger)
+            .tab_stop(false)
+            .child(semantics::disclosure(
+                semantics::button(button, false, false, cx),
+                open,
+            ))
+            .into_any_element()
+    }
+
+    fn toggle_sync_panel(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.close_import_source_menu();
+        if self.usage_controls.panel == Some(Panel::Sync) {
+            self.usage_controls.dismiss_panel(window, cx);
+        } else {
+            self.usage_controls.close_panel();
+            let focus = SyncFocus {
+                panel: cx.focus_handle(),
+                dismiss: cx.focus_handle(),
+                entry_pending: Cell::new(true),
+            };
+            self.usage_controls.panel = Some(Panel::Sync);
+            self.usage_controls.sync_focus = Some(focus);
+        }
+        cx.notify();
+    }
+
+    fn focus_sync_after_mount(
+        entry: gpui_kit::WeakFocusHandle,
+        window: &mut Window,
+        cx: &Context<Self>,
+    ) {
+        let view = cx.weak_entity();
+        window.on_next_frame(move |window, cx| {
+            if let (Some(view), Some(entry)) = (view.upgrade(), entry.upgrade())
+                && view
+                    .read(cx)
+                    .usage_controls
+                    .sync_focus
+                    .as_ref()
+                    .is_some_and(|focus| focus.dismiss == entry)
+            {
+                window.focus(&entry, cx);
+                window.focus_next(cx);
+            }
+        });
     }
 
     fn panel_button(
@@ -718,13 +797,13 @@ pub(super) fn readings(report: Option<&UsageSnapshot>, narrow: bool, cx: &App) -
     let unknown = text(cx, "Estimate unavailable", "估算不可用");
     let partial = text(cx, "Partial estimate", "部分记录可估算");
     let mixed = text(cx, "Mixed pricing coverage", "估算覆盖范围待确认");
-    let (amount, note) =
+    let (amount, note, limited_coverage) =
         match report.map(|report| report.recorded_cost.unwrap_or(RecordedCost::Unavailable)) {
-            None => (None, text(cx, "Reading", "正在读取")),
-            Some(RecordedCost::Unavailable) => (None, unknown),
-            Some(RecordedCost::Partial(amount)) => (Some(amount), partial),
-            Some(RecordedCost::Mixed(amount)) => (Some(amount), mixed),
-            Some(RecordedCost::Known(amount)) => (Some(amount), estimate),
+            None => (None, text(cx, "Reading", "正在读取"), false),
+            Some(RecordedCost::Unavailable) => (None, unknown, false),
+            Some(RecordedCost::Partial(amount)) => (Some(amount), partial, true),
+            Some(RecordedCost::Mixed(amount)) => (Some(amount), mixed, true),
+            Some(RecordedCost::Known(amount)) => (Some(amount), estimate, false),
         };
     let (short_cost, exact_cost) = amount.map_or_else(
         || ("—".to_string(), note.to_string()),
@@ -740,7 +819,7 @@ pub(super) fn readings(report: Option<&UsageSnapshot>, narrow: bool, cx: &App) -
                 cents.clone()
             };
             let short = crate::features::workbench::format_recorded_cost(amount);
-            let exact = if note == partial || note == mixed {
+            let exact = if limited_coverage {
                 format!("{exact} · {note}")
             } else {
                 exact

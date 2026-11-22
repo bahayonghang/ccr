@@ -160,7 +160,7 @@ impl InsightsView {
             .track_focus(&self.usage_report.main_focus)
             .tab_stop(false)
             .track_scroll(&self.usage_report.scroll)
-            .child(self.report_toolbar(cx))
+            .child(self.report_toolbar(window, cx))
             .children(
                 self.submitted_usage
                     .as_ref()
