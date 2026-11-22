@@ -263,6 +263,7 @@ impl InsightsView {
                     .test_support()
                     .role(gpui_kit::Role::Label)
                     .aria_label(scope.clone())
+                    .aria_value(scope.clone())
                     .child(scope),
             )
             .child(
@@ -463,6 +464,7 @@ fn import_message(id: &'static str, message: String) -> impl IntoElement {
         .test_support()
         .role(gpui_kit::Role::Status)
         .aria_label(message.clone())
+        .aria_value(message.clone())
         .text_size(crate::theme::text_size(theme::META_SIZE))
         .child(message)
 }
