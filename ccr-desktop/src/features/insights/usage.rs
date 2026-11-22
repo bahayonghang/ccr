@@ -899,7 +899,7 @@ fn change_reading(
         .test_support()
         .role(gpui_kit::Role::Label)
         .aria_label(description.clone())
-        .aria_value(value.clone())
+        .aria_value(description.clone())
         .text_color(cx.theme().muted_foreground)
         .text_size(theme::text_size(theme::META_SIZE))
         .font_features(theme::tabular_figures())

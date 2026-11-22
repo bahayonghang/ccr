@@ -861,7 +861,12 @@ async fn usage_landing_shares_the_inclusive_thirty_day_report_across_entries(
             "600",
             "6",
             "2",
-            ["Down −75%", "Down −25%", "Down −25%", "Unchanged 0%"],
+            [
+                "Recorded cost (USD) · Down −75% · Previous value $8",
+                "Tokens · Down −25% · Previous value 800",
+                "Requests · Down −25% · Previous value 8",
+                "Active days · Unchanged 0% · Previous value 2",
+            ],
         ),
         (
             "nav-codex",
@@ -870,7 +875,12 @@ async fn usage_landing_shares_the_inclusive_thirty_day_report_across_entries(
             "400",
             "4",
             "1",
-            ["Up +200%", "Up +100%", "Up +100%", "Unchanged 0%"],
+            [
+                "Recorded cost (USD) · Up +200% · Previous value $0.5",
+                "Tokens · Up +100% · Previous value 200",
+                "Requests · Up +100% · Previous value 2",
+                "Active days · Unchanged 0% · Previous value 1",
+            ],
         ),
     ] {
         cx.update_window(handle, |_, window, cx| {
@@ -931,7 +941,9 @@ async fn usage_landing_shares_the_inclusive_thirty_day_report_across_entries(
             .into_iter()
             .zip(changes)
             {
-                assert_eq!(window.find(id).value(), Some(change));
+                let reading = window.find(id);
+                assert_eq!(reading.role(), Some(gpui_kit::Role::Label));
+                assert_eq!(reading.value(), Some(change));
             }
         })
         .unwrap_or_else(|e| panic!("usage report: {e}"));
