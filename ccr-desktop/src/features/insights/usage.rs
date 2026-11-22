@@ -1,5 +1,8 @@
 use super::*;
-use ccr_app::usage::{read::UsageSnapshot, report_clock::ReportClock};
+use ccr_app::usage::{
+    read::{PeriodChange, PreviousPeriod, UsageComparison, UsageSnapshot},
+    report_clock::ReportClock,
+};
 use ccr_usage::RecordedCost;
 use chrono::{DateTime, Datelike, Local, NaiveDate};
 use gpui_kit::{App, Div, Focusable, FontWeight, component::tooltip::Tooltip};
@@ -583,16 +586,19 @@ pub(super) fn context_row(
     report: Option<&UsageSnapshot>,
     cx: &App,
 ) -> impl IntoElement {
-    let range = if let Some((since, until)) = filter.since.zip(filter.until) {
-        format!("{since} – {until}")
-    } else {
-        let all = text(cx, "All history", "全历史");
-        report
-            .and_then(|report| report.trends.first().zip(report.trends.last()))
-            .map_or_else(
-                || all.to_string(),
-                |(first, last)| format!("{all} · {} – {}", first.date, last.date),
-            )
+    let range = match (filter.since, filter.until) {
+        (Some(since), Some(until)) => format!("{since} – {until}"),
+        (Some(since), None) => format!("{} {since}", text(cx, "From", "起始于")),
+        (None, Some(until)) => format!("{} {until}", text(cx, "Through", "截至")),
+        (None, None) => {
+            let all = text(cx, "All history", "全历史");
+            report
+                .and_then(|report| report.trends.first().zip(report.trends.last()))
+                .map_or_else(
+                    || all.to_string(),
+                    |(first, last)| format!("{all} · {} – {}", first.date, last.date),
+                )
+        }
     };
     let zone = match filter.timezone {
         ReportTimezone::Local => text(cx, "Local", "本地"),
@@ -604,41 +610,91 @@ pub(super) fn context_row(
         .text_size(theme::text_size(theme::META_SIZE))
         .text_color(cx.theme().muted_foreground)
         .gap(px(theme::SECTION_GAP))
-        .child(
-            div()
-                .id("usage-date-range")
-                .test_support()
-                .role(gpui_kit::Role::Label)
-                .aria_label(range.clone())
-                .aria_value(range.clone())
-                .child(range),
-        );
-    context.children(report.map(|report| {
-        let sync = report
-            .overview
-            .last_sync_at
-            .as_deref()
-            .and_then(|value| DateTime::parse_from_rfc3339(value).ok())
-            .map(|instant| match filter.timezone {
-                ReportTimezone::Local => instant.with_timezone(&Local).naive_local(),
-                ReportTimezone::Utc => instant.naive_utc(),
-            })
-            .map(|date| date.format("%Y-%m-%d %H:%M").to_string())
-            .unwrap_or_else(|| text(cx, "not recorded", "未记录").into());
-        let prefix = text(
-            cx,
-            "Last successful sync (any source)",
-            "上次成功同步（任意来源）",
-        );
-        let label = format!("{prefix} · {sync}");
-        div()
-            .id("usage-last-sync")
-            .test_support()
-            .role(gpui_kit::Role::Label)
-            .aria_label(label.clone())
-            .aria_value(label.clone())
-            .child(label)
-    }))
+        .child(context_label("usage-date-range", range));
+    context
+        .children(report.map(|report| {
+            let sync = report
+                .overview
+                .last_sync_at
+                .as_deref()
+                .and_then(|value| DateTime::parse_from_rfc3339(value).ok())
+                .map(|instant| match filter.timezone {
+                    ReportTimezone::Local => instant.with_timezone(&Local).naive_local(),
+                    ReportTimezone::Utc => instant.naive_utc(),
+                })
+                .map(|date| date.format("%Y-%m-%d %H:%M").to_string())
+                .unwrap_or_else(|| text(cx, "not recorded", "未记录").into());
+            let prefix = text(
+                cx,
+                "Last successful sync (any source)",
+                "上次成功同步（任意来源）",
+            );
+            context_label("usage-last-sync", format!("{prefix} · {sync}"))
+        }))
+        .children(
+            report
+                .and_then(|report| report.comparison.as_ref())
+                .map(|comparison| comparison_context(comparison, cx)),
+        )
+}
+
+fn context_label(id: &'static str, label: String) -> impl IntoElement {
+    div()
+        .id(id)
+        .test_support()
+        .role(gpui_kit::Role::Label)
+        .aria_label(label.clone())
+        .aria_value(label.clone())
+        .child(label)
+}
+
+fn comparison_context(comparison: &UsageComparison, cx: &App) -> impl IntoElement {
+    let (dates, status) = match &comparison.previous {
+        PreviousPeriod::AllHistory => (
+            None,
+            Some(text(
+                cx,
+                "Comparison requires a date range",
+                "全历史无上一周期",
+            )),
+        ),
+        PreviousPeriod::IncompleteBounds => (
+            None,
+            Some(text(
+                cx,
+                "Incomplete comparison dates",
+                "对比日期边界不完整",
+            )),
+        ),
+        PreviousPeriod::Bounded {
+            since,
+            until,
+            summary,
+        } => {
+            let previous = text(cx, "Previous period", "上一周期");
+            let range = format!("{previous} · {since} – {until}");
+            let status = match summary {
+                Ok(Some(_)) => None,
+                Ok(None) => Some(text(cx, "No records in previous period", "上一周期无记录")),
+                Err(_) => Some(text(
+                    cx,
+                    "Previous period could not be read",
+                    "上一周期读取失败",
+                )),
+            };
+            (Some(range), status)
+        }
+    };
+    toolbar_row()
+        .gap(px(theme::SECTION_GAP))
+        .children(dates.map(|range| context_label("usage-previous-date-range", range)))
+        .children(status.map(|status| context_label("usage-comparison-state", status.into())))
+        .children(comparison.includes_today.then(|| {
+            context_label(
+                "usage-today-incomplete",
+                text(cx, "Today is still in progress", "今日尚未结束").into(),
+            )
+        }))
 }
 
 pub(super) fn readings(report: Option<&UsageSnapshot>, narrow: bool, cx: &App) -> impl IntoElement {
@@ -684,24 +740,53 @@ pub(super) fn readings(report: Option<&UsageSnapshot>, narrow: bool, cx: &App) -
             .filter(|day| day.request_count > 0)
             .count() as i64
     });
+    let previous = report
+        .and_then(|report| report.comparison.as_ref())
+        .and_then(|comparison| match &comparison.previous {
+            PreviousPeriod::Bounded {
+                summary: Ok(Some(summary)),
+                ..
+            } => Some(summary),
+            _ => None,
+        });
     let [cost_cell, tokens, requests, days] = [
-        reading("usage-cost", cost, short_cost, exact_cost, Some(note), cx),
+        reading("usage-cost", cost, short_cost, exact_cost, Some(note), cx).children(previous.map(
+            |previous| {
+                let current_cost = report
+                    .and_then(|report| report.recorded_cost)
+                    .unwrap_or(RecordedCost::Unavailable);
+                let baseline = match previous.recorded_cost {
+                    RecordedCost::Known(amount) => Some(format!("${amount}")),
+                    _ => None,
+                };
+                change_reading(
+                    "usage-cost",
+                    cost,
+                    PeriodChange::cost(current_cost, previous.recorded_cost),
+                    baseline,
+                    cx,
+                )
+            },
+        )),
         count_reading(
             "usage-tokens",
             text(cx, "Tokens", "Token"),
             report.map(|report| report.overview.total.total_tokens),
+            previous.map(|summary| summary.tokens),
             cx,
         ),
         count_reading(
             "usage-requests",
             text(cx, "Requests", "请求"),
             report.map(|report| report.overview.total_events),
+            previous.map(|summary| summary.requests),
             cx,
         ),
         count_reading(
             "usage-active-days",
             text(cx, "Active days", "活跃天数"),
             active_days,
+            previous.map(|summary| summary.active_days),
             cx,
         ),
     ];
@@ -737,7 +822,13 @@ fn reading_row<const N: usize>(cells: [Div; N], cx: &App) -> Div {
     row
 }
 
-fn count_reading(id: &'static str, label: &'static str, value: Option<i64>, cx: &App) -> Div {
+fn count_reading(
+    id: &'static str,
+    label: &'static str,
+    value: Option<i64>,
+    previous: Option<i64>,
+    cx: &App,
+) -> Div {
     let (short, exact) = value.map_or_else(
         || ("—".into(), text(cx, "Reading", "正在读取").into()),
         |value| {
@@ -747,7 +838,65 @@ fn count_reading(id: &'static str, label: &'static str, value: Option<i64>, cx: 
             )
         },
     );
-    reading(id, label, short, exact, None, cx)
+    reading(id, label, short, exact, None, cx).children(value.zip(previous).map(
+        |(current, previous)| {
+            change_reading(
+                id,
+                label,
+                PeriodChange::count(current, previous),
+                Some(previous.to_string()),
+                cx,
+            )
+        },
+    ))
+}
+
+fn change_reading(
+    id: &'static str,
+    metric: &'static str,
+    change: PeriodChange,
+    baseline: Option<String>,
+    cx: &App,
+) -> impl IntoElement {
+    let value = match change {
+        PeriodChange::ZeroBaseline => text(cx, "Previous value was zero", "上期基数为零").into(),
+        PeriodChange::UnreliableCost => {
+            text(cx, "Cost coverage incomplete", "估算覆盖不完整").into()
+        }
+        PeriodChange::Percent(0.0) => text(cx, "Unchanged 0%", "持平 0%").into(),
+        PeriodChange::Percent(percent) => {
+            let (direction, sign) = if percent > 0.0 {
+                (text(cx, "Up", "增加"), "+")
+            } else {
+                (text(cx, "Down", "下降"), "−")
+            };
+            let magnitude = format!("{:.1}", percent.abs());
+            let magnitude = magnitude.strip_suffix(".0").unwrap_or(&magnitude);
+            if magnitude == "0" {
+                format!("{direction} {sign}<0.1%")
+            } else {
+                format!("{direction} {sign}{magnitude}%")
+            }
+        }
+    };
+    let description = match baseline {
+        Some(baseline) => format!(
+            "{metric} · {value} · {} {baseline}",
+            text(cx, "Previous value", "上期读数")
+        ),
+        None => format!("{metric} · {value}"),
+    };
+    div()
+        .id(format!("{id}-change"))
+        .test_support()
+        .role(gpui_kit::Role::Label)
+        .aria_label(description.clone())
+        .aria_value(value.clone())
+        .text_color(cx.theme().muted_foreground)
+        .text_size(theme::text_size(theme::META_SIZE))
+        .font_features(theme::tabular_figures())
+        .tooltip(move |window, cx| Tooltip::new(description.clone()).build(window, cx))
+        .child(value)
 }
 
 fn reading(

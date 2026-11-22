@@ -56,6 +56,14 @@ pub enum RecordedCost {
     Known(f64),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct UsagePeriodSummary {
+    pub recorded_cost: RecordedCost,
+    pub tokens: i64,
+    pub requests: i64,
+    pub active_days: i64,
+}
+
 // 上 wire 的投影 DTO（被 ccr-ui Tauri 命令直接返回或嵌入响应体）在 ts feature 下
 // 生成 TypeScript 绑定；i64 字段一律 ts(as = "f64")：wire 是 serde_json number，
 // 映射为 number 而非 ts-rs 默认的 bigint（用量数值 << 2^53，无精度风险）。

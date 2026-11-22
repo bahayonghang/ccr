@@ -236,3 +236,263 @@ fn usage_page_merges_aliases_within_the_selected_scope_and_keeps_unknown_sources
     );
     assert_eq!(dashboard.overview(&filter).unwrap().total_events, 3);
 }
+
+fn utc_date(day: &str) -> NaiveDate {
+    day.parse().unwrap()
+}
+
+fn utc_instant(instant: &str) -> DateTime<Utc> {
+    instant.parse().unwrap()
+}
+
+fn comparison_fixture(buckets: &[SeedBucket]) -> (tempfile::TempDir, Dashboard) {
+    let temp = tempfile::tempdir().unwrap();
+    let paths = create_projection_db(temp.path());
+    let conn = Connection::open(&paths.db_path).unwrap();
+    for bucket in buckets {
+        seed_bucket(&conn, bucket);
+    }
+    drop(conn);
+    (temp, ccr_usage::open_dashboard(paths).unwrap())
+}
+
+#[test]
+fn previous_period_uses_adjacent_calendar_dates_and_every_current_filter() {
+    let matching = SeedBucket {
+        hour_start: "1999-12-30T00:00:00Z".into(),
+        cost_with_cache_usd: 0.0049,
+        total_tokens: 200,
+        event_count: 1,
+        ..Default::default()
+    };
+    let (_temp, dashboard) = comparison_fixture(&[
+        matching.clone(),
+        SeedBucket {
+            hour_start: "1999-12-30T23:59:59Z".into(),
+            cost_with_cache_usd: 0.0,
+            total_tokens: 100,
+            ..matching.clone()
+        },
+        SeedBucket {
+            hour_start: "1999-12-31T23:59:59Z".into(),
+            total_tokens: 0,
+            event_count: 0,
+            cost_with_cache_usd: 0.0,
+            ..matching.clone()
+        },
+        SeedBucket {
+            hour_start: "2000-01-01T00:00:00Z".into(),
+            total_tokens: 150,
+            cost_with_cache_usd: 0.005,
+            ..matching.clone()
+        },
+        SeedBucket {
+            hour_start: "1999-12-29T23:59:59Z".into(),
+            ..matching.clone()
+        },
+        SeedBucket {
+            source: "claude".into(),
+            ..matching.clone()
+        },
+        SeedBucket {
+            model: "another-model".into(),
+            ..matching.clone()
+        },
+        SeedBucket {
+            project_hash: "another-project".into(),
+            ..matching.clone()
+        },
+        SeedBucket {
+            provider_label: "another-provider".into(),
+            ..matching
+        },
+    ]);
+    let filter = QueryFilter {
+        source: Some(SourceKind::Codex),
+        provider: Some("openai".into()),
+        model: Some("gpt-5".into()),
+        project_hash: Some("p1".into()),
+        since: Some(utc_date("2000-01-01")),
+        until: Some(utc_date("2000-01-02")),
+        timezone: ReportTimezone::Utc,
+    };
+    let report =
+        read_usage_page_at(&dashboard, &filter, utc_instant("2000-01-01T00:00:00Z")).unwrap();
+    let comparison = report.comparison.unwrap();
+    assert!(comparison.includes_today);
+    let PreviousPeriod::Bounded {
+        since,
+        until,
+        summary: Ok(Some(previous)),
+    } = comparison.previous
+    else {
+        panic!("expected the previous period readings");
+    };
+    assert_eq!(since, utc_date("1999-12-30"));
+    assert_eq!(until, utc_date("1999-12-31"));
+    assert_eq!(
+        previous,
+        UsagePeriodSummary {
+            recorded_cost: RecordedCost::Known(0.0049),
+            tokens: 300,
+            requests: 2,
+            active_days: 1,
+        }
+    );
+    assert_eq!(
+        PeriodChange::count(report.overview.total.total_tokens, previous.tokens),
+        PeriodChange::Percent(-50.0)
+    );
+    let PeriodChange::Percent(cost_delta) =
+        PeriodChange::cost(report.recorded_cost.unwrap(), previous.recorded_cost)
+    else {
+        panic!("both estimates are fully covered");
+    };
+    assert!((cost_delta - 2.04081632653).abs() < 1e-10);
+}
+
+#[test]
+fn comparison_distinguishes_open_ends_missing_records_and_measured_zero() {
+    let (_temp, dashboard) = comparison_fixture(&[
+        SeedBucket {
+            hour_start: "2000-01-01T00:00:00Z".into(),
+            ..Default::default()
+        },
+        SeedBucket {
+            hour_start: "2000-01-02T00:00:00Z".into(),
+            total_tokens: 0,
+            event_count: 0,
+            cost_with_cache_usd: 0.0,
+            ..Default::default()
+        },
+    ]);
+    let now = utc_instant("2000-01-03T00:00:00Z");
+    let read = |since, until| {
+        let filter = QueryFilter {
+            since,
+            until,
+            timezone: ReportTimezone::Utc,
+            ..Default::default()
+        };
+        read_usage_page_at(&dashboard, &filter, now).unwrap()
+    };
+    assert!(matches!(
+        read(None, None).comparison.unwrap().previous,
+        PreviousPeriod::AllHistory
+    ));
+    let jan1 = Some(utc_date("2000-01-01"));
+    let jan2 = Some(utc_date("2000-01-02"));
+    let jan3 = Some(utc_date("2000-01-03"));
+    for (since, until) in [(jan1, None), (None, jan1)] {
+        assert!(matches!(
+            read(since, until).comparison.unwrap().previous,
+            PreviousPeriod::IncompleteBounds
+        ));
+    }
+    assert!(matches!(
+        read(jan1, jan1).comparison.unwrap().previous,
+        PreviousPeriod::Bounded {
+            summary: Ok(None),
+            ..
+        }
+    ));
+    let report = read(jan2, jan2);
+    assert_eq!(report.overview.bucket_count, 1);
+    let comparison = report.comparison.unwrap();
+    assert!(!comparison.includes_today);
+    let PreviousPeriod::Bounded {
+        summary: Ok(Some(previous)),
+        ..
+    } = comparison.previous
+    else {
+        panic!("expected nonzero baseline");
+    };
+    assert_eq!(
+        PeriodChange::cost(report.recorded_cost.unwrap(), previous.recorded_cost),
+        PeriodChange::Percent(-100.0)
+    );
+    assert_eq!(
+        PeriodChange::count(report.overview.total_events, previous.requests),
+        PeriodChange::Percent(-100.0)
+    );
+
+    let report = read(jan3, jan3);
+    assert_eq!(report.overview.bucket_count, 0);
+    let comparison = report.comparison.unwrap();
+    assert!(comparison.includes_today);
+    let PreviousPeriod::Bounded {
+        summary: Ok(Some(previous)),
+        ..
+    } = comparison.previous
+    else {
+        panic!("measured zero is a recorded baseline");
+    };
+    assert_eq!(
+        PeriodChange::count(0, previous.requests),
+        PeriodChange::ZeroBaseline
+    );
+    assert_eq!(
+        PeriodChange::cost(RecordedCost::Known(0.0), previous.recorded_cost),
+        PeriodChange::ZeroBaseline
+    );
+}
+
+#[test]
+fn previous_summary_failure_preserves_current_readings() {
+    let (_temp, dashboard) = comparison_fixture(&[
+        SeedBucket {
+            hour_start: "2000-01-01T00:00:00Z".into(),
+            total_tokens: i64::MAX,
+            ..Default::default()
+        },
+        SeedBucket {
+            hour_start: "2000-01-01T01:00:00Z".into(),
+            total_tokens: 1,
+            ..Default::default()
+        },
+        SeedBucket {
+            hour_start: "2000-01-02T00:00:00Z".into(),
+            ..Default::default()
+        },
+    ]);
+    let day = Some(utc_date("2000-01-02"));
+    let filter = QueryFilter {
+        since: day,
+        until: day,
+        timezone: ReportTimezone::Utc,
+        ..Default::default()
+    };
+    let report =
+        read_usage_page_at(&dashboard, &filter, utc_instant("2000-01-02T12:00:00Z")).unwrap();
+    assert_eq!(report.overview.total.total_tokens, 100);
+    assert_eq!(report.recorded_cost, Some(RecordedCost::Known(0.1)));
+    assert!(matches!(
+        report.comparison.unwrap().previous,
+        PreviousPeriod::Bounded {
+            summary: Err(_),
+            ..
+        }
+    ));
+}
+
+#[test]
+fn comparison_refuses_cost_with_uncertain_coverage_in_either_period() {
+    for cost in [
+        RecordedCost::Unavailable,
+        RecordedCost::Partial(1.0),
+        RecordedCost::Mixed(1.0),
+    ] {
+        assert_eq!(
+            PeriodChange::cost(cost, RecordedCost::Known(1.0)),
+            PeriodChange::UnreliableCost
+        );
+        assert_eq!(
+            PeriodChange::cost(RecordedCost::Known(1.0), cost),
+            PeriodChange::UnreliableCost
+        );
+    }
+    assert_eq!(PeriodChange::count(0, 0), PeriodChange::ZeroBaseline);
+    assert!(
+        matches!(PeriodChange::count(9_007_199_254_740_993, 9_007_199_254_740_992), PeriodChange::Percent(change) if change > 0.0)
+    );
+}

@@ -2,7 +2,9 @@
 use ccr_usage::{
     DailyTrendDto, Dashboard, HeatmapPoint, ModelBreakdown, OverviewPayload, ProjectBreakdown,
     ProviderBreakdownDto, QueryFilter, RecordedCost, SourceBreakdownDto, UsageError,
+    UsagePeriodSummary,
 };
+use chrono::{DateTime, Days, NaiveDate, Utc};
 use std::collections::BTreeMap;
 
 /// Canonical values, without wire-format or presentation rounding.
@@ -11,6 +13,8 @@ pub struct UsageSnapshot {
     pub overview: OverviewPayload,
     /// Available on the Usage page projection, which reads pricing coverage.
     pub recorded_cost: Option<RecordedCost>,
+    /// The Usage page compares only explicit, adjacent calendar periods.
+    pub comparison: Option<UsageComparison>,
     pub trends: Vec<DailyTrendDto>,
     /// Usage-page pricing coverage for each present day.
     pub daily_recorded_cost: BTreeMap<String, RecordedCost>,
@@ -21,6 +25,85 @@ pub struct UsageSnapshot {
     pub projects: Vec<ProjectBreakdown>,
     pub sources: Vec<SourceBreakdownDto>,
     pub heatmap: Option<Vec<HeatmapPoint>>,
+}
+
+#[derive(Debug)]
+pub struct UsageComparison {
+    pub includes_today: bool,
+    pub previous: PreviousPeriod,
+}
+
+#[derive(Debug)]
+pub enum PreviousPeriod {
+    AllHistory,
+    IncompleteBounds,
+    Bounded {
+        since: NaiveDate,
+        until: NaiveDate,
+        summary: Result<Option<UsagePeriodSummary>, UsageError>,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum PeriodChange {
+    Percent(f64),
+    ZeroBaseline,
+    UnreliableCost,
+}
+
+impl PeriodChange {
+    pub fn count(current: i64, previous: i64) -> Self {
+        if previous == 0 {
+            return Self::ZeroBaseline;
+        }
+        let difference = i128::from(current) - i128::from(previous);
+        Self::Percent(difference as f64 * 100.0 / previous as f64)
+    }
+
+    pub fn cost(current: RecordedCost, previous: RecordedCost) -> Self {
+        let (RecordedCost::Known(current), RecordedCost::Known(previous)) = (current, previous)
+        else {
+            return Self::UnreliableCost;
+        };
+        if !current.is_finite() || !previous.is_finite() {
+            return Self::UnreliableCost;
+        }
+        if previous == 0.0 {
+            return Self::ZeroBaseline;
+        }
+        let percent = (current - previous) / previous * 100.0;
+        if percent.is_finite() {
+            Self::Percent(percent)
+        } else {
+            Self::UnreliableCost
+        }
+    }
+}
+
+fn previous_period(dashboard: &Dashboard, filter: &QueryFilter) -> PreviousPeriod {
+    let (start, end) = match (filter.since, filter.until) {
+        (Some(start), Some(end)) => (start, end),
+        (None, None) => return PreviousPeriod::AllHistory,
+        _ => return PreviousPeriod::IncompleteBounds,
+    };
+    let calendar_days = Days::new((end - start).num_days() as u64 + 1);
+    let (Some(since), Some(until), Some(_)) = (
+        start.checked_sub_days(calendar_days),
+        start.pred_opt(),
+        end.succ_opt(),
+    ) else {
+        return PreviousPeriod::IncompleteBounds;
+    };
+    let previous_filter = QueryFilter {
+        since: Some(since),
+        until: Some(until),
+        ..filter.clone()
+    };
+    PreviousPeriod::Bounded {
+        since,
+        until,
+        summary: dashboard.usage_period_summary(&previous_filter),
+    }
 }
 
 /// Assemble all sections from one read-only connection and one complete filter.
@@ -36,7 +119,7 @@ pub fn read_dashboard_at(
     dashboard: &Dashboard,
     filter: &QueryFilter,
     heatmap_days: Option<u32>,
-    as_of: Option<chrono::DateTime<chrono::Utc>>,
+    as_of: Option<DateTime<Utc>>,
 ) -> Result<UsageSnapshot, UsageError> {
     read_snapshot(dashboard, filter, heatmap_days, as_of, false)
 }
@@ -46,22 +129,19 @@ pub fn read_dashboard_at(
 pub fn read_usage_page_at(
     dashboard: &Dashboard,
     filter: &QueryFilter,
-    as_of: chrono::DateTime<chrono::Utc>,
+    as_of: DateTime<Utc>,
 ) -> Result<UsageSnapshot, UsageError> {
-    read_snapshot(
-        dashboard,
-        &filter.clone().for_usage_page(),
-        Some(366),
-        Some(as_of),
-        true,
-    )
+    let filter = filter.clone().for_usage_page();
+    dashboard.with_read_snapshot(|dashboard| {
+        read_snapshot(dashboard, &filter, Some(366), Some(as_of), true)
+    })
 }
 
 fn read_snapshot(
     dashboard: &Dashboard,
     filter: &QueryFilter,
     heatmap_days: Option<u32>,
-    as_of: Option<chrono::DateTime<chrono::Utc>>,
+    as_of: Option<DateTime<Utc>>,
     usage_page: bool,
 ) -> Result<UsageSnapshot, UsageError> {
     if filter
@@ -113,9 +193,18 @@ fn read_snapshot(
             None => dashboard.heatmap(filter, days.clamp(1, 366)),
         })
         .transpose()?;
+    let comparison = as_of.filter(|_| usage_page).map(|as_of| {
+        let today = dashboard.report_date(filter.timezone, as_of);
+        UsageComparison {
+            includes_today: filter.since.is_none_or(|start| start <= today)
+                && filter.until.is_none_or(|end| today <= end),
+            previous: previous_period(dashboard, filter),
+        }
+    });
     Ok(UsageSnapshot {
         overview,
         recorded_cost,
+        comparison,
         trends,
         daily_recorded_cost,
         models,

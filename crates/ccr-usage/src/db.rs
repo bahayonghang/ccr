@@ -14,7 +14,7 @@ use crate::{
         DailyTrendDto, HeatmapPoint, HomeOverviewPayload, HomeOverviewPlatformStats,
         HomeOverviewSeriesItem, HomeOverviewSummary, ModelBreakdown, OverviewPayload,
         ProjectBreakdown, ProviderBreakdownDto, RecordedCost, SourceBreakdownDto,
-        TaggedProviderBreakdown, TokenSummary, UsageRecordDto,
+        TaggedProviderBreakdown, TokenSummary, UsagePeriodSummary, UsageRecordDto,
     },
     source::{SourceKind, parse_source_filter},
     timezone::{ResolvedZone, parse_stored_timestamp, register_functions},
@@ -307,6 +307,26 @@ impl Dashboard {
         }
     }
 
+    /// Hold one SQLite read revision across a compound projection.
+    pub fn with_read_snapshot<T>(
+        &self,
+        read: impl FnOnce(&Self) -> Result<T, UsageError>,
+    ) -> Result<T, UsageError> {
+        // Dropping the read transaction releases its revision, even when SQLite
+        // already ended it because one section failed.
+        let _snapshot = self.conn.unchecked_transaction()?;
+        read(self)
+    }
+
+    /// Use the same zone that converts report filters to UTC bounds.
+    pub fn report_date(
+        &self,
+        timezone: ReportTimezone,
+        instant: chrono::DateTime<chrono::Utc>,
+    ) -> NaiveDate {
+        self.zone(timezone).date_at(instant)
+    }
+
     pub fn overview(&self, filter: &QueryFilter) -> Result<OverviewPayload, UsageError> {
         self.overview_with_clock(filter, None)
     }
@@ -453,6 +473,42 @@ impl Dashboard {
             .query_row(&sql, params_from_iter(filter.param_refs()), |row| {
                 read_recorded_cost(row, 0)
             })?)
+    }
+
+    /// Only the four period comparison readings. An empty range has no baseline.
+    pub fn usage_period_summary(
+        &self,
+        filter: &QueryFilter,
+    ) -> Result<Option<UsagePeriodSummary>, UsageError> {
+        self.ensure_feature_for_filter(FeatureKey::ModelBreakdown, filter)?;
+        self.ensure_feature_for_filter(FeatureKey::Overview, filter)?;
+        let zone = self.zone(filter.timezone);
+        let filter = filter.bucket_filter(None, &zone, self.schema_version())?;
+        let local_date = zone.local_date_expr("hour_start");
+        let cost_columns = recorded_cost_columns();
+        let sql = format!(
+            r#"
+            SELECT {cost_columns}, COALESCE(SUM(total_tokens), 0),
+                   COALESCE(SUM(event_count), 0),
+                   COUNT(DISTINCT CASE WHEN event_count > 0 THEN {local_date} END)
+            FROM usage_bucket_30m{}
+            "#,
+            filter.where_sql()
+        );
+        let summary = self
+            .conn
+            .query_row(&sql, params_from_iter(filter.param_refs()), |row| {
+                if row.get::<_, i64>(0)? == 0 {
+                    return Ok(None);
+                }
+                Ok(Some(UsagePeriodSummary {
+                    recorded_cost: read_recorded_cost(row, 0)?,
+                    tokens: row.get(4)?,
+                    requests: row.get(5)?,
+                    active_days: row.get(6)?,
+                }))
+            })?;
+        Ok(summary)
     }
 
     pub fn trends_daily(&self, filter: &QueryFilter) -> Result<Vec<DailyTrendDto>, UsageError> {
@@ -1526,6 +1582,75 @@ mod tests {
         drop(conn);
 
         Dashboard::open(AppPaths::from_root(root)).expect("dashboard should open test db")
+    }
+
+    #[test]
+    fn period_summary_counts_request_days_in_the_selected_report_zone() {
+        let temp = tempfile::tempdir().expect("fixture directory");
+        let mut dashboard = create_provider_fixture(temp.path());
+        dashboard.local_zone = ResolvedZone::Iana(chrono_tz::America::New_York);
+        let at = "2026-07-01T00:30:00Z".parse().expect("fixture instant");
+        let june_30 = NaiveDate::from_ymd_opt(2026, 6, 30).expect("fixture date");
+        let july_1 = NaiveDate::from_ymd_opt(2026, 7, 1).expect("fixture date");
+        assert_eq!(dashboard.report_date(ReportTimezone::Local, at), june_30);
+        assert_eq!(dashboard.report_date(ReportTimezone::Utc, at), july_1);
+
+        let mut filter = QueryFilter {
+            source: Some(SourceKind::Codex),
+            model: Some("gpt-5".into()),
+            provider: Some("openai".into()),
+            project_hash: Some("p1".into()),
+            since: Some(june_30),
+            until: Some(june_30),
+            timezone: ReportTimezone::Local,
+        };
+        assert_eq!(
+            dashboard
+                .usage_period_summary(&filter)
+                .expect("local range"),
+            Some(UsagePeriodSummary {
+                recorded_cost: RecordedCost::Known(0.10),
+                tokens: 100,
+                requests: 2,
+                active_days: 1,
+            })
+        );
+        filter.timezone = ReportTimezone::Utc;
+        assert_eq!(
+            dashboard.usage_period_summary(&filter).expect("UTC range"),
+            None
+        );
+    }
+
+    #[test]
+    fn compound_read_keeps_one_revision_during_a_wal_commit() {
+        let temp = tempfile::tempdir().expect("fixture directory");
+        let dashboard = create_provider_fixture(temp.path());
+        let writer = Connection::open(temp.path().join("llmusage.db")).expect("fixture writer");
+        writer
+            .execute_batch("PRAGMA journal_mode=WAL")
+            .expect("WAL mode");
+        let filter = QueryFilter {
+            timezone: ReportTimezone::Utc,
+            ..Default::default()
+        };
+        let tokens = |dashboard: &Dashboard| {
+            dashboard
+                .usage_period_summary(&filter)
+                .map(|summary| summary.map(|period| period.tokens))
+        };
+        dashboard
+            .with_read_snapshot(|dashboard| {
+                assert_eq!(tokens(dashboard)?, Some(200));
+                writer.execute(
+                    "UPDATE usage_bucket_30m SET total_tokens = total_tokens + 1",
+                    [],
+                )?;
+                assert_eq!(tokens(dashboard)?, Some(200));
+                Ok(())
+            })
+            .expect("consistent reader");
+        assert_eq!(tokens(&dashboard).expect("fresh reader"), Some(204));
     }
 
     #[test]

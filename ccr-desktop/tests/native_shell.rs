@@ -798,12 +798,16 @@ async fn usage_landing_shares_the_inclusive_thirty_day_report_across_entries(
     let paths = create_projection_db(&root.path().join("llmusage"));
     let today = Local::now().date_naive();
     let start = today - Days::days(29);
+    let prior_start = start - Days::days(30);
+    let prior_end = start - Days::days(1);
     let conn = rusqlite::Connection::open(&paths.db_path).unwrap_or_else(|e| panic!("db: {e}"));
     for (source, date, tokens, requests, cost) in [
         ("codex", today, 300, 3, 1.25),
         ("codex", today, 100, 1, 0.25),
         ("claude", start, 200, 2, 0.50),
-        ("claude", start - Days::days(1), 800, 8, 8.00),
+        ("claude", prior_end, 600, 6, 7.50),
+        ("codex", prior_start, 200, 2, 0.50),
+        ("codex", prior_start - Days::days(1), 900, 9, 9.00),
         ("codex", today + Days::days(1), 900, 9, 9.00),
         ("codex", today - Days::days(2), 0, 0, 0.00),
     ] {
@@ -849,8 +853,16 @@ async fn usage_landing_shares_the_inclusive_thirty_day_report_across_entries(
         .unwrap_or_else(|e| panic!("window: {e}"))
     });
     wait_for_environment(cx, handle);
-    for (navigation, title, cost, tokens, requests, days) in [
-        ("nav-usage", "usage-heading", "$2.00", "600", "6", "2"),
+    for (navigation, title, cost, tokens, requests, days, changes) in [
+        (
+            "nav-usage",
+            "usage-heading",
+            "$2.00",
+            "600",
+            "6",
+            "2",
+            ["Down −75%", "Down −25%", "Down −25%", "Unchanged 0%"],
+        ),
         (
             "nav-codex",
             "platform-tab-heading",
@@ -858,6 +870,7 @@ async fn usage_landing_shares_the_inclusive_thirty_day_report_across_entries(
             "400",
             "4",
             "1",
+            ["Up +200%", "Up +100%", "Up +100%", "Unchanged 0%"],
         ),
     ] {
         cx.update_window(handle, |_, window, cx| {
@@ -901,6 +914,25 @@ async fn usage_landing_shares_the_inclusive_thirty_day_report_across_entries(
                 window.find("usage-active-days").value(),
                 Some(format!("Active days · {days}").as_str())
             );
+            assert_eq!(
+                window.find("usage-previous-date-range").value(),
+                Some(format!("Previous period · {prior_start} – {prior_end}").as_str())
+            );
+            assert_eq!(
+                window.find("usage-today-incomplete").label(),
+                Some("Today is still in progress")
+            );
+            for (id, change) in [
+                "usage-cost-change",
+                "usage-tokens-change",
+                "usage-requests-change",
+                "usage-active-days-change",
+            ]
+            .into_iter()
+            .zip(changes)
+            {
+                assert_eq!(window.find(id).value(), Some(change));
+            }
         })
         .unwrap_or_else(|e| panic!("usage report: {e}"));
     }
