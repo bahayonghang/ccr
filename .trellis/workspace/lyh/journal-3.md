@@ -1967,3 +1967,12 @@ Topics: [.trellis/research/archive/2026-11/ssh-environment-finalization.md](../.
 [用量分析设计](../../../ccr-desktop/DESIGN.md#用量分析分阶段实施)已批准，待实施。[父规格 #228](https://github.com/bahayonghang/ccr/issues/228)和五张子票已核验正文、标签、父子关系及原生依赖。#229 可先开始，#230–#233 各只依赖 #229。
 
 记录器因历史 Session 28 重号在写入前退出。本条在记录锁内核验后追加并同步索引。
+
+## Session 182: GPUI 同步工作台改版规格（#234）
+
+**Date**: 2026-11-22
+**Branch**: `dev`
+
+[同步工作台设计](../../../ccr-desktop/DESIGN.md#同步工作台已批准待实施)已批准，待实施。[规格 #234](https://github.com/bahayonghang/ccr/issues/234)和四张子票已核对验收条件、标签、父子关系和原生阻塞边。#235 先做，#236、#238 依赖 #235，#237 依赖 #236。
+
+记录器遇到历史 Session 28 重号。本条沿用项目此前的做法，在记录锁内补写日志并核对索引。

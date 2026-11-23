@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-3.md`
-- **Total Sessions**: 181
+- **Total Sessions**: 182
 - **Last Active**: 2026-11-22
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-3.md` | ~1969 | Active |
+| `journal-3.md` | ~1978 | Active |
 | `journal-2.md` | ~1982 | Archived |
 | `journal-1.md` | ~1987 | Archived |
 <!-- @@@/auto:active-documents -->
@@ -31,6 +31,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 182 | 2026-11-22 | GPUI 同步工作台改版规格（#234） | - | `dev` |
 | 181 | 2026-11-22 | GPUI 用量重设计规格（#228） | - | `dev` |
 | 180 | 2026-11-19 | GPUI 配置方案与账户重设计规格（#220） | - | `dev` |
 | 179 | 2026-11-17 | SSH关闭核验依据与公开收口准备（#205） | - | `feature/ssh-environment` |
