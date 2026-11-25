@@ -279,29 +279,44 @@ impl AccountManager {
         accounts_to_import: Vec<CheckinAccount>,
         overwrite: bool,
     ) -> Result<(usize, usize)> {
-        let existing = self.db.with_connection(checkin_repo::get_all_accounts)?;
         let mut imported = 0;
         let mut skipped = 0;
+        self.import_batch_counted(accounts_to_import, overwrite, &mut imported, &mut skipped)?;
+        Ok((imported, skipped))
+    }
+
+    pub(super) fn import_batch_counted(
+        &self,
+        accounts_to_import: Vec<CheckinAccount>,
+        overwrite: bool,
+        imported: &mut usize,
+        skipped: &mut usize,
+    ) -> Result<()> {
+        let existing = self.db.with_connection(checkin_repo::get_all_accounts)?;
 
         for new_account in accounts_to_import {
             let exists = existing.iter().any(|a| a.id == new_account.id);
 
             if exists {
                 if overwrite {
-                    self.db
-                        .with_connection(|conn| checkin_repo::update_account(conn, &new_account))?;
-                    imported += 1;
+                    if !self
+                        .db
+                        .with_connection(|conn| checkin_repo::update_account(conn, &new_account))?
+                    {
+                        return Err(AccountError::NotFound(new_account.id));
+                    }
+                    *imported += 1;
                 } else {
-                    skipped += 1;
+                    *skipped += 1;
                 }
             } else {
                 self.db
                     .with_connection(|conn| checkin_repo::insert_account(conn, &new_account))?;
-                imported += 1;
+                *imported += 1;
             }
         }
 
-        Ok((imported, skipped))
+        Ok(())
     }
 }
 

@@ -40,6 +40,11 @@ pub(super) fn status(cx: &App, value: CheckinStatus) -> &'static str {
 }
 pub(super) fn error(cx: &App, value: OperationError) -> &'static str {
     match value {
+        OperationError::ExportDestinationExists => text(
+            cx,
+            "That file already exists. Choose a new export path.",
+            "目标文件已存在，请选择新的导出路径。",
+        ),
         OperationError::FixturePath => text(
             cx,
             "Choose an absolute file path inside the fixture directory. Its parent directory must already exist.",
@@ -321,6 +326,18 @@ impl CheckinView {
     pub(super) fn render_operation_result(&self, cx: &mut Context<Self>) -> impl IntoElement {
         let locked = self.operation.busy;
         let mut section = div().flex_shrink_0();
+        if self.tab == CheckinTab::Transfer
+            && matches!(
+                self.operation.extended.as_deref(),
+                Some(
+                    crate::runtime::checkin::ExtendedReport::Imported(_)
+                        | crate::runtime::checkin::ExtendedReport::Exported { .. }
+                )
+            )
+            && self.operation.result == Some(Ok(Outcome::Extended))
+        {
+            return section;
+        }
         if locked {
             section=section.child(text(cx,"Operation running. You may leave this page; it will retain the result. Active provider calls cannot be cancelled.","操作正在运行。离开此页仍会保留结果；进行中的提供商请求无法取消。"));
         } else if let Some(ExtendedReport::Deleted { completed, failed }) =
