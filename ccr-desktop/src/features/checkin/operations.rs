@@ -1,5 +1,7 @@
 use super::*;
-use crate::runtime::checkin::{Operation, OperationError, Outcome};
+use crate::runtime::checkin::{
+    ExtendedCommand, ExtendedReport, Operation, OperationError, Outcome,
+};
 use ccr_core::Secret;
 use ccr_db::models::checkin::{
     CheckinStatus, CreateAccountRequest, CreateProviderRequest, UpdateAccountRequest,
@@ -20,11 +22,6 @@ pub(super) struct Editor {
     enabled: bool,
     pub(super) credentials: super::credentials::CredentialRead,
 }
-pub(super) enum Confirmation {
-    Account(String),
-    Provider(String),
-}
-
 pub(super) fn status(cx: &App, value: CheckinStatus) -> &'static str {
     match value {
         CheckinStatus::Success => text(cx, "Check-in succeeded.", "签到成功。"),
@@ -326,6 +323,40 @@ impl CheckinView {
         let mut section = div().flex_shrink_0();
         if locked {
             section=section.child(text(cx,"Operation running. You may leave this page; it will retain the result. Active provider calls cannot be cancelled.","操作正在运行。离开此页仍会保留结果；进行中的提供商请求无法取消。"));
+        } else if let Some(ExtendedReport::Deleted { completed, failed }) =
+            self.operation.extended.as_deref()
+        {
+            let summary = format!(
+                "{}: {}; {}: {}",
+                text(cx, "Deleted", "已删除"),
+                completed.len(),
+                text(cx, "Failed", "失败"),
+                failed.len()
+            );
+            let mut report = div()
+                .id("checkin-tools-result")
+                .test_support()
+                .role(gpui_kit::Role::Status)
+                .aria_label(summary.clone())
+                .flex()
+                .flex_col()
+                .child(summary);
+            for (items, verb) in [
+                (completed, text(cx, "Deleted", "已删除")),
+                (failed, text(cx, "Failed", "失败")),
+            ] {
+                for account in items {
+                    let line = format!("{verb} · {account}");
+                    report = report.child(
+                        div()
+                            .id(format!("result-{verb}-{account}"))
+                            .test_support()
+                            .aria_label(line.clone())
+                            .child(line),
+                    );
+                }
+            }
+            section = section.child(report);
         } else if let Some(result) = self.operation.result {
             let message = match result {
                 Ok(Outcome::Extended) => text(
@@ -476,18 +507,18 @@ impl CheckinView {
                             ),
                         ),
                     )
-                    .child(semantics::button(
+                    .child(self.origin_control("account-delete",semantics::button(
                         Button::new(("checkin-delete-account", index))
                             .label(text(cx, "Delete account", "删除账户"))
                             .ghost()
                             .on_click(cx.listener(move |this, _, _, cx| {
-                                this.confirmation = Some(Confirmation::Account(delete.clone()));
-                                cx.notify();
+                                let message = text(cx,"Delete 1 account and its check-in records and balance history?","删除 1 个账户及其签到记录和余额历史？");
+                                this.confirm_account(&delete, Operation::Extended(ExtendedCommand::Delete(vec![delete.clone()])), message, "account-delete", cx);
                             })),
                         locked,
                         false,
                         cx,
-                    )))
+                    ))))
                 .into_any_element(),
             );
         }
@@ -697,20 +728,6 @@ impl CheckinView {
             );
         }
 
-        children
-    }
-
-    pub(super) fn render_entry_confirmation(
-        &self,
-        cx: &mut Context<Self>,
-    ) -> Vec<gpui_kit::AnyElement> {
-        let mut children = Vec::new();
-        let locked = self.operation.busy;
-        if self.confirmation.is_some() {
-            children.push((div().flex().flex_col().gap(px(theme::CONTROL_GAP)).child(text(cx,"Delete this saved entry? Deleting an account also removes its records and balances.","删除此条目？删除账户也会移除其记录和余额。"))
-                .child(semantics::button(Button::new("checkin-confirm-delete").label(text(cx,"Confirm deletion","确认删除")).on_click(cx.listener(|this,_,_,cx|{if let Some(value)=this.confirmation.take(){this.start(match value{Confirmation::Account(id)=>Operation::DeleteAccount(id),Confirmation::Provider(id)=>Operation::DeleteProvider(id)},cx);}})),locked,false,cx))
-                .child(semantics::button(Button::new("checkin-cancel-delete").label(text(cx,"Cancel","取消")).ghost().on_click(cx.listener(|this,_,_,cx|{this.confirmation=None;cx.notify();})),locked,false,cx))).into_any_element());
-        }
         children
     }
 }

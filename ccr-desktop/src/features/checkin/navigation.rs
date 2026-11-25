@@ -83,6 +83,7 @@ impl CheckinView {
         if self.rows().iter().any(|row| row.id == id) {
             self.editor = None;
             self.confirmation = None;
+            self.cdk = None;
             self.navigation.editor = None;
             self.navigation.detail = Some(self.origin(source));
             self.selected = Some(id.to_owned());
@@ -98,6 +99,7 @@ impl CheckinView {
         self.editor = None;
         self.confirmation = None;
         self.selected = None;
+        self.cdk = None;
         if let Some(origin) = self.navigation.detail.take() {
             self.scroll.set_offset(origin.offset);
             self.focus_control(&origin.control);

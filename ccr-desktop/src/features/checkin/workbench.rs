@@ -25,6 +25,7 @@ impl CheckinView {
         self.editor = None;
         self.catalog = false;
         self.confirmation = None;
+        self.cdk = None;
         self.extended = None;
         self.selected = None;
         self.services.discard_checkin_preview();
@@ -277,7 +278,9 @@ impl CheckinView {
             body = body.child(balances::summary(data, cx));
         }
         body = body.child(self.tabs(cx));
-        if self.editor.is_some() {
+        if self.confirmation.is_some() {
+            body = body.child(self.entry_confirmation(cx));
+        } else if self.editor.is_some() {
             body = body
                 .child(self.render_operation_result(cx))
                 .children(self.render_management_editor(cx));
@@ -298,7 +301,6 @@ impl CheckinView {
             } else {
                 body = body.child(detail);
             }
-            body = body.children(self.render_entry_confirmation(cx));
         } else if self.extended.is_some() {
             body = body
                 .child(self.render_operation_result(cx))
@@ -334,7 +336,6 @@ impl CheckinView {
                 }
                 CheckinTab::Transfer => {}
             }
-            body = body.children(self.render_entry_confirmation(cx));
         }
         self.restore_control(window, cx);
         page = page.child(body);
@@ -634,6 +635,7 @@ impl CheckinView {
                 detail = detail.children(self.render_account_rows(data, cx));
             }
             detail = detail
+                .child(self.account_diagnostics(account, cx))
                 .children(lines)
                 .children(self.render_selected_actions(cx));
             if let Some(snapshot) = &self.operation.snapshot {

@@ -301,6 +301,16 @@ fn account_tools_native_selection_cancel_and_batch_delete(cx: &mut TestAppContex
         window.click("checkin-batch-delete", cx);
         window.render_frame(cx);
         assert!(window.try_find("checkin-tools-confirm").is_some());
+        let notice = window
+            .find("checkin-confirmation")
+            .label()
+            .unwrap()
+            .to_owned();
+        assert!(
+            notice.contains("1")
+                && notice.contains("Unmeasured account")
+                && notice.contains("balance history")
+        );
         window.press("escape", cx);
         window.render_frame(cx);
         assert!(window.try_find("checkin-tools-confirm").is_none());
@@ -312,6 +322,7 @@ fn account_tools_native_selection_cancel_and_batch_delete(cx: &mut TestAppContex
     .unwrap();
     wait(cx, handle, |window| {
         labels(window).contains("Deleted: 1; Failed: 0")
+            && labels(window).contains("Deleted · Unmeasured account")
     });
     fn reveal(cx: &mut TestAppContext, handle: gpui_kit::AnyWindowHandle, id: &'static str) {
         for _ in 0..20 {

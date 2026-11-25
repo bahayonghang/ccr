@@ -109,18 +109,19 @@ impl CheckinView {
                             ),
                         ),
                     )
-                    .child(semantics::button(
+                    .child(self.origin_control(&format!("provider-delete-{}",p.id),semantics::button(
                         Button::new(("checkin-delete-provider", index))
                             .label(text(cx, "Delete provider", "删除提供商"))
                             .ghost()
                             .on_click(cx.listener(move |this, _, _, cx| {
-                                this.confirmation = Some(Confirmation::Provider(delete.clone()));
-                                cx.notify();
+                                let Some(provider) = this.data().and_then(|data| data.providers.iter().find(|p| p.id == delete)) else { return; };
+                                let notice = format!("{} · {}", provider.name, text(cx,"Delete 1 saved provider? Associated accounts must be removed first.","删除 1 个已保存的提供商？需先移除关联账户。"));
+                                this.confirm_entry(Operation::DeleteProvider(delete.clone()), notice, &format!("provider-delete-{delete}"),cx);
                             })),
                         locked,
                         false,
                         cx,
-                    )))
+                    ))))
                 .into_any_element(),
             );
             if self.provider_detail.as_ref() == Some(&p.id) {

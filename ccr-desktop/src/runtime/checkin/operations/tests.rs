@@ -514,7 +514,7 @@ fn extended_operations_preserve_secrets_and_report_each_batch_item_without_fixtu
     let ExtendedReport::Deleted { completed, failed } = result.extended.as_deref().unwrap() else {
         panic!("expected partial delete results")
     };
-    assert_eq!(*completed, 1);
+    assert_eq!(completed.len(), 1);
     assert_eq!(failed, &["missing"]);
     runtime.shutdown();
 }

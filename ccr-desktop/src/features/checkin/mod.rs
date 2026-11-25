@@ -1,4 +1,5 @@
 //! Saved check-in accounts. Balances appear only when a local row stores them.
+mod account_actions;
 mod balances;
 mod credentials;
 mod extended;
@@ -7,7 +8,8 @@ mod operations;
 mod providers;
 mod workbench;
 use crate::runtime::checkin::OperationState;
-use operations::{Confirmation, Editor};
+use account_actions::{CdkDraft, Confirmation};
+use operations::Editor;
 use std::sync::Arc;
 use workbench::CheckinTab;
 
@@ -58,6 +60,7 @@ pub struct CheckinView {
     observation: Option<Task<()>>,
     editor: Option<Editor>,
     confirmation: Option<Confirmation>,
+    cdk: Option<CdkDraft>,
     catalog: bool,
     provider_detail: Option<String>,
     extended: Option<extended::ExtendedUi>,
@@ -87,6 +90,7 @@ impl CheckinView {
             observation: None,
             editor: None,
             confirmation: None,
+            cdk: None,
             catalog: false,
             provider_detail: None,
             extended: None,
@@ -121,6 +125,7 @@ impl CheckinView {
         self.services.discard_checkin_preview();
         self.operation = self.services.checkin_operation_state();
         self.confirmation = None;
+        self.cdk = None;
         self.gate.clear();
         self.generation += 1;
         self.busy = false;

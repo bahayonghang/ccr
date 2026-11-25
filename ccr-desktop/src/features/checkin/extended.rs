@@ -16,8 +16,6 @@ pub(super) struct ExtendedUi {
     provider: Option<String>,
     path: Entity<InputState>,
     cookies: Entity<InputState>,
-    code: Entity<InputState>,
-    cdk_config: Entity<InputState>,
     pending: Option<ExtendedCommand>,
     enter_confirmation: bool,
     focus: FocusHandle,
@@ -31,8 +29,6 @@ impl CheckinView {
             provider: None,
             path: cx.new(|cx| InputState::new(window, cx)),
             cookies: cx.new(|cx| InputState::new(window, cx).masked(true)),
-            cdk_config: cx.new(|cx| InputState::new(window, cx).masked(true)),
-            code: cx.new(|cx| InputState::new(window, cx).masked(true)),
             pending: None,
             enter_confirmation: false,
             focus: cx.focus_handle(),
@@ -64,9 +60,9 @@ impl CheckinView {
         if editor.clear_after && !self.operation.busy {
             editor.clear_after = false;
             if self.operation.result.is_some_and(|result| result.is_ok()) {
-                for input in [&editor.cookies, &editor.code, &editor.cdk_config] {
-                    input.update(cx, |state, cx| state.set_value("", window, cx));
-                }
+                editor
+                    .cookies
+                    .update(cx, |state, cx| state.set_value("", window, cx));
             }
         }
         if let Some(CheckinSnapshot::Accounts(snapshot)) = &self.snapshot {
@@ -123,7 +119,7 @@ impl CheckinView {
         }
         if let Some(snapshot) = self.data() {
             root = root.children(self.render_batch_accounts(snapshot, cx));
-            root = root.children(self.render_cdk_controls(cx));
+            root = root.children(self.render_selected_account_links(cx));
             root = root.children(self.render_waf_controls(snapshot, cx));
         }
         root = root.child(self.render_inspection(cx));
@@ -147,25 +143,10 @@ impl CheckinView {
             window.focus(&editor.focus, cx);
         }
         let message = match editor.pending.as_ref() {
-            Some(ExtendedCommand::Delete(_)) => text(
-                cx,
-                "Delete the selected accounts and their stored records?",
-                "删除所选账户及其保存的记录？",
-            ),
             Some(ExtendedCommand::Checkin(_)) => text(
                 cx,
                 "Send check-in requests for the selected accounts? Each outcome is retained.",
                 "向所选账户发送签到请求？每个账户的结果都会保留。",
-            ),
-            Some(ExtendedCommand::CdkCredentials { .. }) => text(
-                cx,
-                "Save the supplied CDK credential fields? Existing omitted fields remain unchanged.",
-                "保存提供的 CDK 凭据字段？未提供的既有字段保留。",
-            ),
-            Some(ExtendedCommand::Recharge { .. }) => text(
-                cx,
-                "Recharge this account? This sends an external request and cannot be cancelled once sent.",
-                "为此账户充值？操作将发送外部请求，发出后无法取消。",
             ),
             Some(ExtendedCommand::ExportStats(_)) => text(
                 cx,
@@ -227,12 +208,8 @@ impl CheckinView {
                                 .and_then(|editor| editor.pending.take())
                             {
                                 if let Some(editor) = &mut this.extended {
-                                    editor.clear_after = matches!(
-                                        &command,
-                                        ExtendedCommand::WafSave { .. }
-                                            | ExtendedCommand::CdkCredentials { .. }
-                                            | ExtendedCommand::Recharge { .. }
-                                    );
+                                    editor.clear_after =
+                                        matches!(&command, ExtendedCommand::WafSave { .. });
                                 }
                                 this.start(Operation::Extended(command), cx);
                             }
@@ -246,6 +223,34 @@ impl CheckinView {
         );
 
         children
+    }
+
+    fn confirm_selected_deletion(&mut self, cx: &mut Context<Self>) {
+        let Some(editor) = &self.extended else { return };
+        let ids: Vec<_> = editor.accounts.iter().cloned().collect();
+        let names = self
+            .rows()
+            .iter()
+            .filter(|row| editor.accounts.contains(&row.id))
+            .map(|row| row.name.as_str())
+            .collect::<Vec<_>>()
+            .join(" · ");
+        let consequence = text(
+            cx,
+            "Delete these accounts, their check-in records and balance history?",
+            "删除这些账户及其签到记录和余额历史？",
+        );
+        let notice = format!(
+            "{} {} · {names} · {consequence}",
+            text(cx, "Selected accounts", "所选账户"),
+            ids.len()
+        );
+        self.confirm_entry(
+            Operation::Extended(ExtendedCommand::Delete(ids)),
+            notice,
+            "batch-delete",
+            cx,
+        );
     }
 
     fn render_batch_accounts(
@@ -314,23 +319,23 @@ impl CheckinView {
                     false,
                     cx,
                 ))
-                .child(semantics::button(
-                    Button::new("checkin-batch-delete")
-                        .label(text(cx, "Delete selected", "删除所选账户"))
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            if let Some(editor) = &this.extended {
-                                this.propose_extended(
-                                    ExtendedCommand::Delete(
-                                        editor.accounts.iter().cloned().collect(),
-                                    ),
-                                    cx,
-                                );
-                            }
-                        })),
-                    blocked || chosen.is_empty(),
-                    false,
-                    cx,
-                ))
+                .child(
+                    self.origin_control(
+                        "batch-delete",
+                        semantics::button(
+                            Button::new("checkin-batch-delete")
+                                .label(text(cx, "Delete selected", "删除所选账户"))
+                                .on_click(
+                                    cx.listener(|this, _, _, cx| {
+                                        this.confirm_selected_deletion(cx)
+                                    }),
+                                ),
+                            blocked || chosen.is_empty(),
+                            false,
+                            cx,
+                        ),
+                    ),
+                )
                 .child(semantics::button(
                     Button::new("checkin-today-stats")
                         .label(text(cx, "Today's statistics", "今日统计"))
@@ -364,18 +369,15 @@ impl CheckinView {
         children
     }
 
-    fn render_cdk_controls(&self, cx: &mut Context<Self>) -> Vec<gpui_kit::AnyElement> {
+    fn render_selected_account_links(&self, cx: &mut Context<Self>) -> Vec<gpui_kit::AnyElement> {
         let mut children = Vec::new();
         let Some(editor) = &self.extended else {
             return children;
         };
         let blocked = self.operation.busy || editor.pending.is_some();
         let chosen = &editor.accounts;
-        let code = editor.code.clone();
-        let cdk_config = editor.cdk_config.clone();
         if chosen.len() == 1 {
             let account = chosen.first().cloned().unwrap_or_default();
-            let credentials = account.clone();
             let balance = account.clone();
             let records = account.clone();
             children.push(
@@ -408,67 +410,25 @@ impl CheckinView {
                     )))
                 .into_any_element(),
             );
-            children.push((text(cx,"CDK recharge uses the provider's existing support. Leave the code blank to fetch a code. Recharge history is not stored separately.","CDK 充值复用提供商既有能力。留空将自动获取充值码；系统不单独保存充值历史。")).into_any_element());
+            let key = format!("tools-detail-{account}");
             children.push(
-                (Input::new(&code)
-                    .id("checkin-cdk-code")
-                    .aria_label(text(cx, "CDK code", "CDK 充值码"))
-                    .disabled(blocked))
-                .into_any_element(),
-            );
-            children.push(
-                (semantics::button(
-                    Button::new("checkin-cdk-recharge")
-                        .label(text(cx, "Recharge", "充值"))
-                        .on_click(cx.listener(move |this, _, _, cx| {
-                            if let Some(editor) = &this.extended {
-                                let value =
-                                    ccr_core::Secret::new(editor.code.read(cx).value().to_string());
-                                this.propose_extended(
-                                    ExtendedCommand::Recharge {
-                                        account: account.clone(),
-                                        code: value,
-                                    },
+                self.origin_control(
+                    &key,
+                    semantics::ghost_button(
+                        Button::new("checkin-tools-detail")
+                            .label(text(cx, "Open account details", "打开账户详情"))
+                            .on_click(cx.listener(move |this, _, _, cx| {
+                                this.open_account_detail(
+                                    &account,
+                                    &format!("tools-detail-{account}"),
                                     cx,
-                                );
-                            }
-                        })),
-                    blocked,
-                    false,
-                    cx,
-                ))
-                .into_any_element(),
-            );
-            children.push((text(cx,"CDK credentials patch: fuli_cookies, b4u_cdk_cookies or x666_access_token. Omitted values remain saved; null removes a field.","CDK 凭据补丁：fuli_cookies、b4u_cdk_cookies 或 x666_access_token。省略字段保留，null 删除字段。")).into_any_element());
-            children.push(
-                (Input::new(&cdk_config)
-                    .id("checkin-cdk-credentials")
-                    .aria_label(text(cx, "CDK credentials JSON patch", "CDK 凭据 JSON 补丁"))
-                    .disabled(blocked))
-                .into_any_element(),
-            );
-            children.push(
-                (semantics::button(
-                    Button::new("checkin-cdk-save")
-                        .label(text(cx, "Save CDK credentials", "保存 CDK 凭据"))
-                        .on_click(cx.listener(move |this, _, _, cx| {
-                            if let Some(editor) = &this.extended {
-                                let patch = ccr_core::Secret::new(
-                                    editor.cdk_config.read(cx).value().to_string(),
-                                );
-                                this.propose_extended(
-                                    ExtendedCommand::CdkCredentials {
-                                        account: credentials.clone(),
-                                        patch,
-                                    },
-                                    cx,
-                                );
-                            }
-                        })),
-                    blocked,
-                    false,
-                    cx,
-                ))
+                                )
+                            })),
+                        blocked,
+                        false,
+                        cx,
+                    ),
+                )
                 .into_any_element(),
             );
         }
@@ -697,23 +657,7 @@ impl CheckinView {
                         );
                     }
                 }
-                ExtendedReport::Deleted { completed, failed } => {
-                    let summary = format!(
-                        "{}: {completed}; {}: {}",
-                        text(cx, "Deleted", "已删除"),
-                        text(cx, "Failed", "失败"),
-                        failed.len()
-                    );
-                    children.push(
-                        (div()
-                            .id("checkin-tools-result")
-                            .test_support()
-                            .role(gpui_kit::Role::Status)
-                            .aria_label(SharedString::from(summary.clone()))
-                            .child(summary))
-                        .into_any_element(),
-                    );
-                }
+                ExtendedReport::Deleted { .. } => {}
                 ExtendedReport::Stats {
                     total,
                     checked,
@@ -875,12 +819,12 @@ impl CheckinView {
                         .into_any_element(),
                     );
                 }
-                ExtendedReport::CdkSaved => {
+                ExtendedReport::CdkSaved { .. } => {
                     children.push(
                         (text(cx, "CDK credentials saved.", "CDK 凭据已保存。")).into_any_element(),
                     );
                 }
-                ExtendedReport::Recharged { success } => {
+                ExtendedReport::Recharged { success, .. } => {
                     children.push(
                         (if *success {
                             text(cx, "Recharge succeeded.", "充值成功。")
