@@ -1,6 +1,7 @@
 use super::*;
-use crate::runtime::checkin::{Operation, OperationError, Outcome};
-use ccr_checkin::managers::checkin::builtin_providers::get_builtin_providers;
+use crate::runtime::checkin::{
+    ExtendedCommand, ExtendedReport, Operation, OperationError, Outcome,
+};
 use ccr_core::Secret;
 use ccr_db::models::checkin::{
     CheckinStatus, CreateAccountRequest, CreateProviderRequest, UpdateAccountRequest,
@@ -21,11 +22,6 @@ pub(super) struct Editor {
     enabled: bool,
     pub(super) credentials: super::credentials::CredentialRead,
 }
-pub(super) enum Confirmation {
-    Account(String),
-    Provider(String),
-}
-
 pub(super) fn status(cx: &App, value: CheckinStatus) -> &'static str {
     match value {
         CheckinStatus::Success => text(cx, "Check-in succeeded.", "签到成功。"),
@@ -104,6 +100,11 @@ pub(super) fn error(cx: &App, value: OperationError) -> &'static str {
             "Operation interrupted; read saved data before retrying.",
             "操作中断，重试前请读取已保存的数据。",
         ),
+        OperationError::DuplicateProvider => text(
+            cx,
+            "This provider is already configured.",
+            "此提供商已配置。",
+        ),
         OperationError::ProviderInUse => text(
             cx,
             "Delete the provider's accounts first.",
@@ -144,11 +145,24 @@ impl CheckinView {
                 if weak
                     .update(cx, |this, cx| {
                         let refresh = !state.busy && state.result.is_some();
-                        if matches!(state.result, Some(Ok(Outcome::Saved | Outcome::Deleted))) {
-                            this.editor = None;
+                        if let Some(id) = &state.created_account
+                            && matches!(
+                                this.editor.as_ref().map(|e| &e.kind),
+                                Some(EditorKind::Account(None))
+                            )
+                            && matches!(state.result, Some(Ok(Outcome::Saved)))
+                        {
+                            this.show_created_account(id);
+                        } else if matches!(
+                            state.result,
+                            Some(Ok(Outcome::Saved | Outcome::Deleted))
+                        ) {
+                            this.close_editor();
                         }
                         this.operation = state;
                         if refresh {
+                            // Replace any read started before the write completed.
+                            this.busy = false;
                             this.refresh(cx);
                         }
                         cx.notify();
@@ -190,6 +204,7 @@ impl CheckinView {
             EditorKind::Provider(_) => 7,
             EditorKind::Account(_) => 4,
         };
+        let mut account_name = None;
         let mut enabled = true;
         let mut provider = self.provider_filter.clone().or_else(|| {
             self.data()
@@ -207,6 +222,7 @@ impl CheckinView {
             }
             EditorKind::Account(Some(id)) => {
                 if let Some(a) = self.rows().iter().find(|a| &a.id == id) {
+                    account_name = Some(a.name.clone());
                     enabled = a.enabled;
                     provider = Some(a.provider_id.clone());
                 }
@@ -224,6 +240,17 @@ impl CheckinView {
                 })
                 .collect(),
         });
+        if let Some(field) = self
+            .editor
+            .as_ref()
+            .and_then(|editor| editor.fields.first())
+        {
+            use gpui_kit::Focusable;
+            if let Some(name) = account_name {
+                field.update(cx, |state, cx| state.set_value(name, window, cx));
+            }
+            window.focus(&field.read(cx).focus_handle(cx), cx);
+        }
         self.load_account_credentials(cx);
         self.confirmation = None;
         cx.notify();
@@ -247,16 +274,15 @@ impl CheckinView {
         } else {
             None
         };
-        let values: Vec<String> = editor
-            .fields
-            .iter()
-            .map(|f| f.read(cx).value().to_string())
-            .collect();
-        let optional = |index: usize| (!values[index].is_empty()).then(|| values[index].clone());
+        let value = |index: usize| editor.fields[index].read(cx).value().to_string();
+        let optional = |index: usize| {
+            let field = value(index);
+            (!field.is_empty()).then_some(field)
+        };
         let operation = match &editor.kind {
             EditorKind::Provider(None) => Operation::AddProvider(CreateProviderRequest {
-                name: values[0].clone(),
-                base_url: values[1].clone(),
+                name: value(0),
+                base_url: value(1),
                 checkin_path: optional(2),
                 balance_path: optional(3),
                 user_info_path: optional(4),
@@ -283,9 +309,9 @@ impl CheckinView {
                 };
                 Operation::AddAccount(CreateAccountRequest {
                     provider_id: provider.clone(),
-                    name: values[0].clone(),
+                    name: value(0),
                     cookies_json: cookies.unwrap_or_else(|| Secret::new("")),
-                    api_user: values[2].clone(),
+                    api_user: value(2),
                     extra_config: "{}".into(),
                 })
             }
@@ -319,6 +345,40 @@ impl CheckinView {
         }
         if locked {
             section=section.child(text(cx,"Operation running. You may leave this page; it will retain the result. Active provider calls cannot be cancelled.","操作正在运行。离开此页仍会保留结果；进行中的提供商请求无法取消。"));
+        } else if let Some(ExtendedReport::Deleted { completed, failed }) =
+            self.operation.extended.as_deref()
+        {
+            let summary = format!(
+                "{}: {}; {}: {}",
+                text(cx, "Deleted", "已删除"),
+                completed.len(),
+                text(cx, "Failed", "失败"),
+                failed.len()
+            );
+            let mut report = div()
+                .id("checkin-tools-result")
+                .test_support()
+                .role(gpui_kit::Role::Status)
+                .aria_label(summary.clone())
+                .flex()
+                .flex_col()
+                .child(summary);
+            for (items, verb) in [
+                (completed, text(cx, "Deleted", "已删除")),
+                (failed, text(cx, "Failed", "失败")),
+            ] {
+                for account in items {
+                    let line = format!("{verb} · {account}");
+                    report = report.child(
+                        div()
+                            .id(format!("result-{verb}-{account}"))
+                            .test_support()
+                            .aria_label(line.clone())
+                            .child(line),
+                    );
+                }
+            }
+            section = section.child(report);
         } else if let Some(result) = self.operation.result {
             let message = match result {
                 Ok(Outcome::Extended) => text(
@@ -399,51 +459,6 @@ impl CheckinView {
         children
     }
 
-    pub(super) fn render_provider_rows(
-        &self,
-        snapshot: &CheckinData,
-        cx: &mut Context<Self>,
-    ) -> Vec<gpui_kit::AnyElement> {
-        let mut children = Vec::new();
-        let locked = self.operation.busy;
-        for (index, p) in snapshot.providers.iter().enumerate() {
-            let id = p.id.clone();
-            let delete = id.clone();
-            children.push(
-                (div()
-                    .flex()
-                    .gap(px(theme::CONTROL_GAP))
-                    .child(ccr_core::core::log_redact::redact_log_text(&p.name))
-                    .child(semantics::button(
-                        Button::new(("checkin-edit-provider", index))
-                            .label(text(cx, "Edit provider", "编辑提供商"))
-                            .ghost()
-                            .on_click(cx.listener(move |this, _, window, cx| {
-                                this.edit(EditorKind::Provider(Some(id.clone())), window, cx)
-                            })),
-                        locked,
-                        false,
-                        cx,
-                    ))
-                    .child(semantics::button(
-                        Button::new(("checkin-delete-provider", index))
-                            .label(text(cx, "Delete provider", "删除提供商"))
-                            .ghost()
-                            .on_click(cx.listener(move |this, _, _, cx| {
-                                this.confirmation = Some(Confirmation::Provider(delete.clone()));
-                                cx.notify();
-                            })),
-                        locked,
-                        false,
-                        cx,
-                    )))
-                .into_any_element(),
-            );
-        }
-
-        children
-    }
-
     pub(super) fn render_account_rows(
         &self,
         snapshot: &CheckinData,
@@ -459,34 +474,73 @@ impl CheckinView {
         {
             let id = a.id.clone();
             let delete = id.clone();
+            let toggle = id.clone();
+            let enabled = a.enabled;
             children.push(
                 (div()
                     .flex()
+                    .flex_wrap()
                     .gap(px(theme::CONTROL_GAP))
-                    .child(a.name.clone())
-                    .child(semantics::button(
-                        Button::new(("checkin-edit-account", index))
-                            .label(text(cx, "Edit account", "编辑账户"))
-                            .ghost()
-                            .on_click(cx.listener(move |this, _, window, cx| {
-                                this.edit(EditorKind::Account(Some(id.clone())), window, cx)
-                            })),
-                        locked,
-                        false,
-                        cx,
-                    ))
-                    .child(semantics::button(
+                    .child(
+                        self.origin_control(
+                            "toggle",
+                            semantics::ghost_button(
+                                Button::new("checkin-toggle-account")
+                                    .label(if enabled {
+                                        text(cx, "Disable account", "停用账户")
+                                    } else {
+                                        text(cx, "Enable account", "启用账户")
+                                    })
+                                    .on_click(cx.listener(move |this, _, _, cx| {
+                                        this.focus_control("toggle");
+                                        this.start(
+                                            Operation::UpdateAccount(
+                                                toggle.clone(),
+                                                UpdateAccountRequest {
+                                                    name: None,
+                                                    cookies_json: None,
+                                                    api_user: None,
+                                                    enabled: Some(!enabled),
+                                                    extra_config: None,
+                                                },
+                                            ),
+                                            cx,
+                                        );
+                                    })),
+                                locked,
+                                false,
+                                cx,
+                            ),
+                        ),
+                    )
+                    .child(
+                        self.origin_control(
+                            "edit",
+                            semantics::button(
+                                Button::new(("checkin-edit-account", index))
+                                    .label(text(cx, "Edit account", "编辑账户"))
+                                    .ghost()
+                                    .on_click(cx.listener(move |this, _, window, cx| {
+                                        this.open_account_credentials(&id, "edit", window, cx)
+                                    })),
+                                locked,
+                                false,
+                                cx,
+                            ),
+                        ),
+                    )
+                    .child(self.origin_control("account-delete",semantics::button(
                         Button::new(("checkin-delete-account", index))
                             .label(text(cx, "Delete account", "删除账户"))
                             .ghost()
                             .on_click(cx.listener(move |this, _, _, cx| {
-                                this.confirmation = Some(Confirmation::Account(delete.clone()));
-                                cx.notify();
+                                let message = text(cx,"Delete 1 account and its check-in records and balance history?","删除 1 个账户及其签到记录和余额历史？");
+                                this.confirm_account(&delete, Operation::Extended(ExtendedCommand::Delete(vec![delete.clone()])), message, "account-delete", cx);
                             })),
                         locked,
                         false,
                         cx,
-                    )))
+                    ))))
                 .into_any_element(),
             );
         }
@@ -537,7 +591,12 @@ impl CheckinView {
                     ("Session cookie", "Session Cookie"),
                 ]
             };
-            let mut form=div().id("checkin-editor").test_support().flex().flex_col().gap(px(theme::CONTROL_GAP))
+            let mut form=div().id("checkin-editor").test_support()
+                .on_key_down(cx.listener(|this,event: &gpui_kit::KeyDownEvent,_,cx| {
+                    if event.keystroke.key == "escape" && !this.operation.busy {
+                        this.close_editor(); cx.stop_propagation(); cx.notify();
+                    }
+                })).flex().flex_col().gap(px(theme::CONTROL_GAP))
                 .child(text(cx,"For edits, blank fields retain saved values. Session changes keep other cookies. Credentials are encrypted before storage. Browser login is not available here.","编辑时留空保留原值。修改 Session 会保留其他 Cookie，凭据写入前会加密。此处尚不支持浏览器登录。"));
             if matches!(editor.kind, EditorKind::Provider(None)) {
                 form = form.child(semantics::ghost_button(
@@ -552,22 +611,7 @@ impl CheckinView {
                     cx,
                 ));
                 if self.catalog {
-                    let mut catalog = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
-                    for (index, item) in get_builtin_providers().into_iter().enumerate() {
-                        let id = item.id;
-                        let label = format!("{} {}", text(cx, "Add", "添加"), item.name);
-                        catalog = catalog.child(semantics::button(
-                            Button::new(("checkin-builtin", index))
-                                .label(label)
-                                .on_click(cx.listener(move |this, _, _, cx| {
-                                    this.start(Operation::AddBuiltin(id.clone()), cx)
-                                })),
-                            locked,
-                            false,
-                            cx,
-                        ));
-                    }
-                    form = form.child(catalog);
+                    form = form.child(self.builtin_catalog(cx));
                 }
             }
             if editor.credentials.loading {
@@ -694,8 +738,7 @@ impl CheckinView {
                                 .label(text(cx, "Cancel editing", "取消编辑"))
                                 .ghost()
                                 .on_click(cx.listener(|this, _, _, cx| {
-                                    this.editor = None;
-                                    this.catalog = false;
+                                    this.close_editor();
                                     cx.notify();
                                 })),
                             self.operation.busy,
@@ -707,20 +750,6 @@ impl CheckinView {
             );
         }
 
-        children
-    }
-
-    pub(super) fn render_entry_confirmation(
-        &self,
-        cx: &mut Context<Self>,
-    ) -> Vec<gpui_kit::AnyElement> {
-        let mut children = Vec::new();
-        let locked = self.operation.busy;
-        if self.confirmation.is_some() {
-            children.push((div().flex().flex_col().gap(px(theme::CONTROL_GAP)).child(text(cx,"Delete this saved entry? Deleting an account also removes its records and balances.","删除此条目？删除账户也会移除其记录和余额。"))
-                .child(semantics::button(Button::new("checkin-confirm-delete").label(text(cx,"Confirm deletion","确认删除")).on_click(cx.listener(|this,_,_,cx|{if let Some(value)=this.confirmation.take(){this.start(match value{Confirmation::Account(id)=>Operation::DeleteAccount(id),Confirmation::Provider(id)=>Operation::DeleteProvider(id)},cx);}})),locked,false,cx))
-                .child(semantics::button(Button::new("checkin-cancel-delete").label(text(cx,"Cancel","取消")).ghost().on_click(cx.listener(|this,_,_,cx|{this.confirmation=None;cx.notify();})),locked,false,cx))).into_any_element());
-        }
         children
     }
 }

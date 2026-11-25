@@ -96,6 +96,7 @@ pub struct CheckinData {
     pub accounts: Vec<CheckinAccountRow>,
     pub providers: Vec<CheckinProviderRow>,
     pub balances: SavedBalances,
+    pub valid_waf_providers: std::collections::BTreeSet<String>,
     pub records: Vec<RecordSummary>,
 }
 
@@ -144,10 +145,15 @@ fn project_data(
     let providers: Vec<_> = providers
         .into_iter()
         .map(|provider| CheckinProviderRow {
+            builtin_id: provider.builtin_id.clone().or_else(|| {
+                ccr_checkin::managers::checkin::builtin_providers::resolve_builtin_for_provider(
+                    &provider,
+                )
+                .map(|builtin| builtin.id)
+            }),
             id: provider.id,
             name: redact_log_text(&provider.name),
             enabled: provider.enabled,
-            builtin_id: provider.builtin_id,
         })
         .collect();
     let names: HashMap<_, _> = providers.iter().map(|p| (&p.id, &p.name)).collect();
@@ -198,6 +204,7 @@ fn project_data(
         accounts,
         providers,
         balances: summary,
+        valid_waf_providers: Default::default(),
         records: Vec::new(),
     }
 }
@@ -226,8 +233,10 @@ fn read_connection(conn: &rusqlite::Connection) -> Result<CheckinSnapshot, Check
         }
     }
     let records = checkin_repo::get_all_records(&tx, 20).map_err(|_| CheckinError::Storage)?;
+    let cached = checkin_repo::valid_waf_provider_ids(&tx).map_err(|_| CheckinError::Storage)?;
     tx.commit().map_err(|_| CheckinError::Storage)?;
     let mut data = project_data(accounts, providers, balances);
+    data.valid_waf_providers = cached.into_iter().collect();
     data.records = records
         .into_iter()
         .map(|r| RecordSummary {

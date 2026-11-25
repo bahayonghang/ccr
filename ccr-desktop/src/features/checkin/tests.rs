@@ -303,6 +303,16 @@ fn account_tools_native_selection_cancel_and_batch_delete(cx: &mut TestAppContex
         window.click("checkin-batch-delete", cx);
         window.render_frame(cx);
         assert!(window.try_find("checkin-tools-confirm").is_some());
+        let notice = window
+            .find("checkin-confirmation")
+            .label()
+            .unwrap()
+            .to_owned();
+        assert!(
+            notice.contains("1")
+                && notice.contains("Unmeasured account")
+                && notice.contains("balance history")
+        );
         window.press("escape", cx);
         window.render_frame(cx);
         assert!(window.try_find("checkin-tools-confirm").is_none());
@@ -314,6 +324,7 @@ fn account_tools_native_selection_cancel_and_batch_delete(cx: &mut TestAppContex
     .unwrap();
     wait(cx, handle, |window| {
         labels(window).contains("Deleted: 1; Failed: 0")
+            && labels(window).contains("Deleted · Unmeasured account")
     });
     fn reveal(cx: &mut TestAppContext, handle: gpui_kit::AnyWindowHandle, id: &'static str) {
         for _ in 0..20 {
@@ -464,6 +475,20 @@ async fn minimum_window_keeps_account_filters_and_unfiltered_balance_totals(
             window.click("checkin-back", cx);
             window.render_frame(cx);
             assert!(window.try_find("checkin-detail").is_none());
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
+            assert_eq!(window.find("checkin-account-1").focused(), Some(true));
+            window.press("enter", cx);
+            window.render_frame(cx);
+            assert!(
+                window
+                    .find("checkin-detail")
+                    .label()
+                    .unwrap()
+                    .contains("Desk account")
+            );
+            window.click("checkin-back", cx);
+            window.render_frame(cx);
             window.click("checkin-search", cx);
             window.input("DeSk", cx);
             window.render_frame(cx);
@@ -691,3 +716,68 @@ fn transfer_preview_cancel_and_commit_use_the_reviewed_source(cx: &mut TestAppCo
         .unwrap();
     owner.shutdown();
 }
+
+#[gpui_kit::test]
+async fn provider_details_show_only_cache_status_and_locate_associated_accounts(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    seed(root.path());
+    let db = rusqlite::Connection::open(root.path().join("checkin.db")).unwrap();
+    db.execute(
+        "UPDATE checkin_providers SET builtin_id='builtin-anyrouter' WHERE id='provider-1'",
+        [],
+    )
+    .unwrap();
+    checkin_repo::upsert_waf_cookies(
+        &db,
+        "provider-1",
+        r#"{"cached":"cache-secret-sentinel"}"#,
+        at("2020-01-01T00:00:00Z"),
+        at("2020-01-01T00:01:00Z"),
+    )
+    .unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let handle = open(cx, &owner, root.path());
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("nav-checkin", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("checkin-account-0").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("checkin-tab-providers", cx);
+        window.render_frame(cx);
+        assert!(window.find("checkin-new-provider").bounds().size.width < px(250.));
+        window.click("checkin-provider-info-0", cx);
+        window.render_frame(cx);
+        assert!(
+            window
+                .find("checkin-provider-status")
+                .label()
+                .unwrap()
+                .contains("Missing or expired")
+        );
+        assert!(!labels(window).contains("cache-secret-sentinel"));
+        window.click("checkin-provider-accounts-0", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("checkin-account-1").is_some());
+        window.remove_window();
+    })
+    .unwrap();
+    assert_eq!(
+        db.query_row("SELECT COUNT(*) FROM checkin_waf_cookies", [], |row| row
+            .get::<_, i64>(0))
+            .unwrap(),
+        1
+    );
+    owner.shutdown();
+}
+
+#[path = "management_tests.rs"]
+mod management;

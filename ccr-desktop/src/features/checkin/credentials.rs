@@ -26,6 +26,12 @@ impl operations::Editor {
         if self.credentials.advanced {
             return Ok(Some(value.to_string().into()));
         }
+        // A session-only replacement needs the other saved cookies.
+        if matches!(self.kind, operations::EditorKind::Account(Some(_)))
+            && let Some(error) = self.credentials.failed
+        {
+            return Err(error);
+        }
         let original = self.fields[1].read(cx).value();
         let mut cookies: serde_json::Value = serde_json::from_str(if original.is_empty() {
             "{}"
@@ -33,6 +39,11 @@ impl operations::Editor {
             original.as_str()
         })
         .map_err(|_| crate::runtime::checkin::OperationError::Invalid)?;
+        if matches!(self.kind, operations::EditorKind::Account(Some(_)))
+            && cookies.get("session").and_then(serde_json::Value::as_str) == Some(value.as_str())
+        {
+            return Ok(None);
+        }
         cookies
             .as_object_mut()
             .ok_or(crate::runtime::checkin::OperationError::Invalid)?
@@ -94,7 +105,7 @@ impl CheckinView {
                     while let Some(event) = subscription.next().await {
                         if let TaskEvent::Terminal(result) = event {
                             let _ = weak.update(cx, |this, cx| {
-                                this.accept_account_credentials(request, &id, result.as_ref());
+                                this.accept_account_credentials(request, &id, result.as_ref(), cx);
                                 cx.notify();
                             });
                             break;
@@ -114,6 +125,7 @@ impl CheckinView {
         request: u64,
         id: &str,
         result: &Completion<AccountCredentials, crate::runtime::checkin::OperationError>,
+        cx: &mut Context<Self>,
     ) {
         let Some(editor) = &mut self.editor else {
             return;
@@ -129,6 +141,12 @@ impl CheckinView {
             Completion::Success(value) if value.account_id == id => {
                 editor.credentials.failed = None;
                 editor.credentials.loaded = Some(value.clone());
+            }
+            Completion::Failed(OperationError::Invalid) => {
+                // The read-only credential owner reports an absent database or account.
+                self.close_editor();
+                self.busy = false;
+                self.refresh(cx);
             }
             Completion::Failed(error) | Completion::CleanupFailed(error) => {
                 editor.credentials.failed = Some(*error)
@@ -298,13 +316,14 @@ mod tests {
             })
             .unwrap()
         });
+        cx.update(|cx| view.update(cx, |this, cx| this.refresh(cx)));
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+            !view.read(cx).rows().is_empty()
+        })
+        .await;
         cx.update_window(handle, |_, window, cx| {
             view.update(cx, |this, cx| {
-                this.edit(
-                    operations::EditorKind::Account(Some(id.clone())),
-                    window,
-                    cx,
-                )
+                this.open_account_credentials(&id, "edit-account", window, cx)
             });
         })
         .unwrap();
@@ -317,6 +336,12 @@ mod tests {
             assert_eq!(
                 view.read(cx).editor.as_ref().unwrap().credentials.failed,
                 Some(OperationError::CryptoKeyUnavailable)
+            );
+            assert_eq!(
+                view.read(cx).editor.as_ref().unwrap().fields[0]
+                    .read(cx)
+                    .value(),
+                "original"
             );
             let warning = window.find("checkin-credential-read-error");
             assert!(warning.label().unwrap().contains("Restore it"));
@@ -544,6 +569,7 @@ mod tests {
                         cookies: "stale-secret".into(),
                         api_user: "stale-user".into(),
                     }),
+                    cx,
                 );
                 assert!(this.editor.as_ref().unwrap().credentials.loaded.is_none());
                 this.suspend(cx);
@@ -557,6 +583,7 @@ mod tests {
                         cookies: "late-secret".into(),
                         api_user: "late-user".into(),
                     }),
+                    cx,
                 );
                 assert!(this.editor.is_none());
             });

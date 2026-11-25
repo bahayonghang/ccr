@@ -318,20 +318,22 @@ pub fn get_builtin_provider_by_id(id: &str) -> Option<BuiltinProvider> {
 
 /// Resolve the builtin provider behind a stored `CheckinProvider`.
 ///
-/// Prefers the persisted `builtin_id` (rename-safe); falls back to the legacy
-/// name-based match for rows created before `builtin_id` existed.
+/// A persisted identity is authoritative, even when its catalog entry is unknown.
+/// Only legacy rows resolve by name and then by base URL (ignoring trailing slashes).
 pub fn resolve_builtin_for_provider(provider: &CheckinProvider) -> Option<BuiltinProvider> {
-    if let Some(builtin_id) = provider.builtin_id.as_deref()
-        && let Some(found) = get_builtin_provider_by_id(builtin_id)
-    {
-        return Some(found);
+    if let Some(id) = &provider.builtin_id {
+        return get_builtin_provider_by_id(id);
     }
-
-    // 旧数据回退路径：与历史行为保持一致（name 精确匹配或 builtin-{name} 推导）
+    let builtins = get_builtin_providers();
     let derived_id = format!("builtin-{}", provider.name.to_lowercase());
-    get_builtin_providers()
-        .into_iter()
-        .find(|bp| bp.name == provider.name || bp.id == derived_id)
+    let by_name = builtins
+        .iter()
+        .find(|bp| bp.name == provider.name || bp.id == derived_id);
+    by_name.cloned().or_else(|| {
+        builtins
+            .into_iter()
+            .find(|bp| bp.base_url.trim_end_matches('/') == provider.base_url.trim_end_matches('/'))
+    })
 }
 
 /// 检查是否是内置提供商 ID

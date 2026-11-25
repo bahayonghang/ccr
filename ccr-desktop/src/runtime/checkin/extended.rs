@@ -51,7 +51,7 @@ pub enum ExtendedReport {
     Inspection(Arc<InspectionReport>),
     Batch(Vec<BatchItem>),
     Deleted {
-        completed: usize,
+        completed: Vec<String>,
         failed: Vec<String>,
     },
     Balances(BalanceHistoryResponse),
@@ -71,8 +71,11 @@ pub enum ExtendedReport {
         stats: bool,
     },
     Imported(ImportReceipt),
-    CdkSaved,
+    CdkSaved {
+        account: String,
+    },
     Recharged {
+        account: String,
         success: bool,
     },
 }
@@ -118,12 +121,17 @@ pub(super) async fn execute_extended(
             if ids.is_empty() || ids.len() > 1000 {
                 return Err(OperationError::Invalid);
             }
-            let mut completed = 0;
+            let mut completed = Vec::new();
             let mut failed = Vec::new();
             for id in ids {
+                let label = accounts
+                    .get(&id)
+                    .ok()
+                    .map(|row| format!("{} · {}", redact_log_text(&row.name), redact_log_text(&id)))
+                    .unwrap_or_else(|| redact_log_text(&id));
                 match accounts.delete(&id) {
-                    Ok(()) => completed += 1,
-                    Err(_) => failed.push(id),
+                    Ok(()) => completed.push(label),
+                    Err(_) => failed.push(label),
                 }
             }
             Ok(ExtendedReport::Deleted { completed, failed })
@@ -238,7 +246,7 @@ pub(super) async fn execute_extended(
                 )
                 .map_err(|_| OperationError::Invalid)
             })?;
-            Ok(ExtendedReport::CdkSaved)
+            Ok(ExtendedReport::CdkSaved { account })
         }
         ExtendedCommand::Recharge { account, code } => {
             // Explicit recharge can resolve external builtin endpoints. Fixtures never call it.
@@ -264,6 +272,7 @@ pub(super) async fn execute_extended(
             .await
             .map_err(|_| OperationError::Network)?;
             Ok(ExtendedReport::Recharged {
+                account,
                 success: result
                     .get("success")
                     .and_then(serde_json::Value::as_bool)

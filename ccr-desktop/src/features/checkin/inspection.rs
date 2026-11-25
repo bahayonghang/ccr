@@ -73,21 +73,66 @@ impl CheckinView {
             .flex_shrink_0();
         if editor.accounts.len() == 1 {
             let account = editor.accounts.first().cloned().unwrap_or_default();
-            let connection = account.clone();
-            let waf = account.clone();
-            root=root.child(div().flex().gap(px(theme::CONTROL_GAP))
-                .child(semantics::button(Button::new("checkin-test-connection").label(text(cx,"Test account connection","测试账户连接")).on_click(cx.listener(move|this,_,_,cx|this.inspect_account(InspectionCommand::Connection(connection.clone()),cx))),blocked,false,cx))
-                .child(semantics::button(Button::new("checkin-validate-waf").label(text(cx,"Validate cached WAF access","校验已缓存 WAF 访问")).on_click(cx.listener(move|this,_,_,cx|this.inspect_account(InspectionCommand::Waf(waf.clone()),cx))),blocked,false,cx)))
-                .child(text(cx,"Connection and WAF validation contact the selected account's provider using stored credentials.","连接测试与 WAF 校验会使用已保存凭据访问所选账户的提供商。"))
-                .child(text(cx,"Saved account calendar and trend","已保存账户月历与趋势"))
-                .child(Input::new(&editor.inspection.year).id("checkin-calendar-year").aria_label(text(cx,"Calendar year","月历年份")).disabled(blocked))
-                .child(Input::new(&editor.inspection.month).id("checkin-calendar-month").aria_label(text(cx,"Calendar month","月历月份")).disabled(blocked))
-                .child(Input::new(&editor.inspection.days).id("checkin-trend-days").aria_label(text(cx,"Trend days","趋势天数")).disabled(blocked))
-                .child(semantics::button(Button::new("checkin-dashboard-read").label(text(cx,"Read calendar and trend","读取月历与趋势")).on_click(cx.listener(move|this,_,_,cx|{
-                    let Some(editor)=&this.extended else{return;};
-                    let values=(editor.inspection.year.read(cx).value().parse::<i32>(),editor.inspection.month.read(cx).value().parse::<u32>(),editor.inspection.days.read(cx).value().parse::<u32>());
-                    match values { (Ok(year),Ok(month),Ok(days))=>this.inspect_account(InspectionCommand::Dashboard{account:account.clone(),year,month,days},cx),_=>this.invalid_query(cx) }
-                })),blocked,false,cx));
+            let diagnostics = div()
+                .flex()
+                .flex_wrap()
+                .gap(px(theme::CONTROL_GAP))
+                .child(self.diagnostic_control(&account, "checkin-test-connection", false, cx))
+                .child(self.diagnostic_control(&account, "checkin-validate-waf", true, cx));
+            root = root
+                .child(diagnostics)
+                .child(text(
+                    cx,
+                    "Saved account calendar and trend",
+                    "已保存账户月历与趋势",
+                ))
+                .child(
+                    Input::new(&editor.inspection.year)
+                        .id("checkin-calendar-year")
+                        .aria_label(text(cx, "Calendar year", "月历年份"))
+                        .disabled(blocked),
+                )
+                .child(
+                    Input::new(&editor.inspection.month)
+                        .id("checkin-calendar-month")
+                        .aria_label(text(cx, "Calendar month", "月历月份"))
+                        .disabled(blocked),
+                )
+                .child(
+                    Input::new(&editor.inspection.days)
+                        .id("checkin-trend-days")
+                        .aria_label(text(cx, "Trend days", "趋势天数"))
+                        .disabled(blocked),
+                )
+                .child(semantics::button(
+                    Button::new("checkin-dashboard-read")
+                        .label(text(cx, "Read calendar and trend", "读取月历与趋势"))
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            let Some(editor) = &this.extended else {
+                                return;
+                            };
+                            let values = (
+                                editor.inspection.year.read(cx).value().parse::<i32>(),
+                                editor.inspection.month.read(cx).value().parse::<u32>(),
+                                editor.inspection.days.read(cx).value().parse::<u32>(),
+                            );
+                            match values {
+                                (Ok(year), Ok(month), Ok(days)) => this.inspect_account(
+                                    InspectionCommand::Dashboard {
+                                        account: account.clone(),
+                                        year,
+                                        month,
+                                        days,
+                                    },
+                                    cx,
+                                ),
+                                _ => this.invalid_query(cx),
+                            }
+                        })),
+                    blocked,
+                    false,
+                    cx,
+                ));
         }
         root=root.child(text(cx,"Record filters use the selected account and provider. Leave accounts unselected to include all; select at most one account.","记录筛选使用当前所选账户和提供商。不选账户时查询全部，筛选时最多选择一个账户。"))
             .child(semantics::button(Button::new("checkin-records-all-providers").label(text(cx,"All providers","全部提供商")).ghost().selected(editor.provider.is_none()).on_click(cx.listener(|this,_,_,cx|{if let Some(editor)=&mut this.extended{editor.provider=None;}cx.notify();})),blocked,false,cx))
@@ -130,7 +175,7 @@ impl CheckinView {
         ));
         root.into_any_element()
     }
-    pub(super) fn render_inspection_report(
+    pub(in crate::features::checkin) fn render_inspection_report(
         &self,
         report: &InspectionReport,
         cx: &mut Context<Self>,

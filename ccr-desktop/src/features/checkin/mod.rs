@@ -1,11 +1,15 @@
 //! Saved check-in accounts. Balances appear only when a local row stores them.
+mod account_actions;
 mod balances;
 mod credentials;
 mod extended;
+mod navigation;
 mod operations;
+mod providers;
 mod workbench;
 use crate::runtime::checkin::OperationState;
-use operations::{Confirmation, Editor};
+use account_actions::{CdkDraft, Confirmation};
+use operations::Editor;
 use std::sync::Arc;
 use workbench::CheckinTab;
 
@@ -44,7 +48,7 @@ pub struct CheckinView {
     query: String,
     provider_filter: Option<String>,
     scroll: ScrollHandle,
-    list_offset: Point<Pixels>,
+    navigation: navigation::Navigation,
     _search_changed: Subscription,
     generation: u64,
     gate: ResponseGate,
@@ -56,7 +60,9 @@ pub struct CheckinView {
     observation: Option<Task<()>>,
     editor: Option<Editor>,
     confirmation: Option<Confirmation>,
+    cdk: Option<CdkDraft>,
     catalog: bool,
+    provider_detail: Option<String>,
     extended: Option<extended::ExtendedUi>,
 }
 
@@ -78,13 +84,15 @@ impl CheckinView {
             query: String::new(),
             provider_filter: None,
             scroll: ScrollHandle::new(),
-            list_offset: Default::default(),
+            navigation: navigation::Navigation::new(cx),
             _search_changed: search_changed,
             operation: services.checkin_operation_state(),
             observation: None,
             editor: None,
             confirmation: None,
+            cdk: None,
             catalog: false,
+            provider_detail: None,
             extended: None,
             services,
             snapshot: None,
@@ -110,9 +118,13 @@ impl CheckinView {
         self.editor = None;
         self.extended = None;
         self.catalog = false;
+        self.provider_detail = None;
         self.tab = CheckinTab::Accounts;
+        self.selected = None;
+        self.navigation.clear();
         self.operation = self.services.checkin_operation_state();
         self.confirmation = None;
+        self.cdk = None;
         self.gate.clear();
         self.generation += 1;
         self.busy = false;
@@ -185,6 +197,12 @@ impl CheckinView {
         }) {
             self.provider_filter = None;
         }
+        if let Some(operations::EditorKind::Account(Some(id))) =
+            self.editor.as_ref().map(|editor| &editor.kind)
+            && !self.rows().iter().any(|row| row.id == *id)
+        {
+            self.close_editor();
+        }
         self.reconcile_selection();
     }
 
@@ -200,13 +218,13 @@ impl CheckinView {
     }
 
     fn reconcile_selection(&mut self) {
-        if self.selected.as_ref().is_some_and(|id| {
-            !self
-                .rows()
-                .iter()
-                .any(|a| &a.id == id && self.matches_account(a))
-        }) {
-            self.selected = None;
+        if self.snapshot.is_some()
+            && self
+                .selected
+                .as_ref()
+                .is_some_and(|id| !self.rows().iter().any(|a| &a.id == id))
+        {
+            self.close_detail();
         }
     }
 

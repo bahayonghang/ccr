@@ -866,6 +866,14 @@ pub fn get_valid_waf_cookies(
     .optional()
 }
 
+/// Read cache availability without exposing cookie values or removing expired rows.
+pub fn valid_waf_provider_ids(conn: &Connection) -> Result<Vec<String>, rusqlite::Error> {
+    let mut stmt =
+        conn.prepare("SELECT provider_id FROM checkin_waf_cookies WHERE expires_at > ?1")?;
+    stmt.query_map([Utc::now().to_rfc3339()], |row| row.get(0))?
+        .collect()
+}
+
 /// Delete expired WAF cookies
 #[allow(dead_code)]
 pub fn delete_expired_waf_cookies(conn: &Connection) -> Result<usize, rusqlite::Error> {

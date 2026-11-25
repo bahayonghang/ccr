@@ -20,9 +20,12 @@ impl CheckinView {
         cx: &mut Context<Self>,
     ) {
         self.tab = tab;
+        self.provider_detail = None;
+        self.navigation.clear();
         self.editor = None;
         self.catalog = false;
         self.confirmation = None;
+        self.cdk = None;
         self.extended = None;
         self.selected = None;
         self.operation = self.services.checkin_operation_state();
@@ -72,30 +75,34 @@ impl CheckinView {
         tabs
     }
 
-    fn add_button(&self, provider: bool, cx: &mut Context<Self>) -> Button {
+    fn add_button(&self, provider: bool, cx: &mut Context<Self>) -> impl IntoElement + use<> {
         let (id, en, zh) = if provider {
             ("checkin-new-provider", "Add provider", "添加提供商")
         } else {
             ("checkin-new-account", "Add account", "添加账户")
         };
-        semantics::button(
-            Button::new(id)
-                .label(text(cx, en, zh))
-                .primary()
-                .on_click(cx.listener(move |this, _, window, cx| {
-                    this.edit(
-                        if provider {
-                            EditorKind::Provider(None)
-                        } else {
-                            EditorKind::Account(None)
-                        },
-                        window,
-                        cx,
-                    )
-                })),
-            self.operation.busy,
-            false,
-            cx,
+        self.origin_control(
+            id,
+            semantics::button(
+                Button::new(id)
+                    .label(text(cx, en, zh))
+                    .primary()
+                    .on_click(cx.listener(move |this, _, window, cx| {
+                        this.remember_editor_source(id);
+                        this.edit(
+                            if provider {
+                                EditorKind::Provider(None)
+                            } else {
+                                EditorKind::Account(None)
+                            },
+                            window,
+                            cx,
+                        )
+                    })),
+                self.operation.busy,
+                false,
+                cx,
+            ),
         )
     }
 
@@ -270,10 +277,29 @@ impl CheckinView {
             body = body.child(balances::summary(data, cx));
         }
         body = body.child(self.tabs(cx));
-        if self.editor.is_some() {
+        if self.confirmation.is_some() {
+            body = body.child(self.entry_confirmation(cx));
+        } else if self.editor.is_some() {
             body = body
                 .child(self.render_operation_result(cx))
                 .children(self.render_management_editor(cx));
+        } else if self.selected.is_some() && self.data().is_some() {
+            body = body.child(self.render_operation_result(cx));
+            let wide = window.viewport_size().width >= px(1150.)
+                && self.tab == CheckinTab::Accounts
+                && self.extended.is_none();
+            let detail = self.detail_panel(cx);
+            if wide {
+                body = body.child(
+                    div()
+                        .flex()
+                        .gap(px(theme::SECTION_GAP))
+                        .child(div().flex_1().min_w_0().child(self.accounts_panel(cx)))
+                        .child(div().flex_1().min_w_0().child(detail)),
+                );
+            } else {
+                body = body.child(detail);
+            }
         } else if self.extended.is_some() {
             body = body
                 .child(self.render_operation_result(cx))
@@ -291,19 +317,26 @@ impl CheckinView {
                 CheckinTab::Providers => {
                     if let Some(data) = self.data().filter(|d| !d.providers.is_empty()) {
                         body = body
-                            .child(div().child(self.add_button(true, cx)))
+                            .child(div().flex().items_start().child(self.add_button(true, cx)))
                             .children(self.render_provider_rows(data, cx));
                     } else {
                         body = body.child(self.first_use(cx));
                     }
+                    body = body
+                        .child(badge::section_heading(
+                            text(cx, "Built-in providers", "内置提供商"),
+                            None,
+                            cx,
+                        ))
+                        .child(self.builtin_catalog(cx));
                 }
                 CheckinTab::Records => {
                     body = body.child(self.records_panel(cx));
                 }
                 CheckinTab::Transfer => {}
             }
-            body = body.children(self.render_entry_confirmation(cx));
         }
+        self.restore_control(window, cx);
         page = page.child(body);
         page.into_any_element()
     }
@@ -347,233 +380,247 @@ impl CheckinView {
 
     fn accounts_panel(&self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
         let mut panel = div().flex().flex_col().gap(px(theme::CONTROL_GAP));
-        if self.selected.is_none() {
-            let search = badge::search_field(
-                Input::new(&self.search)
-                    .id("checkin-search")
-                    .aria_label(search_placeholder(cx)),
-                cx,
+        let search = badge::search_field(
+            Input::new(&self.search)
+                .id("checkin-search")
+                .aria_label(search_placeholder(cx)),
+            cx,
+        );
+        let toolbar = div()
+            .flex()
+            .flex_wrap()
+            .justify_between()
+            .items_center()
+            .gap(px(theme::CONTROL_GAP))
+            .child(search)
+            .child(
+                div()
+                    .flex()
+                    .flex_wrap()
+                    .gap(px(theme::CONTROL_GAP))
+                    .child(self.add_button(false, cx))
+                    .child(semantics::ghost_button(
+                        Button::new("checkin-tools-open")
+                            .label(text(cx, "Account tools", "账户工具"))
+                            .on_click(cx.listener(|this, _, window, cx| {
+                                this.close_detail();
+                                this.open_extended(window, cx);
+                            })),
+                        self.operation.busy,
+                        false,
+                        cx,
+                    )),
             );
-            let toolbar = div()
-                .flex()
-                .flex_wrap()
-                .justify_between()
-                .items_center()
-                .gap(px(theme::CONTROL_GAP))
-                .child(search)
-                .child(
-                    div()
-                        .flex()
-                        .flex_wrap()
-                        .gap(px(theme::CONTROL_GAP))
-                        .child(self.add_button(false, cx))
-                        .child(semantics::ghost_button(
-                            Button::new("checkin-tools-open")
-                                .label(text(cx, "Account tools", "账户工具"))
-                                .on_click(cx.listener(|this, _, window, cx| {
-                                    this.open_extended(window, cx)
-                                })),
-                            self.operation.busy,
-                            false,
-                            cx,
-                        )),
-                );
-            panel = panel.child(toolbar);
-            let all = badge::filter_chip(
-                Button::new("checkin-provider-filter-all")
-                    .label(text(cx, "All providers", "全部提供商"))
-                    .on_click(cx.listener(|this, _, _, cx| {
+        panel = panel.child(toolbar);
+        let all = badge::filter_chip(
+            Button::new("checkin-provider-filter-all")
+                .label(text(cx, "All providers", "全部提供商"))
+                .on_click(cx.listener(|this, _, _, cx| {
+                    this.provider_filter = None;
+                    this.reconcile_selection();
+                    cx.notify();
+                })),
+            self.provider_filter.is_none(),
+            false,
+            cx,
+        );
+        let mut filters = div()
+            .flex()
+            .flex_wrap()
+            .gap(px(theme::CONTROL_GAP))
+            .child(all);
+        if let Some(data) = self.data() {
+            for (index, p) in data.providers.iter().enumerate() {
+                let id = p.id.clone();
+                filters = filters.child(badge::filter_chip(
+                    Button::new(format!("checkin-provider-filter-{index}"))
+                        .label(p.name.clone())
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            this.provider_filter = Some(id.clone());
+                            this.reconcile_selection();
+                            cx.notify();
+                        })),
+                    self.provider_filter.as_ref() == Some(&p.id),
+                    false,
+                    cx,
+                ));
+            }
+        }
+        panel = panel.child(filters);
+        let mut shown = 0;
+        let mut list = div()
+            .flex()
+            .flex_col()
+            .bg(gpui_kit::rgb(theme::palette(cx.theme().mode).surface))
+            .rounded(px(theme::INPUT_RADIUS))
+            .overflow_hidden();
+        for (index, account) in self
+            .rows()
+            .iter()
+            .enumerate()
+            .filter(|(_, a)| self.matches_account(a))
+        {
+            shown += 1;
+            let id = account.id.clone();
+            let state = if account.enabled {
+                text(cx, "Enabled", "已启用")
+            } else {
+                text(cx, "Disabled", "已停用")
+            };
+            let provider = account
+                .provider_name
+                .as_deref()
+                .unwrap_or(&account.provider_id);
+            let last = account
+                .last_checkin_at
+                .as_deref()
+                .map(|time| {
+                    let display = chrono::DateTime::parse_from_rfc3339(time)
+                        .map(|t| {
+                            t.with_timezone(&chrono::Utc)
+                                .format("%Y-%m-%d %H:%M:%S UTC")
+                                .to_string()
+                        })
+                        .unwrap_or_else(|_| time.into());
+                    format!("{} {display}", text(cx, "Last check-in", "上次签到"))
+                })
+                .unwrap_or_else(|| {
+                    text(
+                        cx,
+                        "No check-in is recorded for this account.",
+                        "尚无签到记录",
+                    )
+                    .to_string()
+                });
+            let balance = match &account.balance {
+                StoredBalance::Missing => text(cx, "No stored balance.", "无余额快照").to_string(),
+                StoredBalance::Unusable => {
+                    text(cx, "Balance unavailable", "余额不可用").to_string()
+                }
+                StoredBalance::Numbers(n) => format!(
+                    "{} {}",
+                    n.remaining,
+                    n.currency
+                        .as_deref()
+                        .unwrap_or(text(cx, "unknown unit", "单位未保存"))
+                ),
+            };
+            let meta = format!("{provider} · {state} · {last}");
+            let label = format!("{} · {meta} · {balance}", account.name);
+            list = list.child(
+                div()
+                    .flex()
+                    .items_center()
+                    .justify_between()
+                    .gap(px(theme::CONTROL_GAP))
+                    .p(px(theme::CONTROL_GAP))
+                    .border_b_1()
+                    .border_color(gpui_kit::rgb(theme::palette(cx.theme().mode).subtle))
+                    .child(
+                        div()
+                            .min_w_0()
+                            .flex_1()
+                            .flex()
+                            .flex_col()
+                            .items_start()
+                            .child(
+                                self.origin_control(
+                                    &format!("row-{}", account.id),
+                                    semantics::ghost_button(
+                                        Button::new(format!("checkin-account-{index}"))
+                                            .label(account.name.clone())
+                                            .max_w_full()
+                                            .tooltip(account.name.clone())
+                                            .accessibility_label(label)
+                                            .on_click(cx.listener(move |this, _, _, cx| {
+                                                this.open_account_detail(
+                                                    &id,
+                                                    &format!("row-{id}"),
+                                                    cx,
+                                                );
+                                            })),
+                                        false,
+                                        false,
+                                        cx,
+                                    ),
+                                ),
+                            )
+                            .child(
+                                div()
+                                    .text_size(theme::text_size(theme::META_SIZE))
+                                    .text_color(cx.theme().muted_foreground)
+                                    .child(meta),
+                            ),
+                    )
+                    .child(
+                        div()
+                            .font_features(theme::tabular_figures())
+                            .text_right()
+                            .child(balance),
+                    ),
+            );
+        }
+        if shown == 0 {
+            let clear = semantics::ghost_button(
+                Button::new("checkin-clear-filters")
+                    .label(text(cx, "Clear filters", "清除筛选"))
+                    .on_click(cx.listener(|this, _, window, cx| {
                         this.provider_filter = None;
-                        this.reconcile_selection();
+                        this.search.update(cx, |s, cx| s.set_value("", window, cx));
+                        this.query.clear();
                         cx.notify();
                     })),
-                self.provider_filter.is_none(),
+                false,
                 false,
                 cx,
             );
-            let mut filters = div()
-                .flex()
-                .flex_wrap()
-                .gap(px(theme::CONTROL_GAP))
-                .child(all);
-            if let Some(data) = self.data() {
-                for (index, p) in data.providers.iter().enumerate() {
-                    let id = p.id.clone();
-                    filters = filters.child(badge::filter_chip(
-                        Button::new(format!("checkin-provider-filter-{index}"))
-                            .label(p.name.clone())
-                            .on_click(cx.listener(move |this, _, _, cx| {
-                                this.provider_filter = Some(id.clone());
-                                this.reconcile_selection();
-                                cx.notify();
-                            })),
-                        self.provider_filter.as_ref() == Some(&p.id),
-                        false,
+            panel = panel.child(
+                badge::empty_panel(
+                    "checkin-no-matches",
+                    IconName::Search,
+                    text(cx, "No matching accounts", "没有匹配的账户"),
+                    text(
                         cx,
-                    ));
-                }
-            }
-            panel = panel.child(filters);
-            let mut shown = 0;
-            let mut list = div()
-                .flex()
-                .flex_col()
-                .bg(gpui_kit::rgb(theme::palette(cx.theme().mode).surface))
-                .rounded(px(theme::INPUT_RADIUS))
-                .overflow_hidden();
-            for (index, account) in self
-                .rows()
-                .iter()
-                .enumerate()
-                .filter(|(_, a)| self.matches_account(a))
-            {
-                shown += 1;
-                let id = account.id.clone();
-                let state = if account.enabled {
-                    text(cx, "Enabled", "已启用")
-                } else {
-                    text(cx, "Disabled", "已停用")
-                };
-                let provider = account
-                    .provider_name
-                    .as_deref()
-                    .unwrap_or(&account.provider_id);
-                let last = account
-                    .last_checkin_at
-                    .as_deref()
-                    .map(|time| {
-                        let display = chrono::DateTime::parse_from_rfc3339(time)
-                            .map(|t| {
-                                t.with_timezone(&chrono::Utc)
-                                    .format("%Y-%m-%d %H:%M:%S UTC")
-                                    .to_string()
-                            })
-                            .unwrap_or_else(|_| time.into());
-                        format!("{} {display}", text(cx, "Last check-in", "上次签到"))
-                    })
-                    .unwrap_or_else(|| {
-                        text(
-                            cx,
-                            "No check-in is recorded for this account.",
-                            "尚无签到记录",
-                        )
-                        .to_string()
-                    });
-                let balance = match &account.balance {
-                    StoredBalance::Missing => {
-                        text(cx, "No stored balance.", "无余额快照").to_string()
-                    }
-                    StoredBalance::Unusable => {
-                        text(cx, "Balance unavailable", "余额不可用").to_string()
-                    }
-                    StoredBalance::Numbers(n) => format!(
-                        "{} {}",
-                        n.remaining,
-                        n.currency
-                            .as_deref()
-                            .unwrap_or(text(cx, "unknown unit", "单位未保存"))
+                        "Try another account name or provider.",
+                        "试试其他账户名称或提供商。",
                     ),
-                };
-                let meta = format!("{provider} · {state} · {last}");
-                let label = format!("{} · {meta} · {balance}", account.name);
-                list = list.child(
-                    div()
-                        .flex()
-                        .items_center()
-                        .justify_between()
-                        .gap(px(theme::CONTROL_GAP))
-                        .p(px(theme::CONTROL_GAP))
-                        .border_b_1()
-                        .border_color(gpui_kit::rgb(theme::palette(cx.theme().mode).subtle))
-                        .child(
-                            div()
-                                .min_w_0()
-                                .flex_1()
-                                .flex()
-                                .flex_col()
-                                .items_start()
-                                .child(semantics::ghost_button(
-                                    Button::new(format!("checkin-account-{index}"))
-                                        .label(account.name.clone())
-                                        .max_w_full()
-                                        .tooltip(account.name.clone())
-                                        .accessibility_label(label)
-                                        .on_click(cx.listener(move |this, _, _, cx| {
-                                            this.list_offset = this.scroll.offset();
-                                            this.selected = Some(id.clone());
-                                            this.scroll.set_offset(Default::default());
-                                            cx.notify();
-                                        })),
-                                    false,
-                                    false,
-                                    cx,
-                                ))
-                                .child(
-                                    div()
-                                        .text_size(theme::text_size(theme::META_SIZE))
-                                        .text_color(cx.theme().muted_foreground)
-                                        .child(meta),
-                                ),
-                        )
-                        .child(
-                            div()
-                                .font_features(theme::tabular_figures())
-                                .text_right()
-                                .child(balance),
-                        ),
-                );
-            }
-            if shown == 0 {
-                let clear = semantics::ghost_button(
-                    Button::new("checkin-clear-filters")
-                        .label(text(cx, "Clear filters", "清除筛选"))
-                        .on_click(cx.listener(|this, _, window, cx| {
-                            this.provider_filter = None;
-                            this.search.update(cx, |s, cx| s.set_value("", window, cx));
-                            this.query.clear();
-                            cx.notify();
-                        })),
-                    false,
-                    false,
+                    Some(clear.into_any_element()),
                     cx,
-                );
-                panel = panel.child(
-                    badge::empty_panel(
-                        "checkin-no-matches",
-                        IconName::Search,
-                        text(cx, "No matching accounts", "没有匹配的账户"),
-                        text(
-                            cx,
-                            "Try another account name or provider.",
-                            "试试其他账户名称或提供商。",
-                        ),
-                        Some(clear.into_any_element()),
-                        cx,
-                    )
-                    .test_support(),
-                );
-            } else {
-                panel = panel.child(list);
-            }
+                )
+                .test_support(),
+            );
+        } else {
+            panel = panel.child(list);
         }
+        panel.into_any_element()
+    }
+
+    fn detail_panel(&self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
+        let mut panel = div().flex().flex_col().gap(px(theme::CONTROL_GAP));
         if let Some(account) = self
             .rows()
             .iter()
             .find(|a| Some(&a.id) == self.selected.as_ref())
         {
             panel = panel.child(
-                div().child(semantics::ghost_button(
-                    Button::new("checkin-back")
-                        .label(text(cx, "Back to accounts", "返回账户"))
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            this.selected = None;
-                            this.scroll.set_offset(this.list_offset);
-                            cx.notify();
-                        })),
-                    false,
-                    false,
-                    cx,
-                )),
+                self.origin_control(
+                    "back",
+                    semantics::ghost_button(
+                        Button::new("checkin-back")
+                            .label(if self.tab == CheckinTab::Accounts {
+                                text(cx, "Back to accounts", "返回账户")
+                            } else {
+                                text(cx, "Back", "返回")
+                            })
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.close_detail();
+                                cx.notify();
+                            })),
+                        false,
+                        false,
+                        cx,
+                    ),
+                ),
             );
             let lines = detail_lines(cx, account);
             let mut detail = div()
@@ -582,12 +629,14 @@ impl CheckinView {
                 .aria_label(SharedString::from(lines.join(" ")))
                 .flex()
                 .flex_col()
-                .gap(px(theme::CONTROL_GAP))
-                .children(lines);
-            detail = detail.children(self.render_selected_actions(cx));
+                .gap(px(theme::CONTROL_GAP));
             if let Some(data) = self.data() {
                 detail = detail.children(self.render_account_rows(data, cx));
             }
+            detail = detail
+                .child(self.account_diagnostics(account, cx))
+                .children(lines)
+                .children(self.render_selected_actions(cx));
             if let Some(snapshot) = &self.operation.snapshot {
                 detail = detail.children(self.render_saved_records(snapshot, cx));
             }
