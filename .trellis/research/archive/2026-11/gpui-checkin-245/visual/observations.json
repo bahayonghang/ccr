@@ -1,7 +1,7 @@
 {
   "build": {
-    "source": "fbffa1ed360166f48ecf2fb9169fd9972c442857",
-    "exe_sha256": "652120503d3c03746db830398ae9711af073a1fee797b64d136a89abb4ced8d8",
+    "source": "131d2acef02133022b0f59e051c8a49c942cd2f4",
+    "exe_sha256": "0f4da49d1edcf3357fe806aa3eac98774065c4dfd52583ddfddf812053116e5e",
     "feature": "native-checkin-fixture",
     "arguments": [
       "--fixture-checkin-loopback",
@@ -174,14 +174,14 @@
           1202,
           839
         ],
-        "sha256": "bf156b6efb14a024d40f54315a19bc0aaf2797d026cfdbd5ab1a3de5cc592925"
+        "sha256": "8fba4cc4d117d85ad7a4fdbd36cf4d7981fed15d26db8d38f77a83d8951c8d1a"
       },
       "narrow-en-light-detail-focus.jpg": {
         "size": [
           1202,
           839
         ],
-        "sha256": "acc9f39b30b26f84df75400f25b25070ce0dc6286421da389ebf115087fe581c"
+        "sha256": "02428dea739cba0b25dc372407792c8d032bc2951b29f245388e87cbb11b81d9"
       }
     }
   },
@@ -334,7 +334,7 @@
           1202,
           839
         ],
-        "sha256": "d73ede261b7f725977f910c621f8e6714662f08b395b3f6c8fa7187ba6792401"
+        "sha256": "5be6dccab32e7851a5476d61e4a591bf5e0ad790fb744ec1dd371420fe27f0d4"
       }
     }
   }

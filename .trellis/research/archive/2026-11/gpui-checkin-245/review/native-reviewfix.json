@@ -1,0 +1,58 @@
+{
+  "source_revision": "b6debd5ddcef09374bb6b4025fad592fc67c669e",
+  "executable_sha256": "e9e67eaf84fd6329f389487b8a2dffd4d453ffd5b7a1c1f5a6cad8c0a5e0e8ce",
+  "marker": "ccr-gpui-checkin-fixture-v1",
+  "baseline": "fbffa1ed360166f48ecf2fb9169fd9972c442857",
+  "baseline_executable_sha256": "652120503d3c03746db830398ae9711af073a1fee797b64d136a89abb4ced8d8",
+  "baseline_checks": {
+    "balance_tools_matches_home": false,
+    "cf_only_available": false,
+    "expired_waf_row_remains": false,
+    "account_name_stays_exact": false,
+    "operation_result_hides_marker": false
+  },
+  "final_checks": {
+    "public": {
+      "home_two_out_of_three_usd": true,
+      "really_zero_and_missing_are_distinct": true,
+      "tools_trim_currency_and_ignore_orphans": true,
+      "cf_only_is_available": true,
+      "expired_waf_row_survives": true,
+      "metadata_status_survives_non_json_payload": true,
+      "process_output_omits_sentinel": true
+    },
+    "sensitive": {
+      "missing_key_observed": true,
+      "metadata_save_preserves_raw_name_and_toggles_only": true,
+      "missing_key_remains_absent": true,
+      "editor_uia_omits_sentinel": true,
+      "stored_failure_exercised": true,
+      "history_uia_omits_sentinel": true,
+      "process_output_omits_sentinel": true
+    },
+    "feedback": {
+      "single_target_received_echo": true,
+      "live_job_uia_omits_sentinel": true,
+      "new_completed_history_row_omits_sentinel": true,
+      "process_output_omits_sentinel": true
+    }
+  },
+  "waf_status_labels": [
+    "Alpha · WAF · Missing or expired · Cloudflare · Cached",
+    "Beta · WAF · Cached · Cloudflare · Missing or expired"
+  ],
+  "uia_reads": {
+    "public": 12,
+    "sensitive": 10,
+    "feedback": 5
+  },
+  "fixture_requests": {
+    "preflight": 1,
+    "checkin": 1
+  },
+  "app_output_bytes": {
+    "public": 0,
+    "sensitive": 0,
+    "feedback": 0
+  }
+}

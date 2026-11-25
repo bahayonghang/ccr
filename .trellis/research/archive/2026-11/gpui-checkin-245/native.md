@@ -6,11 +6,11 @@ Windows 11 build 26300 上，从真实侧栏完成了首次手动开户和五账
 
 | 项目 | 实际条件 |
 | --- | --- |
-| 开发候选 | Windows MSVC debug，提交 `fbffa1ed360166f48ecf2fb9169fd9972c442857`，feature `native-checkin-fixture`，exe SHA-256 `652120503d3c03746db830398ae9711af073a1fee797b64d136a89abb4ced8d8`。 |
-| 启动 | 在编译该 exe 的检出根运行 `python ccr-desktop/scripts/checkin_fixture.py`。使用生成的 `--fixture-checkin-loopback --fixture-profiles <fixture>/profiles.toml --fixture-registry <fixture>/config.toml`，其中 `<fixture>` 位于该检出的 `outputs/desktop`，文件 `.ccr-gpui-checkin-fixture` 的字节为 `ccr-gpui-checkin-fixture-v1`。两条路线各使用全新目录、独立密钥与 SQLite 库。 |
+| 开发候选 | Windows MSVC debug，提交 `131d2acef02133022b0f59e051c8a49c942cd2f4`，feature `native-checkin-fixture`，exe SHA-256 `0f4da49d1edcf3357fe806aa3eac98774065c4dfd52583ddfddf812053116e5e`。 |
+| 启动 | 在编译该 exe 的检出根运行 `python ccr-desktop/scripts/checkin_fixture.py`。使用生成的 `--fixture-checkin-loopback --fixture-profiles <fixture>/profiles.toml --fixture-registry <fixture>/config.toml`，其中 `<fixture>` 位于该检出的 `outputs/desktop`，文件 `.ccr-gpui-checkin-fixture` 的字节为 `ccr-gpui-checkin-fixture-v1`。两条路线各使用全新目录、独立密钥与 SQLite 库。日常路径另用测试适配器给两个合成账户添加普通偏好 Cookie，仍使用同一 marker、端口及官方响应逻辑。详见[启动命令和适配器](daily/journey.md)。 |
 | 服务 | 脚本绑定 `127.0.0.1` 随机端口。请求来自合成自定义提供商，服务端只记录方法、合成账户及状态码。开发客户端禁用代理和重定向。[准入边界](jobs/verification-248.md) |
 | 图形会话 | Windows 私有桌面，拥有可操作的 CCR Desktop (GPUI) HWND。通过窗口消息点击、输入和按键，通过 UI Automation 核对可访问名称、启停及遮蔽，再用 PrintWindow(2) 和 DWM 窗框采集实际画面。125% 缩放。窗口条件及文件散列随每份收据保存。 |
-| 默认构建 | 相同源码、默认 feature、release 可执行文件 SHA-256 `6a3cfb699d61041bd6deade844b461e68d3eceed48f36d71d58acf33dc161f01`。正确 marker 与配对路径下，传开发开关时退出 2；省略开关后从真实侧栏提交导入、确认行内签到，服务收到 0 次请求，结果说明演示模式禁止访问提供商。[独立构建收据](daily/release.json) |
+| 默认构建 | 相同源码、默认 feature、release 可执行文件 SHA-256 `49915ac8ee44ad0ab7bdbe43954f0797c752a179c70417123724cba4e369edc6`。正确 marker 与配对路径下，传开发开关时退出 2；省略开关后从真实侧栏提交导入、确认行内签到，服务收到 0 次请求，结果说明演示模式禁止访问提供商。[独立构建收据](daily/release.json) |
 
 ## 从侧栏走通的两条路径
 
@@ -35,18 +35,27 @@ Design Atlas 对签到视图的 19 个 Rust 源文件未找到可扫描文件，
 | 签到记录条件、账户 ID 定位、月历、逐日数值与趋势 | [GPUI 只读历史 #249](history/native-249.md) |
 | 配置预览、取消、跳过／覆盖冲突、加密配置与今日统计、恢复 | [本地传输和备份 #250](transfer/native-250.md) |
 
+## Standards
+
+整支差异首轮评审发现提供商回显、WAF 只读访问、余额口径、缺密钥时的账户名称和批量上限五处问题。返修后，用真实窗口验证了 WAF 过期行仍在、孤立余额被排除、原始名称保留、作业及新历史不含测试凭据。作业计划测试覆盖 1,000 个启用目标混入停用账户、1,001 个启用目标和失效 ID。[Windows 返修读数和截图](review/native-reviewfix.md)
+
+## Spec
+
+首轮发现五处与票据不符，其中余额口径与 Standards 重合。其余四项分别涉及目标库密钥校验、并发开户与删除、Cloudflare 缓存状态、作业解密失败后的按 ID 修复。SQLite 双连接验证两种并发次序均无孤立账户。原生复验中，错误密钥未改变目标库、记录数或备份，恢复原密钥后同一配置成功导入。损坏的合成凭据在发请求前报错，能打开该账户编辑器，取消后由原按钮再次进入。复验还发现失败预览旁的旧回执归属不清，现已标注上次导入结果。[导入、修复入口及键盘返回](daily/regression/review.md)
+
+复核时还发现两个能从产品入口触发的边界条件。普通偏好 Cookie 中的数字曾改变 HTTP 401 的显示和凭据错误分类，并会污染已保存的 1 USD 奖励。签到账户写入与提供商删除的关联保护还需覆盖共享手工开户及配置导入。最终回归分别检查了保留的错误码、按 ID 修复入口、SQLite 奖励与逐日显示，以及先删除提供商后的开户和导入结果。[最终日常操作](daily/journey.md)
+
 ## 自动验证
 
 | 命令 | 实际结果和源码范围 |
 | --- | --- |
-| `python ccr-desktop/scripts/desktop.py cargo test --locked --features native-checkin-fixture --lib checkin -- --skip export_bindings` | 最终实现 `fbffa1ed` 通过 43 项，含受检夹具、共享服务、只读历史和传输。修复前的真实服务返回合法 JSON 401，旧余额文案误报为非 JSON；同一用例修复后显示 HTTP 状态与凭据错误。 |
-| `cargo test -p ccr-checkin -- --skip export_bindings` | 按 #252 的余额错误修复重跑，97 项通过。随后两次提交只更新 GPUI。 |
-| `cargo test -p ccr-db -- --skip export_bindings` | 在集成源码 `8da629a9` 上通过 141 项，此后本期未再修改该 crate。 |
-| `just desktop-test-ui` | 前序 `8c7885a1` 通过 24 项环境测试、20 项 native shell 和 2 项 native UI；native shell 另有 1 项 ignore。 |
-| `just desktop-ci` | 前序 `8c7885a1` 的 fmt、check、clippy、全量测试和默认 release 均通过。GPUI 库 488 项通过、4 项 ignore。 |
-| 根 `just ci` | #248 集成时两轮均通过全部 17 步，较晚一轮从 `53a5dc11` 启动、用时 23:34。之后 #249 仅涉及独立 GPUI 工程及原生材料，桌面门禁在吸收后重跑。 |
+| GPUI 默认及开发特性签到测试 | 最终源码 `131d2ace` 的默认配置通过 49 项，启用 `native-checkin-fixture` 后通过 50 项。使用 `ccr-desktop/scripts/desktop.py` 分别运行 `cargo test --locked --lib checkin -- --skip export_bindings` 及其开发特性版本。 |
+| `cargo test --locked -p ccr-checkin -p ccr-db -- --skip export_bindings` | 最终源码独立运行 ccr-checkin 100 项、ccr-db 142 项，全数通过。先前 `b6debd5d` 同时覆盖 ccr-core、ccr-checkin、ccr-db，398 项通过，8 项按原设置忽略。 |
+| `just desktop-test-ui` | `131d2ace` 通过，124 秒。各程序的通过／忽略数为 24／0、20／1、2／0。 |
+| `just desktop-ci` | `131d2ace` 通过，533 秒。包含格式、检查、Clippy、全套桌面测试与默认 release。GPUI 库通过 495 项，忽略 4 项。 |
+| 根 `just ci` | `131d2ace` 全部 17 步通过，1231 秒。本机缺少 OMP Trellis 扩展，配方报告 14 项契约测试跳过。 |
 
-上表给出本票归档时的直接测试和前序完整门禁，保留每次运行的源码范围。[前序命令与覆盖记录](jobs/verification-248.md)
+以上三项完整门禁均在干净的集成源码上运行。此后的归档提交仅更新本目录的实测材料。[前序命令与覆盖记录](jobs/verification-248.md)
 
 ## 验收范围
 

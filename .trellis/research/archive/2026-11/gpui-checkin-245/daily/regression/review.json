@@ -1,0 +1,159 @@
+{
+  "mode": "daily",
+  "source_commit": "131d2acef02133022b0f59e051c8a49c942cd2f4",
+  "sha256": "0f4da49d1edcf3357fe806aa3eac98774065c4dfd52583ddfddf812053116e5e",
+  "build": "debug + native-checkin-fixture",
+  "fixture_script_sha256": "bcddfd3c165e0b89b09abc953e2d5b8f27f1381ba8b7b83252cd7c84ab223dff",
+  "uia_observations": 52,
+  "checks": [
+    {
+      "step": "sidebar entry: native UIA offers a named local-scope group",
+      "name": "本机签到",
+      "role": "ControlType.Group"
+    },
+    {
+      "step": "sidebar; previewed and committed local import; all five stored; no provider request"
+    },
+    {
+      "step": "verified positive control: new plaintext account imported under original generated fixture key, original account readable, exact pre-import backups exist",
+      "accounts": 6,
+      "backup_count": 2
+    },
+    {
+      "step": "failed preview separates the new error from the previous successful transfer",
+      "previous_receipt_present": true,
+      "history_label": "上次成功导入"
+    },
+    {
+      "step": "valid independent fixture key rejected, existing data and all backup file hashes unchanged, no replacement key generated",
+      "rejected_at": "preview",
+      "native_message": "原凭据密钥缺失或无法读取，请先恢复该密钥再使用已有加密账户。",
+      "retained_db": {
+        "checkin.db": "673b628b518acf900292d1168085ff4a4519857bdf9ddf935c2fca77999a6fce",
+        "checkin.db-wal": "1b4aae865245c30808a29f339d49238fa34b1a773b9db84653f2c9cc206d537b"
+      },
+      "retained_backups": {
+        "pre-import-5a3710ac-478f-488e-86eb-3500ff518e0a.db": "97de8f1564214cd40161669911dbb12da1ed6d57a9932e10843f6837e1fb91a2",
+        "pre-import-bf1b6c08-1643-4da5-88ae-e40cc67ef228.db": "0ac823506bd3e63ec2529153527b32feb7e8045c388094affa6be868b2996fdb"
+      },
+      "accounts_before_after": 6
+    },
+    {
+      "step": "same source succeeds after original fixture key is restored; original and newly imported synthetic credentials remain readable",
+      "receipt": "上次成功导入\n已导入提供商 0 · 跳过提供商 1 · 已导入账户 1 · 跳过账户 0\n本机签到存储中的已验证备份  backups/pre-import-ef8cc4d3-b37f-46a8-ba35-59c181ee218d.db\n恢复凭据需要本机原密钥。",
+      "accounts_after_retry": 7
+    },
+    {
+      "step": "editor loaded the expected account",
+      "name": "Ready"
+    },
+    {
+      "step": "editor loaded the expected account",
+      "name": "Ready"
+    },
+    {
+      "step": "simulated disk corruption of this one disposable encrypted record only. The native inline job reported crypto_error with no HTTP; exact source action opened the named editor, cancel and Enter reopened that editor; other native account still decodes",
+      "account": "fixture-101",
+      "item": "失败 · Ready · Check-in demo (fixture-101) · crypto_error · Crypto error: Decryption failed: Decryption failed - invalid key or corrupted data",
+      "action": "编辑凭据 · Ready · Check-in demo",
+      "editor_notice": "无法读取已保存凭据。留空会保留原值，可输入替换值进行更新。",
+      "source_y": 343,
+      "return_y": 343,
+      "requests": []
+    }
+  ],
+  "images": [
+    {
+      "image": "review-key-rejection.jpg",
+      "frame_px": [
+        1602,
+        1039
+      ],
+      "sha256": "31a87dd8914832316e2eda3f20e59b13b5541f57dc0774ae0b8ba7eec4aa9817"
+    },
+    {
+      "image": "review-crypto-result.jpg",
+      "frame_px": [
+        1602,
+        1039
+      ],
+      "sha256": "7f6a56e844443378fc61a649e1e24937573c8fd5db1c6afc2ace14b5da380f14"
+    },
+    {
+      "image": "review-restored-result.jpg",
+      "frame_px": [
+        1602,
+        1039
+      ],
+      "sha256": "bcf2bf3b97485b15047a4bf32b494dae5d70e35bb48aa2134a4008cffaea70f5"
+    }
+  ],
+  "fixture": "checkin-rjvdr1iz",
+  "marker": "ccr-gpui-checkin-fixture-v1",
+  "loopback": [
+    "http://127.0.0.1:10354/demo",
+    "http://127.0.0.1:10354/paused"
+  ],
+  "import_sha256": "1429064f39da91fabc0418fbccf135a46c280fa1e15d1e00a87bac3ac74395a2",
+  "argv": [
+    "--fixture-checkin-loopback",
+    "--fixture-profiles",
+    "<fixture>\\profiles.toml",
+    "--fixture-registry",
+    "<fixture>\\config.toml"
+  ],
+  "window": {
+    "title": "CCR Desktop (GPUI)",
+    "dpi": 120,
+    "client_logical": [
+      1280,
+      800
+    ],
+    "client_physical": [
+      1600,
+      1000
+    ],
+    "desktop": "private WinSta0 desktop; no SwitchDesktop; window-targeted messages",
+    "capture": "PrintWindow(2); DWM extended frame",
+    "windows_build": 26300,
+    "language": "zh",
+    "theme": "light",
+    "font_px": 14
+  },
+  "accounts": [
+    [
+      "Ready",
+      "fixture-101",
+      1
+    ],
+    [
+      "Today",
+      "fixture-102",
+      1
+    ],
+    [
+      "Expired",
+      "fixture-103",
+      1
+    ],
+    [
+      "Disabled",
+      "fixture-104",
+      0
+    ],
+    [
+      "Paused provider",
+      "fixture-105",
+      1
+    ]
+  ],
+  "confirmations": [
+    "签到 · 1 个账户\nReady · Check-in demo (fixture-101)"
+  ],
+  "status": "pass",
+  "requests": [],
+  "app_log_bytes": 0,
+  "app_log_secret_hits": false,
+  "persisted_db_secret_hits": false,
+  "fixture_removed": true
+}
