@@ -1331,8 +1331,7 @@ impl CheckinService {
             }
 
             return Err(CheckinServiceError::Api(format!(
-                "HTTP {}: 返回非 JSON 响应",
-                status.as_u16()
+                "余额请求失败（HTTP {status}）"
             )));
         }
 

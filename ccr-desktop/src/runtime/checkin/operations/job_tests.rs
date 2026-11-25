@@ -173,6 +173,12 @@ fn mixed_jobs_confirm_identity_retain_results_throttle_and_preserve_failed_sampl
         ))
     };
     let failed = run(&services, single(), 13);
+    let feedback = failed.last_job.as_ref().unwrap().items[0]
+        .message
+        .as_deref()
+        .unwrap();
+    assert!(feedback.contains("HTTP 401"), "{feedback}");
+    assert!(!feedback.contains("非 JSON"), "{feedback}");
     assert_eq!(
         failed.last_job.as_ref().unwrap().items[0]
             .error_code
