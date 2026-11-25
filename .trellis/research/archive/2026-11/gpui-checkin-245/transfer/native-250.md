@@ -24,3 +24,8 @@
 - 已有库首次导出统计曾通过真实窗口复现迁移目录凭空出现。改用只读数据库连接后，使用相同窗口操作重验通过。
 - `cargo test -p ccr-checkin -p ccr-core -- --skip export_bindings` 通过。签到 97 项，共享核心含集成和文档测试 160 项，沿用 8 项 ignore。
 - `python ccr-desktop/scripts/desktop.py cargo test --locked --lib checkin:: -- --skip export_bindings` 通过 23 项。`just desktop-test-ui` 和 `just desktop-ci` 通过，后者的 GPUI 库测试通过 469 项，沿用 4 项 ignore，并产生本次验收的 release 程序。
+
+## 合入 #247 后复测
+
+- 单票版本 `30e5e294` 的根 `just ci` 全部 17 步通过。合并提交 `2a867392` 吸收 #247 后，`ccr-checkin`、`ccr-core`、`ccr-db` 测试合计通过 398 项，沿用 8 项 ignore。GPUI 签到定向测试通过 29 项，`just desktop-test-ui` 与 `just desktop-ci` 通过，其中 GPUI 库通过 475 项，沿用 4 项 ignore。
+- 使用合并后的 release（SHA-256 `7eb1012bed31a0f2342d9528c41f4f61f1598f6ff93af11a4775be6fc7d9f5b9`）重新从侧栏进入导入导出。两个隔离窗口分别验证缺库预览与取消、首次导入、冲突跳过与覆盖、备份离线恢复、导出碰撞，以及已有库的首次只读统计导出。三张合并版截图均目视复核，49 次 UIA 观察及两个进程的标准输出与错误均未出现合成凭据。
