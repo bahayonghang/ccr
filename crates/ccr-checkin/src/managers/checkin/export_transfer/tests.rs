@@ -394,3 +394,159 @@ fn transfer_uses_scoped_database_preserves_extensions_and_refuses_stale_preview(
         1
     );
 }
+
+#[derive(Clone, Copy, PartialEq)]
+enum ConcurrentWrite {
+    Manual,
+    ImportNew,
+    ImportMove,
+}
+
+#[test]
+fn deleted_provider_blocks_manual_enrollment() {
+    concurrent_provider_deletion(ConcurrentWrite::Manual);
+}
+#[test]
+fn deleted_provider_blocks_import_insert_with_accurate_counts() {
+    concurrent_provider_deletion(ConcurrentWrite::ImportNew);
+}
+#[test]
+fn deleted_provider_blocks_import_move_with_accurate_counts() {
+    concurrent_provider_deletion(ConcurrentWrite::ImportMove);
+}
+
+fn concurrent_provider_deletion(write: ConcurrentWrite) {
+    use ccr_db::database::repositories::checkin_repo;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    static MANUAL: AtomicBool = AtomicBool::new(false);
+    static INSERT: AtomicBool = AtomicBool::new(false);
+    static MOVE: AtomicBool = AtomicBool::new(false);
+    fn waiting(signal: &AtomicBool, attempt: i32) -> bool {
+        signal.store(true, Ordering::Release);
+        std::thread::sleep(std::time::Duration::from_millis(1));
+        attempt < 10000
+    }
+    let (signal, busy): (&AtomicBool, fn(i32) -> bool) = match write {
+        ConcurrentWrite::Manual => (&MANUAL, |i| waiting(&MANUAL, i)),
+        ConcurrentWrite::ImportNew => (&INSERT, |i| waiting(&INSERT, i)),
+        ConcurrentWrite::ImportMove => (&MOVE, |i| waiting(&MOVE, i)),
+    };
+    let root = tempfile::tempdir().unwrap();
+    let db = root.path().join("checkin.db");
+    let crypto = root.path().join("crypto");
+    let pool = database::create_pool(
+        &db,
+        Some(database::PoolConfig {
+            max_size: 1,
+            min_idle: Some(1),
+            ..Default::default()
+        }),
+    )
+    .unwrap();
+    let mut other = rusqlite::Connection::open(&db).unwrap();
+    other
+        .execute_batch(database::schema::CREATE_TABLES_SQL)
+        .unwrap();
+    let target = CheckinProvider::new("Removed".into(), "https://removed.invalid".into());
+    let retained = CheckinProvider::new("Retained".into(), "https://retained.invalid".into());
+    checkin_repo::insert_provider(&other, &target).unwrap();
+    checkin_repo::insert_provider(&other, &retained).unwrap();
+    let db_access = DbAccess::Pool(pool.clone());
+    let accounts = AccountManager::with_db(&crypto, db_access.clone());
+    let req = |id: &str| CreateAccountRequest {
+        provider_id: id.into(),
+        name: "Manual".into(),
+        cookies_json: Secret::new("{}"),
+        api_user: "7".into(),
+        extra_config: "{}".into(),
+    };
+    let prior = accounts.create(req(&retained.id)).unwrap();
+    let moved_id = if write == ConcurrentWrite::ImportMove {
+        prior.id.as_str()
+    } else {
+        "new-account"
+    };
+    let row = |id: &str, provider: &str| ExportAccount {
+        id: id.into(),
+        provider_id: provider.into(),
+        name: "Imported".into(),
+        cookies_json: Secret::new("{}"),
+        cookies_json_encrypted: false,
+        api_user: "8".into(),
+        enabled: true,
+        created_at: chrono::Utc::now(),
+    };
+    let source = root.path().join("import.json");
+    let config = ExportData::new(
+        vec![],
+        vec![row("first-row", &retained.id), row(moved_id, &target.id)],
+    );
+    std::fs::write(&source, serde_json::to_vec(&config).unwrap()).unwrap();
+    let session = ExportManager::preview_file_at(&source, &db, &crypto).unwrap();
+    let tx = other
+        .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+        .unwrap();
+    assert!(checkin_repo::delete_provider(&tx, &target.id).unwrap());
+    pool.get().unwrap().busy_handler(Some(busy)).unwrap();
+    signal.store(false, Ordering::Release);
+    std::thread::scope(|scope| {
+        let job = scope.spawn(|| {
+            if write == ConcurrentWrite::Manual {
+                assert!(matches!(
+                    accounts.create(req(&target.id)),
+                    Err(crate::account_manager::AccountError::ProviderNotFound(_))
+                ));
+            } else {
+                let Err(ExportError::PartialImport(receipt)) =
+                    apply(&session, &db, &crypto, true, || Ok(db_access.clone()))
+                else {
+                    panic!("must report the actual partial import")
+                };
+                assert!(!receipt.counts.success);
+                assert_eq!(
+                    (
+                        receipt.counts.accounts_imported,
+                        receipt.counts.accounts_skipped
+                    ),
+                    (1, 0)
+                );
+                assert!(crypto.join("backups").join(receipt.backup_file).is_file());
+            }
+        });
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        while !signal.load(Ordering::Acquire) {
+            assert!(
+                std::time::Instant::now() < deadline,
+                "account writer did not reach SQLite"
+            );
+            std::thread::yield_now();
+        }
+        tx.commit().unwrap();
+        job.join().unwrap();
+    });
+    let saved = accounts.load_all().unwrap();
+    assert_eq!(
+        saved.len(),
+        if write == ConcurrentWrite::Manual {
+            1
+        } else {
+            2
+        }
+    );
+    assert!(saved.iter().all(|a| a.provider_id == retained.id));
+    assert_eq!(accounts.get(&prior.id).unwrap().name, prior.name);
+    if write != ConcurrentWrite::Manual {
+        assert!(accounts.get("first-row").is_ok());
+        checkin_repo::insert_provider(&other, &target).unwrap();
+        let retry = ExportManager::preview_file_at(&source, &db, &crypto).unwrap();
+        let receipt = apply(&retry, &db, &crypto, true, || Ok(db_access.clone())).unwrap();
+        assert_eq!(
+            (
+                receipt.counts.accounts_imported,
+                receipt.counts.accounts_skipped
+            ),
+            (2, 0)
+        );
+        assert_eq!(accounts.get(moved_id).unwrap().provider_id, target.id);
+    }
+}

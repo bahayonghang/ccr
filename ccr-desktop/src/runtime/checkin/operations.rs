@@ -576,14 +576,12 @@ async fn execute(
                 .map_err(|_| OperationError::Invalid)?;
             let account = storage.scoped(|| {
                 storage.guard_crypto_initialization()?;
-                accounts
-                    .create_for_existing_provider(request)
-                    .map_err(|error| match error {
-                        ccr_checkin::account_manager::AccountError::ProviderNotFound(_) => {
-                            OperationError::Invalid
-                        }
-                        _ => OperationError::Storage,
-                    })
+                accounts.create(request).map_err(|error| match error {
+                    ccr_checkin::account_manager::AccountError::ProviderNotFound(_) => {
+                        OperationError::Invalid
+                    }
+                    _ => OperationError::Storage,
+                })
             })?;
             owner
                 .state

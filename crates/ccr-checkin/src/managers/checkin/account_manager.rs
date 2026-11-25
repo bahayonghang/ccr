@@ -5,7 +5,8 @@
 use crate::core::crypto::CryptoManager;
 use crate::core::error::DbError;
 use crate::models::checkin::{
-    AccountInfo, AccountsResponse, CheckinAccount, CreateAccountRequest, UpdateAccountRequest,
+    AccountInfo, AccountsResponse, CheckinAccount, CreateAccountRequest, ImportConflictStrategy,
+    UpdateAccountRequest,
 };
 use ccr_core::Secret;
 use ccr_db::database::{self, repositories::checkin_repo};
@@ -161,22 +162,6 @@ impl AccountManager {
 
     /// 创建账号
     pub fn create(&self, request: CreateAccountRequest) -> Result<CheckinAccount> {
-        self.create_account(request, false)
-    }
-
-    /// Create a manually enrolled account only while its local provider still exists.
-    pub fn create_for_existing_provider(
-        &self,
-        request: CreateAccountRequest,
-    ) -> Result<CheckinAccount> {
-        self.create_account(request, true)
-    }
-
-    fn create_account(
-        &self,
-        request: CreateAccountRequest,
-        require_provider: bool,
-    ) -> Result<CheckinAccount> {
         let crypto = self.get_crypto()?;
 
         // 加密 Cookies JSON（加密是明文的合法消费点）
@@ -194,26 +179,7 @@ impl AccountManager {
         // 设置扩展配置 (CDK 凭证等)
         account.extra_config = request.extra_config;
 
-        if require_provider {
-            let inserted = self.db.with_connection(|conn| {
-                let tx = rusqlite::Transaction::new_unchecked(
-                    conn,
-                    rusqlite::TransactionBehavior::Immediate,
-                )?;
-                if checkin_repo::get_provider_by_id(&tx, &account.provider_id)?.is_none() {
-                    return Ok(false);
-                }
-                checkin_repo::insert_account(&tx, &account)?;
-                tx.commit()?;
-                Ok(true)
-            })?;
-            if !inserted {
-                return Err(AccountError::ProviderNotFound(account.provider_id));
-            }
-        } else {
-            self.db
-                .with_connection(|conn| checkin_repo::insert_account(conn, &account))?;
-        }
+        self.write_account(&account, None)?;
 
         tracing::info!("Created account: {} ({})", account.name, account.id);
         Ok(account)
@@ -326,31 +292,53 @@ impl AccountManager {
         imported: &mut usize,
         skipped: &mut usize,
     ) -> Result<()> {
-        let existing = self.db.with_connection(checkin_repo::get_all_accounts)?;
-
-        for new_account in accounts_to_import {
-            let exists = existing.iter().any(|a| a.id == new_account.id);
-
-            if exists {
-                if overwrite {
-                    if !self
-                        .db
-                        .with_connection(|conn| checkin_repo::update_account(conn, &new_account))?
-                    {
-                        return Err(AccountError::NotFound(new_account.id));
-                    }
-                    *imported += 1;
-                } else {
-                    *skipped += 1;
-                }
-            } else {
-                self.db
-                    .with_connection(|conn| checkin_repo::insert_account(conn, &new_account))?;
+        let strategy = if overwrite {
+            ImportConflictStrategy::Overwrite
+        } else {
+            ImportConflictStrategy::Skip
+        };
+        for account in accounts_to_import {
+            if self.write_account(&account, Some(&strategy))? {
                 *imported += 1;
+            } else {
+                *skipped += 1;
             }
         }
-
         Ok(())
+    }
+
+    /// Manual creation rejects ID collisions. Imports can skip or replace an
+    /// existing ID. Resolve the conflict and provider inside the same write lock.
+    fn write_account(
+        &self,
+        account: &CheckinAccount,
+        strategy: Option<&ImportConflictStrategy>,
+    ) -> Result<bool> {
+        self.db.with_connection(|conn| {
+            let tx = rusqlite::Transaction::new_unchecked(
+                conn,
+                rusqlite::TransactionBehavior::Immediate,
+            )?;
+            let exists =
+                strategy.is_some() && checkin_repo::get_account_by_id(&tx, &account.id)?.is_some();
+            if exists && matches!(strategy, Some(ImportConflictStrategy::Skip)) {
+                return Ok(Ok(false));
+            }
+            if checkin_repo::get_provider_by_id(&tx, &account.provider_id)?.is_none() {
+                return Ok(Err(AccountError::ProviderNotFound(
+                    account.provider_id.clone(),
+                )));
+            }
+            if exists {
+                if !checkin_repo::update_account(&tx, account)? {
+                    return Ok(Err(AccountError::NotFound(account.id.clone())));
+                }
+            } else {
+                checkin_repo::insert_account(&tx, account)?;
+            }
+            tx.commit()?;
+            Ok(Ok(true))
+        })?
     }
 }
 
@@ -368,6 +356,10 @@ mod tests {
         {
             let conn = pool.get().unwrap();
             conn.execute_batch(CREATE_TABLES_SQL).unwrap();
+            let mut provider =
+                crate::CheckinProvider::new("Fixture".into(), "https://fixture.invalid".into());
+            provider.id = "provider-1".into();
+            checkin_repo::insert_provider(&conn, &provider).unwrap();
         }
         let temp_dir = TempDir::new().unwrap();
         let manager = AccountManager::with_db(temp_dir.path(), database::DbAccess::Pool(pool));

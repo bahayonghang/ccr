@@ -273,6 +273,10 @@ For check-in changes, run:
 
 - Retained import previews contain only source/root/version metadata and a non-secret summary. Do not retain `ExportData` in the app-owned job report: an import file may contain plaintext cookies. Apply rereads the same hash-bound bytes and parses credentials into temporary secret values only for validation and writing.
 
+### Account writes and concurrent provider deletion
+
+Manual enrollment in either desktop client and each imported account insert or overwrite verify the target provider in the same SQLite write transaction as the account write. Skipped conflicts do not move the existing account. Import receipts count each committed account individually. A stale account update cannot reassign an account to a provider deleted after an import moved it. Legacy rows already present remain readable.
+
 ### Existing encrypted accounts and missing keys
 
 - `AccountManager::get_info` and `get_cookies_json` are reads: use `CryptoManager::load_existing`, never initialize a missing key. Metadata-only updates likewise preserve encrypted bytes without requiring a key; cookie replacement requires the existing key.

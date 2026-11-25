@@ -258,7 +258,8 @@ pub fn get_account_by_id(
     .optional()
 }
 
-/// Update account
+/// Update an account, keeping already stored legacy associations readable.
+/// A stale row must not move an account back to a since-deleted provider.
 #[allow(dead_code)]
 pub fn update_account(
     conn: &Connection,
@@ -273,7 +274,9 @@ pub fn update_account(
          provider_id = ?1, name = ?2, cookies_json_encrypted = ?3, api_user = ?4,
          enabled = ?5, updated_at = ?6, last_checkin_at = ?7, last_balance_check_at = ?8,
          extra_config = ?9
-         WHERE id = ?10",
+         WHERE id = ?10 AND (provider_id = ?1 OR EXISTS (
+             SELECT 1 FROM checkin_providers WHERE id = ?1
+         ))",
         params![
             account.provider_id,
             account.name,
@@ -1136,6 +1139,50 @@ mod tests {
         // Delete
         let deleted = delete_account(&conn, &account.id).unwrap();
         assert!(deleted);
+    }
+
+    #[test]
+    fn stale_account_updates_cannot_restore_a_removed_provider_after_an_import_move() {
+        let conn = setup_test_db();
+        let before = CheckinProvider::new("Before".into(), "https://before.invalid".into());
+        let after = CheckinProvider::new("After".into(), "https://after.invalid".into());
+        insert_provider(&conn, &before).unwrap();
+        insert_provider(&conn, &after).unwrap();
+        let original = CheckinAccount::new(
+            before.id.clone(),
+            "Account".into(),
+            "synthetic".into(),
+            "7".into(),
+        );
+        insert_account(&conn, &original).unwrap();
+        let mut moved = original.clone();
+        moved.provider_id = after.id.clone();
+        assert!(update_account(&conn, &moved).unwrap());
+        assert!(delete_provider(&conn, &before.id).unwrap());
+        assert!(!update_account(&conn, &original).unwrap());
+        assert_eq!(
+            get_account_by_id(&conn, &moved.id)
+                .unwrap()
+                .unwrap()
+                .provider_id,
+            after.id
+        );
+
+        // Legacy migrations use the raw repository to retain existing orphan rows.
+        let legacy = CheckinAccount::new(
+            before.id.clone(),
+            "Legacy".into(),
+            "synthetic".into(),
+            "7".into(),
+        );
+        insert_account(&conn, &legacy).unwrap();
+        assert_eq!(
+            get_account_by_id(&conn, &legacy.id)
+                .unwrap()
+                .unwrap()
+                .provider_id,
+            before.id
+        );
     }
 
     #[test]
