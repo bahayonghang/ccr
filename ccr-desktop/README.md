@@ -148,6 +148,8 @@ just gpui-dev --fixture-profiles <absolute-fixture>/profiles.toml --fixture-regi
 `accounts.json` 的绝对路径，预览再确认。首次导入在该目录生成签到库和设备密钥。每次重启
 脚本都会生成独立的库目录和端口，可从头复测。Ctrl+C 停止测试服务。
 
+复测首次开户时，进入「账户」后先打开「添加提供商」并取消。也可在「导入导出」预览脚本生成的文件后取消，两者都保留无库状态。手动保存自定义提供商后，回到「账户」，选择提供商并添加第一个签到账户。测试账户只使用本次夹具数据。
+
 - 清空筛选，先从 Ready 行刷新余额，再立即从页头刷新余额。Ready 的近期刷新应跳过，
   Today 有实测值，Expired 失败；Disabled 没有进入该批。再次手动刷新 Ready 会多一条 GET。
 - 搜索 Ready 后点「一键签到」，确认仍列出四个启用账户和各自的提供商。确认后切到其他页面再返回，
@@ -187,7 +189,7 @@ just gpui-dev --fixture-sync-loopback --fixture-profiles <fixture>/profiles.toml
 
 同步工作台先显示当前执行环境及 WebDAV 状态。本地重读和资产盘点与显式远端探测独立。五项配置资产可按单项或全部选择方向，核对目标与后果后再确认。敏感新写入使用 v2，只有显式允许且实际下载时才可导入明文 v1。普通文件夹按所选或全部已启用项独立传输。最近操作按执行环境恢复，显示逐项结果和可读取的备份。[同步 Windows 原生验收](../.trellis/research/archive/2026-11/gpui-sync-234/native.md)
 
-签到页提供服务商/账户管理、签到、余额和记录，凭据通过现有加密 owner 保存。任务离页后继续由应用持有，返回恢复结果；已接显式 CDK 充值、手工 WAF 管理/校验、记录筛选与账户月度数据；内嵌浏览器 WAF 登录仍受 WebView 依赖限制。
+从侧栏进入「签到管理」，页头标出「本机签到」。即使在状态栏选中 SSH 主机，签到仍使用本机保存的提供商、签到账户和记录。已有账户时，按币种查看余额、总额度和已消耗，搜索账户或提供商，再选择单个、勾选的或全部启用账户执行作业。离页后可返回逐项结果，从凭据错误项进入对应账户。账户详情还提供连接诊断、适用的 CDK、月历与趋势，「提供商」保留手工 WAF 管理与校验。内嵌浏览器 WAF 登录仍受 WebView 依赖限制。主工作台支持手动开户，签到 OAuth 待提供商公开协议核实。[Windows 原生验收](../.trellis/research/archive/2026-11/gpui-checkin-245/native.md) · [OAuth #251](https://github.com/bahayonghang/ccr/issues/251)
 
 SSH 同步读取该主机的 `~/.ccr/sync_folders.toml`，四个固定文件资产（Claude settings / CLAUDE.md、Codex config / AGENTS.md）通过私有暂存复用 `ccr-sync` 的 HTTPS、冲突和加密协议，再以 SFTP 版本比较、备份、原子替换写回该主机。普通文件夹限定在捕获的远程 HOME 内：portable 路径、最多 128 节点/12 层、每文件 2MiB/总计 16MiB。多文件发布保留已写文件的远端备份，失败会报告部分完成；不承诺跨文件事务。远端 `ccr-platforms` 以及包含 SQLite 数据库或 sidecar 的文件夹明确拒绝，缺少远端数据库事务 owner 时不覆盖活跃 `profiles.db`。SSH 下解绑 WebDAV/清理旧凭据尚不可用；新建纯空目标目录不支持。空来源目录可上传。以上限制不改变本地同步能力。
 
