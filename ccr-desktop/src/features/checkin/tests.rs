@@ -161,6 +161,20 @@ async fn checkin_page_without_a_database_stays_absent(cx: &mut TestAppContext) {
         window.click("checkin-new-provider", cx);
         window.render_frame(cx);
         assert!(window.try_find("checkin-editor").is_some());
+        for (index, label) in [
+            (0, "Name"),
+            (1, "Base URL"),
+            (2, "Check-in path"),
+            (3, "Balance path"),
+            (4, "User info path"),
+            (5, "Auth header"),
+            (6, "Auth prefix"),
+        ] {
+            assert_eq!(
+                window.find(format!("checkin-caption-{index}")).label(),
+                Some(label)
+            );
+        }
         window.click("checkin-cancel-edit", cx);
         window.render_frame(cx);
         assert!(window.try_find("checkin-absent").is_some());

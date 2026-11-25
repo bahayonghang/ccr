@@ -40,6 +40,7 @@ pub struct CheckinView {
     selected: Option<String>,
     tab: CheckinTab,
     search: Entity<InputState>,
+    placeholder_chinese: bool,
     query: String,
     provider_filter: Option<String>,
     scroll: ScrollHandle,
@@ -59,15 +60,13 @@ pub struct CheckinView {
     extended: Option<extended::ExtendedUi>,
 }
 
+fn search_placeholder(cx: &App) -> &'static str {
+    text(cx, "Search accounts or providers", "搜索账户或提供商")
+}
+
 impl CheckinView {
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let search = cx.new(|cx| {
-            InputState::new(window, cx).placeholder(text(
-                cx,
-                "Search accounts or providers",
-                "搜索账户或提供商",
-            ))
-        });
+        let search = cx.new(|cx| InputState::new(window, cx).placeholder(search_placeholder(cx)));
         let search_changed = cx.subscribe(&search, |_, _, event, cx| {
             if matches!(event, InputEvent::Change) {
                 cx.notify();
@@ -75,6 +74,7 @@ impl CheckinView {
         });
         Self {
             search,
+            placeholder_chinese: is_chinese(cx),
             query: String::new(),
             provider_filter: None,
             scroll: ScrollHandle::new(),
@@ -310,6 +310,14 @@ fn detail_lines(cx: &App, account: &CheckinAccountRow) -> Vec<String> {
 
 impl Render for CheckinView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let chinese = is_chinese(cx);
+        if chinese != self.placeholder_chinese {
+            self.placeholder_chinese = chinese;
+            let placeholder = search_placeholder(cx);
+            self.search.update(cx, |state, cx| {
+                state.set_placeholder(placeholder, window, cx)
+            });
+        }
         let query = self.search.read(cx).value().trim().to_lowercase();
         if query != self.query {
             self.query = query;

@@ -352,7 +352,7 @@ impl CheckinView {
             let search = badge::search_field(
                 Input::new(&self.search)
                     .id("checkin-search")
-                    .aria_label(text(cx, "Search accounts or providers", "搜索账户或提供商")),
+                    .aria_label(search_placeholder(cx)),
                 cx,
             );
             let toolbar = div()
@@ -442,7 +442,16 @@ impl CheckinView {
                 let last = account
                     .last_checkin_at
                     .as_deref()
-                    .map(|time| format!("{} {time}", text(cx, "Last check-in", "上次签到")))
+                    .map(|time| {
+                        let display = chrono::DateTime::parse_from_rfc3339(time)
+                            .map(|t| {
+                                t.with_timezone(&chrono::Utc)
+                                    .format("%Y-%m-%d %H:%M:%S UTC")
+                                    .to_string()
+                            })
+                            .unwrap_or_else(|_| time.into());
+                        format!("{} {display}", text(cx, "Last check-in", "上次签到"))
+                    })
                     .unwrap_or_else(|| {
                         text(
                             cx,

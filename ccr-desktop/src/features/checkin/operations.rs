@@ -572,11 +572,30 @@ impl CheckinView {
             };
             for &index in order {
                 let field = &editor.fields[index];
+                let label = text(cx, labels[index].0, labels[index].1);
                 form = form.child(
-                    Input::new(field)
-                        .disabled(locked)
-                        .aria_label(text(cx, labels[index].0, labels[index].1))
-                        .accessibility_id(format!("checkin-field-{index}")),
+                    div()
+                        .flex()
+                        .items_center()
+                        .gap(px(theme::CONTROL_GAP))
+                        .child(
+                            div()
+                                .id(format!("checkin-caption-{index}"))
+                                .test_support()
+                                .role(gpui_kit::Role::Label)
+                                .aria_label(label)
+                                .flex_shrink_0()
+                                .w(theme::text_size(120.))
+                                .child(label),
+                        )
+                        .child(
+                            div().min_w_0().flex_1().child(
+                                Input::new(field)
+                                    .disabled(locked)
+                                    .aria_label(label)
+                                    .accessibility_id(format!("checkin-field-{index}")),
+                            ),
+                        ),
                 );
             }
             if !provider && !editor.credentials.advanced {
