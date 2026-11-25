@@ -28,13 +28,23 @@ fn open(
     owner: &RuntimeOwner,
     root: &std::path::Path,
 ) -> gpui_kit::AnyWindowHandle {
+    open_size(cx, owner, root, 1280., 800.)
+}
+
+fn open_size(
+    cx: &mut TestAppContext,
+    owner: &RuntimeOwner,
+    root: &std::path::Path,
+    width: f32,
+    height: f32,
+) -> gpui_kit::AnyWindowHandle {
     cx.update(|cx| {
         gpui_kit::init(cx);
         gpui_kit::open_window(
             WindowOptions {
                 window_bounds: Some(WindowBounds::Windowed(gpui_kit::Bounds::centered(
                     None,
-                    size(px(1280.), px(800.)),
+                    size(px(width), px(height)),
                     cx,
                 ))),
                 ..Default::default()
@@ -135,6 +145,27 @@ async fn checkin_page_without_a_database_stays_absent(cx: &mut TestAppContext) {
         assert!(!text.contains("Apply / refresh"));
         assert!(!text.contains(" / "));
         assert!(window.try_find("checkin-account-0").is_none());
+        assert!(labels(window).contains("Local check-ins"));
+        for (tab, control) in [
+            ("checkin-tab-providers", "checkin-new-provider"),
+            ("checkin-tab-records", "checkin-records-empty"),
+            ("checkin-tab-transfer", "checkin-transfer-path"),
+            ("checkin-tab-accounts", "checkin-new-provider"),
+        ] {
+            window.click(tab, cx);
+            window.render_frame(cx);
+            assert!(window.try_find(control).is_some(), "{tab} opens its task");
+        }
+        let action = window.find("checkin-new-provider");
+        assert!(action.bounds().size.width < px(250.));
+        window.click("checkin-new-provider", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("checkin-editor").is_some());
+        window.click("checkin-cancel-edit", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("checkin-absent").is_some());
+        assert!(!root.path().join("checkin-crypto").exists());
+        assert!(!root.path().join("checkin-migration-home").exists());
         assert!(!root.path().join("checkin.db").exists());
         window.remove_window();
     })
@@ -165,7 +196,7 @@ async fn checkin_page_shows_stored_rows_and_hides_secrets(cx: &mut TestAppContex
         assert!(text.contains("Desk account"));
         assert!(text.contains("No stored balance."));
         assert!(text.contains("No check-in is recorded for this account."));
-        assert!(!text.contains("7.5"));
+        assert!(text.contains("7.5"));
         assert!(!text.contains("checkin-secret-sentinel"));
         assert!(!text.contains("example.invalid"));
         assert!(!text.contains("Home insights"));
@@ -346,5 +377,164 @@ fn account_tools_native_selection_cancel_and_batch_delete(cx: &mut TestAppContex
     .unwrap();
     let conn = rusqlite::Connection::open(root.path().join("checkin.db")).unwrap();
     assert_eq!(checkin_repo::get_all_accounts(&conn).unwrap().len(), 1);
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+async fn minimum_window_keeps_account_filters_and_unfiltered_balance_totals(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    seed(root.path());
+    let conn = rusqlite::Connection::open(root.path().join("checkin.db")).unwrap();
+    let mut other = CheckinProvider::new("Second vendor".into(), "https://second.invalid".into());
+    other.id = "second".into();
+    checkin_repo::insert_provider(&conn, &other).unwrap();
+    conn.execute(
+        "UPDATE checkin_accounts SET provider_id='second' WHERE id='unmeasured'",
+        [],
+    )
+    .unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    for (w, h) in [(960., 640.), (1280., 800.)] {
+        let handle = open_size(cx, &owner, root.path(), w, h);
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.click("nav-checkin", cx);
+        })
+        .unwrap();
+        cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+            window.try_find("checkin-account-1").is_some()
+        })
+        .await;
+        cx.update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            let summary = window
+                .find("checkin-balance-summary")
+                .label()
+                .unwrap()
+                .to_string();
+            assert!(summary.contains("USD") && summary.contains("7.5") && summary.contains("1/2"));
+            window.click("checkin-search", cx);
+            window.input("vEnDoR", cx);
+            window.render_frame(cx);
+            assert!(labels(window).contains("Unmeasured account"));
+            assert!(
+                !labels(window).contains("Desk account"),
+                "{:?} {}",
+                window.find("checkin-search").value(),
+                labels(window)
+            );
+            window.click("checkin-provider-filter-0", cx);
+            window.render_frame(cx);
+            assert!(window.try_find("checkin-clear-filters").is_some());
+            assert!(window.try_find("checkin-account-0").is_none());
+            assert_eq!(
+                window.find("checkin-balance-summary").label(),
+                Some(summary.as_str())
+            );
+            window.click("checkin-clear-filters", cx);
+            window.render_frame(cx);
+            window.click("checkin-account-1", cx);
+            window.render_frame(cx);
+            assert!(
+                window
+                    .find("checkin-detail")
+                    .label()
+                    .unwrap()
+                    .contains("Desk account")
+            );
+            window.click("checkin-back", cx);
+            window.render_frame(cx);
+            assert!(window.try_find("checkin-detail").is_none());
+            window.click("checkin-search", cx);
+            window.input("DeSk", cx);
+            window.render_frame(cx);
+            assert!(labels(window).contains("Desk account"));
+            assert!(!labels(window).contains("Unmeasured account"));
+            assert_eq!(
+                window.find("checkin-balance-summary").label(),
+                Some(summary.as_str())
+            );
+            window.remove_window();
+        })
+        .unwrap();
+    }
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+async fn unreadable_database_retries_into_empty_store_then_configured_provider(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    let db = root.path().join("checkin.db");
+    std::fs::create_dir(&db).unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let handle = open_size(cx, &owner, root.path(), 960., 640.);
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("nav-checkin", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window
+            .try_find("checkin-status")
+            .is_some_and(|n| n.label().is_some_and(|l| l.contains("could not be read")))
+    })
+    .await;
+    std::fs::remove_dir(&db).unwrap();
+    let conn = rusqlite::Connection::open(&db).unwrap();
+    let migrations = tempfile::tempdir().unwrap();
+    database::migrations::run_all_migrations(&conn, migrations.path()).unwrap();
+    cx.update_window(handle, |_, window, cx| {
+        assert!(window.try_find("checkin-absent").is_none());
+        window.click("checkin-read", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("checkin-new-provider").is_some()
+    })
+    .await;
+    let mut second = CheckinProvider::new(
+        "Configured provider".into(),
+        "https://example.invalid".into(),
+    );
+    second.id = "configured".into();
+    checkin_repo::insert_provider(&conn, &second).unwrap();
+    cx.update_window(handle, |_, window, cx| {
+        assert!(
+            window
+                .find("checkin-empty")
+                .label()
+                .unwrap()
+                .contains("No providers")
+        );
+        window.click("checkin-read", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("checkin-new-account").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        assert!(labels(window).contains("Configured provider"));
+        let action = window.find("checkin-new-account");
+        assert!(action.bounds().size.width < px(250.));
+        assert!(action.bounds().bottom() <= window.find("checkin-page").bounds().bottom());
+        window.click("checkin-new-account", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("checkin-editor").is_some());
+        assert!(labels(window).contains("Configured provider"));
+        window.click("checkin-cancel-edit", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("checkin-new-account").is_some());
+        window.remove_window();
+    })
+    .unwrap();
+    assert!(!root.path().join("checkin-crypto").exists());
+    assert!(!root.path().join("checkin-migration-home").exists());
     owner.shutdown();
 }

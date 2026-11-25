@@ -186,30 +186,22 @@ impl CheckinView {
             EditorKind::Account(_) => 4,
         };
         let mut enabled = true;
-        let mut provider = self
-            .operation
-            .snapshot
-            .as_ref()
-            .and_then(|s| s.providers.first())
-            .map(|p| p.id.clone());
+        let mut provider = self.provider_filter.clone().or_else(|| {
+            self.data()
+                .and_then(|s| s.providers.first())
+                .map(|p| p.id.clone())
+        });
         match &kind {
             EditorKind::Provider(Some(id)) => {
                 if let Some(p) = self
-                    .operation
-                    .snapshot
-                    .as_ref()
+                    .data()
                     .and_then(|s| s.providers.iter().find(|p| &p.id == id))
                 {
                     enabled = p.enabled;
                 }
             }
             EditorKind::Account(Some(id)) => {
-                if let Some(a) = self
-                    .operation
-                    .snapshot
-                    .as_ref()
-                    .and_then(|s| s.accounts.iter().find(|a| &a.id == id))
-                {
+                if let Some(a) = self.rows().iter().find(|a| &a.id == id) {
                     enabled = a.enabled;
                     provider = Some(a.provider_id.clone());
                 }
@@ -340,39 +332,10 @@ impl CheckinView {
         }
         section
     }
-    pub(super) fn render_operations(&self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
-        let locked = self.operation.busy;
-        let mut section = div()
-            .id("checkin-operations")
-            .flex()
-            .flex_col()
-            .gap(px(theme::CONTROL_GAP));
-        section = section.child(self.render_operation_result(cx));
-        section = section.child(semantics::button(
-            Button::new("checkin-manage")
-                .label(text(
-                    cx,
-                    "Manage providers and accounts",
-                    "管理提供商与账户",
-                ))
-                .on_click(cx.listener(|this, _, _, cx| this.start(Operation::Manage, cx))),
-            locked,
-            false,
-            cx,
-        ));
-        section = section.children(self.render_selected_actions(cx));
-        if let Some(snapshot) = &self.operation.snapshot {
-            section = section.children(self.render_management_actions(snapshot, cx));
-            section = section.children(self.render_provider_rows(snapshot, cx));
-            section = section.children(self.render_account_rows(snapshot, cx));
-            section = section.children(self.render_saved_records(snapshot, cx));
-        }
-        section = section.children(self.render_management_editor(cx));
-        section = section.children(self.render_entry_confirmation(cx));
-        section.into_any_element()
-    }
-
-    fn render_selected_actions(&self, cx: &mut Context<Self>) -> Vec<gpui_kit::AnyElement> {
+    pub(super) fn render_selected_actions(
+        &self,
+        cx: &mut Context<Self>,
+    ) -> Vec<gpui_kit::AnyElement> {
         let mut children = Vec::new();
         let locked = self.operation.busy;
         if let Some(id) = self.selected.clone() {
@@ -419,77 +382,9 @@ impl CheckinView {
         children
     }
 
-    fn render_management_actions(
+    pub(super) fn render_provider_rows(
         &self,
-        snapshot: &crate::runtime::checkin::ManagementSnapshot,
-        cx: &mut Context<Self>,
-    ) -> Vec<gpui_kit::AnyElement> {
-        let mut children = Vec::new();
-        let locked = self.operation.busy;
-
-        children.push(
-            (div()
-                .flex()
-                .gap(px(theme::CONTROL_GAP))
-                .child(semantics::button(
-                    Button::new("checkin-new-provider")
-                        .label(text(cx, "Add provider", "新增提供商"))
-                        .on_click(cx.listener(|this, _, window, cx| {
-                            this.edit(EditorKind::Provider(None), window, cx)
-                        })),
-                    locked,
-                    false,
-                    cx,
-                ))
-                .child(semantics::button(
-                    Button::new("checkin-new-account")
-                        .label(text(cx, "Add account", "新增账户"))
-                        .on_click(cx.listener(|this, _, window, cx| {
-                            this.edit(EditorKind::Account(None), window, cx)
-                        })),
-                    locked || snapshot.providers.is_empty(),
-                    false,
-                    cx,
-                ))
-                .child(semantics::button(
-                    Button::new("checkin-catalog")
-                        .label(text(cx, "Builtin providers", "内置提供商"))
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            this.catalog = !this.catalog;
-                            cx.notify();
-                        })),
-                    locked,
-                    false,
-                    cx,
-                )))
-            .into_any_element(),
-        );
-        if self.catalog {
-            for (index, builtin) in get_builtin_providers().into_iter().enumerate() {
-                let id = builtin.id;
-                children.push(
-                    (semantics::button(
-                        Button::new(("checkin-builtin", index))
-                            .label(builtin.name)
-                            .ghost()
-                            .on_click(cx.listener(move |this, _, _, cx| {
-                                this.start(Operation::AddBuiltin(id.clone()), cx)
-                            })),
-                        locked,
-                        false,
-                        cx,
-                    ))
-                    .into_any_element(),
-                );
-            }
-        }
-
-        children
-    }
-
-    fn render_provider_rows(
-        &self,
-        snapshot: &crate::runtime::checkin::ManagementSnapshot,
+        snapshot: &CheckinData,
         cx: &mut Context<Self>,
     ) -> Vec<gpui_kit::AnyElement> {
         let mut children = Vec::new();
@@ -532,14 +427,19 @@ impl CheckinView {
         children
     }
 
-    fn render_account_rows(
+    pub(super) fn render_account_rows(
         &self,
-        snapshot: &crate::runtime::checkin::ManagementSnapshot,
+        snapshot: &CheckinData,
         cx: &mut Context<Self>,
     ) -> Vec<gpui_kit::AnyElement> {
         let mut children = Vec::new();
         let locked = self.operation.busy;
-        for (index, a) in snapshot.accounts.iter().enumerate() {
+        for (index, a) in snapshot
+            .accounts
+            .iter()
+            .enumerate()
+            .filter(|(_, a)| Some(&a.id) == self.selected.as_ref())
+        {
             let id = a.id.clone();
             let delete = id.clone();
             children.push(
@@ -577,7 +477,7 @@ impl CheckinView {
         children
     }
 
-    fn render_saved_records(
+    pub(super) fn render_saved_records(
         &self,
         snapshot: &crate::runtime::checkin::ManagementSnapshot,
         cx: &mut Context<Self>,
@@ -594,7 +494,10 @@ impl CheckinView {
         children
     }
 
-    fn render_management_editor(&self, cx: &mut Context<Self>) -> Vec<gpui_kit::AnyElement> {
+    pub(super) fn render_management_editor(
+        &self,
+        cx: &mut Context<Self>,
+    ) -> Vec<gpui_kit::AnyElement> {
         let mut children = Vec::new();
         if let Some(editor) = &self.editor {
             let locked = self.operation.busy || editor.credentials.loading;
@@ -617,8 +520,39 @@ impl CheckinView {
                     ("Session cookie", "Session Cookie"),
                 ]
             };
-            let mut form=div().id("checkin-editor").flex().flex_col().gap(px(theme::CONTROL_GAP))
+            let mut form=div().id("checkin-editor").test_support().flex().flex_col().gap(px(theme::CONTROL_GAP))
                 .child(text(cx,"For edits, blank fields retain saved values. Session changes keep other cookies. Credentials are encrypted before storage. Browser login is not available here.","编辑时留空保留原值。修改 Session 会保留其他 Cookie，凭据写入前会加密。此处尚不支持浏览器登录。"));
+            if matches!(editor.kind, EditorKind::Provider(None)) {
+                form = form.child(semantics::ghost_button(
+                    Button::new("checkin-catalog")
+                        .label(text(cx, "Choose a built-in provider", "选择内置提供商"))
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            this.catalog = !this.catalog;
+                            cx.notify();
+                        })),
+                    locked,
+                    false,
+                    cx,
+                ));
+                if self.catalog {
+                    let mut catalog = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
+                    for (index, item) in get_builtin_providers().into_iter().enumerate() {
+                        let id = item.id;
+                        let label = format!("{} {}", text(cx, "Add", "添加"), item.name);
+                        catalog = catalog.child(semantics::button(
+                            Button::new(("checkin-builtin", index))
+                                .label(label)
+                                .on_click(cx.listener(move |this, _, _, cx| {
+                                    this.start(Operation::AddBuiltin(id.clone()), cx)
+                                })),
+                            locked,
+                            false,
+                            cx,
+                        ));
+                    }
+                    form = form.child(catalog);
+                }
+            }
             if editor.credentials.loading {
                 form = form.child(text(
                     cx,
@@ -663,7 +597,7 @@ impl CheckinView {
                 ));
             }
             if matches!(editor.kind, EditorKind::Account(None))
-                && let Some(snapshot) = &self.operation.snapshot
+                && let Some(snapshot) = self.data()
             {
                 for (index, p) in snapshot.providers.iter().enumerate() {
                     let id = p.id.clone();
@@ -725,6 +659,7 @@ impl CheckinView {
                                 .ghost()
                                 .on_click(cx.listener(|this, _, _, cx| {
                                     this.editor = None;
+                                    this.catalog = false;
                                     cx.notify();
                                 })),
                             self.operation.busy,
@@ -739,7 +674,10 @@ impl CheckinView {
         children
     }
 
-    fn render_entry_confirmation(&self, cx: &mut Context<Self>) -> Vec<gpui_kit::AnyElement> {
+    pub(super) fn render_entry_confirmation(
+        &self,
+        cx: &mut Context<Self>,
+    ) -> Vec<gpui_kit::AnyElement> {
         let mut children = Vec::new();
         let locked = self.operation.busy;
         if self.confirmation.is_some() {

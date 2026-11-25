@@ -26,9 +26,6 @@ pub(super) struct ExtendedUi {
 }
 impl CheckinView {
     pub(super) fn open_extended(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.operation.busy {
-            return;
-        }
         self.extended = Some(ExtendedUi {
             accounts: BTreeSet::new(),
             provider: None,
@@ -44,11 +41,7 @@ impl CheckinView {
         });
         self.observe(cx);
         self.operation = self.services.checkin_operation_state();
-        if self.operation.snapshot.is_none() {
-            self.start(Operation::Manage, cx);
-        } else {
-            cx.notify();
-        }
+        cx.notify();
     }
     fn propose_extended(&mut self, command: ExtendedCommand, cx: &mut Context<Self>) {
         if self.operation.busy {
@@ -76,7 +69,7 @@ impl CheckinView {
                 }
             }
         }
-        if let Some(snapshot) = &self.operation.snapshot {
+        if let Some(CheckinSnapshot::Accounts(snapshot)) = &self.snapshot {
             editor
                 .accounts
                 .retain(|id| snapshot.accounts.iter().any(|account| &account.id == id));
@@ -88,6 +81,7 @@ impl CheckinView {
             .flex()
             .flex_col()
             .gap(px(theme::CONTROL_GAP))
+            .items_start()
             .flex_shrink_0()
             .on_key_down(cx.listener(|this, event: &gpui_kit::KeyDownEvent, _, cx| {
                 if event.keystroke.key == "escape"
@@ -99,31 +93,19 @@ impl CheckinView {
                     cx.stop_propagation();
                     cx.notify();
                 }
-            }))
-            .child(text(cx, "Account tools", "账户工具"))
-            .child(semantics::button(
+            }));
+        if self.tab != CheckinTab::Transfer {
+            root = root.child(semantics::ghost_button(
                 Button::new("checkin-tools-close")
                     .label(text(cx, "Back to accounts", "返回账户"))
-                    .ghost()
-                    .on_click(cx.listener(|this, _, _, cx| {
-                        this.extended = None;
-                        this.services.discard_checkin_preview();
-                        this.operation = this.services.checkin_operation_state();
-                        cx.notify();
+                    .on_click(cx.listener(|this, _, window, cx| {
+                        this.switch_tab(CheckinTab::Accounts, window, cx)
                     })),
                 blocked,
                 false,
                 cx,
             ));
-        root = root.child(semantics::button(
-            Button::new("checkin-tools-refresh")
-                .label(text(cx, "Read management data", "读取管理数据"))
-                .ghost()
-                .on_click(cx.listener(|this, _, _, cx| this.start(Operation::Manage, cx))),
-            blocked,
-            false,
-            cx,
-        ));
+        }
         if self
             .extended
             .as_ref()
@@ -133,7 +115,13 @@ impl CheckinView {
                 .children(self.render_extended_confirmation(window, cx))
                 .into_any_element();
         }
-        if let Some(snapshot) = &self.operation.snapshot {
+        if self.tab == CheckinTab::Transfer {
+            return root
+                .children(self.render_transfer_controls(cx))
+                .children(self.render_extended_results(cx))
+                .into_any_element();
+        }
+        if let Some(snapshot) = self.data() {
             root = root.children(self.render_batch_accounts(snapshot, cx));
             root = root.children(self.render_cdk_controls(cx));
             root = root.children(self.render_waf_controls(snapshot, cx));
@@ -262,7 +250,7 @@ impl CheckinView {
 
     fn render_batch_accounts(
         &self,
-        snapshot: &crate::runtime::checkin::ManagementSnapshot,
+        snapshot: &CheckinData,
         cx: &mut Context<Self>,
     ) -> Vec<gpui_kit::AnyElement> {
         let mut children = Vec::new();
@@ -490,7 +478,7 @@ impl CheckinView {
 
     fn render_waf_controls(
         &self,
-        snapshot: &crate::runtime::checkin::ManagementSnapshot,
+        snapshot: &CheckinData,
         cx: &mut Context<Self>,
     ) -> Vec<gpui_kit::AnyElement> {
         let mut children = Vec::new();

@@ -72,7 +72,7 @@ pub struct AccountSummary {
     pub name: String,
     pub enabled: bool,
 }
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct RecordSummary {
     pub account_id: String,
     pub status: CheckinStatus,

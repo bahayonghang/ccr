@@ -1,22 +1,29 @@
 //! Saved check-in accounts. Balances appear only when a local row stores them.
+mod balances;
 mod credentials;
 mod extended;
 mod operations;
+mod workbench;
 use crate::runtime::checkin::OperationState;
 use operations::{Confirmation, Editor};
 use std::sync::Arc;
+use workbench::CheckinTab;
 
 use crate::{
     locales::{is_chinese, service_error, text},
     runtime::{
         Services,
-        checkin::{CheckinAccountRow, CheckinError, CheckinSnapshot, StoredBalance, StoredNumbers},
+        checkin::{
+            CheckinAccountRow, CheckinData, CheckinError, CheckinSnapshot, StoredBalance,
+            StoredNumbers,
+        },
     },
     shell::semantics,
     theme,
 };
 use ccr_app::runtime::{Completion, EnvironmentId, Platform, RequestKey, ResponseGate, TaskEvent};
 use gpui_kit::base::TestSupportExt;
+use gpui_kit::component::input::{InputEvent, InputState};
 use gpui_kit::component::{
     Selectable,
     button::{Button, ButtonVariants},
@@ -25,11 +32,19 @@ use gpui_kit::{
     App, Context, FocusHandle, InteractiveElement, IntoElement, ParentElement, Render,
     SharedString, StatefulInteractiveElement, Styled, Task, Window, div, px,
 };
+use gpui_kit::{AppContext, Entity, Pixels, Point, ScrollHandle, Subscription};
 
 pub struct CheckinView {
     services: Services,
     snapshot: Option<CheckinSnapshot>,
     selected: Option<String>,
+    tab: CheckinTab,
+    search: Entity<InputState>,
+    query: String,
+    provider_filter: Option<String>,
+    scroll: ScrollHandle,
+    list_offset: Point<Pixels>,
+    _search_changed: Subscription,
     generation: u64,
     gate: ResponseGate,
     task: Option<Task<()>>,
@@ -45,8 +60,26 @@ pub struct CheckinView {
 }
 
 impl CheckinView {
-    pub fn new(services: Services, _window: &mut Window, cx: &mut Context<Self>) -> Self {
+    pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
+        let search = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(text(
+                cx,
+                "Search accounts or providers",
+                "搜索账户或提供商",
+            ))
+        });
+        let search_changed = cx.subscribe(&search, |_, _, event, cx| {
+            if matches!(event, InputEvent::Change) {
+                cx.notify();
+            }
+        });
         Self {
+            search,
+            query: String::new(),
+            provider_filter: None,
+            scroll: ScrollHandle::new(),
+            list_offset: Default::default(),
+            _search_changed: search_changed,
             operation: services.checkin_operation_state(),
             observation: None,
             editor: None,
@@ -56,6 +89,7 @@ impl CheckinView {
             services,
             snapshot: None,
             selected: None,
+            tab: CheckinTab::Accounts,
             generation: 0,
             gate: ResponseGate::default(),
             task: None,
@@ -75,6 +109,8 @@ impl CheckinView {
         self.observation = None;
         self.editor = None;
         self.extended = None;
+        self.catalog = false;
+        self.tab = CheckinTab::Accounts;
         self.services.discard_checkin_preview();
         self.operation = self.services.checkin_operation_state();
         self.confirmation = None;
@@ -142,17 +178,44 @@ impl CheckinView {
     }
 
     fn accept(&mut self, snapshot: CheckinSnapshot) {
-        let selected = match &snapshot {
-            CheckinSnapshot::Accounts(accounts) => self
-                .selected
-                .as_ref()
-                .filter(|id| accounts.accounts.iter().any(|a| &a.id == *id))
-                .cloned()
-                .or_else(|| accounts.accounts.first().map(|account| account.id.clone())),
-            CheckinSnapshot::NoDatabase => None,
-        };
         self.snapshot = Some(snapshot);
-        self.selected = selected;
+        if self.provider_filter.as_ref().is_some_and(|id| {
+            !self
+                .data()
+                .is_some_and(|d| d.providers.iter().any(|p| &p.id == id))
+        }) {
+            self.provider_filter = None;
+        }
+        self.reconcile_selection();
+    }
+
+    fn matches_account(&self, a: &CheckinAccountRow) -> bool {
+        self.provider_filter
+            .as_ref()
+            .is_none_or(|id| id == &a.provider_id)
+            && (self.query.is_empty()
+                || a.name.to_lowercase().contains(&self.query)
+                || a.provider_name
+                    .as_deref()
+                    .is_some_and(|p| p.to_lowercase().contains(&self.query)))
+    }
+
+    fn reconcile_selection(&mut self) {
+        if self.selected.as_ref().is_some_and(|id| {
+            !self
+                .rows()
+                .iter()
+                .any(|a| &a.id == id && self.matches_account(a))
+        }) {
+            self.selected = None;
+        }
+    }
+
+    fn data(&self) -> Option<&CheckinData> {
+        match self.snapshot.as_ref() {
+            Some(CheckinSnapshot::Accounts(data)) => Some(data),
+            _ => None,
+        }
     }
 
     fn rows(&self) -> &[CheckinAccountRow] {
@@ -247,171 +310,13 @@ fn detail_lines(cx: &App, account: &CheckinAccountRow) -> Vec<String> {
 
 impl Render for CheckinView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let query = self.search.read(cx).value().trim().to_lowercase();
+        if query != self.query {
+            self.query = query;
+            self.reconcile_selection();
+        }
         self.fill_account_credentials(window, cx);
-        let mut root = div()
-            .id("checkin-page")
-            .test_support()
-            .track_focus(&self.focus)
-            .tab_stop(false)
-            .flex()
-            .flex_col()
-            .size_full()
-            .overflow_y_scroll()
-            .p(px(theme::CONTENT_PADDING))
-            .gap(px(theme::SECTION_GAP))
-            .child(
-                div()
-                    .id("checkin-heading")
-                    .test_support()
-                    .role(gpui_kit::Role::Heading)
-                    .aria_level(1)
-                    .text_size(crate::theme::text_size(theme::TITLE_SIZE))
-                    .font_weight(gpui_kit::FontWeight::SEMIBOLD)
-                    .child(text(cx, "Check-ins", "签到管理")),
-            )
-            .child({
-                let intro = text(
-                    cx,
-                    "Reading this page does not create a database or contact providers. Management and account actions write to the local check-in store.",
-                    "读取此页不会创建数据库或联系提供商。管理及账户操作会写入本地签到存储。",
-                );
-                div()
-                    .id("checkin-intro")
-                    .test_support()
-                    .aria_label(intro)
-                    .child(intro)
-            })
-            .child(semantics::button(
-                Button::new("checkin-read")
-                    .label(if self.busy {
-                        text(cx, "Reading", "读取中")
-                    } else {
-                        text(cx, "Read saved accounts", "读取已保存的账户")
-                    })
-                    .ghost()
-                    .on_click(cx.listener(|this, _, _, cx| this.refresh(cx))),
-                self.busy,
-                self.busy,
-                cx,
-            ));
-        if self.extended.is_some() {
-            return root
-                .child(self.render_operation_result(cx))
-                .child(self.render_extended(window, cx));
-        }
-        root = root.child(semantics::button(
-            Button::new("checkin-tools-open")
-                .label(text(cx, "Account tools", "账户工具"))
-                .ghost()
-                .on_click(cx.listener(|this, _, window, cx| this.open_extended(window, cx))),
-            self.operation.busy,
-            false,
-            cx,
-        ));
-        if self.busy {
-            root = root.child(
-                div()
-                    .id("checkin-status")
-                    .test_support()
-                    .role(gpui_kit::Role::Status)
-                    .child(text(
-                        cx,
-                        "Reading saved check-in accounts.",
-                        "正在读取已保存的签到账户。",
-                    )),
-            );
-        }
-        if let Some(message) = self.message {
-            root = root.child(
-                div()
-                    .id("checkin-status")
-                    .test_support()
-                    .role(gpui_kit::Role::Status)
-                    .child(service_error(cx, message)),
-            );
-        }
-        if let Some(snapshot) = self.snapshot.clone() {
-            match snapshot {
-                CheckinSnapshot::NoDatabase => {
-                    let empty = text(
-                        cx,
-                        "No local check-in database was found. Use management to create providers and accounts.",
-                        "没有找到本地签到数据库。使用管理入口新增提供商和账户。",
-                    );
-                    root = root.child(
-                        div()
-                            .id("checkin-absent")
-                            .test_support()
-                            .aria_label(empty)
-                            .child(empty),
-                    );
-                }
-                CheckinSnapshot::Accounts(accounts) if accounts.accounts.is_empty() => {
-                    let empty = text(
-                        cx,
-                        "The local database has no saved check-in accounts.",
-                        "本地数据库没有已保存的签到账户。",
-                    );
-                    root = root.child(
-                        div()
-                            .id("checkin-empty")
-                            .test_support()
-                            .aria_label(empty)
-                            .child(empty),
-                    );
-                }
-                CheckinSnapshot::Accounts(_) => {
-                    for (index, account) in self.rows().iter().enumerate() {
-                        let selected = self.selected.as_deref() == Some(account.id.as_str());
-                        let provider = account.provider_name.as_deref().unwrap_or("");
-                        let label = if provider.is_empty() {
-                            account.name.clone()
-                        } else {
-                            format!("{} · {provider}", account.name)
-                        };
-                        let clicked = account.id.clone();
-                        root = root.child(
-                            div()
-                                .h(crate::theme::text_size(theme::ROW_HEIGHT))
-                                .flex()
-                                .items_center()
-                                .child(semantics::button(
-                                    Button::new(format!("checkin-account-{index}"))
-                                        .label(label)
-                                        .ghost()
-                                        .selected(selected)
-                                        .on_click(cx.listener(move |this, _, _, cx| {
-                                            this.selected = Some(clicked.clone());
-                                            cx.notify();
-                                        })),
-                                    false,
-                                    false,
-                                    cx,
-                                )),
-                        );
-                    }
-                    if let Some(selected) = self.selected.clone()
-                        && let Some(account) =
-                            self.rows().iter().find(|account| account.id == selected)
-                    {
-                        let lines = detail_lines(cx, account);
-                        let summary = lines.join(" ");
-                        let mut detail = div()
-                            .id("checkin-detail")
-                            .test_support()
-                            .aria_label(SharedString::from(summary))
-                            .flex()
-                            .flex_col()
-                            .gap(px(theme::CONTROL_GAP));
-                        for line in lines {
-                            detail = detail.child(line);
-                        }
-                        root = root.child(detail);
-                    }
-                }
-            }
-        }
-        root.child(self.render_operations(cx))
+        self.render_workbench(window, cx)
     }
 }
 

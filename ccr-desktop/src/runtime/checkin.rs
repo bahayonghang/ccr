@@ -96,6 +96,7 @@ pub struct CheckinData {
     pub accounts: Vec<CheckinAccountRow>,
     pub providers: Vec<CheckinProviderRow>,
     pub balances: SavedBalances,
+    pub records: Vec<RecordSummary>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -197,6 +198,7 @@ fn project_data(
         accounts,
         providers,
         balances: summary,
+        records: Vec::new(),
     }
 }
 
@@ -223,10 +225,18 @@ fn read_connection(conn: &rusqlite::Connection) -> Result<CheckinSnapshot, Check
             }
         }
     }
+    let records = checkin_repo::get_all_records(&tx, 20).map_err(|_| CheckinError::Storage)?;
     tx.commit().map_err(|_| CheckinError::Storage)?;
-    Ok(CheckinSnapshot::Accounts(project_data(
-        accounts, providers, balances,
-    )))
+    let mut data = project_data(accounts, providers, balances);
+    data.records = records
+        .into_iter()
+        .map(|r| RecordSummary {
+            account_id: r.account_id,
+            status: r.status,
+            at: r.checked_in_at.to_rfc3339(),
+        })
+        .collect();
+    Ok(CheckinSnapshot::Accounts(data))
 }
 
 fn existing_file(path: PathBuf) -> Result<Option<PathBuf>, CheckinError> {
