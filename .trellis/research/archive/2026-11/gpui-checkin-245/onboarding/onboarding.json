@@ -1,0 +1,199 @@
+{
+  "mode": "first-use and check-in under selected SSH host",
+  "commit": "fbffa1ed360166f48ecf2fb9169fd9972c442857",
+  "exe_sha256": "652120503d3c03746db830398ae9711af073a1fee797b64d136a89abb4ced8d8",
+  "fixture_script_sha256": "bcddfd3c165e0b89b09abc953e2d5b8f27f1381ba8b7b83252cd7c84ab223dff",
+  "uia_observations": 68,
+  "checks": [
+    {
+      "step": "no local database on opening from sidebar",
+      "exists": {
+        "checkin.db": false,
+        "checkin.db-wal": false,
+        "checkin.db-shm": false,
+        "checkin-crypto": false,
+        "checkin-migration-home": false,
+        "checkin-locks": false
+      }
+    },
+    {
+      "step": "cancel provider form before first write",
+      "exists": {
+        "checkin.db": false,
+        "checkin.db-wal": false,
+        "checkin.db-shm": false,
+        "checkin-crypto": false,
+        "checkin-migration-home": false,
+        "checkin-locks": false
+      }
+    },
+    {
+      "step": "missing database preview of two custom providers and five accounts",
+      "exists": {
+        "checkin.db": false,
+        "checkin.db-wal": false,
+        "checkin.db-shm": false,
+        "checkin-crypto": false,
+        "checkin-migration-home": false,
+        "checkin-locks": false
+      }
+    },
+    {
+      "step": "cancel import preview",
+      "exists": {
+        "checkin.db": false,
+        "checkin.db-wal": false,
+        "checkin.db-shm": false,
+        "checkin-crypto": false,
+        "checkin-migration-home": false,
+        "checkin-locks": false
+      }
+    },
+    {
+      "step": "provider-only: cancelled account form left provider, account count, database bytes, keys and network unchanged",
+      "database_sha256": "89a2318c76452be80e1d743f163f3dd96623b2b05604aa06985c6b5501238362",
+      "keyfile_count": 0
+    },
+    {
+      "step": "manually saved account with matching custom provider, captured key and zero upstream requests",
+      "account_id": "3ad43af0-7af3-41c0-ac13-28f3d0505860",
+      "provider_id": "99bf3349-e2a8-4cae-9ad7-31e431983258"
+    },
+    {
+      "step": "keyboard typed and cleared the no-match filter, restoring saved account"
+    },
+    {
+      "step": "Windows UIA exposes local scope under selected SSH",
+      "scope": "本机签到",
+      "role": "ControlType.Group"
+    },
+    {
+      "step": "default focus Enter cancelled confirmation without a request"
+    },
+    {
+      "step": "selected SSH shell sent confirmed job to local fixture and saved local record",
+      "status": "success",
+      "results": [
+        "成功 · Local manual 252 · Manual loopback (3ad43af0-7af3-41c0-ac13-28f3d0505860) · Fixture check-in saved"
+      ],
+      "requests": [
+        [
+          "GET",
+          "Ready",
+          "200"
+        ],
+        [
+          "POST",
+          "Ready",
+          "200"
+        ]
+      ]
+    },
+    {
+      "step": "keyboard activated Back and one Enter on the restored account reopened matching detail"
+    }
+  ],
+  "images": [
+    {
+      "file": "preview.jpg",
+      "frame_px": [
+        1602,
+        1039
+      ],
+      "sha256": "72a43ee5de44b6465d0dddc1a3d916db39ac67a655003fec6e815a9bcad6751a"
+    },
+    {
+      "file": "first-account.jpg",
+      "frame_px": [
+        1602,
+        1039
+      ],
+      "sha256": "b78b175bdc1cae79745982422eab17307de2962c89571592675303d211735402"
+    },
+    {
+      "file": "search-focus.jpg",
+      "frame_px": [
+        1602,
+        1039
+      ],
+      "sha256": "bad22e5581ed0f1e1453fa8c311ae6d3096349e97e83bfd71c2127e753915f18"
+    },
+    {
+      "file": "ssh-scope.jpg",
+      "frame_px": [
+        1602,
+        1039
+      ],
+      "sha256": "1287a2632f186ac2ca2c7f048e8b5573ac58543b5e2948d1a31cfb91d644f47b"
+    },
+    {
+      "file": "confirm-focus.jpg",
+      "frame_px": [
+        1602,
+        1039
+      ],
+      "sha256": "5461b629a8039d630dbe5bbfb323940426847bdd5f9f8928e500f378bdccf08a"
+    },
+    {
+      "file": "ssh-checkin.jpg",
+      "frame_px": [
+        1602,
+        1039
+      ],
+      "sha256": "1d7ae5855d32452a25afafa2a28113a0ecff8d7290bbee15a3335fdb969305f9"
+    },
+    {
+      "file": "return-focus.jpg",
+      "frame_px": [
+        1602,
+        1039
+      ],
+      "sha256": "f3cee75a54472cf02d0fed95db85aa15a30c25958b6f6de3cceaab51e2059b6e"
+    }
+  ],
+  "fixture": "checkin-o03is4k7",
+  "fixture_marker": "ccr-gpui-checkin-fixture-v1",
+  "accounts_json_sha256": "16f2d0b6036ebe1b629cb14f7fb30c8065a45cd8408fd2f52e1890728aba16bb",
+  "loopback": [
+    "http://127.0.0.1:3734/demo",
+    "http://127.0.0.1:3734/paused"
+  ],
+  "logical_client": [
+    1280,
+    800
+  ],
+  "theme": "light",
+  "language": "zh",
+  "dpi": 120,
+  "result": "pass",
+  "requests": [
+    [
+      "GET",
+      "Ready",
+      "200"
+    ],
+    [
+      "POST",
+      "Ready",
+      "200"
+    ]
+  ],
+  "app_log_bytes": 0,
+  "ssh_test": "Selected saved unreachable synthetic host in the real environment menu. Fixture disallows SSH transport. Checked local check-in HTTP journal and local SQLite record.",
+  "launch": {
+    "feature": "native-checkin-fixture",
+    "arguments": [
+      "--fixture-checkin-loopback",
+      "--fixture-profiles",
+      "<fixture>/profiles.toml",
+      "--fixture-registry",
+      "<fixture>/config.toml"
+    ],
+    "fixture_parent": "outputs/desktop",
+    "marker_file": ".ccr-gpui-checkin-fixture",
+    "language": "zh",
+    "theme": "light",
+    "capture": "PrintWindow(2) cropped to DWM frame, private WinSta0 desktop",
+    "dpi": 120
+  }
+}

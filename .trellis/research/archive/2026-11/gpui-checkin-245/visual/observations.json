@@ -1,0 +1,341 @@
+{
+  "build": {
+    "source": "fbffa1ed360166f48ecf2fb9169fd9972c442857",
+    "exe_sha256": "652120503d3c03746db830398ae9711af073a1fee797b64d136a89abb4ced8d8",
+    "feature": "native-checkin-fixture",
+    "arguments": [
+      "--fixture-checkin-loopback",
+      "--fixture-profiles <fixture>/profiles.toml",
+      "--fixture-registry <fixture>/config.toml"
+    ],
+    "marker": ".ccr-gpui-checkin-fixture",
+    "marker_contents": "ccr-gpui-checkin-fixture-v1",
+    "logical_client": [
+      960,
+      640
+    ],
+    "physical_client": [
+      1200,
+      800
+    ],
+    "window_dpi": 120,
+    "ui_font_px": 20,
+    "mono_font_px": 20,
+    "fixture": "checkin-pair-v1 plus synthetic scroll accounts and a 119-character English account name",
+    "account_count": 15,
+    "capture": "PrintWindow(2) on a process-owned window on an inactive WinSta0 desktop; lossless pixels measured before JPEG encoding"
+  },
+  "en": {
+    "checks": [
+      {
+        "step": "local scope accessibility name",
+        "present": true,
+        "role": "ControlType.Group"
+      },
+      {
+        "step": "horizontal wheel and controls at first",
+        "anchor_delta": 0,
+        "outside_right": []
+      },
+      {
+        "step": "horizontal wheel and controls at add",
+        "anchor_delta": 0,
+        "outside_right": []
+      },
+      {
+        "step": "horizontal wheel and controls at add-lower",
+        "anchor_delta": 0,
+        "outside_right": []
+      },
+      {
+        "step": "Escape closes account creation",
+        "before": [
+          925,
+          545
+        ],
+        "after": [
+          925,
+          545
+        ]
+      },
+      {
+        "step": "Enter on the restored add control reopens account creation"
+      },
+      {
+        "step": "target row before scroll",
+        "center": [
+          504,
+          816
+        ],
+        "in_view": false
+      },
+      {
+        "step": "clicked known account",
+        "center": [
+          504,
+          456
+        ]
+      },
+      {
+        "step": "horizontal wheel and controls at detail-top",
+        "anchor_delta": 0,
+        "outside_right": []
+      },
+      {
+        "step": "Enter on initial detail focus returned to accounts"
+      },
+      {
+        "step": "restored list position",
+        "before": [
+          504,
+          456
+        ],
+        "after": [
+          504,
+          456
+        ]
+      },
+      {
+        "step": "Enter on restored row reopens target detail"
+      },
+      {
+        "step": "database unchanged after browsing and cancel",
+        "equal": true
+      }
+    ],
+    "account_name_length": 119,
+    "uia_reads": 35,
+    "dpi": 120,
+    "field_bounds": [
+      484,
+      620,
+      685,
+      50
+    ],
+    "field_colors": [
+      "#FFFFFF",
+      "#FFFFFF",
+      "#FFFFFF",
+      "#FFFFFF"
+    ],
+    "form_background": [
+      "#FFFFFF",
+      "#FFFFFF",
+      "#FFFFFF",
+      "#FFFFFF"
+    ],
+    "account_form_widths": {
+      "Edit all cookies (advanced)": 287,
+      "Harbor Demo": 165,
+      "极光演示站": 142,
+      "Save": 79,
+      "Cancel editing": 170
+    },
+    "back_bounds": [
+      250,
+      520,
+      195,
+      50
+    ],
+    "sampled_contrast": {
+      "body_on_list_surface": [
+        "#1E2932",
+        "#FFFFFF",
+        14.81
+      ],
+      "balance_coverage_on_list_surface": [
+        "#5C6B76",
+        "#FFFFFF",
+        5.5
+      ],
+      "primary_text_on_fill": [
+        "#FFFFFF",
+        "#156F4E",
+        6.15
+      ],
+      "restored_row_ring_on_list_surface": [
+        "#80908A",
+        "#FFFFFF",
+        3.35
+      ]
+    },
+    "focused_row_bounds": [
+      260,
+      431,
+      488,
+      50
+    ],
+    "retained_data": true,
+    "marker_leaks": false,
+    "fixture_removed": true,
+    "screenshots": {
+      "narrow-en-light-first.jpg": {
+        "size": [
+          1202,
+          839
+        ],
+        "sha256": "bf156b6efb14a024d40f54315a19bc0aaf2797d026cfdbd5ab1a3de5cc592925"
+      },
+      "narrow-en-light-detail-focus.jpg": {
+        "size": [
+          1202,
+          839
+        ],
+        "sha256": "acc9f39b30b26f84df75400f25b25070ce0dc6286421da389ebf115087fe581c"
+      }
+    }
+  },
+  "zh": {
+    "checks": [
+      {
+        "step": "local scope accessibility name",
+        "present": true,
+        "role": "ControlType.Group"
+      },
+      {
+        "step": "horizontal wheel and controls at first",
+        "anchor_delta": 0,
+        "outside_right": []
+      },
+      {
+        "step": "horizontal wheel and controls at add",
+        "anchor_delta": 0,
+        "outside_right": []
+      },
+      {
+        "step": "horizontal wheel and controls at add-lower",
+        "anchor_delta": 0,
+        "outside_right": []
+      },
+      {
+        "step": "Escape closes account creation",
+        "before": [
+          989,
+          545
+        ],
+        "after": [
+          989,
+          545
+        ]
+      },
+      {
+        "step": "Enter on the restored add control reopens account creation"
+      },
+      {
+        "step": "target row before scroll",
+        "center": [
+          524,
+          816
+        ],
+        "in_view": false
+      },
+      {
+        "step": "clicked known account",
+        "center": [
+          524,
+          456
+        ]
+      },
+      {
+        "step": "horizontal wheel and controls at detail-top",
+        "anchor_delta": 0,
+        "outside_right": []
+      },
+      {
+        "step": "Enter on initial detail focus returned to accounts"
+      },
+      {
+        "step": "restored list position",
+        "before": [
+          524,
+          456
+        ],
+        "after": [
+          524,
+          456
+        ]
+      },
+      {
+        "step": "Enter on restored row reopens target detail"
+      },
+      {
+        "step": "database unchanged after browsing and cancel",
+        "equal": true
+      }
+    ],
+    "account_name_length": 119,
+    "uia_reads": 35,
+    "dpi": 120,
+    "field_bounds": [
+      484,
+      620,
+      685,
+      50
+    ],
+    "field_colors": [
+      "#374147",
+      "#374147",
+      "#374147",
+      "#374147"
+    ],
+    "form_background": [
+      "#1D292C",
+      "#1D292C",
+      "#1D292C",
+      "#1D292C"
+    ],
+    "account_form_widths": {
+      "编辑全部 Cookie（高级）": 281,
+      "Harbor Demo": 165,
+      "极光演示站": 142,
+      "保存": 78,
+      "取消编辑": 120
+    },
+    "back_bounds": [
+      250,
+      520,
+      120,
+      50
+    ],
+    "sampled_contrast": {
+      "body_on_list_surface": [
+        "#F0F8F5",
+        "#1D292C",
+        13.84
+      ],
+      "balance_coverage_on_list_surface": [
+        "#9FAFA9",
+        "#1D292C",
+        6.53
+      ],
+      "primary_text_on_fill": [
+        "#10191B",
+        "#85D5B1",
+        10.32
+      ],
+      "restored_row_ring_on_list_surface": [
+        "#5C8477",
+        "#1D292C",
+        3.57
+      ]
+    },
+    "focused_row_bounds": [
+      260,
+      431,
+      528,
+      50
+    ],
+    "retained_data": true,
+    "marker_leaks": false,
+    "fixture_removed": true,
+    "screenshots": {
+      "narrow-zh-dark-first.jpg": {
+        "size": [
+          1202,
+          839
+        ],
+        "sha256": "d73ede261b7f725977f910c621f8e6714662f08b395b3f6c8fa7187ba6792401"
+      }
+    }
+  }
+}
