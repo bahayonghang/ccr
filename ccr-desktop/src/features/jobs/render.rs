@@ -659,7 +659,7 @@ impl JobsView {
         panel.into_any_element()
     }
 
-    fn ledger_panel(&self, cx: &mut Context<Self>) -> AnyElement {
+    fn ledger_panel(&self, narrow: bool, cx: &mut Context<Self>) -> AnyElement {
         let zh = is_chinese(cx);
         let mode = cx.theme().mode;
         let (muted, danger, code_bg, border, hairline) = {
@@ -692,6 +692,7 @@ impl JobsView {
             || (self.snapshot.is_none() && self.job_id.is_none() && self.observe_error.is_none());
 
         let header = div()
+            .flex_shrink_0()
             .flex()
             .flex_wrap()
             .items_start()
@@ -747,7 +748,10 @@ impl JobsView {
                     )),
             );
 
-        let mut panel = reading_panel("command-ledger", cx).flex_1().child(header);
+        let mut panel = reading_panel("command-ledger", cx)
+            .when(!narrow, |panel| panel.flex_1())
+            .when(narrow, |panel| panel.flex_shrink_0().min_h(px(260.)))
+            .child(header);
 
         if let Some(snapshot) = self.snapshot.as_ref() {
             let (tag_label, tag_tone) = status_tag(cx, snapshot.status);
@@ -998,6 +1002,8 @@ impl JobsView {
                                 muted
                             };
                             let aria = format!("[{}] {line}", ledger::channel_name(channel));
+                            let text = line.into_owned();
+                            let tip = SharedString::from(text.clone());
                             Some(
                                 div()
                                     .id(SharedString::from(format!("command-log-{job_id}-{index}")))
@@ -1020,12 +1026,17 @@ impl JobsView {
                                     )
                                     .child(
                                         div()
+                                            .id(SharedString::from(format!(
+                                                "command-log-text-{job_id}-{index}"
+                                            )))
                                             .flex_1()
                                             .min_w_0()
-                                            .overflow_hidden()
-                                            .whitespace_nowrap()
+                                            .truncate()
                                             .text_color(fg)
-                                            .child(line.into_owned()),
+                                            .tooltip(move |window, cx| {
+                                                Tooltip::new(tip.clone()).build(window, cx)
+                                            })
+                                            .child(text),
                                     ),
                             )
                         })
@@ -1039,7 +1050,7 @@ impl JobsView {
                 div()
                     .id("command-ledger-log-surface")
                     .flex_1()
-                    .min_h_0()
+                    .min_h(px(160.))
                     .overflow_hidden()
                     .rounded(px(theme::INPUT_RADIUS))
                     .bg(code_bg)
@@ -1053,6 +1064,7 @@ impl JobsView {
                 div()
                     .flex_1()
                     .min_h_0()
+                    .overflow_hidden()
                     .flex()
                     .flex_col()
                     .justify_center()
@@ -1194,7 +1206,7 @@ impl Render for JobsView {
         let workspace = if split {
             let list = self.list_panel(false, cx);
             let editor = self.editor_panel(cx);
-            let ledger = self.ledger_panel(cx);
+            let ledger = self.ledger_panel(false, cx);
             div()
                 .id("command-workspace")
                 .test_support()
@@ -1228,7 +1240,7 @@ impl Render for JobsView {
                 )
         } else if self.narrow_detail {
             let editor = self.editor_panel(cx);
-            let ledger = self.ledger_panel(cx);
+            let ledger = self.ledger_panel(true, cx);
             let back = semantics::ghost_button(
                 Button::new("command-back-to-list")
                     .icon(IconName::ArrowLeft)
@@ -1253,12 +1265,17 @@ impl Render for JobsView {
                         .flex_1()
                         .min_w_0()
                         .min_h_0()
-                        .flex()
-                        .flex_col()
-                        .gap(px(theme::CONTROL_GAP))
-                        .child(div().flex().items_center().child(back))
-                        .child(editor)
-                        .child(ledger),
+                        .overflow_y_scroll()
+                        .child(
+                            div()
+                                .flex()
+                                .flex_col()
+                                .gap(px(theme::CONTROL_GAP))
+                                .pb(px(theme::CONTROL_GAP))
+                                .child(div().flex_shrink_0().flex().items_center().child(back))
+                                .child(editor)
+                                .child(ledger),
+                        ),
                 )
         } else {
             let list = self.list_panel(true, cx);
