@@ -22,14 +22,30 @@ pub enum UiStateError {
     UnsupportedEnvironment,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct FavoriteRow {
     pub id: String,
     /// Visible user metadata; application code must never populate it from credentials.
     pub command: String,
+    /// The saved arguments as stored, for loading the editor and matching the
+    /// favorite toggle. Never display them unredacted; `Debug` omits them.
+    pub args: Vec<String>,
     pub display_name: Option<String>,
     pub module: String,
     pub created_at: String,
+}
+
+impl std::fmt::Debug for FavoriteRow {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FavoriteRow")
+            .field("id", &self.id)
+            .field("command", &self.command)
+            .field("args", &format_args!("<{} saved>", self.args.len()))
+            .field("display_name", &self.display_name)
+            .field("module", &self.module)
+            .field("created_at", &self.created_at)
+            .finish()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -151,6 +167,7 @@ impl UiStateRequests {
                     .map(|row| FavoriteRow {
                         id: row.id,
                         command: redact_log_text(&row.command),
+                        args: row.args,
                         display_name: row.display_name.map(|text| redact_log_text(&text)),
                         module: redact_log_text(&row.module),
                         created_at: row.created_at.to_rfc3339(),
@@ -332,6 +349,8 @@ mod tests {
             panic!("read failed")
         };
         assert_eq!(snapshot.favorites.len(), 1);
+        // Loading the editor needs the saved words; only displays are redacted.
+        assert_eq!(snapshot.favorites[0].args, ["private-argument"]);
         assert!(!format!("{snapshot:?}").contains("private-argument"));
         assert!(!format!("{snapshot:?}").contains("private-token-value"));
         let mut remote = key();
