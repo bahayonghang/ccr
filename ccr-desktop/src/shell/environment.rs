@@ -221,8 +221,6 @@ impl Shell {
             self.destination,
             Destination::Settings | Destination::Checkin
         ) || (self.destination == Destination::McpManager && self.lens == Lens::Converter)
-            || (self.destination == Destination::Commands
-                && matches!(self.lens, Lens::Favorites | Lens::Recent))
     }
     pub(super) fn remote_configuration_destination(&self) -> bool {
         (matches!(

@@ -58,12 +58,10 @@ async fn ssh_activity_sidebar_platform_tabs_and_missing_cli_install_link_reach_r
     cx.update_window(handle, |_, window, cx| window.click("nav-commands", cx))
         .unwrap();
     wait_resource_ui(cx, handle, |window, _| {
-        window.try_find("command-foreground").is_some()
+        window.try_find("command-start").is_some()
     });
-    cx.update_window(handle, |_, window, cx| {
-        window.click("command-foreground", cx)
-    })
-    .unwrap();
+    cx.update_window(handle, |_, window, cx| window.click("command-start", cx))
+        .unwrap();
     wait_resource_ui(cx, handle, |window, _| {
         window.try_find("jobs-install-remote-cli").is_some()
     });
@@ -1377,13 +1375,14 @@ async fn persisted_ssh_starts_once_stays_on_failure_and_retries_without_local_da
     .await;
     cx.update_window(handle, |_, window, cx| {
         window.click("nav-commands", cx);
-        window.click("tool-recent", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("tool-catalog").is_none());
+        assert!(window.try_find("tool-favorites").is_none());
+        assert!(window.try_find("tool-recent").is_none());
+        assert!(window.try_find("native-command-workbench").is_none());
+        assert!(window.try_find("environment-return-local").is_some());
     })
     .unwrap();
-    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
-        window.try_find("remote-open-settings").is_none()
-    })
-    .await;
     cx.update_window(handle, |_, window, cx| {
         window.click("nav-settings", cx);
         window.click("theme-dark", cx);

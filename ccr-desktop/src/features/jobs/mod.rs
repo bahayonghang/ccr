@@ -1,91 +1,257 @@
-//! Native command catalog, app-owned execution and bounded log reader.
+//! Native command workbench: catalog list, command editor and app-owned jobs.
+//!
+//! 分类、搜索、分词与可运行判定都来自 [`model`]；视图只消费结果。
+mod collections;
+mod ledger;
+pub mod model;
+mod render;
+
+use self::collections::{Collection, Records};
+use self::model::{Blocked, Catalog, Filter};
 use crate::{
-    locales::{is_chinese, service_error, text},
+    locales::text,
     runtime::{Services, jobs::CommandRequests},
-    shell::semantics,
 };
 #[cfg(test)]
 use ccr_app::runtime::EnvironmentId;
 use ccr_app::{
-    jobs::{
-        commands::{Snapshot, Status},
-        policy::CommandInfo,
-    },
+    jobs::commands::Snapshot,
     runtime::{Platform, RequestKey},
 };
-use gpui_kit::base::TestSupportExt;
-use gpui_kit::component::{
-    ActiveTheme,
-    button::{Button, ButtonVariants},
-    input::{Input, InputState},
-};
-use gpui_kit::prelude::FluentBuilder;
+use gpui_kit::component::input::{InputEvent, InputState};
 use gpui_kit::{
-    App, AppContext, Context, Entity, Focusable, InteractiveElement, IntoElement, ParentElement,
-    Render, SharedString, StatefulInteractiveElement, Styled, Task, UniformListScrollHandle,
-    Window, div, px, uniform_list,
+    App, AppContext, Context, Entity, FocusHandle, ScrollStrategy, Subscription, Task,
+    UniformListScrollHandle, Window,
 };
 
-enum CommandAction {
-    Background,
-    Foreground,
-    Help,
-}
+const NOT_FROM_CATALOG: &str =
+    "That command cannot be started from this catalog. / 不能从当前目录启动这条命令";
+
 pub struct InstallRequested;
 impl gpui_kit::EventEmitter<InstallRequested> for JobsView {}
 
 pub struct JobsView {
     requests: CommandRequests,
-    catalog: Vec<CommandInfo>,
+    environment_name: Option<String>,
+    catalog: Catalog,
+    collection: Collection,
+    records: Records,
+    filter: Filter,
+    search: Entity<InputState>,
+    /// The command loaded into the editor.
     selected: String,
+    /// The highlighted catalog row; Enter loads it.
+    cursor: Option<String>,
     args: Entity<InputState>,
+    /// Argument text as it was when the command was loaded.
+    loaded_args: String,
+    list_focus: FocusHandle,
+    work_focus: FocusHandle,
+    list_scroll: UniformListScrollHandle,
+    narrow_detail: bool,
+    focus_generation: u64,
     snapshot: Option<Snapshot>,
     job_id: Option<String>,
     task: Option<Task<()>>,
     generation: u64,
     busy: bool,
     message: Option<&'static str>,
+    observe_error: Option<&'static str>,
     log_scroll: UniformListScrollHandle,
+    _inputs: [Subscription; 2],
 }
 impl JobsView {
+    /// Only argument text that differs from what was loaded is a draft.
     pub fn has_environment_draft(&self, cx: &gpui_kit::App) -> bool {
-        self.args.read(cx).value().as_str() != "[\"--json\"]"
+        self.args.read(cx).value().as_str() != self.loaded_args
     }
     pub fn clear_environment(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.suspend(cx);
+        self.environment_name = None;
+        self.narrow_detail = false;
         self.job_id = None;
         self.snapshot = None;
         self.message = None;
+        self.observe_error = None;
+        self.reset_log_scroll();
+        let loaded = self.loaded_args.clone();
         self.args
-            .update(cx, |state, cx| state.set_value("[\"--json\"]", window, cx));
+            .update(cx, |state, cx| state.set_value(loaded, window, cx));
     }
     pub fn new(services: Services, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let requests = CommandRequests::new(&services);
-        Self {
-            catalog: requests.catalog(),
-            requests,
-            selected: "status".into(),
-            args: cx.new(|cx| {
-                let mut state = InputState::new(window, cx);
-                state.set_value("[\"--json\"]", window, cx);
-                state
+        let search = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(text(
+                cx,
+                "Search name or description",
+                "搜索命令名或说明",
+            ))
+        });
+        let args = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(text(
+                cx,
+                "Arguments separated by spaces",
+                "参数，用空格分隔",
+            ))
+        });
+        let inputs = [
+            cx.subscribe(&search, |_, _, event: &InputEvent, cx| {
+                if matches!(event, InputEvent::Change) {
+                    cx.notify();
+                }
             }),
+            cx.subscribe(&args, |_, _, event: &InputEvent, cx| {
+                if matches!(event, InputEvent::Change) {
+                    cx.notify();
+                }
+            }),
+        ];
+        Self {
+            catalog: Catalog::new(requests.catalog()),
+            environment_name: None,
+            collection: Collection::default(),
+            records: Records::new(&services, cx),
+            requests,
+            filter: Filter::default(),
+            search,
+            selected: "status".into(),
+            cursor: Some("status".into()),
+            args,
+            loaded_args: String::new(),
+            list_focus: cx.focus_handle(),
+            work_focus: cx.focus_handle().tab_stop(false),
+            list_scroll: UniformListScrollHandle::new(),
+            narrow_detail: false,
+            focus_generation: 0,
             snapshot: None,
             job_id: None,
             task: None,
             generation: 0,
             busy: false,
             message: None,
+            observe_error: None,
             log_scroll: UniformListScrollHandle::new(),
+            _inputs: inputs,
         }
     }
     pub fn focus_main(&self, window: &mut Window, cx: &mut Context<Self>) {
-        window.focus(&self.args.read(cx).focus_handle(cx), cx);
+        if window.viewport_size().width < gpui_kit::px(crate::theme::SPLIT_WIDTH)
+            && self.narrow_detail
+        {
+            self.focus_work(window, cx);
+        } else {
+            self.focus_list(window, cx);
+        }
+    }
+    pub fn focus_main_end(&self, window: &mut Window, cx: &mut Context<Self>) {
+        if window.viewport_size().width >= gpui_kit::px(crate::theme::SPLIT_WIDTH)
+            || self.narrow_detail
+        {
+            self.focus_work(window, cx);
+        } else {
+            self.focus_list(window, cx);
+        }
+    }
+    pub fn focus_list(&self, window: &mut Window, cx: &mut Context<Self>) {
+        let has_rows = match self.collection {
+            Collection::Catalog => !self.visible(cx).is_empty(),
+            Collection::Favorites | Collection::Recent => !self.visible_records(cx).is_empty(),
+        };
+        if has_rows {
+            window.focus(&self.list_focus, cx);
+        } else {
+            window.focus(&self.records.region_focus, cx);
+            window.focus_next(cx);
+        }
+    }
+    pub fn focus_work(&self, window: &mut Window, cx: &mut Context<Self>) {
+        window.focus(&self.work_focus, cx);
+        window.focus_next(cx);
+    }
+    /// Handles F6 / Shift+F6 inside wide split layout (list <-> work column).
+    /// Returns true when focus moved within the page; false lets the shell move
+    /// to navigation or the status bar.
+    pub fn focus_region(
+        &self,
+        backward: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if window.viewport_size().width < gpui_kit::px(crate::theme::SPLIT_WIDTH) {
+            return false;
+        }
+        let in_list = self.records.region_focus.contains_focused(window, cx);
+        let in_work = self.work_focus.contains_focused(window, cx);
+        if !backward && in_list {
+            self.focus_work(window, cx);
+            true
+        } else if backward && in_work {
+            self.focus_list(window, cx);
+            true
+        } else {
+            false
+        }
+    }
+    pub(super) fn reveal_work(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if window.viewport_size().width >= gpui_kit::px(crate::theme::SPLIT_WIDTH) {
+            return;
+        }
+        self.narrow_detail = true;
+        self.focus_generation += 1;
+        let (view, guard) = (cx.weak_entity(), self.focus_generation);
+        window.on_next_frame(move |window, cx| {
+            let _ = view.update(cx, |this, cx| {
+                if this.focus_generation != guard || !this.narrow_detail {
+                    return;
+                }
+                this.focus_work(window, cx);
+            });
+        });
+        cx.notify();
+    }
+    pub(super) fn back_to_list(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.narrow_detail = false;
+        let row = match self.collection {
+            Collection::Catalog => self
+                .cursor
+                .as_deref()
+                .and_then(|name| self.visible(cx).iter().position(|entry| *entry == name)),
+            Collection::Favorites | Collection::Recent => {
+                self.records.cursor.as_deref().and_then(|key| {
+                    self.visible_records(cx)
+                        .iter()
+                        .position(|row| row.key() == key)
+                })
+            }
+        };
+        if let Some(index) = row {
+            self.list_scroll.scroll_to_item(index, ScrollStrategy::Top);
+        }
+        self.focus_generation += 1;
+        let (view, guard) = (cx.weak_entity(), self.focus_generation);
+        window.on_next_frame(move |window, cx| {
+            let _ = view.update(cx, |this, cx| {
+                if this.focus_generation != guard || this.narrow_detail {
+                    return;
+                }
+                this.focus_list(window, cx);
+            });
+        });
+        cx.notify();
+    }
+    pub fn set_environment_name(&mut self, name: String) {
+        self.environment_name = Some(name);
+    }
+    pub fn open(&mut self, cx: &mut Context<Self>) {
+        self.activate_records(cx);
+        self.refresh(cx);
     }
     pub fn suspend(&mut self, cx: &mut Context<Self>) {
         // App-owned runner keeps its terminal and bounded logs; view only detaches.
+        self.suspend_records();
         self.task = None;
         self.generation += 1;
+        self.focus_generation += 1;
         self.busy = false;
         cx.notify();
     }
@@ -95,12 +261,20 @@ impl JobsView {
         };
         if self.task.is_some() {
             match self.requests.status(&id) {
-                Ok(snapshot) => self.accept_snapshot(self.generation, snapshot),
-                Err(error) => self.message = Some(error.message()),
+                Ok(snapshot) => {
+                    self.observe_error = None;
+                    self.accept_snapshot(self.generation, snapshot);
+                }
+                Err(error) => {
+                    self.observe_error = Some(error.message());
+                    self.busy = false;
+                    self.task = None;
+                }
             }
         } else {
             match self.requests.observe(&id) {
                 Ok((snapshot, mut observation)) => {
+                    self.observe_error = None;
                     self.accept_snapshot(self.generation, snapshot);
                     if self.busy {
                         let generation = self.generation;
@@ -118,6 +292,9 @@ impl JobsView {
                                         if weak
                                             .update(cx, |this, cx| {
                                                 this.accept_snapshot(generation, snapshot);
+                                                if terminal && this.generation == generation {
+                                                    this.task = None;
+                                                }
                                                 cx.notify();
                                             })
                                             .is_err()
@@ -128,12 +305,20 @@ impl JobsView {
                                             break;
                                         }
                                     }
-                                    Ok(None) => break,
+                                    Ok(None) => {
+                                        let _ = weak.update(cx, |this, _| {
+                                            if this.generation == generation {
+                                                this.task = None;
+                                            }
+                                        });
+                                        break;
+                                    }
                                     Err(error) => {
                                         let _ = weak.update(cx, |this, cx| {
                                             if this.generation == generation {
-                                                this.message = Some(error.message());
+                                                this.observe_error = Some(error.message());
                                                 this.busy = false;
+                                                this.task = None;
                                                 cx.notify();
                                             }
                                         });
@@ -145,8 +330,9 @@ impl JobsView {
                     }
                 }
                 Err(error) => {
-                    self.message = Some(error.message());
+                    self.observe_error = Some(error.message());
                     self.busy = false;
+                    self.task = None;
                 }
             }
         }
@@ -163,64 +349,164 @@ impl JobsView {
         {
             return;
         }
+        self.apply_snapshot(snapshot);
+    }
+    fn apply_snapshot(&mut self, snapshot: Snapshot) {
+        let follow = self.snapshot.is_none() || self.log_pinned();
+        let next_count = ledger::line_count(&snapshot);
+        self.observe_error = None;
         self.busy = !snapshot.status.is_terminal();
         self.snapshot = Some(snapshot);
+        if follow && next_count > 0 {
+            self.log_scroll
+                .scroll_to_item_strict(next_count - 1, ScrollStrategy::Bottom);
+        }
     }
-    fn start(&mut self, cx: &mut Context<Self>) {
-        self.start_action(CommandAction::Background, cx);
+    fn log_pinned(&self) -> bool {
+        let state = self.log_scroll.0.borrow();
+        ledger::pinned(
+            f32::from(state.base_handle.offset().y),
+            f32::from(state.base_handle.max_offset().y),
+        )
     }
-    fn start_action(&mut self, action: CommandAction, cx: &mut Context<Self>) {
+    fn reset_log_scroll(&self) {
+        self.log_scroll
+            .0
+            .borrow()
+            .base_handle
+            .set_offset(gpui_kit::point(gpui_kit::px(0.), gpui_kit::px(0.)));
+    }
+
+    /// Catalog rows for the current filter and search, in catalog order.
+    fn visible(&self, cx: &App) -> Vec<&'static str> {
+        let query = self.search.read(cx).value();
+        self.catalog
+            .visible(self.filter, &query)
+            .into_iter()
+            .map(|entry| entry.name)
+            .collect()
+    }
+    fn set_filter(&mut self, filter: Filter, cx: &mut Context<Self>) {
+        self.filter = filter;
+        cx.notify();
+    }
+    fn clear_search_and_filter(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.filter = Filter::All;
+        self.search
+            .update(cx, |state, cx| state.set_value("", window, cx));
+        cx.notify();
+    }
+    fn move_cursor(&mut self, down: bool, cx: &mut Context<Self>) {
+        let rows = self.visible(cx);
+        let Some(last) = rows.len().checked_sub(1) else {
+            return;
+        };
+        let current = rows
+            .iter()
+            .position(|name| self.cursor.as_deref() == Some(*name));
+        let next = match current {
+            Some(index) if down => (index + 1).min(last),
+            Some(index) => index.saturating_sub(1),
+            None if down => 0,
+            None => last,
+        };
+        self.cursor = rows.get(next).map(|name| (*name).to_string());
+        self.list_scroll.scroll_to_item(next, ScrollStrategy::Top);
+        cx.notify();
+    }
+    /// Loads the highlighted catalog cursor only if it is currently visible.
+    fn load_cursor(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(name) = self.cursor.clone() else {
+            return;
+        };
+        if self.visible(cx).iter().any(|entry| *entry == name) {
+            self.load(&name, window, cx);
+        }
+    }
+    /// Loads a catalog row into the editor. The loaded command stays fixed while
+    /// a job runs; reloading the current command keeps its argument text.
+    fn load(&mut self, name: &str, window: &mut Window, cx: &mut Context<Self>) {
         if self.busy {
             return;
         }
-        let entry = self
-            .catalog
-            .iter()
-            .find(|entry| entry.name == self.selected);
-        let allowed = match action {
-            CommandAction::Help => entry.is_some(),
-            CommandAction::Background | CommandAction::Foreground => {
-                entry.is_some_and(|entry| entry.executable)
-            }
-        };
-        if !allowed {
-            self.message = Some(
-                "That command cannot be started from this catalog. / 不能从当前目录启动这条命令",
-            );
-            cx.notify();
-            return;
+        self.cursor = Some(name.to_string());
+        if self.selected != name {
+            self.selected = name.to_string();
+            self.loaded_args.clear();
+            self.args
+                .update(cx, |state, cx| state.set_value("", window, cx));
         }
-        let args = if matches!(action, CommandAction::Help) {
-            Vec::new()
-        } else {
-            let Ok(args) = serde_json::from_str::<Vec<String>>(&self.args.read(cx).value()) else {
-                self.message =
-                    Some("Arguments must be a JSON string array. / 参数必须为 JSON 字符串数组");
-                cx.notify();
-                return;
-            };
-            args
-        };
+        self.reveal_work(window, cx);
+        cx.notify();
+    }
+    fn run_if_ready(&mut self, cx: &mut Context<Self>) {
+        let draft = self.args.read(cx).value().to_string();
+        if self
+            .catalog
+            .readiness(&self.selected, &draft, self.busy)
+            .is_ok()
+        {
+            self.start(cx);
+        }
+    }
+    fn next_key(&mut self) -> RequestKey {
         self.generation += 1;
-        let key = RequestKey {
+        RequestKey {
             environment: self.requests.environment(),
             platform: Platform::Claude,
             generation: self.generation,
             request_id: self.generation,
+        }
+    }
+    /// Runs the loaded command as a background job and starts observing it.
+    fn start(&mut self, cx: &mut Context<Self>) {
+        if self.busy {
+            return;
+        }
+        let draft = self.args.read(cx).value().to_string();
+        let args = match self.catalog.readiness(&self.selected, &draft, self.busy) {
+            Ok(args) => args,
+            Err(Blocked::UnknownCommand | Blocked::NotRunnable(_)) => {
+                self.message = Some(NOT_FROM_CATALOG);
+                cx.notify();
+                return;
+            }
+            // The editor already states the argument problem next to the input.
+            Err(_) => return,
         };
-        let started = match action {
-            CommandAction::Background => self.requests.start(key, self.selected.clone(), args),
-            CommandAction::Foreground => self.requests.foreground(key, self.selected.clone(), args),
-            CommandAction::Help => self.requests.help(key, &self.selected),
-        };
+        let key = self.next_key();
+        let started = self.requests.start(key, self.selected.clone(), args);
+        self.admit(started, cx);
+    }
+    /// Help is available for every catalog command, runnable or not.
+    fn help(&mut self, cx: &mut Context<Self>) {
+        if self.busy {
+            return;
+        }
+        if self.catalog.get(&self.selected).is_none() {
+            self.message = Some(NOT_FROM_CATALOG);
+            cx.notify();
+            return;
+        }
+        let key = self.next_key();
+        let started = self.requests.help(key, &self.selected);
+        self.admit(started, cx);
+    }
+    fn admit(
+        &mut self,
+        started: Result<crate::runtime::jobs::Started, &'static str>,
+        cx: &mut Context<Self>,
+    ) {
         match started {
             Ok(started) => {
                 self.message = None;
+                self.observe_error = None;
                 self.task = None;
                 self.job_id = Some(started.snapshot.job_id.clone());
                 self.snapshot = None;
-                // Detaching the executor subscription keeps the app-owned runner.
-                drop(started.subscription);
+                self.reset_log_scroll();
+                // Wait for the runner's terminal write so Recent refreshes automatically.
+                self.watch_finalized(started.subscription, cx);
                 self.refresh(cx);
             }
             Err(message) => self.message = Some(message),
@@ -230,231 +516,36 @@ impl JobsView {
     fn cancel(&mut self, cx: &mut Context<Self>) {
         if let Some(id) = &self.job_id {
             match self.requests.cancel(id) {
-                Ok(snapshot) => {
-                    self.busy = !snapshot.status.is_terminal();
-                    self.snapshot = Some(snapshot);
-                }
+                Ok(snapshot) => self.apply_snapshot(snapshot),
                 Err(error) => self.message = Some(error.message()),
             }
         }
         cx.notify();
     }
-    fn log_line(&self, index: usize) -> Option<String> {
-        let snapshot = self.snapshot.as_ref()?;
-        let (channel, line) = if index < snapshot.stdout_lines.len() {
-            ("stdout", snapshot.stdout_lines.get(index)?)
-        } else if index < snapshot.stdout_lines.len() + snapshot.stderr_lines.len() {
-            (
-                "stderr",
-                snapshot
-                    .stderr_lines
-                    .get(index - snapshot.stdout_lines.len())?,
-            )
-        } else {
-            (
-                "system",
-                snapshot
-                    .system_lines
-                    .get(index - snapshot.stdout_lines.len() - snapshot.stderr_lines.len())?,
-            )
+    fn copy_output(&self, cx: &mut Context<Self>) {
+        let Some(snapshot) = self.snapshot.as_ref() else {
+            return;
         };
-        let mut end = line.len().min(8 * 1024);
-        while !line.is_char_boundary(end) {
-            end -= 1;
+        let copied = ledger::copy_text(snapshot);
+        if !copied.is_empty() {
+            cx.write_to_clipboard(gpui_kit::ClipboardItem::new_string(copied));
         }
-        let suffix = if end < line.len() { "…" } else { "" };
-        Some(format!("{channel}: {}{suffix}", &line[..end]))
     }
-}
-
-fn catalog_summary(cx: &App, count: usize) -> String {
-    if count == 0 {
-        return text(
-            cx,
-            "The local command catalog is empty.",
-            "本地命令目录是空的。",
-        )
-        .to_string();
-    }
-    if is_chinese(cx) {
-        format!("本地命令目录有 {count} 条命令。")
-    } else if count == 1 {
-        "The local command catalog has 1 command.".to_string()
-    } else {
-        format!("The local command catalog has {count} commands.")
-    }
-}
-
-fn command_label(cx: &App, entry: &CommandInfo) -> String {
-    let availability = if entry.executable {
-        text(cx, "Can run", "可执行")
-    } else {
-        text(cx, "Not available here", "此处不可执行")
-    };
-    format!("{} · {} · {availability}", entry.name, entry.title)
-}
-
-fn status_label(cx: &App, status: Status) -> &'static str {
-    match status {
-        Status::Queued => text(cx, "Queued.", "排队。"),
-        Status::Running => text(cx, "Running.", "正在运行。"),
-        Status::Success => text(cx, "Succeeded.", "已成功。"),
-        Status::Failed => text(cx, "Failed.", "已失败。"),
-        Status::Cancelled => text(cx, "Cancelled.", "已取消。"),
-        Status::TimedOut => text(cx, "Timed out.", "已超时。"),
-        Status::CleanupFailed => text(cx, "Cleanup failed.", "清理失败。"),
-        Status::Unavailable => text(cx, "Unavailable.", "不可用。"),
-    }
-}
-
-fn job_state(cx: &App, snapshot: &Snapshot) -> String {
-    let status = status_label(cx, snapshot.status);
-    let cancel = if snapshot.cancel_requested {
-        text(cx, "Cancel was requested.", "已请求取消。")
-    } else {
-        ""
-    };
-    let exit = match snapshot.exit_code {
-        Some(code) if is_chinese(cx) => format!("退出码 {code}。"),
-        Some(code) => format!("Exit code {code}."),
-        None if is_chinese(cx) => "没有退出码。".to_string(),
-        None => "No exit code.".to_string(),
-    };
-    let dropped = if is_chinese(cx) {
-        format!("丢弃了 {} 行。", snapshot.dropped_lines)
-    } else {
-        format!("Dropped {} lines.", snapshot.dropped_lines)
-    };
-    let truncated = if snapshot.truncated {
-        text(cx, "Output was truncated.", "输出被截断。")
-    } else {
-        text(cx, "Output was not truncated.", "输出没有被截断。")
-    };
-    format!("{status} {cancel}{exit} {dropped} {truncated}")
-}
-impl Render for JobsView {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let summary = catalog_summary(cx, self.catalog.len());
-        let mut commands = crate::shell::page_header::capsule(cx);
-        for entry in &self.catalog {
-            let command = entry.name;
-            let label = command_label(cx, entry);
-            let executable = entry.executable;
-            let enabled = executable && !self.busy;
-            commands = commands.child(semantics::tab(
-                semantics::button(
-                    Button::new(SharedString::from(format!("job-command-{command}")))
-                        .label(label)
-                        .ghost()
-                        .on_click(cx.listener(move |this, _, _, cx| {
-                            if !this.busy && executable {
-                                this.selected = command.into();
-                                cx.notify();
-                            }
-                        })),
-                    !enabled,
-                    false,
-                    cx,
-                ),
-                self.selected == command,
-                !enabled,
-                cx,
-            ));
+    fn clear_ledger(&mut self, cx: &mut Context<Self>) {
+        if self.busy {
+            return;
         }
-        let selected = self
-            .catalog
-            .iter()
-            .find(|entry| entry.name == self.selected);
-        let known = selected.is_some();
-        let executable = selected.is_some_and(|entry| entry.executable);
-        let metadata = selected
-            .map(|entry| format!("{} · {} · {}", entry.title, entry.risk, entry.usage))
-            .unwrap_or_else(|| {
-                text(
-                    cx,
-                    "The selected command is not in the local catalog.",
-                    "所选命令不在本地目录中。",
-                )
-                .to_string()
-            });
-        let state = self
-            .snapshot
-            .as_ref()
-            .map(|snapshot| job_state(cx, snapshot))
-            .unwrap_or_else(|| text(cx, "No job yet", "尚无任务").to_string());
-        let count = self
-            .snapshot
-            .as_ref()
-            .map(|snapshot| {
-                snapshot.stdout_lines.len()
-                    + snapshot.stderr_lines.len()
-                    + snapshot.system_lines.len()
-            })
-            .unwrap_or(0);
-        let logs = uniform_list(
-            "command-job-logs",
-            count,
-            cx.processor(|this, range: std::ops::Range<usize>, _, _| {
-                range
-                    .filter_map(|index| {
-                        this.log_line(index).map(|line| {
-                            div()
-                                .id(SharedString::from(format!(
-                                    "command-log-{}-{index}",
-                                    this.job_id.as_deref().unwrap_or("none")
-                                )))
-                                .test_support()
-                                .h(px(36.))
-                                .px_2()
-                                .child(line)
-                        })
-                    })
-                    .collect::<Vec<_>>()
-            }),
-        )
-        .h_full()
-        .track_scroll(&self.log_scroll);
-        div().id("native-command-workbench").test_support().flex().flex_col().size_full().p_4().gap_2().bg(cx.theme().background).text_color(cx.theme().foreground)
-            .child(div().text_size(crate::theme::text_size(20.)).child(text(cx,"Commands and jobs","命令与任务")))
-            .child(div().id("command-catalog-summary").test_support().aria_label(summary.clone()).child(summary))
-            .when(self.requests.is_fixture(), |view| {
-                view.child(
-                    div()
-                        .id("jobs-fixture-warning")
-                        .test_support()
-                        .aria_label("Synthetic owned-process fixture. No CCR command or real configuration is accessed.")
-                        .text_color(cx.theme().warning)
-                        .child(text(
-                            cx,
-                            "Synthetic owned-process fixture. No CCR command or real configuration is accessed.",
-                            "合成进程生命周期验证，不执行真实 CCR 命令",
-                        )),
-                )
-            })
-            .child(commands).child(div().id("command-catalog-detail").test_support().aria_label(metadata.clone()).child(metadata))
-            .child(div().child(text(cx,"Arguments as JSON string array","参数 JSON 字符串数组")))
-            .child(Input::new(&self.args))
-            .child(div().flex().gap_2()
-                .child(semantics::button(Button::new("command-start").label(text(cx,"Start background job","启动后台任务")).on_click(cx.listener(|this,_,_,cx|this.start(cx))), self.busy || !executable, self.busy, cx))
-                .child(semantics::button(Button::new("command-foreground").label(text(cx,"Run","执行")).on_click(cx.listener(|this,_,_,cx|this.start_action(CommandAction::Foreground,cx))), self.busy || !executable, self.busy, cx))
-                .child(semantics::button(Button::new("command-help").label(text(cx,"Command help","命令帮助")).ghost().on_click(cx.listener(|this,_,_,cx|this.start_action(CommandAction::Help,cx))), self.busy || !known, false, cx))
-                .child(semantics::button(Button::new("command-cancel").label(text(cx,"Request cancel","请求取消")).ghost().on_click(cx.listener(|this,_,_,cx|this.cancel(cx))), !self.busy, false, cx))
-                .child(semantics::button(Button::new("command-status").label(text(cx,"Refresh status","刷新状态")).ghost().on_click(cx.listener(|this,_,_,cx|this.refresh(cx))), self.job_id.is_none(), false, cx)))
-            .child(div().id("command-job-state").test_support().aria_label(state.clone()).child(state))
-            .when_some(self.snapshot.as_ref().and_then(|snapshot| snapshot.error.clone()), |view, error| view.child(div().id("command-run-error").test_support().child(crate::locales::localized_line(cx, &error))))
-            .when(matches!(self.requests.environment(), ccr_app::runtime::EnvironmentId::Ssh(_)) && self.snapshot.as_ref().is_some_and(|snapshot| snapshot.status == Status::Unavailable), |view| view.child(semantics::button(Button::new("jobs-install-remote-cli").label(text(cx,"Install CCR on this SSH host","在此 SSH 主机安装 CCR")).on_click(cx.listener(|_,_,_,cx| cx.emit(InstallRequested))), false, false, cx)))
-            .when_some(self.message, |view, message| {
-                let line = service_error(cx, message);
-                view.child(
-                    div()
-                        .id("command-message")
-                        .test_support()
-                        .aria_label(line)
-                        .text_color(cx.theme().danger)
-                        .child(line),
-                )
-            })
-            .child(div().flex_1().min_h_0().bg(cx.theme().background).child(logs))
+        self.job_id = None;
+        self.snapshot = None;
+        self.observe_error = None;
+        self.message = None;
+        self.reset_log_scroll();
+        cx.notify();
+    }
+    fn retry_observe(&mut self, cx: &mut Context<Self>) {
+        self.observe_error = None;
+        self.task = None;
+        self.refresh(cx);
     }
 }
 

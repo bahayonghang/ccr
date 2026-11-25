@@ -3,7 +3,6 @@ pub mod badge;
 mod close;
 #[cfg(test)]
 mod close_tests;
-mod command_state;
 mod environment;
 mod frame_shadow;
 mod navigation_guard;
@@ -22,7 +21,6 @@ use crate::{
     theme::{self, Preference},
 };
 use ccr_app::runtime::Platform;
-use command_state::CommandState;
 use gpui_kit::base::TestSupportExt;
 use gpui_kit::component::{
     ActiveTheme, IconNamed,
@@ -89,15 +87,12 @@ enum Lens {
     Accounts,
     Files,
     Converter,
-    Favorites,
-    Recent,
     Install,
     Monitoring,
 }
 
 pub struct Shell {
     configurations: Entity<ConfigurationApp>,
-    commands: Entity<CommandState>,
     converter: Entity<crate::features::converter::Converter>,
     platforms: Entity<crate::features::platforms::PlatformsView>,
     insights: Entity<crate::features::insights::InsightsView>,
@@ -255,7 +250,6 @@ impl Shell {
             _remote_observation: remote_observation,
             configurations,
             _configuration_observation: configuration_observation,
-            commands: cx.new(|cx| CommandState::new(&services, window, cx)),
             converter: cx
                 .new(|cx| crate::features::converter::Converter::new(services.clone(), window, cx)),
             platforms: cx.new(|cx| {
@@ -444,7 +438,6 @@ impl Shell {
     }
 
     fn park(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        self.commands.update(cx, |view, cx| view.suspend(cx));
         self.checkin.update(cx, |view, cx| view.suspend(cx));
         self.environments.update(cx, |view, cx| view.suspend(cx));
         self.park_environment(window, cx);
@@ -559,8 +552,6 @@ impl Shell {
                 }
             }
             Lens::Converter => {}
-            Lens::Favorites => self.commands.update(cx, |view, cx| view.open(false, cx)),
-            Lens::Recent => self.commands.update(cx, |view, cx| view.open(true, cx)),
             Lens::Install => self.install.update(cx, |view, cx| view.refresh(cx)),
             Lens::Monitoring => self.monitoring.update(cx, |view, cx| view.refresh(cx)),
             Lens::Files => {
@@ -599,7 +590,13 @@ impl Shell {
             Destination::Usage => self.insights.update(cx, |view, cx| {
                 view.open_global(InsightsPage::Usage, window, cx)
             }),
-            Destination::Commands => self.jobs.update(cx, |view, cx| view.refresh(cx)),
+            Destination::Commands => {
+                let environment = self.environment_name(cx);
+                self.jobs.update(cx, |view, cx| {
+                    view.set_environment_name(environment);
+                    view.open(cx);
+                });
+            }
             Destination::McpManager => self.mcp.update(cx, |view, cx| view.open_global(cx)),
             Destination::Checkin => self.checkin.update(cx, |view, cx| view.refresh(cx)),
             Destination::Sync => {
@@ -667,10 +664,6 @@ impl Shell {
             Lens::Usage | Lens::Sessions => self
                 .insights
                 .update(cx, |view, cx| view.focus_main(window, cx)),
-            Lens::Favorites | Lens::Recent => {
-                self.commands
-                    .update(cx, |view, cx| view.focus_main(window, cx));
-            }
             Lens::Converter => self
                 .converter
                 .update(cx, |view, cx| view.focus_main(window, cx)),
@@ -744,7 +737,19 @@ impl Shell {
                 window.focus(&self.navigation_focus, cx);
                 window.focus_next(cx);
             }
-            1 => self.focus_main(window, cx),
+            1 => {
+                if backward
+                    && self.destination == Destination::Commands
+                    && self.lens == Lens::Primary
+                    && (!self.active_environment.is_ssh()
+                        || self.active_environment.state == environment::ConnectionState::Connected)
+                {
+                    self.jobs
+                        .update(cx, |view, cx| view.focus_main_end(window, cx));
+                } else {
+                    self.focus_main(window, cx);
+                }
+            }
             _ => window.focus(&self.status_focus, cx),
         }
         cx.notify();
@@ -960,22 +965,11 @@ impl Shell {
             _ if remote
                 && !self.independent_destination()
                 && self.destination != Destination::McpManager
-                && self.destination != Destination::Commands
                 && self.destination != Destination::Usage
                 && self.destination != Destination::Dashboard =>
             {
                 return None;
             }
-            Destination::Commands => vec![
-                ("tool-catalog", Lens::Primary, "Command catalog", "命令目录"),
-                (
-                    "tool-favorites",
-                    Lens::Favorites,
-                    "Favorite commands",
-                    "收藏命令",
-                ),
-                ("tool-recent", Lens::Recent, "Recent commands", "最近命令"),
-            ],
             Destination::Usage => vec![
                 ("tool-report", Lens::Primary, "Usage", "用量"),
                 (
@@ -1003,7 +997,8 @@ impl Shell {
                     "全局监控",
                 ),
             ],
-            Destination::AgentSessions
+            Destination::Commands
+            | Destination::AgentSessions
             | Destination::Checkin
             | Destination::Sync
             | Destination::Settings => return None,
@@ -1134,7 +1129,6 @@ impl Shell {
             Lens::Mcp => self.mcp.clone().into_any_element(),
             Lens::Usage | Lens::Sessions => self.insights.clone().into_any_element(),
             Lens::Converter => self.converter.clone().into_any_element(),
-            Lens::Favorites | Lens::Recent => self.commands.clone().into_any_element(),
             Lens::Install => self.install.clone().into_any_element(),
             Lens::Monitoring => self.monitoring.clone().into_any_element(),
             Lens::Files => self.resources.clone().into_any_element(),
