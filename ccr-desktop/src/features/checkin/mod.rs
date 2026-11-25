@@ -146,9 +146,9 @@ impl CheckinView {
             CheckinSnapshot::Accounts(accounts) => self
                 .selected
                 .as_ref()
-                .filter(|id| accounts.iter().any(|a| &a.id == *id))
+                .filter(|id| accounts.accounts.iter().any(|a| &a.id == *id))
                 .cloned()
-                .or_else(|| accounts.first().map(|account| account.id.clone())),
+                .or_else(|| accounts.accounts.first().map(|account| account.id.clone())),
             CheckinSnapshot::NoDatabase => None,
         };
         self.snapshot = Some(snapshot);
@@ -157,7 +157,7 @@ impl CheckinView {
 
     fn rows(&self) -> &[CheckinAccountRow] {
         match self.snapshot.as_ref() {
-            Some(CheckinSnapshot::Accounts(accounts)) => accounts,
+            Some(CheckinSnapshot::Accounts(data)) => &data.accounts,
             _ => &[],
         }
     }
@@ -346,7 +346,7 @@ impl Render for CheckinView {
                             .child(empty),
                     );
                 }
-                CheckinSnapshot::Accounts(accounts) if accounts.is_empty() => {
+                CheckinSnapshot::Accounts(accounts) if accounts.accounts.is_empty() => {
                     let empty = text(
                         cx,
                         "The local database has no saved check-in accounts.",

@@ -7,7 +7,7 @@ use ccr_app::runtime::EnvironmentId;
 mod operations;
 pub use operations::*;
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -57,16 +57,51 @@ pub enum StoredBalance {
 pub struct CheckinAccountRow {
     pub id: String,
     pub name: String,
+    pub provider_id: String,
     pub provider_name: Option<String>,
     pub enabled: bool,
     pub last_checkin_at: Option<String>,
+    pub last_balance_check_at: Option<String>,
     pub balance: StoredBalance,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CheckinProviderRow {
+    pub id: String,
+    pub name: String,
+    pub builtin_id: Option<String>,
+    pub enabled: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct BalanceGroup {
+    pub accounts: usize,
+    pub remaining: f64,
+    pub total: f64,
+    pub used: f64,
+    pub from: chrono::DateTime<chrono::Utc>,
+    pub to: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SavedBalances {
+    pub groups: BTreeMap<String, BalanceGroup>,
+    pub missing: usize,
+    pub unusable: usize,
+    pub unknown_unit: usize,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CheckinData {
+    pub accounts: Vec<CheckinAccountRow>,
+    pub providers: Vec<CheckinProviderRow>,
+    pub balances: SavedBalances,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum CheckinSnapshot {
     NoDatabase,
-    Accounts(Vec<CheckinAccountRow>),
+    Accounts(CheckinData),
 }
 
 fn finite_number(value: f64) -> Option<String> {
@@ -100,70 +135,122 @@ fn stored_balance(balance: &BalanceSnapshot) -> StoredBalance {
     })
 }
 
-fn project_rows(
+fn project_data(
     accounts: Vec<ccr_db::models::checkin::CheckinAccount>,
-    providers: HashMap<String, String>,
+    providers: Vec<ccr_db::models::checkin::CheckinProvider>,
     balances: HashMap<String, BalanceSnapshot>,
-) -> Vec<CheckinAccountRow> {
-    accounts
+) -> CheckinData {
+    let providers: Vec<_> = providers
+        .into_iter()
+        .map(|provider| CheckinProviderRow {
+            id: provider.id,
+            name: redact_log_text(&provider.name),
+            enabled: provider.enabled,
+            builtin_id: provider.builtin_id,
+        })
+        .collect();
+    let names: HashMap<_, _> = providers.iter().map(|p| (&p.id, &p.name)).collect();
+    let mut summary = SavedBalances::default();
+    let accounts = accounts
         .into_iter()
         .map(|account| {
-            let provider_name = providers
-                .get(&account.provider_id)
-                .map(|name| redact_log_text(name));
-            let balance = balances
-                .get(&account.id)
-                .map(stored_balance)
-                .unwrap_or(StoredBalance::Missing);
+            let latest = balances.get(&account.id);
+            let balance = latest.map(stored_balance).unwrap_or(StoredBalance::Missing);
+            match (&balance, latest) {
+                (StoredBalance::Missing, _) => summary.missing += 1,
+                (StoredBalance::Unusable, _) => summary.unusable += 1,
+                (StoredBalance::Numbers(numbers), Some(row)) => {
+                    if let Some(unit) = &numbers.currency {
+                        let group = summary.groups.entry(unit.clone()).or_insert(BalanceGroup {
+                            accounts: 0,
+                            remaining: 0.,
+                            total: 0.,
+                            used: 0.,
+                            from: row.recorded_at,
+                            to: row.recorded_at,
+                        });
+                        group.accounts += 1;
+                        group.remaining += row.remaining_quota;
+                        group.total += row.total_quota;
+                        group.used += row.used_quota;
+                        group.from = group.from.min(row.recorded_at);
+                        group.to = group.to.max(row.recorded_at);
+                    } else {
+                        summary.unknown_unit += 1;
+                    }
+                }
+                _ => {}
+            }
             CheckinAccountRow {
                 id: account.id,
                 name: redact_log_text(&account.name),
-                provider_name,
+                provider_name: names.get(&account.provider_id).map(|name| (*name).clone()),
+                provider_id: account.provider_id,
                 enabled: account.enabled,
                 last_checkin_at: account.last_checkin_at.map(|time| time.to_rfc3339()),
+                last_balance_check_at: account.last_balance_check_at.map(|time| time.to_rfc3339()),
                 balance,
             }
         })
-        .collect()
+        .collect();
+    CheckinData {
+        accounts,
+        providers,
+        balances: summary,
+    }
 }
 
 fn read_connection(conn: &rusqlite::Connection) -> Result<CheckinSnapshot, CheckinError> {
-    let accounts = checkin_repo::get_all_accounts(conn).map_err(|_| CheckinError::Storage)?;
-    let providers = checkin_repo::get_all_providers(conn)
-        .map_err(|_| CheckinError::Storage)?
-        .into_iter()
-        .map(|provider| (provider.id, provider.name))
-        .collect::<HashMap<_, _>>();
-    let mut balances = HashMap::new();
+    let tx = conn
+        .unchecked_transaction()
+        .map_err(|_| CheckinError::Storage)?;
+    let accounts = checkin_repo::get_all_accounts(&tx).map_err(|_| CheckinError::Storage)?;
+    let providers = checkin_repo::get_all_providers(&tx).map_err(|_| CheckinError::Storage)?;
+    let mut balances = HashMap::<String, BalanceSnapshot>::new();
     for balance in
-        checkin_repo::get_latest_balances_for_all(conn).map_err(|_| CheckinError::Storage)?
+        checkin_repo::get_latest_balances_for_all(&tx).map_err(|_| CheckinError::Storage)?
     {
-        balances
-            .entry(balance.account_id.clone())
-            .or_insert(balance);
+        // The shared reader can return multiple rows at the latest instant.
+        let entry = balances.entry(balance.account_id.clone());
+        match entry {
+            std::collections::hash_map::Entry::Occupied(mut current) => {
+                if balance.id > current.get().id {
+                    current.insert(balance);
+                }
+            }
+            std::collections::hash_map::Entry::Vacant(current) => {
+                current.insert(balance);
+            }
+        }
     }
-    Ok(CheckinSnapshot::Accounts(project_rows(
+    tx.commit().map_err(|_| CheckinError::Storage)?;
+    Ok(CheckinSnapshot::Accounts(project_data(
         accounts, providers, balances,
     )))
 }
 
-fn existing_file(path: PathBuf) -> Option<PathBuf> {
-    path.is_file().then_some(path)
+fn existing_file(path: PathBuf) -> Result<Option<PathBuf>, CheckinError> {
+    match std::fs::symlink_metadata(&path) {
+        Ok(meta) if meta.is_file() => Ok(Some(path)),
+        Ok(_) => Err(CheckinError::Storage),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(_) => Err(CheckinError::Storage),
+    }
 }
 
 fn database_path(source: &ConfigSource) -> Result<Option<PathBuf>, CheckinError> {
     match source {
-        ConfigSource::Benchmark(layout) => Ok(existing_file(layout.path("ui/ccr-ui.db"))),
+        ConfigSource::Benchmark(layout) => existing_file(layout.path("ui/ccr-ui.db")),
         ConfigSource::Local => {
             let home = dirs::home_dir().ok_or(CheckinError::Storage)?;
-            Ok(existing_file(home.join(".ccr-ui").join("ccr-ui.db")))
+            existing_file(home.join(".ccr-ui").join("ccr-ui.db"))
         }
         ConfigSource::Fixture { registry, .. } => {
             if !registry.is_absolute() {
                 return Err(CheckinError::Storage);
             }
             let root = registry.parent().ok_or(CheckinError::Storage)?;
-            Ok(existing_file(root.join("checkin.db")))
+            existing_file(root.join("checkin.db"))
         }
     }
 }
@@ -255,9 +342,9 @@ mod tests {
         account.extra_config = r#"{"token":"checkin-secret-sentinel"}"#.into();
         let mut snapshot = balance(7.5, 10.0, 2.5, "USD");
         snapshot.account_id = account.id.clone();
-        let rows = project_rows(
+        let rows = project_data(
             vec![account],
-            HashMap::from([(provider.id, provider.name)]),
+            vec![provider],
             HashMap::from([(snapshot.account_id.clone(), snapshot)]),
         );
         let rendered = format!("{rows:?}");
@@ -268,6 +355,123 @@ mod tests {
         assert!(!rendered.contains("example.invalid"));
         assert!(!rendered.contains("extra_config"));
         assert!(!rendered.contains("cookies"));
+    }
+
+    fn public_read(root: &Path) -> Result<CheckinSnapshot, CheckinError> {
+        use ccr_app::runtime::{Completion, Platform, RuntimeOwner, TaskEvent};
+        let runtime = RuntimeOwner::new().unwrap();
+        let services = Services::new(
+            runtime.handle(),
+            ConfigSource::Fixture {
+                profiles: root.join("profiles.toml"),
+                registry: root.join("registry.toml"),
+                delay: Duration::ZERO,
+            },
+        );
+        let mut result = services
+            .checkin_request(RequestKey {
+                environment: EnvironmentId::Local("application".into()),
+                platform: Platform::Claude,
+                generation: 1,
+                request_id: 1,
+            })
+            .unwrap();
+        let terminal = tokio::runtime::Runtime::new().unwrap().block_on(async {
+            loop {
+                if let TaskEvent::Terminal(value) = result.next().await.unwrap() {
+                    break value;
+                }
+            }
+        });
+        let result = match terminal.as_ref() {
+            Completion::Success(snapshot) => Ok(snapshot.clone()),
+            Completion::Failed(error) => Err(*error),
+            _ => panic!("reader returned no snapshot"),
+        };
+        runtime.shutdown();
+        result
+    }
+
+    #[test]
+    fn directory_at_database_path_is_a_read_error() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::create_dir(root.path().join("checkin.db")).unwrap();
+        assert_eq!(public_read(root.path()), Err(CheckinError::Storage));
+    }
+
+    #[test]
+    fn local_snapshot_groups_only_latest_usable_current_accounts() {
+        use ccr_db::{
+            database,
+            models::checkin::{CheckinAccount, CheckinProvider},
+        };
+        let root = tempfile::tempdir().unwrap();
+        let conn = rusqlite::Connection::open(root.path().join("checkin.db")).unwrap();
+        database::migrations::run_all_migrations(&conn, root.path()).unwrap();
+        let mut provider = CheckinProvider::new("Example".into(), "https://example.invalid".into());
+        provider.builtin_id = Some("example".into());
+        checkin_repo::insert_provider(&conn, &provider).unwrap();
+        for id in ["a", "b", "zero", "missing", "invalid", "unknown"] {
+            let mut account =
+                CheckinAccount::new(provider.id.clone(), id.into(), "secret".into(), "7".into());
+            account.id = id.into();
+            account.enabled = id != "b";
+            account.last_balance_check_at = Some(balance(0., 0., 0., "").recorded_at);
+            checkin_repo::insert_account(&conn, &account).unwrap();
+        }
+        conn.pragma_update(None, "foreign_keys", false).unwrap();
+        for (id, key, day, currency, total, used, remaining) in [
+            ("a", "old", 1, "EUR", 50., 40., 10.),
+            ("a", "lower", 4, "USD", 70., 20., 50.),
+            ("a", "winner", 4, " USD ", 20., 6., 14.),
+            ("b", "b", 2, "USD", 11., 4., 7.),
+            ("zero", "c", 5, "CNY", 0., 0., 0.),
+            ("invalid", "d", 1, "USD", f64::INFINITY, 1., 1.),
+            ("unknown", "e", 1, "   ", 1., 1., 0.),
+            ("orphan", "f", 1, "USD", 200., 100., 100.),
+        ] {
+            let mut row = balance(remaining, total, used, currency);
+            row.account_id = id.into();
+            row.id = key.into();
+            row.recorded_at += chrono::Duration::days(day);
+            checkin_repo::insert_balance(&conn, &row).unwrap();
+        }
+        let CheckinSnapshot::Accounts(data) = public_read(root.path()).unwrap() else {
+            panic!("existing DB")
+        };
+        assert_eq!(data.providers[0].builtin_id.as_deref(), Some("example"));
+        let a = data.accounts.iter().find(|row| row.id == "a").unwrap();
+        assert_eq!(a.provider_id, provider.id);
+        assert_eq!(
+            a.last_balance_check_at.as_deref(),
+            Some("2024-04-04T00:00:00+00:00")
+        );
+        let StoredBalance::Numbers(value) = &a.balance else {
+            panic!("saved balance")
+        };
+        assert_eq!(
+            (&value.remaining, value.currency.as_deref()),
+            (&"14".to_string(), Some("USD"))
+        );
+        let summary = &data.balances;
+        assert_eq!(data.accounts.len(), 6);
+        assert_eq!(
+            (summary.missing, summary.unusable, summary.unknown_unit),
+            (1, 1, 1)
+        );
+        assert_eq!(summary.groups.len(), 2);
+        let usd = &summary.groups["USD"];
+        assert_eq!(
+            (usd.accounts, usd.remaining, usd.total, usd.used),
+            (2, 21., 31., 10.)
+        );
+        assert_eq!(usd.from.to_rfc3339(), "2024-04-06T00:00:00+00:00");
+        assert_eq!(usd.to.to_rfc3339(), "2024-04-08T00:00:00+00:00");
+        let cny = &summary.groups["CNY"];
+        assert_eq!(
+            (cny.accounts, cny.remaining, cny.total, cny.used),
+            (1, 0., 0., 0.)
+        );
     }
 
     #[test]
