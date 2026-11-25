@@ -515,3 +515,353 @@ async fn run_starts_a_background_job_and_cancel_takes_the_same_slot(cx: &mut Tes
     .unwrap_or_else(|_| panic!("run"));
     owner.shutdown();
 }
+
+#[gpui_kit::test]
+async fn ledger_shows_empty_state_readouts_grouped_channels_copy_clear_and_polite_status(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let fixture = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
+    let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+    let services = fixture_services(&owner, fixture.path());
+    let jobs = services.command_jobs.clone();
+    let (handle, view) = open(cx, services);
+
+    // 1. Idle state: dashed empty panel, no readouts, copy & clear disabled.
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(window.try_find("command-ledger-empty").is_some());
+        assert_eq!(
+            label(window, "command-ledger-empty"),
+            "Ready to run a command"
+        );
+        assert!(window.try_find("command-ledger-readouts").is_none());
+        assert!(
+            label(window, "command-ledger-subtitle").contains("Select a command and run it"),
+            "idle subtitle explains when output appears"
+        );
+        assert_eq!(window.find("command-ledger-copy").focused(), None);
+        assert_eq!(window.find("command-ledger-clear").focused(), None);
+    })
+    .unwrap_or_else(|_| panic!("idle ledger"));
+
+    // 2. Running job: readouts with unknown dashes, polite Running status, Clear disabled, Copy works.
+    let admission = jobs
+        .admit(
+            RequestKey {
+                environment: EnvironmentId::Local("fixture".into()),
+                platform: Platform::Claude,
+                generation: 1,
+                request_id: 1,
+            },
+            ccr_app::jobs::policy::CommandExecutionRequest::background(
+                "status".into(),
+                Some(vec!["--json".into()]),
+                None,
+            ),
+        )
+        .unwrap_or_else(|_| panic!("admit"));
+    let id = admission.snapshot.job_id.clone();
+    let short_id: String = id
+        .strip_prefix("ccr-command-")
+        .unwrap_or(&id)
+        .chars()
+        .take(8)
+        .collect();
+    cx.update_window(handle, |_, window, cx| {
+        view.update(cx, |this, cx| {
+            this.job_id = Some(id.clone());
+            this.refresh(cx);
+        });
+        window.render_frame(cx);
+        assert!(window.try_find("command-ledger-empty").is_none());
+        assert!(window.try_find("command-ledger-readouts").is_some());
+        assert_eq!(
+            label(window, "command-ledger-subtitle"),
+            format!("ccr status --json · job {short_id} · grouped by channel")
+        );
+        assert!(label(window, "command-ledger-readout-duration").contains('–'));
+        assert!(label(window, "command-ledger-readout-exit").contains('–'));
+        assert!(label(window, "command-ledger-readout-lines").contains('1'));
+        assert_eq!(
+            window.find("command-ledger-status").role(),
+            Some(Role::Status)
+        );
+        assert!(label(window, "command-ledger-status").contains("Running…"));
+        assert_eq!(
+            window.find("command-ledger-clear").focused(),
+            None,
+            "Clear stays disabled while a job runs"
+        );
+        window.click("command-ledger-clear", cx);
+        window.render_frame(cx);
+        assert!(
+            window.try_find("command-ledger-readouts").is_some(),
+            "clicking disabled Clear while running keeps the active job"
+        );
+        assert_eq!(window.find("command-ledger-copy").focused(), Some(false));
+        window.click("command-ledger-copy", cx);
+        let copied = cx
+            .read_from_clipboard()
+            .and_then(|item| item.text())
+            .unwrap_or_default();
+        assert_eq!(copied, "[system] Job queued");
+    })
+    .unwrap_or_else(|_| panic!("running ledger"));
+
+    // 3. Terminal state: polite terminal status, Clear enabled and only clears view snapshot.
+    jobs.abandon(admission.ticket.unwrap_or_else(|| panic!("ticket")));
+    cx.wait_for(handle, std::time::Duration::from_secs(5), |_, cx| {
+        !view.read(cx).busy
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert_eq!(
+            window.find("command-ledger-status").role(),
+            Some(Role::Status)
+        );
+        assert!(
+            label(window, "command-ledger-status").contains("Unavailable"),
+            "terminal state announced politely"
+        );
+        assert_eq!(window.find("command-ledger-clear").focused(), Some(false));
+        window.click("command-ledger-clear", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("command-ledger-empty").is_some());
+        assert!(window.try_find("command-ledger-readouts").is_none());
+        assert!(
+            jobs.status(&id).is_ok(),
+            "clearing the ledger does not evict the app-owned job"
+        );
+    })
+    .unwrap_or_else(|_| panic!("terminal and clear"));
+
+    // 4. Truncated snapshot with system/stdout/stderr and >8KiB line.
+    cx.update_window(handle, |_, window, cx| {
+        let long_line = "x".repeat(9000);
+        let snap = Snapshot {
+            job_id: "ccr-command-deadbeef-1234".into(),
+            command: "history".into(),
+            args: vec!["-l".into(), "20".into()],
+            status: ccr_app::jobs::commands::Status::Success,
+            cancel_requested: false,
+            started_at: "2026-11-25T00:00:00Z".into(),
+            finished_at: Some("2026-11-25T00:00:01Z".into()),
+            duration_ms: Some(1200),
+            exit_code: Some(0),
+            system_lines: vec!["Job queued".into()].into(),
+            stdout_lines: vec!["first out".into(), long_line.clone()].into(),
+            stderr_lines: vec!["warn err".into()].into(),
+            truncated: true,
+            dropped_lines: 4,
+            error: None,
+        };
+        view.update(cx, |this, cx| {
+            this.job_id = Some(snap.job_id.clone());
+            this.accept_snapshot(this.generation, snap);
+            cx.notify();
+        });
+        window.render_frame(cx);
+        assert_eq!(
+            label(window, "command-ledger-subtitle"),
+            "ccr history -l 20 · job deadbeef · grouped by channel"
+        );
+        assert!(label(window, "command-ledger-readout-duration").contains("1.2 s"));
+        assert!(label(window, "command-ledger-readout-exit").contains('0'));
+        assert!(label(window, "command-ledger-readout-lines").contains("4 dropped"));
+        assert!(label(window, "command-ledger-truncated").contains("4"));
+        assert_eq!(
+            label(window, "command-log-ccr-command-deadbeef-1234-0"),
+            "[system] Job queued"
+        );
+        assert_eq!(
+            label(window, "command-log-ccr-command-deadbeef-1234-1"),
+            "[stdout] first out"
+        );
+        let clipped = label(window, "command-log-ccr-command-deadbeef-1234-2");
+        assert!(clipped.starts_with("[stdout] "));
+        assert!(clipped.ends_with('…'));
+        assert_eq!(
+            label(window, "command-log-ccr-command-deadbeef-1234-3"),
+            "[stderr] warn err"
+        );
+        window.click("command-ledger-copy", cx);
+        let copied = cx
+            .read_from_clipboard()
+            .and_then(|item| item.text())
+            .unwrap_or_default();
+        assert_eq!(
+            copied,
+            format!(
+                "[system] Job queued\n[stdout] first out\n[stdout] {long_line}\n[stderr] warn err"
+            )
+        );
+        window.remove_window();
+    })
+    .unwrap_or_else(|_| panic!("grouped truncated ledger"));
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+fn ledger_follows_bottom_stops_when_scrolled_up_and_resumes_at_bottom(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let fixture = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
+    let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+    let (handle, view) = open(cx, fixture_services(&owner, fixture.path()));
+    let make_snap = |count: usize| Snapshot {
+        job_id: "ccr-command-feedface-0001".into(),
+        command: "status".into(),
+        args: vec![],
+        status: ccr_app::jobs::commands::Status::Running,
+        cancel_requested: false,
+        started_at: "2026-11-25T00:00:00Z".into(),
+        finished_at: None,
+        duration_ms: None,
+        exit_code: None,
+        system_lines: vec!["Job queued".into()].into(),
+        stdout_lines: (0..count).map(|i| format!("line-{i}")).collect(),
+        stderr_lines: Default::default(),
+        truncated: false,
+        dropped_lines: 0,
+        error: None,
+    };
+
+    cx.update_window(handle, |_, window, cx| {
+        view.update(cx, |this, cx| {
+            this.job_id = Some("ccr-command-feedface-0001".into());
+            this.accept_snapshot(this.generation, make_snap(40));
+            cx.notify();
+        });
+        window.render_frame(cx);
+        assert!(
+            window
+                .try_find("command-log-ccr-command-feedface-0001-40")
+                .is_some_and(|row| row.visible()),
+            "initial long log pins to the last row"
+        );
+
+        // Append more lines while pinned -> still follows to bottom.
+        view.update(cx, |this, cx| {
+            this.accept_snapshot(this.generation, make_snap(50));
+            cx.notify();
+        });
+        window.render_frame(cx);
+        assert!(
+            window
+                .try_find("command-log-ccr-command-feedface-0001-50")
+                .is_some_and(|row| row.visible()),
+            "new lines keep the view pinned to the bottom"
+        );
+
+        // User scrolls up to the top -> follow stops.
+        let top_offset = {
+            let state = view.read(cx).log_scroll.0.borrow();
+            state
+                .base_handle
+                .set_offset(gpui_kit::point(px(0.), px(0.)));
+            state.base_handle.offset().y
+        };
+        window.render_frame(cx);
+        assert_eq!(top_offset, px(0.));
+
+        view.update(cx, |this, cx| {
+            this.accept_snapshot(this.generation, make_snap(60));
+            cx.notify();
+        });
+        window.render_frame(cx);
+        let offset_after_append = view.read(cx).log_scroll.0.borrow().base_handle.offset().y;
+        assert_eq!(
+            offset_after_append,
+            px(0.),
+            "appending lines while scrolled up must not jump back to the bottom"
+        );
+
+        // User scrolls back to the bottom -> follow resumes on next update.
+        {
+            let state = view.read(cx).log_scroll.0.borrow();
+            let max_y = state.base_handle.max_offset().y;
+            assert!(max_y > px(0.), "log must overflow to test follow-bottom");
+            state
+                .base_handle
+                .set_offset(gpui_kit::point(px(0.), -max_y));
+        }
+        window.render_frame(cx);
+        view.update(cx, |this, cx| {
+            this.accept_snapshot(this.generation, make_snap(70));
+            cx.notify();
+        });
+        window.render_frame(cx);
+        assert!(
+            window
+                .try_find("command-log-ccr-command-feedface-0001-70")
+                .is_some_and(|row| row.visible()),
+            "returning to the bottom resumes auto-follow"
+        );
+        window.remove_window();
+    })
+    .unwrap_or_else(|_| panic!("follow bottom"));
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+async fn ledger_observation_failure_offers_retry_and_reattaches(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let fixture = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
+    let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+    let services = fixture_services(&owner, fixture.path());
+    let jobs = services.command_jobs.clone();
+    let (handle, view) = open(cx, services);
+
+    // Trigger a genuine observation error by observing an unknown job id.
+    cx.update_window(handle, |_, window, cx| {
+        view.update(cx, |this, cx| {
+            this.job_id = Some("ccr-command-missing00".into());
+            this.refresh(cx);
+        });
+        window.render_frame(cx);
+        assert!(window.try_find("command-ledger-observe-error").is_some());
+        assert!(window.try_find("command-ledger-retry").is_some());
+    })
+    .unwrap_or_else(|_| panic!("observe failure"));
+
+    // Admit a live job and verify clicking Retry re-attaches and restores live readouts.
+    let admission = jobs
+        .admit(
+            RequestKey {
+                environment: EnvironmentId::Local("fixture".into()),
+                platform: Platform::Claude,
+                generation: 2,
+                request_id: 2,
+            },
+            ccr_app::jobs::policy::CommandExecutionRequest::background(
+                "status".into(),
+                Some(vec!["--json".into()]),
+                None,
+            ),
+        )
+        .unwrap_or_else(|_| panic!("admit retry"));
+    let id = admission.snapshot.job_id.clone();
+    cx.update_window(handle, |_, window, cx| {
+        view.update(cx, |this, _| {
+            this.job_id = Some(id.clone());
+        });
+        window.click("command-ledger-retry", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("command-ledger-observe-error").is_none());
+        assert!(window.try_find("command-ledger-retry").is_none());
+        assert!(window.try_find("command-ledger-readouts").is_some());
+        assert!(view.read(cx).busy);
+        assert!(view.read(cx).task.is_some());
+    })
+    .unwrap_or_else(|_| panic!("retry reattach"));
+
+    jobs.abandon(admission.ticket.unwrap_or_else(|| panic!("ticket")));
+    cx.wait_for(handle, std::time::Duration::from_secs(5), |_, cx| {
+        !view.read(cx).busy
+    })
+    .await;
+    cx.update_window(handle, |_, window, _| window.remove_window())
+        .unwrap_or_else(|_| panic!("close"));
+    owner.shutdown();
+}

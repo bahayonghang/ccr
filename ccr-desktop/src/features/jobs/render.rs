@@ -1,6 +1,6 @@
 //! Command workbench layout: page header, catalog list, editor and job log.
 use super::{
-    InstallRequested, JobsView,
+    InstallRequested, JobsView, ledger,
     model::{self, Availability, Blocked, Filter},
 };
 use crate::{
@@ -9,7 +9,7 @@ use crate::{
     theme::{self, Tone},
 };
 use ccr_app::jobs::{
-    commands::{Snapshot, Status},
+    commands::{Channel, Snapshot, Status},
     policy::CommandInfo,
 };
 use gpui_kit::base::TestSupportExt;
@@ -614,43 +614,276 @@ impl JobsView {
     }
 
     fn ledger_panel(&self, cx: &mut Context<Self>) -> AnyElement {
-        let state = self
+        let zh = is_chinese(cx);
+        let mode = cx.theme().mode;
+        let (muted, danger, code_bg, border, hairline) = {
+            let colors = cx.theme();
+            (
+                colors.muted_foreground,
+                colors.danger,
+                colors.secondary,
+                colors.border,
+                theme::hairline(mode),
+            )
+        };
+        let info_ink = theme::tone_colors(Tone::Info, mode).ink;
+        let warning_ink = theme::tone_colors(Tone::Warning, mode).ink;
+
+        let count = self.snapshot.as_ref().map_or(0, ledger::line_count);
+        let subtitle = self
             .snapshot
             .as_ref()
-            .map(|snapshot| job_state(cx, snapshot))
-            .unwrap_or_else(|| text(cx, "No job yet", "尚无任务").to_string());
-        let count = self
-            .snapshot
-            .as_ref()
-            .map(|snapshot| {
-                snapshot.stdout_lines.len()
-                    + snapshot.stderr_lines.len()
-                    + snapshot.system_lines.len()
-            })
-            .unwrap_or(0);
-        let logs = uniform_list(
-            "command-job-logs",
-            count,
-            cx.processor(|this, range: std::ops::Range<usize>, _, _| {
-                range
-                    .filter_map(|index| {
-                        this.log_line(index).map(|line| {
-                            div()
-                                .id(SharedString::from(format!(
-                                    "command-log-{}-{index}",
-                                    this.job_id.as_deref().unwrap_or("none")
-                                )))
-                                .test_support()
-                                .h(px(36.))
-                                .px_2()
-                                .child(line)
-                        })
+            .map(|snapshot| ledger::subtitle(snapshot, zh))
+            .unwrap_or_else(|| {
+                text(
+                    cx,
+                    "Select a command and run it to see job status and output here",
+                    "选择命令并运行后，任务状态与输出显示在这里",
+                )
+                .to_string()
+            });
+        let clear_disabled = self.busy
+            || (self.snapshot.is_none() && self.job_id.is_none() && self.observe_error.is_none());
+
+        let header = div()
+            .flex()
+            .flex_wrap()
+            .items_start()
+            .justify_between()
+            .gap(px(theme::CONTROL_GAP))
+            .child(
+                div()
+                    .flex_1()
+                    .min_w_0()
+                    .flex()
+                    .flex_col()
+                    .gap(px(2.))
+                    .child(eyebrow(text(cx, "Run ledger", "运行账本"), cx))
+                    .child(
+                        div()
+                            .text_size(theme::text_size(theme::SECTION_TITLE_SIZE))
+                            .font_weight(FontWeight::SEMIBOLD)
+                            .child(text(cx, "Output", "输出")),
+                    )
+                    .child(
+                        div()
+                            .id("command-ledger-subtitle")
+                            .test_support()
+                            .aria_label(subtitle.clone())
+                            .truncate()
+                            .text_size(theme::text_size(theme::META_SIZE))
+                            .text_color(muted)
+                            .child(subtitle),
+                    ),
+            )
+            .child(
+                div()
+                    .flex()
+                    .flex_wrap()
+                    .items_center()
+                    .gap(px(theme::CONTROL_GAP))
+                    .child(semantics::ghost_button(
+                        Button::new("command-ledger-copy")
+                            .icon(IconName::Copy)
+                            .label(text(cx, "Copy output", "复制输出"))
+                            .on_click(cx.listener(|this, _, _, cx| this.copy_output(cx))),
+                        count == 0,
+                        false,
+                        cx,
+                    ))
+                    .child(semantics::ghost_button(
+                        Button::new("command-ledger-clear")
+                            .label(text(cx, "Clear", "清空"))
+                            .on_click(cx.listener(|this, _, _, cx| this.clear_ledger(cx))),
+                        clear_disabled,
+                        false,
+                        cx,
+                    )),
+            );
+
+        let mut panel = reading_panel("command-ledger", cx).flex_1().child(header);
+
+        if let Some(snapshot) = self.snapshot.as_ref() {
+            let (tag_label, tag_tone) = status_tag(cx, snapshot.status);
+            let duration_value = ledger::duration(snapshot.duration_ms, zh);
+            let exit_value = ledger::exit_code(snapshot.exit_code);
+            let dropped = ledger::dropped(snapshot);
+            let lines_value = match dropped {
+                Some(n) if zh => format!("{count} · 已丢弃 {n} 行"),
+                Some(n) => format!("{count} · {n} dropped"),
+                None => count.to_string(),
+            };
+            let status_title = text(cx, "Status", "状态");
+            let duration_title = text(cx, "Duration", "耗时");
+            let exit_title = text(cx, "Exit code", "退出码");
+            let lines_title = text(cx, "Lines", "输出行数");
+
+            let readout_cell = |id: &'static str,
+                                title: &'static str,
+                                aria: String,
+                                divider: bool,
+                                value: AnyElement| {
+                div()
+                    .id(id)
+                    .test_support()
+                    .aria_label(aria)
+                    .flex_1()
+                    .min_w_0()
+                    .flex()
+                    .flex_col()
+                    .gap(px(4.))
+                    .when(divider, |cell| {
+                        cell.pl(px(theme::CONTROL_GAP + 4.))
+                            .border_l_1()
+                            .border_color(hairline)
                     })
-                    .collect::<Vec<_>>()
-            }),
-        )
-        .h_full()
-        .track_scroll(&self.log_scroll);
+                    .child(
+                        div()
+                            .text_size(theme::text_size(theme::META_SIZE))
+                            .text_color(muted)
+                            .child(title),
+                    )
+                    .child(value)
+            };
+
+            let readouts = div()
+                .id("command-ledger-readouts")
+                .test_support()
+                .flex()
+                .items_stretch()
+                .gap(px(theme::CONTROL_GAP))
+                .py(px(theme::CONTROL_GAP))
+                .border_t_1()
+                .border_b_1()
+                .border_color(hairline)
+                .child(readout_cell(
+                    "command-ledger-readout-status",
+                    status_title,
+                    format!("{status_title}: {tag_label}"),
+                    false,
+                    div()
+                        .flex()
+                        .items_center()
+                        .child(badge::tag(
+                            "command-ledger-status-tag",
+                            tag_label,
+                            tag_tone,
+                            cx,
+                        ))
+                        .into_any_element(),
+                ))
+                .child(readout_cell(
+                    "command-ledger-readout-duration",
+                    duration_title,
+                    format!("{duration_title}: {duration_value}"),
+                    true,
+                    div()
+                        .font_features(theme::tabular_figures())
+                        .font_weight(FontWeight::MEDIUM)
+                        .child(duration_value)
+                        .into_any_element(),
+                ))
+                .child(readout_cell(
+                    "command-ledger-readout-exit",
+                    exit_title,
+                    format!("{exit_title}: {exit_value}"),
+                    true,
+                    div()
+                        .font_features(theme::tabular_figures())
+                        .font_weight(FontWeight::MEDIUM)
+                        .child(exit_value)
+                        .into_any_element(),
+                ))
+                .child(readout_cell(
+                    "command-ledger-readout-lines",
+                    lines_title,
+                    format!("{lines_title}: {lines_value}"),
+                    true,
+                    div()
+                        .font_features(theme::tabular_figures())
+                        .font_weight(FontWeight::MEDIUM)
+                        .truncate()
+                        .child(lines_value)
+                        .into_any_element(),
+                ));
+            panel = panel.child(readouts);
+        }
+
+        // Polite status region: visible info line while running, screen-reader
+        // announcement on terminal states (without duplicating readouts visually).
+        let (status_announcement, show_running_line) = match self.snapshot.as_ref() {
+            Some(snapshot) if !snapshot.status.is_terminal() => {
+                (text(cx, "Running…", "正在运行…").to_string(), true)
+            }
+            Some(snapshot) => (job_state(cx, snapshot), false),
+            None => (String::new(), false),
+        };
+        let status_live = div()
+            .id("command-ledger-status")
+            .test_support()
+            .role(Role::Status)
+            .aria_label(status_announcement.clone())
+            .a11y_synthetic_children(|tree| {
+                tree.parent_node()
+                    .set_live(gpui_kit::accesskit::Live::Polite)
+            })
+            .when(show_running_line, |row| {
+                row.text_size(theme::text_size(theme::META_SIZE))
+                    .text_color(info_ink)
+                    .child(status_announcement)
+            })
+            .when(!show_running_line, |row| row.h(px(0.)).overflow_hidden());
+        panel = panel.child(status_live);
+
+        if let Some(error) = self.observe_error {
+            let line = service_error(cx, error);
+            panel = panel.child(
+                div()
+                    .flex()
+                    .flex_wrap()
+                    .items_center()
+                    .justify_between()
+                    .gap(px(theme::CONTROL_GAP))
+                    .child(
+                        div()
+                            .id("command-ledger-observe-error")
+                            .test_support()
+                            .aria_label(line)
+                            .flex_1()
+                            .min_w_0()
+                            .text_size(theme::text_size(theme::META_SIZE))
+                            .text_color(danger)
+                            .child(line),
+                    )
+                    .child(semantics::ghost_button(
+                        Button::new("command-ledger-retry")
+                            .icon(IconName::RefreshCw)
+                            .label(text(cx, "Retry", "重试"))
+                            .on_click(cx.listener(|this, _, _, cx| this.retry_observe(cx))),
+                        false,
+                        false,
+                        cx,
+                    )),
+            );
+        }
+
+        if let Some(error) = self
+            .snapshot
+            .as_ref()
+            .and_then(|snapshot| snapshot.error.clone())
+        {
+            let line = localized_line(cx, &error);
+            panel = panel.child(
+                div()
+                    .id("command-run-error")
+                    .test_support()
+                    .aria_label(line.clone())
+                    .text_size(theme::text_size(theme::META_SIZE))
+                    .text_color(danger)
+                    .child(line),
+            );
+        }
+
         let ssh_unavailable = matches!(
             self.requests.environment(),
             ccr_app::runtime::EnvironmentId::Ssh(_)
@@ -658,45 +891,144 @@ impl JobsView {
             .snapshot
             .as_ref()
             .is_some_and(|snapshot| snapshot.status == Status::Unavailable);
-        reading_panel("command-ledger", cx)
-            .flex_1()
-            .child(eyebrow(text(cx, "Run ledger", "运行账本"), cx))
-            .child(
+        if ssh_unavailable {
+            panel = panel.child(semantics::button(
+                Button::new("jobs-install-remote-cli")
+                    .label(text(
+                        cx,
+                        "Install CCR on this SSH host",
+                        "在此 SSH 主机安装 CCR",
+                    ))
+                    .on_click(cx.listener(|_, _, _, cx| cx.emit(InstallRequested))),
+                false,
+                false,
+                cx,
+            ));
+        }
+
+        if let Some(dropped) = self.snapshot.as_ref().and_then(ledger::dropped) {
+            let notice = if zh {
+                format!("输出已截断，已丢弃 {dropped} 行。")
+            } else {
+                format!("Output was truncated; {dropped} lines dropped.")
+            };
+            panel = panel.child(
                 div()
-                    .id("command-job-state")
+                    .id("command-ledger-truncated")
                     .test_support()
-                    .aria_label(state.clone())
-                    .child(state),
+                    .aria_label(notice.clone())
+                    .text_size(theme::text_size(theme::META_SIZE))
+                    .text_color(warning_ink)
+                    .child(notice),
+            );
+        }
+
+        if self.snapshot.is_some() {
+            let logs = uniform_list(
+                "command-job-logs",
+                count,
+                cx.processor(|this, range: std::ops::Range<usize>, _, cx| {
+                    let Some(snapshot) = this.snapshot.as_ref() else {
+                        return Vec::new();
+                    };
+                    let (mono, mono_size, muted, fg, err_ink) = {
+                        let colors = cx.theme();
+                        (
+                            colors.mono_font_family.clone(),
+                            colors.mono_font_size,
+                            colors.muted_foreground,
+                            colors.foreground,
+                            theme::tone_colors(Tone::Warning, colors.mode).ink,
+                        )
+                    };
+                    let row_h = ledger::row_height(f32::from(mono_size));
+                    let job_id = this.job_id.as_deref().unwrap_or("none");
+                    range
+                        .filter_map(|index| {
+                            let (channel, line) = ledger::line(snapshot, index)?;
+                            let gutter_color = if channel == Channel::Stderr {
+                                err_ink
+                            } else {
+                                muted
+                            };
+                            let aria = format!("[{}] {line}", ledger::channel_name(channel));
+                            Some(
+                                div()
+                                    .id(SharedString::from(format!("command-log-{job_id}-{index}")))
+                                    .test_support()
+                                    .aria_label(aria)
+                                    .h(px(row_h))
+                                    .w_full()
+                                    .flex()
+                                    .items_center()
+                                    .gap(px(theme::CONTROL_GAP))
+                                    .px(px(theme::CONTROL_GAP))
+                                    .font_family(mono.clone())
+                                    .text_size(mono_size)
+                                    .child(
+                                        div()
+                                            .w(px(ledger::GUTTER_WIDTH))
+                                            .flex_shrink_0()
+                                            .text_color(gutter_color)
+                                            .child(ledger::gutter(channel)),
+                                    )
+                                    .child(
+                                        div()
+                                            .flex_1()
+                                            .min_w_0()
+                                            .overflow_hidden()
+                                            .whitespace_nowrap()
+                                            .text_color(fg)
+                                            .child(line.into_owned()),
+                                    ),
+                            )
+                        })
+                        .collect::<Vec<_>>()
+                }),
             )
-            .when_some(
-                self.snapshot
-                    .as_ref()
-                    .and_then(|snapshot| snapshot.error.clone()),
-                |view, error| {
-                    view.child(
-                        div()
-                            .id("command-run-error")
-                            .test_support()
-                            .child(localized_line(cx, &error)),
-                    )
-                },
-            )
-            .when(ssh_unavailable, |view| {
-                view.child(semantics::button(
-                    Button::new("jobs-install-remote-cli")
-                        .label(text(
+            .h_full()
+            .track_scroll(&self.log_scroll);
+
+            panel = panel.child(
+                div()
+                    .id("command-ledger-log-surface")
+                    .flex_1()
+                    .min_h_0()
+                    .overflow_hidden()
+                    .rounded(px(theme::INPUT_RADIUS))
+                    .bg(code_bg)
+                    .border_1()
+                    .border_color(border)
+                    .py(px(4.))
+                    .child(logs),
+            );
+        } else if self.observe_error.is_none() {
+            panel = panel.child(
+                div()
+                    .flex_1()
+                    .min_h_0()
+                    .flex()
+                    .flex_col()
+                    .justify_center()
+                    .child(
+                        badge::empty_panel(
+                            "command-ledger-empty",
+                            IconName::SquareTerminal,
+                            text(cx, "Ready to run a command", "准备运行命令"),
+                            text(
+                                cx,
+                                "Select a command and run it to see job status and output here.",
+                                "选择命令并运行后，任务状态与输出显示在这里。",
+                            ),
+                            None,
                             cx,
-                            "Install CCR on this SSH host",
-                            "在此 SSH 主机安装 CCR",
-                        ))
-                        .on_click(cx.listener(|_, _, _, cx| cx.emit(InstallRequested))),
-                    false,
-                    false,
-                    cx,
-                ))
-            })
-            .child(div().flex_1().min_h_0().child(logs))
-            .into_any_element()
+                        )
+                        .test_support(),
+                    ),
+            );
+        }
+
+        panel.into_any_element()
     }
 }
 

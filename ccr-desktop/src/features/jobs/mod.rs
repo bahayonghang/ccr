@@ -1,6 +1,7 @@
 //! Native command workbench: catalog list, command editor and app-owned jobs.
 //!
 //! 分类、搜索、分词与可运行判定都来自 [`model`]；视图只消费结果。
+mod ledger;
 pub mod model;
 mod render;
 
@@ -47,6 +48,7 @@ pub struct JobsView {
     generation: u64,
     busy: bool,
     message: Option<&'static str>,
+    observe_error: Option<&'static str>,
     log_scroll: UniformListScrollHandle,
     _inputs: [Subscription; 2],
 }
@@ -60,6 +62,8 @@ impl JobsView {
         self.job_id = None;
         self.snapshot = None;
         self.message = None;
+        self.observe_error = None;
+        self.reset_log_scroll();
         let loaded = self.loaded_args.clone();
         self.args
             .update(cx, |state, cx| state.set_value(loaded, window, cx));
@@ -109,6 +113,7 @@ impl JobsView {
             generation: 0,
             busy: false,
             message: None,
+            observe_error: None,
             log_scroll: UniformListScrollHandle::new(),
             _inputs: inputs,
         }
@@ -129,12 +134,20 @@ impl JobsView {
         };
         if self.task.is_some() {
             match self.requests.status(&id) {
-                Ok(snapshot) => self.accept_snapshot(self.generation, snapshot),
-                Err(error) => self.message = Some(error.message()),
+                Ok(snapshot) => {
+                    self.observe_error = None;
+                    self.accept_snapshot(self.generation, snapshot);
+                }
+                Err(error) => {
+                    self.observe_error = Some(error.message());
+                    self.busy = false;
+                    self.task = None;
+                }
             }
         } else {
             match self.requests.observe(&id) {
                 Ok((snapshot, mut observation)) => {
+                    self.observe_error = None;
                     self.accept_snapshot(self.generation, snapshot);
                     if self.busy {
                         let generation = self.generation;
@@ -152,6 +165,9 @@ impl JobsView {
                                         if weak
                                             .update(cx, |this, cx| {
                                                 this.accept_snapshot(generation, snapshot);
+                                                if terminal && this.generation == generation {
+                                                    this.task = None;
+                                                }
                                                 cx.notify();
                                             })
                                             .is_err()
@@ -162,12 +178,20 @@ impl JobsView {
                                             break;
                                         }
                                     }
-                                    Ok(None) => break,
+                                    Ok(None) => {
+                                        let _ = weak.update(cx, |this, _| {
+                                            if this.generation == generation {
+                                                this.task = None;
+                                            }
+                                        });
+                                        break;
+                                    }
                                     Err(error) => {
                                         let _ = weak.update(cx, |this, cx| {
                                             if this.generation == generation {
-                                                this.message = Some(error.message());
+                                                this.observe_error = Some(error.message());
                                                 this.busy = false;
+                                                this.task = None;
                                                 cx.notify();
                                             }
                                         });
@@ -179,8 +203,9 @@ impl JobsView {
                     }
                 }
                 Err(error) => {
-                    self.message = Some(error.message());
+                    self.observe_error = Some(error.message());
                     self.busy = false;
+                    self.task = None;
                 }
             }
         }
@@ -197,8 +222,29 @@ impl JobsView {
         {
             return;
         }
+        let follow = self.snapshot.is_none() || self.log_pinned();
+        let next_count = ledger::line_count(&snapshot);
+        self.observe_error = None;
         self.busy = !snapshot.status.is_terminal();
         self.snapshot = Some(snapshot);
+        if follow && next_count > 0 {
+            self.log_scroll
+                .scroll_to_item_strict(next_count - 1, ScrollStrategy::Bottom);
+        }
+    }
+    fn log_pinned(&self) -> bool {
+        let state = self.log_scroll.0.borrow();
+        ledger::pinned(
+            f32::from(state.base_handle.offset().y),
+            f32::from(state.base_handle.max_offset().y),
+        )
+    }
+    fn reset_log_scroll(&self) {
+        self.log_scroll
+            .0
+            .borrow()
+            .base_handle
+            .set_offset(gpui_kit::point(gpui_kit::px(0.), gpui_kit::px(0.)));
     }
 
     /// Catalog rows for the current filter and search, in catalog order.
@@ -304,9 +350,11 @@ impl JobsView {
         match started {
             Ok(started) => {
                 self.message = None;
+                self.observe_error = None;
                 self.task = None;
                 self.job_id = Some(started.snapshot.job_id.clone());
                 self.snapshot = None;
+                self.reset_log_scroll();
                 // Detaching the executor subscription keeps the app-owned runner.
                 drop(started.subscription);
                 self.refresh(cx);
@@ -327,31 +375,30 @@ impl JobsView {
         }
         cx.notify();
     }
-    fn log_line(&self, index: usize) -> Option<String> {
-        let snapshot = self.snapshot.as_ref()?;
-        let (channel, line) = if index < snapshot.stdout_lines.len() {
-            ("stdout", snapshot.stdout_lines.get(index)?)
-        } else if index < snapshot.stdout_lines.len() + snapshot.stderr_lines.len() {
-            (
-                "stderr",
-                snapshot
-                    .stderr_lines
-                    .get(index - snapshot.stdout_lines.len())?,
-            )
-        } else {
-            (
-                "system",
-                snapshot
-                    .system_lines
-                    .get(index - snapshot.stdout_lines.len() - snapshot.stderr_lines.len())?,
-            )
+    fn copy_output(&self, cx: &mut Context<Self>) {
+        let Some(snapshot) = self.snapshot.as_ref() else {
+            return;
         };
-        let mut end = line.len().min(8 * 1024);
-        while !line.is_char_boundary(end) {
-            end -= 1;
+        let copied = ledger::copy_text(snapshot);
+        if !copied.is_empty() {
+            cx.write_to_clipboard(gpui_kit::ClipboardItem::new_string(copied));
         }
-        let suffix = if end < line.len() { "…" } else { "" };
-        Some(format!("{channel}: {}{suffix}", &line[..end]))
+    }
+    fn clear_ledger(&mut self, cx: &mut Context<Self>) {
+        if self.busy {
+            return;
+        }
+        self.job_id = None;
+        self.snapshot = None;
+        self.observe_error = None;
+        self.message = None;
+        self.reset_log_scroll();
+        cx.notify();
+    }
+    fn retry_observe(&mut self, cx: &mut Context<Self>) {
+        self.observe_error = None;
+        self.task = None;
+        self.refresh(cx);
     }
 }
 
