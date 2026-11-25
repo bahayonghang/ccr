@@ -1237,10 +1237,8 @@ impl CheckinService {
             .await?;
 
         balance_manager
-            .add(snapshot.clone())
+            .save_refresh(&snapshot)
             .map_err(|e| CheckinServiceError::Balance(e.to_string()))?;
-
-        let _ = account_manager.update_balance_time(account_id);
 
         Ok(snapshot)
     }

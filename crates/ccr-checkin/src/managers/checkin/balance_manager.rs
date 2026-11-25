@@ -99,6 +99,20 @@ impl BalanceManager {
         Ok(snapshot)
     }
 
+    /// Persist the sample and its freshness timestamp together, including retention cleanup.
+    pub(crate) fn save_refresh(&self, snapshot: &BalanceSnapshot) -> Result<()> {
+        self.db.transaction(|tx| {
+            let mut account = checkin_repo::get_account_by_id(tx, &snapshot.account_id)?
+                .ok_or(rusqlite::Error::QueryReturnedNoRows)?;
+            checkin_repo::insert_balance(tx, snapshot)?;
+            account.last_balance_check_at = Some(snapshot.recorded_at);
+            checkin_repo::update_account(tx, &account)?;
+            checkin_repo::delete_old_balances(tx, RETENTION_DAYS)?;
+            Ok(())
+        })?;
+        Ok(())
+    }
+
     /// 获取账号最新余额
     #[allow(dead_code)]
     pub fn get_latest(&self, account_id: &str) -> Result<Option<BalanceSnapshot>> {
