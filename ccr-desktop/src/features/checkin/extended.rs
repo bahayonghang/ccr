@@ -22,6 +22,7 @@ pub(super) struct ExtendedUi {
     enter_confirmation: bool,
     focus: FocusHandle,
     clear_after: bool,
+    show_waf_status: bool,
 }
 #[derive(Default)]
 struct PreviewRead {
@@ -58,6 +59,7 @@ impl CheckinView {
             enter_confirmation: false,
             focus: cx.focus_handle(),
             clear_after: false,
+            show_waf_status: false,
         });
         self.observe(cx);
         self.operation = self.services.checkin_operation_state();
@@ -384,7 +386,8 @@ impl CheckinView {
                         "按货币统计已保存余额",
                     ))
                     .on_click(cx.listener(|this, _, _, cx| {
-                        this.start(Operation::Extended(ExtendedCommand::BalanceStats), cx)
+                        this.scroll.set_offset(Default::default());
+                        this.refresh(cx);
                     })),
                 blocked,
                 false,
@@ -508,7 +511,10 @@ impl CheckinView {
                 Button::new("checkin-waf-status")
                     .label(text(cx, "Read WAF cache status", "读取 WAF 缓存状态"))
                     .on_click(cx.listener(|this, _, _, cx| {
-                        this.start(Operation::Extended(ExtendedCommand::WafList), cx)
+                        if let Some(editor) = &mut this.extended {
+                            editor.show_waf_status = true;
+                        }
+                        this.refresh(cx);
                     })),
                 blocked,
                 false,
@@ -516,6 +522,35 @@ impl CheckinView {
             ))
             .into_any_element(),
         );
+        if editor.show_waf_status {
+            for item in &snapshot.providers {
+                let status = |cached| {
+                    if cached {
+                        text(cx, "Cached", "已缓存")
+                    } else {
+                        text(cx, "Missing or expired", "缺失或过期")
+                    }
+                };
+                let mut label = format!(
+                    "{} · WAF · {} · Cloudflare · {}",
+                    item.name,
+                    status(item.waf_cached),
+                    status(item.cf_cached)
+                );
+                if !item.waf_cookie_names.is_empty() {
+                    label.push_str(&format!(" · {}", item.waf_cookie_names.join(", ")));
+                }
+                children.push(
+                    div()
+                        .id(format!("checkin-waf-status-{}", item.id))
+                        .test_support()
+                        .role(gpui_kit::Role::Status)
+                        .aria_label(label.clone())
+                        .child(label)
+                        .into_any_element(),
+                );
+            }
+        }
         children.push((text(cx,"Paste a cookie JSON object from your trusted browser. Saved cookie values are never shown here. Embedded browser verification is unavailable.","粘贴可信浏览器中的 Cookie JSON 对象。此处不显示已保存的 Cookie 值，尚无内嵌浏览器验证能力。")).into_any_element());
         children.push(
             (Input::new(&cookies)
@@ -830,55 +865,10 @@ impl CheckinView {
                     }
                 }
                 ExtendedReport::Deleted { .. } => {}
-                ExtendedReport::Waf(rows) => {
-                    for row in rows {
-                        children.push(
-                            (format!(
-                                "{} · {} · {}",
-                                row.provider,
-                                if row.available {
-                                    text(cx, "Cached", "已缓存")
-                                } else {
-                                    text(cx, "Missing or expired", "缺失或过期")
-                                },
-                                row.required.join(", ")
-                            ))
-                            .into_any_element(),
-                        );
-                    }
-                }
                 ExtendedReport::WafSaved => {
                     children.push(
                         (text(cx, "WAF cache updated.", "WAF 缓存已更新。")).into_any_element(),
                     );
-                }
-                ExtendedReport::BalanceStats { groups, unusable } => {
-                    for group in groups {
-                        children.push(
-                            (format!(
-                                "{} · {}: {} · {}: {} · {}: {} · {}: {}",
-                                group.currency,
-                                text(cx, "Accounts", "账户"),
-                                group.accounts,
-                                text(cx, "Remaining", "剩余"),
-                                group.remaining,
-                                text(cx, "Used", "已用"),
-                                group.used,
-                                text(cx, "Total quota", "总配额"),
-                                group.total
-                            ))
-                            .into_any_element(),
-                        );
-                    }
-                    if *unusable > 0 {
-                        children.push(
-                            (format!(
-                                "{}: {unusable}",
-                                text(cx, "Invalid saved rows omitted", "已排除无效保存数据")
-                            ))
-                            .into_any_element(),
-                        );
-                    }
                 }
                 ExtendedReport::Exported { stats } => {
                     if self.tab == CheckinTab::Transfer {

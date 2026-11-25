@@ -74,6 +74,9 @@ pub struct CheckinProviderRow {
     pub id: String,
     pub name: String,
     pub builtin_id: Option<String>,
+    pub waf_cookie_names: Vec<String>,
+    pub waf_cached: bool,
+    pub cf_cached: bool,
     pub updated_at: Option<String>,
     pub enabled: bool,
 }
@@ -101,7 +104,6 @@ pub struct CheckinData {
     pub accounts: Vec<CheckinAccountRow>,
     pub providers: Vec<CheckinProviderRow>,
     pub balances: SavedBalances,
-    pub valid_waf_providers: std::collections::BTreeSet<String>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -145,10 +147,16 @@ fn project_data(
     accounts: Vec<ccr_db::models::checkin::CheckinAccount>,
     providers: Vec<ccr_db::models::checkin::CheckinProvider>,
     balances: HashMap<String, BalanceSnapshot>,
+    cached: &std::collections::BTreeSet<String>,
 ) -> CheckinData {
     let providers: Vec<_> = providers
         .into_iter()
         .map(|provider| CheckinProviderRow {
+            waf_cookie_names: ccr_checkin::WafCookieManager::policy_for_provider(&provider)
+                .map(|p| p.required_cookie_names)
+                .unwrap_or_default(),
+            waf_cached: cached.contains(&provider.id),
+            cf_cached: cached.contains(&ccr_checkin::CheckinService::cf_cache_key(&provider.id)),
             updated_at: provider.updated_at.map(|t| t.to_rfc3339()),
             builtin_id: provider.builtin_id.clone().or_else(|| {
                 ccr_checkin::managers::checkin::builtin_providers::resolve_builtin_for_provider(
@@ -209,7 +217,6 @@ fn project_data(
         accounts,
         providers,
         balances: summary,
-        valid_waf_providers: Default::default(),
     }
 }
 
@@ -238,8 +245,7 @@ fn read_connection(conn: &rusqlite::Connection) -> Result<CheckinSnapshot, Check
     }
     let cached = checkin_repo::valid_waf_provider_ids(&tx).map_err(|_| CheckinError::Storage)?;
     tx.commit().map_err(|_| CheckinError::Storage)?;
-    let mut data = project_data(accounts, providers, balances);
-    data.valid_waf_providers = cached.into_iter().collect();
+    let data = project_data(accounts, providers, balances, &cached.into_iter().collect());
     Ok(CheckinSnapshot::Accounts(data))
 }
 
@@ -360,6 +366,7 @@ mod tests {
             vec![account],
             vec![provider],
             HashMap::from([(snapshot.account_id.clone(), snapshot)]),
+            &Default::default(),
         );
         let rendered = format!("{rows:?}");
         assert!(rendered.contains("Desk account"));

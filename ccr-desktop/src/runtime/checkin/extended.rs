@@ -3,7 +3,7 @@ use super::*;
 #[path = "inspection.rs"]
 mod inspection;
 use ccr_checkin::managers::checkin::export_manager::{ImportReceipt, ImportSession};
-use ccr_checkin::{BalanceManager, ExportManager, WafCookieManager};
+use ccr_checkin::{ExportManager, WafCookieManager};
 use ccr_core::Secret;
 pub use inspection::{InspectionCommand, InspectionReport};
 
@@ -11,8 +11,6 @@ pub enum ExtendedCommand {
     Inspect(InspectionCommand),
     Checkin(Vec<String>),
     Delete(Vec<String>),
-    BalanceStats,
-    WafList,
     WafSave {
         provider: String,
         cookies: Secret,
@@ -39,12 +37,6 @@ pub struct BatchItem {
     pub result: Result<CheckinStatus, OperationError>,
 }
 #[derive(Clone)]
-pub struct WafStatus {
-    pub provider: String,
-    pub available: bool,
-    pub required: Vec<String>,
-}
-#[derive(Clone)]
 pub enum ExtendedReport {
     Inspection(Arc<InspectionReport>),
     Batch(Vec<BatchItem>),
@@ -52,12 +44,7 @@ pub enum ExtendedReport {
         completed: Vec<String>,
         failed: Vec<String>,
     },
-    Waf(Vec<WafStatus>),
     WafSaved,
-    BalanceStats {
-        groups: Vec<ccr_checkin::managers::checkin::balance_manager::BalanceTotals>,
-        unusable: usize,
-    },
     Exported {
         stats: bool,
     },
@@ -126,30 +113,6 @@ pub(super) async fn execute_extended(
                 }
             }
             Ok(ExtendedReport::Deleted { completed, failed })
-        }
-        ExtendedCommand::BalanceStats => {
-            let (groups, unusable) = BalanceManager::with_db(storage.db.clone())
-                .totals_by_currency()
-                .map_err(|_| OperationError::Storage)?;
-            Ok(ExtendedReport::BalanceStats { groups, unusable })
-        }
-        ExtendedCommand::WafList => {
-            let waf = WafCookieManager::with_db(storage.db.clone());
-            let mut rows = Vec::new();
-            for provider in providers.load_all().map_err(|_| OperationError::Storage)? {
-                let required = WafCookieManager::policy_for_provider(&provider)
-                    .map(|p| p.required_cookie_names)
-                    .unwrap_or_default();
-                rows.push(WafStatus {
-                    provider: provider.id.clone(),
-                    available: waf
-                        .get_valid(&provider.id)
-                        .map_err(|_| OperationError::Storage)?
-                        .is_some(),
-                    required,
-                });
-            }
-            Ok(ExtendedReport::Waf(rows))
         }
         ExtendedCommand::WafSave { provider, cookies } => {
             let entry = providers

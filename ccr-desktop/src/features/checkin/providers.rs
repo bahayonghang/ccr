@@ -126,27 +126,13 @@ impl CheckinView {
             );
             if self.provider_detail.as_ref() == Some(&p.id) {
                 let policy = p.builtin_id.as_deref().and_then(get_builtin_provider_by_id);
-                let label = if snapshot.valid_waf_providers.contains(&p.id) {
-                    text(cx, "Verification cache available", "验证缓存有效")
-                } else if policy.is_some_and(|p| p.requires_waf_bypass || p.requires_cf_clearance) {
-                    text(
-                        cx,
-                        "Missing or expired verification cache",
-                        "验证缓存缺失或已过期",
-                    )
-                } else {
-                    text(
-                        cx,
-                        "No catalog verification requirement",
-                        "目录未指定验证要求",
-                    )
-                };
+                let label = cache_status(p, policy.as_ref(), cx);
                 children.push(
                     div()
                         .id("checkin-provider-status")
                         .test_support()
                         .role(gpui_kit::Role::Status)
-                        .aria_label(label)
+                        .aria_label(label.clone())
                         .child(label)
                         .into_any_element(),
                 );
@@ -155,4 +141,46 @@ impl CheckinView {
 
         children
     }
+}
+
+fn cache_status(
+    provider: &crate::runtime::checkin::CheckinProviderRow,
+    policy: Option<&ccr_checkin::builtin_providers::BuiltinProvider>,
+    cx: &App,
+) -> String {
+    let mut states = Vec::new();
+    for (name, cached, required) in [
+        (
+            "WAF",
+            provider.waf_cached,
+            policy.is_some_and(|p| p.requires_waf_bypass),
+        ),
+        (
+            "Cloudflare",
+            provider.cf_cached,
+            policy.is_some_and(|p| p.requires_cf_clearance),
+        ),
+    ] {
+        if cached || required {
+            let status = if cached {
+                text(cx, "Verification cache available", "验证缓存有效")
+            } else {
+                text(
+                    cx,
+                    "Missing or expired verification cache",
+                    "验证缓存缺失或已过期",
+                )
+            };
+            states.push(format!("{name} · {status}"));
+        }
+    }
+    if states.is_empty() {
+        return text(
+            cx,
+            "No catalog verification requirement",
+            "目录未指定验证要求",
+        )
+        .into();
+    }
+    states.join(" · ")
 }

@@ -728,7 +728,8 @@ impl CheckinService {
     }
 
     /// CF cookies 缓存 key：使用 `cf-` 前缀区分 WAF cookies
-    fn cf_cache_key(provider_id: &str) -> String {
+    /// SQLite cache identity used for Cloudflare cookies on this local provider.
+    pub fn cf_cache_key(provider_id: &str) -> String {
         format!("cf-{}", provider_id)
     }
 

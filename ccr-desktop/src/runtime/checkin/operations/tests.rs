@@ -430,11 +430,6 @@ fn extended_operations_preserve_secrets_and_report_each_batch_item_without_fixtu
         4,
     );
     assert_eq!(result.result, Some(Ok(Outcome::Extended)));
-    let result = run(&services, Operation::Extended(ExtendedCommand::WafList), 5);
-    let ExtendedReport::Waf(rows) = result.extended.as_deref().unwrap() else {
-        panic!("expected status-only WAF result")
-    };
-    assert!(rows[0].available);
     let result = run(
         &services,
         Operation::Extended(ExtendedCommand::Checkin(vec![id.clone(), "missing".into()])),
@@ -456,37 +451,6 @@ fn extended_operations_preserve_secrets_and_report_each_batch_item_without_fixtu
         )
         .result,
         Some(Err(OperationError::FixtureNetwork))
-    );
-    BalanceManager::with_db(storage.db.clone())
-        .add(BalanceSnapshot::new(id.clone(), 10., 2., 8., "USD".into()))
-        .unwrap();
-    BalanceManager::with_db(storage.db.clone())
-        .add(BalanceSnapshot::new(
-            "other-currency".into(),
-            20.,
-            5.,
-            15.,
-            "CNY".into(),
-        ))
-        .unwrap();
-    let totals = run(
-        &services,
-        Operation::Extended(ExtendedCommand::BalanceStats),
-        8,
-    );
-    let ExtendedReport::BalanceStats { groups, unusable } = totals.extended.as_deref().unwrap()
-    else {
-        panic!("expected currency groups")
-    };
-    assert_eq!(*unusable, 0);
-    assert_eq!(groups.len(), 2);
-    assert_eq!(
-        groups
-            .iter()
-            .find(|row| row.currency == "USD")
-            .unwrap()
-            .remaining,
-        8.
     );
     let stats = root.path().join("today.json");
     assert_eq!(

@@ -168,3 +168,182 @@ async fn editing_an_account_removed_by_another_client_restores_the_account_list(
     .unwrap();
     owner.shutdown();
 }
+
+#[gpui_kit::test]
+async fn account_tools_read_fresh_balances_from_current_accounts(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    seed(root.path());
+    let path = root.path().join("checkin.db");
+    let db = rusqlite::Connection::open(&path).unwrap();
+    db.pragma_update(None, "foreign_keys", false).unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let handle = open(cx, &owner, root.path());
+    cx.update_window(handle, |_, w, cx| {
+        w.render_frame(cx);
+        w.click("nav-checkin", cx);
+    })
+    .unwrap();
+    wait(cx, handle, |w| w.try_find("checkin-tools-open").is_some());
+    cx.update_window(handle, |_, w, cx| {
+        w.click("checkin-tools-open", cx);
+        w.render_frame(cx);
+    })
+    .unwrap();
+    // A read must work even when writer initialization is unavailable.
+    std::fs::write(
+        root.path().join("checkin-migration-home/occupied"),
+        "fixture",
+    )
+    .unwrap();
+    for (id, unit, total) in [
+        ("measured", " USD ", 10.),
+        ("unmeasured", "USD", 0.),
+        ("orphan", "EUR", 200.),
+    ] {
+        checkin_repo::insert_balance(
+            &db,
+            &BalanceSnapshot::new(id.into(), total, 0., total, unit.into()),
+        )
+        .unwrap();
+    }
+    cx.update_window(handle, |_, w, cx| w.click("checkin-balance-stats", cx))
+        .unwrap();
+    wait(cx, handle, |w| {
+        w.try_find("checkin-balance-summary").and_then(|n| {
+            n.label().map(|s| {
+                s.contains("USD · 2/2 accounts") && s.contains("Balance 10") && !s.contains("EUR")
+            })
+        }) == Some(true)
+    });
+    cx.update_window(handle, |_, w, _| w.remove_window())
+        .unwrap();
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+async fn account_tools_read_waf_status_without_cleaning_or_initializing(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    seed(root.path());
+    let path = root.path().join("checkin.db");
+    let db = rusqlite::Connection::open(&path).unwrap();
+    checkin_repo::upsert_waf_cookies(
+        &db,
+        "provider-1",
+        "invalid-private-value",
+        at("2020-01-01T00:00:00Z"),
+        at("2020-01-02T00:00:00Z"),
+    )
+    .unwrap();
+    checkin_repo::upsert_waf_cookies(
+        &db,
+        "cf-provider-1",
+        "must-never-parse-this-value",
+        at("2020-01-01T00:00:00Z"),
+        at("2099-01-01T00:00:00Z"),
+    )
+    .unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let handle = open(cx, &owner, root.path());
+    cx.update_window(handle, |_, w, cx| {
+        w.render_frame(cx);
+        w.click("nav-checkin", cx);
+    })
+    .unwrap();
+    wait(cx, handle, |w| w.try_find("checkin-tools-open").is_some());
+    cx.update_window(handle, |_, w, cx| {
+        w.click("checkin-tools-open", cx);
+        w.render_frame(cx);
+    })
+    .unwrap();
+    cx.update_window(handle, |_, w, cx| w.click("checkin-waf-status", cx))
+        .unwrap();
+    wait(cx, handle, |w| {
+        labels(w).contains("WAF · Missing or expired · Cloudflare · Cached")
+    });
+    cx.update_window(handle, |_, w, _| {
+        assert!(!labels(w).contains("must-never-parse-this-value"))
+    })
+    .unwrap();
+    assert_eq!(
+        db.query_row("SELECT COUNT(*) FROM checkin_waf_cookies", [], |r| r
+            .get::<_, i64>(0))
+            .unwrap(),
+        2
+    );
+    assert!(!root.path().join("checkin-locks").exists());
+    drop(db);
+    std::fs::remove_file(&path).unwrap();
+    cx.update_window(handle, |_, w, cx| w.click("checkin-waf-status", cx))
+        .unwrap();
+    wait(cx, handle, |w| w.try_find("checkin-absent").is_some());
+    assert!(!path.exists());
+    cx.update_window(handle, |_, w, _| w.remove_window())
+        .unwrap();
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+async fn provider_detail_reads_cf_cache_for_its_own_provider(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    seed(root.path());
+    let db = rusqlite::Connection::open(root.path().join("checkin.db")).unwrap();
+    db.execute(
+        "UPDATE checkin_providers SET builtin_id='builtin-runawaytime' WHERE id='provider-1'",
+        [],
+    )
+    .unwrap();
+    let expires = at("2099-01-01T00:00:00Z");
+    checkin_repo::upsert_waf_cookies(
+        &db,
+        "cf-provider-2",
+        "unparsed-private-value",
+        at("2020-01-01T00:00:00Z"),
+        expires,
+    )
+    .unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let handle = open(cx, &owner, root.path());
+    cx.update_window(handle, |_, w, cx| {
+        w.render_frame(cx);
+        w.click("nav-checkin", cx);
+    })
+    .unwrap();
+    wait(cx, handle, |w| w.try_find("checkin-tools-open").is_some());
+    cx.update_window(handle, |_, w, cx| {
+        w.click("checkin-tab-providers", cx);
+        w.render_frame(cx);
+        w.click("checkin-provider-info-0", cx);
+        w.render_frame(cx);
+        assert!(
+            w.find("checkin-provider-status")
+                .label()
+                .unwrap()
+                .contains("Missing or expired")
+        );
+    })
+    .unwrap();
+    checkin_repo::upsert_waf_cookies(
+        &db,
+        "cf-provider-1",
+        "unparsed-private-value",
+        at("2020-01-01T00:00:00Z"),
+        expires,
+    )
+    .unwrap();
+    cx.update_window(handle, |_, w, cx| w.click("checkin-read", cx))
+        .unwrap();
+    wait(cx, handle, |w| {
+        w.try_find("checkin-provider-status")
+            .and_then(|n| n.label().map(|s| s.contains("cache available")))
+            == Some(true)
+    });
+    cx.update_window(handle, |_, w, _| {
+        assert!(!labels(w).contains("unparsed-private-value"));
+        w.remove_window();
+    })
+    .unwrap();
+    owner.shutdown();
+}

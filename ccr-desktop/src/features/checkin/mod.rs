@@ -202,6 +202,9 @@ impl CheckinView {
     fn accept(&mut self, snapshot: CheckinSnapshot) {
         self.checked_ids.retain(|id| matches!(&snapshot, CheckinSnapshot::Accounts(data) if data.accounts.iter().any(|row| &row.id == id)));
         self.snapshot = Some(snapshot);
+        if self.tab == CheckinTab::Accounts && self.rows().is_empty() {
+            self.extended = None;
+        }
         if self.provider_filter.as_ref().is_some_and(|id| {
             !self
                 .data()
