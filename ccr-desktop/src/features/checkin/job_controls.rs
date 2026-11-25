@@ -134,6 +134,14 @@ async fn filtered_header_selection_and_row_use_confirmed_ids_and_return_to_crede
                 .unwrap()
                 .contains("cookie_expired")
         );
+        assert_eq!(
+            w.find("checkin-result-measured").role(),
+            Some(gpui_kit::Role::Group)
+        );
+        assert_eq!(
+            w.find("result-edit-measured").label(),
+            Some("Edit credentials · Desk account · Fixture provider")
+        );
         w.click("result-edit-measured", cx);
     })
     .unwrap();

@@ -259,6 +259,7 @@ impl CheckinView {
             let mut row = div()
                 .id(format!("checkin-result-{id}"))
                 .test_support()
+                .role(gpui_kit::Role::Group)
                 .aria_label(line.clone())
                 .flex()
                 .flex_wrap()
@@ -277,6 +278,12 @@ impl CheckinView {
                         semantics::ghost_button(
                             Button::new(button_id.clone())
                                 .label(text(cx, "Edit credentials", "编辑凭据"))
+                                .accessibility_label(format!(
+                                    "{} · {} · {}",
+                                    text(cx, "Edit credentials", "编辑凭据"),
+                                    item.target.name,
+                                    item.target.provider
+                                ))
                                 .on_click(cx.listener(move |this, _, window, cx| {
                                     this.open_account_credentials(&id, &button_id, window, cx)
                                 })),
