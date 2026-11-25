@@ -41,6 +41,8 @@ pub struct HistoryDay {
     pub balance: DayBalance,
 }
 
+pub type BalanceSample = (DateTime<Utc>, DayBalance);
+
 #[derive(Clone, Debug)]
 pub struct AccountHistory {
     /// The contiguous union of the selected month and its trailing trend window.
@@ -49,7 +51,7 @@ pub struct AccountHistory {
     pub trend_from: NaiveDate,
     pub trend_to: NaiveDate,
     pub current_streak: usize,
-    pub samples: Vec<(DateTime<Utc>, DayBalance)>,
+    pub samples: Vec<BalanceSample>,
 }
 
 fn timestamp(row: &rusqlite::Row<'_>, index: usize) -> rusqlite::Result<DateTime<Utc>> {
@@ -65,7 +67,7 @@ fn timestamp(row: &rusqlite::Row<'_>, index: usize) -> rusqlite::Result<DateTime
         })
 }
 
-fn sample(row: &rusqlite::Row<'_>) -> rusqlite::Result<(DateTime<Utc>, DayBalance)> {
+fn sample(row: &rusqlite::Row<'_>) -> rusqlite::Result<BalanceSample> {
     let at = timestamp(row, 0)?;
     let source = at.date_naive();
     let unit: String = row.get(1)?;
@@ -95,7 +97,7 @@ fn read_samples(
     account: &str,
     start: NaiveDate,
     until: NaiveDate,
-) -> rusqlite::Result<(Option<DayNumbers>, Vec<(DateTime<Utc>, DayBalance)>)> {
+) -> rusqlite::Result<(Option<DayNumbers>, Vec<BalanceSample>)> {
     // The repository persists checked/recorded timestamps from DateTime<Utc>
     // as RFC3339. Bare ISO dates bound their entire UTC day, including fractions.
     let fields = "SELECT recorded_at, currency, remaining_quota, total_quota, used_quota
