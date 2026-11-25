@@ -235,7 +235,6 @@ fn missing_or_malformed_existing_keys_block_native_mutation_transfer_and_request
                 &owner,
                 Operation::UpdateAccount(account.id.clone(), metadata)
             ))
-            .map(|value| value.0)
             .ok(),
             Some(Outcome::Saved)
         );
@@ -251,14 +250,13 @@ fn missing_or_malformed_existing_keys_block_native_mutation_transfer_and_request
             ))
             .is_ok()
         );
-        assert!(
-            wait.block_on(execute(
-                &storage,
-                &source,
-                &owner,
-                Operation::Extended(ExtendedCommand::Stats)
-            ))
-            .is_ok()
+        assert_eq!(
+            services
+                .checkin_records(&RecordQuery::default())
+                .unwrap()
+                .unwrap()
+                .enabled,
+            1
         );
         assert_eq!(
             storage

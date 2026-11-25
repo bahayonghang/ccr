@@ -165,11 +165,14 @@ fn encrypted_crud_isolated_and_detached_results_survive() {
         .unwrap();
     assert_eq!(result.status, CheckinStatus::Skipped);
     assert_eq!(
-        run(&services, Operation::Records(account_id.clone()), 6)
-            .snapshot
-            .as_ref()
+        services
+            .checkin_records(&RecordQuery {
+                account: Some(account_id.clone()),
+                ..Default::default()
+            })
             .unwrap()
-            .records
+            .unwrap()
+            .rows
             .len(),
         1
     );
@@ -324,48 +327,27 @@ fn real_loopback_checkin_and_balance_use_captured_database_and_crypto() {
             ..
         }
     ));
-    let records = run(
-        &services,
-        Operation::Extended(ExtendedCommand::Inspect(InspectionCommand::Records(
-            RecordQuery {
-                account: Some(id.clone()),
-                provider: None,
-                status: Some("success".into()),
-                keyword: String::new(),
-                page: 1,
-            },
-        ))),
-        8,
+    let records = services
+        .checkin_records(&RecordQuery {
+            account: Some(id.clone()),
+            status: Some("success".into()),
+            ..Default::default()
+        })
+        .unwrap()
+        .unwrap();
+    assert_eq!(records.total, 1);
+    assert_eq!(records.rows[0].account_id, id);
+    let dashboard = services
+        .checkin_account_history(&id, chrono::Local::now().date_naive(), 30)
+        .unwrap()
+        .unwrap();
+    assert!(dashboard.days.iter().any(|day| day.checked));
+    assert!(
+        dashboard
+            .days
+            .iter()
+            .any(|day| day.balance.numbers().is_some())
     );
-    let ExtendedReport::Inspection(result) = records.extended.as_deref().unwrap() else {
-        panic!("expected filtered records")
-    };
-    let InspectionReport::Records { rows, total, .. } = result.as_ref() else {
-        panic!("expected records")
-    };
-    assert_eq!(*total, 1);
-    assert_eq!(rows[0].account_id, id);
-    use chrono::Datelike;
-    let now = chrono::Local::now();
-    let dashboard = run(
-        &services,
-        Operation::Extended(ExtendedCommand::Inspect(InspectionCommand::Dashboard {
-            account: id.clone(),
-            year: now.year(),
-            month: now.month(),
-            days: 30,
-        })),
-        9,
-    );
-    let ExtendedReport::Inspection(result) = dashboard.extended.as_deref().unwrap() else {
-        panic!("expected dashboard")
-    };
-    let InspectionReport::Dashboard { data, .. } = result.as_ref() else {
-        panic!("expected calendar")
-    };
-    assert_eq!(data.account.id, id);
-    assert_eq!(data.calendar.month_stats.checked_in_days, 1);
-    assert!(!data.trend.data_points.is_empty());
     http.block_on(async {
         tokio::time::timeout(Duration::from_secs(5), server)
             .await
@@ -383,11 +365,14 @@ fn real_loopback_checkin_and_balance_use_captured_database_and_crypto() {
             .is_some()
     );
     assert_eq!(
-        run(&services, Operation::Records(id), 5)
-            .snapshot
-            .as_ref()
+        services
+            .checkin_records(&RecordQuery {
+                account: Some(id),
+                ..Default::default()
+            })
             .unwrap()
-            .records[0]
+            .unwrap()
+            .rows[0]
             .status,
         CheckinStatus::Success
     );

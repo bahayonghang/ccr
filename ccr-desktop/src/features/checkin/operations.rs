@@ -55,11 +55,6 @@ pub(super) fn error(cx: &App, value: OperationError) -> &'static str {
             "Choose an absolute file path inside the fixture directory. Its parent directory must already exist.",
             "请选择演示数据目录内的绝对文件路径，且父目录必须已存在。",
         ),
-        OperationError::QueryInvalid => text(
-            cx,
-            "Enter a valid year, month (1–12), trend range (1–366 days), and at most one account for record filtering.",
-            "请输入有效年份、月份（1–12）和趋势范围（1–366 天）；记录筛选最多选择一个账户。",
-        ),
         OperationError::ImportCredentials => text(
             cx,
             "Import rejected: encrypted cookies require the matching existing key, or a source with readable cookies. Existing credentials were retained.",
@@ -403,9 +398,6 @@ impl CheckinView {
                 Ok(Outcome::BalanceUpdated) => {
                     text(cx, "Balance refreshed and stored.", "余额已刷新并保存。")
                 }
-                Ok(Outcome::Records) => {
-                    text(cx, "Latest saved records loaded.", "已读取最近保存的记录。")
-                }
                 Err(value) => error(cx, value),
             };
             section = section.child(
@@ -451,8 +443,8 @@ impl CheckinView {
                     .child(semantics::button(
                         Button::new("checkin-records")
                             .label(text(cx, "Read records", "读取记录"))
-                            .on_click(cx.listener(move |this, _, _, cx| {
-                                this.start(Operation::Records(records.clone()), cx)
+                            .on_click(cx.listener(move |this, _, window, cx| {
+                                this.open_records(Some(records.clone()), window, cx)
                             })),
                         locked,
                         false,
@@ -549,23 +541,6 @@ impl CheckinView {
                     ))))
                 .into_any_element(),
             );
-        }
-
-        children
-    }
-
-    pub(super) fn render_saved_records(
-        &self,
-        snapshot: &crate::runtime::checkin::ManagementSnapshot,
-        cx: &mut Context<Self>,
-    ) -> Vec<gpui_kit::AnyElement> {
-        let mut children = Vec::new();
-        for record in &snapshot.records {
-            if self.selected.as_deref() == Some(&record.account_id) {
-                children.push(
-                    (format!("{} {}", record.at, status(cx, record.status))).into_any_element(),
-                );
-            }
         }
 
         children

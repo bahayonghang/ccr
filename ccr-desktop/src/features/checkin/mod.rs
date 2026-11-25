@@ -3,6 +3,7 @@ mod account_actions;
 mod balances;
 mod credentials;
 mod extended;
+mod history;
 mod jobs;
 mod navigation;
 mod operations;
@@ -51,6 +52,7 @@ pub struct CheckinView {
     query: String,
     provider_filter: Option<String>,
     scroll: ScrollHandle,
+    history: history::HistoryUi,
     navigation: navigation::Navigation,
     _search_changed: Subscription,
     generation: u64,
@@ -87,6 +89,7 @@ impl CheckinView {
             query: String::new(),
             provider_filter: None,
             scroll: ScrollHandle::new(),
+            history: history::HistoryUi::new(window, cx),
             navigation: navigation::Navigation::new(cx),
             _search_changed: search_changed,
             operation: services.checkin_operation_state(),
@@ -127,6 +130,7 @@ impl CheckinView {
         self.tab = CheckinTab::Accounts;
         self.checked_ids.clear();
         self.selected = None;
+        self.history.invalidate();
         self.navigation.clear();
         self.operation = self.services.checkin_operation_state();
         self.confirmation = None;
@@ -152,6 +156,7 @@ impl CheckinView {
         self.gate.replace(key.clone());
         self.busy = true;
         self.message = None;
+        self.history.invalidate();
         self.snapshot = None;
         match self.services.checkin_request(key.clone()) {
             Ok(mut subscription) => {
@@ -337,6 +342,7 @@ impl Render for CheckinView {
         let chinese = is_chinese(cx);
         if chinese != self.placeholder_chinese {
             self.placeholder_chinese = chinese;
+            self.history.update_language(window, cx);
             let placeholder = search_placeholder(cx);
             self.search.update(cx, |state, cx| {
                 state.set_placeholder(placeholder, window, cx)
@@ -348,6 +354,7 @@ impl Render for CheckinView {
             self.reconcile_selection();
         }
         self.fill_account_credentials(window, cx);
+        self.read_visible_history(cx);
         self.render_workbench(window, cx)
     }
 }

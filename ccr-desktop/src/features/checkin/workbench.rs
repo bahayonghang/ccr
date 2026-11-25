@@ -293,17 +293,24 @@ impl CheckinView {
         } else if self.selected.is_some() && self.data().is_some() {
             body = body.child(self.render_operation_result(cx));
             let wide = window.viewport_size().width >= px(1150.)
-                && self.tab == CheckinTab::Accounts
+                && matches!(self.tab, CheckinTab::Accounts | CheckinTab::Records)
                 && self.extended.is_none();
             let detail = self.detail_panel(cx);
             if wide {
-                body = body.child(
-                    div()
-                        .flex()
-                        .gap(px(theme::SECTION_GAP))
-                        .child(div().flex_1().min_w_0().child(self.accounts_panel(cx)))
-                        .child(div().flex_1().min_w_0().child(detail)),
-                );
+                body =
+                    body.child(
+                        div()
+                            .flex()
+                            .gap(px(theme::SECTION_GAP))
+                            .child(div().flex_1().min_w_0().child(
+                                if self.tab == CheckinTab::Records {
+                                    self.records_panel(cx)
+                                } else {
+                                    self.accounts_panel(cx)
+                                },
+                            ))
+                            .child(div().flex_1().min_w_0().child(detail)),
+                    );
             } else {
                 body = body.child(detail);
             }
@@ -346,43 +353,6 @@ impl CheckinView {
         self.restore_control(window, cx);
         page = page.child(body);
         page.into_any_element()
-    }
-
-    fn records_panel(&self, cx: &App) -> gpui_kit::AnyElement {
-        let data = self.data();
-        let Some(data) = data.filter(|data| !data.records.is_empty()) else {
-            let empty = text(cx, "No saved check-in records.", "尚无签到记录。");
-            return div()
-                .id("checkin-records-empty")
-                .test_support()
-                .aria_label(empty)
-                .child(empty)
-                .into_any_element();
-        };
-        let mut panel =
-            div()
-                .flex()
-                .flex_col()
-                .gap(px(theme::CONTROL_GAP))
-                .child(badge::section_heading(
-                    text(cx, "Recent records", "最近签到记录"),
-                    None,
-                    cx,
-                ));
-        for record in &data.records {
-            let account = data
-                .accounts
-                .iter()
-                .find(|a| a.id == record.account_id)
-                .map(|a| a.name.as_str())
-                .unwrap_or(&record.account_id);
-            panel = panel.child(format!(
-                "{account} · {} · {}",
-                operations::status(cx, record.status),
-                record.at
-            ));
-        }
-        panel.into_any_element()
     }
 
     fn accounts_panel(&self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
@@ -647,10 +617,7 @@ impl CheckinView {
                 .child(self.account_diagnostics(account, cx))
                 .children(lines)
                 .children(self.render_selected_actions(cx));
-            if let Some(snapshot) = &self.operation.snapshot {
-                detail = detail.children(self.render_saved_records(snapshot, cx));
-            }
-            panel = panel.child(detail);
+            panel = panel.child(detail).child(self.calendar_panel(cx));
         }
         panel.into_any_element()
     }

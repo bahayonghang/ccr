@@ -14,14 +14,12 @@ use ccr_app::runtime::Completion;
 use ccr_checkin::managers::checkin::builtin_providers::{
     get_builtin_provider_by_id, resolve_builtin_for_provider,
 };
-use ccr_checkin::{AccountManager, CheckinService, ProviderManager, RecordManager};
+use ccr_checkin::{AccountManager, CheckinService, ProviderManager};
 use ccr_db::{
     database::{self, DbAccess},
     models::checkin::*,
 };
-pub use extended::{
-    ExtendedCommand, ExtendedReport, InspectionCommand, InspectionReport, RecordQuery,
-};
+pub use extended::{ExtendedCommand, ExtendedReport, InspectionCommand, InspectionReport};
 use std::sync::{Arc, Mutex};
 use tokio::sync::watch;
 
@@ -38,7 +36,6 @@ pub enum Operation {
     DeleteAccount(String),
     Checkin(String),
     Balance(String),
-    Records(String),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -60,7 +57,6 @@ pub enum OperationError {
     ImportConflict,
     ImportInvalid,
     ExportDestinationExists,
-    QueryInvalid,
     TargetsChanged,
 }
 
@@ -73,7 +69,6 @@ pub enum Outcome {
     Deleted,
     Checked(CheckinStatus),
     BalanceUpdated,
-    Records,
 }
 
 #[derive(Clone)]
@@ -83,17 +78,10 @@ pub struct AccountSummary {
     pub name: String,
     pub enabled: bool,
 }
-#[derive(Clone, Debug, PartialEq)]
-pub struct RecordSummary {
-    pub account_id: String,
-    pub status: CheckinStatus,
-    pub at: String,
-}
 #[derive(Clone, Default)]
 pub struct ManagementSnapshot {
     pub providers: Vec<CheckinProvider>,
     pub accounts: Vec<AccountSummary>,
-    pub records: Vec<RecordSummary>,
 }
 #[derive(Clone, Default)]
 pub struct OperationState {
@@ -147,7 +135,7 @@ impl Storage {
     fn providers(&self) -> ProviderManager {
         ProviderManager::with_db(self.db.clone())
     }
-    fn snapshot(&self, records: Vec<RecordSummary>) -> Result<ManagementSnapshot, OperationError> {
+    fn snapshot(&self) -> Result<ManagementSnapshot, OperationError> {
         Ok(ManagementSnapshot {
             providers: self
                 .providers()
@@ -167,7 +155,6 @@ impl Storage {
                     enabled: a.enabled,
                 })
                 .collect(),
-            records,
         })
     }
 }
@@ -285,14 +272,9 @@ impl CheckinOperations {
         let snapshot = if exporting || account_job {
             None
         } else {
-            let records = result
-                .as_ref()
-                .ok()
-                .map(|(_, records)| records.clone())
-                .unwrap_or_default();
-            storage.ok().and_then(|s| s.snapshot(records).ok())
+            storage.ok().and_then(|s| s.snapshot().ok())
         };
-        (result.map(|(outcome, _)| outcome), snapshot)
+        (result, snapshot)
     }
 
     fn finish(
@@ -517,10 +499,9 @@ async fn execute(
     source: &ConfigSource,
     owner: &CheckinOperations,
     operation: Operation,
-) -> Result<(Outcome, Vec<RecordSummary>), OperationError> {
+) -> Result<Outcome, OperationError> {
     let providers = storage.providers();
     let accounts = storage.accounts();
-    let mut records = Vec::new();
     let outcome = match operation {
         Operation::Manage => Outcome::Loaded,
         Operation::Job(job) => {
@@ -632,20 +613,6 @@ async fn execute(
             accounts.delete(&id).map_err(|_| OperationError::Storage)?;
             Outcome::Deleted
         }
-        Operation::Records(id) => {
-            records = RecordManager::with_db(storage.db.clone())
-                .get_by_account(&id, Some(50))
-                .map_err(|_| OperationError::Storage)?
-                .records
-                .into_iter()
-                .map(|r| RecordSummary {
-                    account_id: r.account_id,
-                    status: r.status,
-                    at: r.checked_in_at.to_rfc3339(),
-                })
-                .collect();
-            Outcome::Records
-        }
         operation @ (Operation::Checkin(_) | Operation::Balance(_)) => {
             let (id, checkin) = match operation {
                 Operation::Checkin(id) => (id, true),
@@ -671,7 +638,7 @@ async fn execute(
             }
         }
     };
-    Ok((outcome, records))
+    Ok(outcome)
 }
 
 #[cfg(test)]

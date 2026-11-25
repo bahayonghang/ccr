@@ -376,40 +376,21 @@ fn account_tools_native_selection_cancel_and_batch_delete(cx: &mut TestAppContex
         window.render_frame(cx);
     })
     .unwrap();
-    reveal(cx, handle, "checkin-filter-success");
+    reveal(cx, handle, "checkin-tools-detail");
     cx.update_window(handle, |_, window, cx| {
-        window.click("checkin-filter-success", cx);
-        window.render_frame(cx);
-    })
-    .unwrap();
-    reveal(cx, handle, "checkin-filter-records");
-    cx.update_window(handle, |_, window, cx| {
-        window.click("checkin-filter-records", cx);
-    })
-    .unwrap();
-    wait(cx, handle, |window| {
-        labels(window).contains("Matching records: 1")
-    });
-    reveal(cx, handle, "checkin-dashboard-read");
-    cx.update_window(handle, |_, window, cx| {
-        window.click("checkin-dashboard-read", cx);
+        window.click("checkin-tools-detail", cx);
     })
     .unwrap();
     wait(cx, handle, |window| {
         labels(window).contains("Checked days: 1")
     });
-    reveal(cx, handle, "checkin-tools-close");
+    reveal(cx, handle, "checkin-back");
     cx.update_window(handle, |_, window, cx| {
+        window.click("checkin-back", cx);
         window.render_frame(cx);
+        assert!(window.try_find("checkin-select-0").is_some());
         assert!(window.try_find("checkin-select-1").is_none());
         assert!(!labels(window).contains("checkin-secret-sentinel"));
-        window.click("checkin-tools-close", cx);
-        window.render_frame(cx);
-        assert!(window.try_find("checkin-extended").is_none());
-        window.click("checkin-tools-open", cx);
-        window.render_frame(cx);
-        assert!(labels(window).contains("Checked days: 1"));
-
         window.remove_window();
     })
     .unwrap();
@@ -792,3 +773,9 @@ async fn provider_details_show_only_cache_status_and_locate_associated_accounts(
 
 #[path = "management_tests.rs"]
 mod management;
+
+#[path = "history_reader_tests.rs"]
+mod history_reader;
+
+#[path = "history_tests.rs"]
+mod history_tests;
