@@ -246,7 +246,7 @@ impl ExportManager {
     /// 执行导入
     pub fn import(&self, data: ExportData, options: &ImportOptions) -> Result<ImportResult> {
         let mut result = ImportResult::success("导入完成");
-        self.import_counted(data, options, &mut result)?;
+        self.import_counted(data, options, &mut result, None)?;
         Ok(result)
     }
 
@@ -255,6 +255,7 @@ impl ExportManager {
         data: ExportData,
         options: &ImportOptions,
         result: &mut ImportResult,
+        validated_key: Option<&CryptoManager>,
     ) -> Result<()> {
         let provider_manager = ProviderManager::with_db(self.db.clone());
         let account_manager = AccountManager::with_db(&self.checkin_dir, self.db.clone());
@@ -278,8 +279,15 @@ impl ExportManager {
 
         // 导入账号
         if !options.providers_only {
-            let crypto = CryptoManager::new(&self.checkin_dir)
-                .map_err(|e| ExportError::CryptoError(e.to_string()))?;
+            let first_use;
+            let crypto = match validated_key {
+                Some(key) => key,
+                None => {
+                    first_use = CryptoManager::new(&self.checkin_dir)
+                        .map_err(|e| ExportError::CryptoError(e.to_string()))?;
+                    &first_use
+                }
+            };
 
             let mut accounts_to_import = Vec::new();
             let mut need_reauth = 0;

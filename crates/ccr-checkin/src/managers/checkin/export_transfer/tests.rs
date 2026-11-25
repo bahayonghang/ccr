@@ -289,6 +289,20 @@ fn transfer_uses_scoped_database_preserves_extensions_and_refuses_stale_preview(
     let stats: serde_json::Value = serde_json::from_slice(&std::fs::read(stats).unwrap()).unwrap();
     assert_eq!(stats["total_accounts"], 1);
     assert!(stats.get("accounts").is_none());
+    let database_file = root.path().join("source.db");
+    let captured = ExportManager::preview_file_at(&export, &database_file, &crypto).unwrap();
+    let original_key = std::fs::read(crypto.join("crypto.key")).unwrap();
+    let lost_during_open = apply(&captured, &database_file, &crypto, true, || {
+        std::fs::remove_file(crypto.join("crypto.key")).unwrap();
+        Ok(DbAccess::Pool(pool.clone()))
+    });
+    assert!(matches!(
+        lost_during_open,
+        Err(ExportError::ExistingKeyUnavailable | ExportError::CryptoError(_))
+    ));
+    assert!(!crypto.join("crypto.key").exists());
+    assert!(!crypto.join("backups").exists());
+    std::fs::write(crypto.join("crypto.key"), original_key).unwrap();
     let preview = Arc::new(manager.preview_file(&export).unwrap());
     accounts
         .update(

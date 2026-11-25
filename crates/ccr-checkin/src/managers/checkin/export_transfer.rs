@@ -45,7 +45,11 @@ impl ImportSession {
         })
     }
 
-    fn validated_source(&self, root: &Path) -> Result<ExportData> {
+    fn validated_source(
+        &self,
+        root: &Path,
+        existing_accounts: bool,
+    ) -> Result<(ExportData, Option<CryptoManager>)> {
         safe_file(&self.path)?;
         let bytes = read_source(&self.path).map_err(|_| ExportError::Conflict)?;
         if guarded_write::content_version_token(&bytes) != self.version {
@@ -53,7 +57,7 @@ impl ImportSession {
         }
         let data = serde_json::from_slice(&bytes)
             .map_err(|_| ExportError::ImportFailed("Invalid configuration document".into()))?;
-        ExportManager::validated_native_data(root, &data)
+        ExportManager::validated_native_data(root, &data, existing_accounts)
     }
 
     pub fn target_missing(&self) -> bool {
@@ -231,8 +235,17 @@ impl ExportManager {
     // Native admission validates every credential before the first database mutation.
     // Pass plaintext Secret values to legacy import only after validation, so its
     // historical foreign-key fallback can never replace a valid account with {}.
-    fn validated_native_data(root: &Path, source: &ExportData) -> Result<ExportData> {
-        let crypto = if source
+    fn validated_native_data(
+        root: &Path,
+        source: &ExportData,
+        existing_accounts: bool,
+    ) -> Result<(ExportData, Option<CryptoManager>)> {
+        let crypto = if existing_accounts {
+            Some(
+                CryptoManager::load_existing(root)
+                    .map_err(|_| ExportError::ExistingKeyUnavailable)?,
+            )
+        } else if source
             .accounts
             .iter()
             .any(|account| account.cookies_json_encrypted)
@@ -267,7 +280,7 @@ impl ExportManager {
                 ExportError::ImportFailed("Each account requires a valid cookie JSON object".into())
             })?;
         }
-        Ok(data)
+        Ok((data, crypto))
     }
 
     fn fingerprint(&self) -> Result<String> {
@@ -323,7 +336,7 @@ impl ExportManager {
         let known =
             serde_json::to_value(&data).map_err(|e| ExportError::ImportFailed(e.to_string()))?;
         reject_unknown(&raw, &known)?;
-        Self::validated_native_data(root, &data)?;
+        Self::validated_native_data(root, &data, false)?;
         Ok((data, guarded_write::content_version_token(&bytes)))
     }
 
@@ -399,11 +412,10 @@ impl ExportManager {
         if missing != session.target_missing() {
             return Err(ExportError::Conflict);
         }
-        let validated;
-        let expected = if missing {
-            validated = session.validated_source(root)?;
+        let (expected, existing_accounts) = if missing {
+            session.validated_source(root, false)?;
             publish_initial_schema(database)?;
-            row_version(&[], &[])?
+            (row_version(&[], &[])?, false)
         } else {
             let conn = rusqlite::Connection::open_with_flags(
                 database,
@@ -420,8 +432,8 @@ impl ExportManager {
             if Some(&revision) != session.database_version.as_ref() {
                 return Err(ExportError::Conflict);
             }
-            validated = session.validated_source(root)?;
-            revision
+            session.validated_source(root, !accounts.is_empty())?;
+            (revision, !accounts.is_empty())
         };
         let manager = Self::with_db(root, open()?);
         let opened = manager
@@ -434,7 +446,8 @@ impl ExportManager {
         {
             return Err(ExportError::Conflict);
         }
-        manager.apply_validated(validated, overwrite)
+        let (validated, key) = session.validated_source(root, existing_accounts)?;
+        manager.apply_validated(validated, key.as_ref(), overwrite)
     }
 
     pub fn import_preview(
@@ -448,11 +461,22 @@ impl ExportManager {
         {
             return Err(ExportError::Conflict);
         }
-        let validated = session.validated_source(&self.checkin_dir)?;
-        Ok(self.apply_validated(validated, overwrite)?.counts)
+        let has_accounts = !AccountManager::with_db(&self.checkin_dir, self.db.clone())
+            .load_all()
+            .map_err(|e| ExportError::AccountError(e.to_string()))?
+            .is_empty();
+        let (validated, key) = session.validated_source(&self.checkin_dir, has_accounts)?;
+        Ok(self
+            .apply_validated(validated, key.as_ref(), overwrite)?
+            .counts)
     }
 
-    fn apply_validated(&self, mut validated: ExportData, overwrite: bool) -> Result<ImportReceipt> {
+    fn apply_validated(
+        &self,
+        mut validated: ExportData,
+        key: Option<&CryptoManager>,
+        overwrite: bool,
+    ) -> Result<ImportReceipt> {
         let providers = ProviderManager::with_db(self.db.clone())
             .load_all()
             .map_err(|e| ExportError::ProviderError(e.to_string()))?;
@@ -482,6 +506,7 @@ impl ExportManager {
                 ..Default::default()
             },
             &mut counts,
+            key,
         );
         let mut receipt = ImportReceipt {
             counts,
