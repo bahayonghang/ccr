@@ -411,3 +411,43 @@ fn queued_balance_items_recheck_changes_from_another_client_before_sending() {
     server.abort();
     runtime.shutdown();
 }
+
+#[test]
+fn selected_balance_limit_counts_only_eligible_existing_accounts() {
+    let mut data = CheckinData::default();
+    for i in 0..1001 {
+        let id = i.to_string();
+        data.accounts.push(CheckinAccountRow {
+            id: id.clone(),
+            name: id,
+            provider_id: "p".into(),
+            provider_name: None,
+            enabled: i < 1000,
+            last_checkin_at: None,
+            last_balance_check_at: None,
+            balance: StoredBalance::Missing,
+        });
+    }
+    let scope = JobScope::Selected(data.accounts.iter().map(|r| r.id.clone()).collect());
+    assert_eq!(
+        AccountJob::prepare(&data, JobAction::Balance, scope.clone())
+            .unwrap()
+            .targets
+            .len(),
+        1000
+    );
+    assert!(matches!(
+        AccountJob::prepare(&data, JobAction::Checkin, scope.clone()),
+        Err(OperationError::Invalid)
+    ));
+    data.accounts[1000].enabled = true;
+    assert!(matches!(
+        AccountJob::prepare(&data, JobAction::Balance, scope.clone()),
+        Err(OperationError::Invalid)
+    ));
+    data.accounts.pop();
+    assert!(matches!(
+        AccountJob::prepare(&data, JobAction::Balance, scope),
+        Err(OperationError::TargetsChanged)
+    ));
+}

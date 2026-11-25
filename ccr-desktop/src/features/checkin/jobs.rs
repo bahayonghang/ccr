@@ -12,31 +12,23 @@ impl CheckinView {
         primary: bool,
         cx: &mut Context<Self>,
     ) -> gpui_kit::AnyElement {
-        let count = match &scope {
-            JobScope::AllEnabled => self.rows().iter().filter(|row| row.enabled).count(),
-            JobScope::Selected(ids) if action == JobAction::Balance => self
-                .rows()
-                .iter()
-                .filter(|row| row.enabled && ids.contains(&row.id))
-                .count(),
-            JobScope::Selected(ids) => ids.len(),
-            JobScope::Single(_) => 1,
-        };
         let blocked = self.busy
             || self.operation.busy
             || self.confirmation.is_some()
             || self.editor.is_some()
-            || count == 0
-            || count > 1000;
+            || !scope.can_start(action, self.rows());
         let source = key.to_owned();
         let mut button = Button::new(key.to_owned())
             .label(label)
             .on_click(cx.listener(move |this, _, _, cx| {
-                let Some(job) = this
-                    .data()
-                    .and_then(|data| AccountJob::prepare(data, action, scope.clone()).ok())
-                else {
-                    return;
+                let Some(data) = this.data() else { return };
+                let job = match AccountJob::prepare(data, action, scope.clone()) {
+                    Ok(job) => job,
+                    Err(error) => {
+                        Arc::make_mut(&mut this.operation).result = Some(Err(error));
+                        cx.notify();
+                        return;
+                    }
                 };
                 let names = job
                     .targets
@@ -95,7 +87,7 @@ impl CheckinView {
             ));
         if n == 0 {
             actions = actions.child(text(cx, "No enabled accounts", "没有已启用的账户"));
-        } else if n > 1000 {
+        } else if n > crate::runtime::checkin::MAX_JOB_TARGETS {
             actions = actions.child(text(
                 cx,
                 "Select up to 1,000 accounts",
@@ -110,6 +102,22 @@ impl CheckinView {
             return None;
         }
         let scope = JobScope::Selected(self.checked_ids.clone());
+        let balance_enabled = scope.can_start(JobAction::Balance, self.rows());
+        let hint = if self.checked_ids.len() > crate::runtime::checkin::MAX_JOB_TARGETS {
+            Some(text(
+                cx,
+                "Each batch accepts up to 1,000 target accounts. Balance refresh counts enabled accounts only.",
+                "每批最多处理 1000 个目标账户。刷新余额仅计入启用账户。",
+            ))
+        } else if !balance_enabled {
+            Some(text(
+                cx,
+                "No enabled accounts selected for balance refresh",
+                "所选账户中没有可刷新余额的启用账户",
+            ))
+        } else {
+            None
+        };
         Some(
             div()
                 .flex()
@@ -137,6 +145,14 @@ impl CheckinView {
                     false,
                     cx,
                 ))
+                .children(hint.map(|message| {
+                    div()
+                        .id("checkin-selection-hint")
+                        .test_support()
+                        .role(gpui_kit::Role::Status)
+                        .aria_label(message)
+                        .child(message)
+                }))
                 .into_any_element(),
         )
     }

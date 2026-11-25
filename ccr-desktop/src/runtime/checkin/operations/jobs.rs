@@ -15,6 +15,46 @@ pub enum JobScope {
     Single(String),
 }
 
+pub const MAX_JOB_TARGETS: usize = 1000;
+
+impl JobScope {
+    fn eligible_rows<'a>(
+        &self,
+        action: JobAction,
+        rows: &'a [CheckinAccountRow],
+    ) -> Result<Vec<&'a CheckinAccountRow>, OperationError> {
+        let mut selected = 0;
+        let mut eligible = Vec::new();
+        for row in rows {
+            let included = match self {
+                Self::AllEnabled => row.enabled,
+                Self::Selected(ids) => ids.contains(&row.id),
+                Self::Single(id) => id == &row.id,
+            };
+            if included {
+                selected += 1;
+                if row.enabled || action == JobAction::Checkin || matches!(self, Self::Single(_)) {
+                    eligible.push(row);
+                }
+            }
+        }
+        if matches!(self, Self::Selected(ids) if ids.len() != selected)
+            || matches!(self, Self::Single(_) if selected == 0)
+        {
+            return Err(OperationError::TargetsChanged);
+        }
+        if eligible.is_empty() || eligible.len() > MAX_JOB_TARGETS {
+            return Err(OperationError::Invalid);
+        }
+        Ok(eligible)
+    }
+
+    /// Single-account controls are attached to an existing row. Revalidate its ID on click.
+    pub fn can_start(&self, action: JobAction, rows: &[CheckinAccountRow]) -> bool {
+        matches!(self, Self::Single(_)) || self.eligible_rows(action, rows).is_ok()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct JobTarget {
     pub id: String,
@@ -39,26 +79,10 @@ impl AccountJob {
         action: JobAction,
         scope: JobScope,
     ) -> Result<Self, OperationError> {
-        if matches!(&scope, JobScope::Selected(ids) if ids.len() > 1000) {
-            return Err(OperationError::Invalid);
-        }
         let providers: BTreeMap<_, _> = data.providers.iter().map(|p| (&p.id, p)).collect();
-        let mut matched = 0;
-        let mut targets = Vec::new();
-        for row in &data.accounts {
-            let chosen = match &scope {
-                JobScope::AllEnabled => row.enabled,
-                JobScope::Selected(ids) => ids.contains(&row.id),
-                JobScope::Single(id) => id == &row.id,
-            };
-            if !chosen {
-                continue;
-            }
-            matched += 1;
-            if action == JobAction::Balance && !row.enabled && !matches!(scope, JobScope::Single(_))
-            {
-                continue;
-            }
+        let rows = scope.eligible_rows(action, &data.accounts)?;
+        let mut targets = Vec::with_capacity(rows.len());
+        for row in rows {
             let provider = providers.get(&row.provider_id);
             targets.push(JobTarget {
                 id: row.id.clone(),
@@ -72,12 +96,6 @@ impl AccountJob {
                 enabled: row.enabled,
                 provider_enabled: provider.map(|p| p.enabled),
             });
-        }
-        if matches!(&scope, JobScope::Selected(ids) if ids.len() != matched) {
-            return Err(OperationError::TargetsChanged);
-        }
-        if targets.is_empty() || targets.len() > 1000 {
-            return Err(OperationError::Invalid);
         }
         targets.sort_by(|a, b| a.id.cmp(&b.id));
         Ok(Self {

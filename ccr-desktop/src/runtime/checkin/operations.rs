@@ -7,7 +7,9 @@ mod jobs;
 #[path = "transfer.rs"]
 mod transfer;
 pub use credentials::AccountCredentials;
-pub use jobs::{AccountJob, JobAction, JobItem, JobReport, JobScope, JobStatus, JobTarget};
+pub use jobs::{
+    AccountJob, JobAction, JobItem, JobReport, JobScope, JobStatus, JobTarget, MAX_JOB_TARGETS,
+};
 #[path = "extended.rs"]
 mod extended;
 use ccr_app::runtime::Completion;

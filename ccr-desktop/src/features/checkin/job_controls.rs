@@ -183,3 +183,48 @@ async fn filtered_header_selection_and_row_use_confirmed_ids_and_return_to_crede
     assert_eq!(requests.load(Ordering::SeqCst), 1);
     owner.shutdown();
 }
+
+#[gpui_kit::test]
+async fn selected_balance_action_explains_an_all_disabled_selection(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    seed(root.path());
+    let db = rusqlite::Connection::open(root.path().join("checkin.db")).unwrap();
+    db.execute(
+        "UPDATE checkin_accounts SET enabled=0 WHERE id='measured'",
+        [],
+    )
+    .unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let handle = open(cx, &owner, root.path());
+    cx.update_window(handle, |_, w, cx| {
+        w.render_frame(cx);
+        w.click("nav-checkin", cx);
+    })
+    .unwrap();
+    wait(cx, handle, |w| {
+        w.try_find("checkin-pick-measured").is_some()
+    });
+    cx.update_window(handle, |_, w, cx| {
+        w.click("checkin-pick-measured", cx);
+        w.render_frame(cx);
+        w.click("checkin-selected-balances", cx);
+        w.render_frame(cx);
+        assert!(w.try_find("checkin-confirmation").is_none());
+        assert!(
+            w.find("checkin-selection-hint")
+                .label()
+                .unwrap()
+                .contains("No enabled accounts selected")
+        );
+        w.click("checkin-pick-unmeasured", cx);
+        w.render_frame(cx);
+        w.click("checkin-selected-balances", cx);
+        w.render_frame(cx);
+        let notice = w.find("checkin-confirmation").label().unwrap().to_owned();
+        assert!(notice.contains("Unmeasured account") && !notice.contains("Desk account"));
+        w.remove_window();
+    })
+    .unwrap();
+    owner.shutdown();
+}
