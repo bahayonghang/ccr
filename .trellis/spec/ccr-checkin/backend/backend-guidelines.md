@@ -44,6 +44,8 @@ Network services use `reqwest` clients and proxy detection. Preserve explicit WA
 
 A successful balance query commits its sample, the account's `last_balance_check_at` (the same instant), and retention cleanup in one transaction. If persistence fails, the previous snapshot and refresh time remain available together. Native batch jobs use that stored time for their 30-second window. A single explicit refresh can query immediately.
 
+The optional `test-support` loopback service pins one custom provider after checking the base and all composed endpoint origins. It rejects explicit and legacy built-in identities, uses a proxy-free client with redirects disabled, and has no automatic challenge handling. Native startup owns feature, switch and marked catalog admission.
+
 ## Error Handling
 
 Use `CheckinServiceError` for provider/account/crypto/network/API/record/balance/database failures. Convert database failures through `Database(#[from] DbError)`.

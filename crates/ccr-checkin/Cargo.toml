@@ -8,6 +8,9 @@ description = "CCR checkin business domain facade"
 license = "MIT"
 repository = "https://github.com/bahayonghang/ccr"
 
+[features]
+test-support = []
+
 [dependencies]
 ccr-core = { path = "../ccr-core" }
 ccr-db = { path = "../ccr-db" }

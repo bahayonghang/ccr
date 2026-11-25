@@ -20,6 +20,9 @@ use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
 use std::time::Duration;
 
+#[cfg(feature = "test-support")]
+mod fixture;
+
 pub type Result<T> = std::result::Result<T, CheckinServiceError>;
 
 /// new-api 标准签到响应（保留用于参考，实际使用 serde_json::Value 解析）
@@ -65,6 +68,8 @@ pub struct CheckinService {
     db: ccr_db::database::DbAccess,
     /// 签到数据目录
     checkin_dir: PathBuf,
+    #[cfg(feature = "test-support")]
+    fixture_provider: Option<CheckinProvider>,
     /// HTTP 客户端
     client: Client,
     /// 统一的代理配置（保证 HTTP 请求与浏览器出口一致）
@@ -640,6 +645,8 @@ impl CheckinService {
 
         Self {
             db: ccr_db::database::DbAccess::Global,
+            #[cfg(feature = "test-support")]
+            fixture_provider: None,
             checkin_dir,
             client,
             proxy_url,
@@ -651,6 +658,8 @@ impl CheckinService {
         let proxy_url = get_proxy_settings().map(|(_, url)| url);
         Self {
             db: ccr_db::database::DbAccess::Global,
+            #[cfg(feature = "test-support")]
+            fixture_provider: None,
             checkin_dir,
             client,
             proxy_url,
@@ -672,11 +681,29 @@ impl CheckinService {
         client: Client,
     ) -> Self {
         Self {
+            #[cfg(feature = "test-support")]
+            fixture_provider: None,
             checkin_dir,
             db,
             client,
             proxy_url: None,
         }
+    }
+
+    fn provider(&self, id: &str) -> Result<CheckinProvider> {
+        #[cfg(feature = "test-support")]
+        if let Some(provider) = &self.fixture_provider {
+            return if provider.id == id {
+                Ok(provider.clone())
+            } else {
+                Err(CheckinServiceError::Provider(
+                    "Fixture provider changed".into(),
+                ))
+            };
+        }
+        ProviderManager::with_db(self.db.clone())
+            .get(id)
+            .map_err(|error| CheckinServiceError::Provider(error.to_string()))
     }
 
     /// 获取默认签到目录
@@ -756,7 +783,6 @@ impl CheckinService {
 
     /// 执行单个账号签到
     pub async fn checkin(&self, account_id: &str) -> Result<CheckinExecutionResult> {
-        let provider_manager = ProviderManager::with_db(self.db.clone());
         let account_manager = AccountManager::with_db(&self.checkin_dir, self.db.clone());
         let record_manager = RecordManager::with_db(self.db.clone());
         let crypto = CryptoManager::new(&self.checkin_dir)
@@ -768,9 +794,7 @@ impl CheckinService {
             .map_err(|e| CheckinServiceError::Account(e.to_string()))?;
 
         // 获取提供商信息
-        let provider = provider_manager
-            .get(&account.provider_id)
-            .map_err(|e| CheckinServiceError::Provider(e.to_string()))?;
+        let provider = self.provider(&account.provider_id)?;
 
         tracing::info!(
             "[签到开始] 账号: {} | 提供商: {} | ID: {}",
@@ -1210,7 +1234,6 @@ impl CheckinService {
 
     /// 查询账号余额
     pub async fn query_balance(&self, account_id: &str) -> Result<BalanceSnapshot> {
-        let provider_manager = ProviderManager::with_db(self.db.clone());
         let account_manager = AccountManager::with_db(&self.checkin_dir, self.db.clone());
         let balance_manager = BalanceManager::with_db(self.db.clone());
         let crypto = CryptoManager::new(&self.checkin_dir)
@@ -1220,9 +1243,7 @@ impl CheckinService {
             .get(account_id)
             .map_err(|e| CheckinServiceError::Account(e.to_string()))?;
 
-        let provider = provider_manager
-            .get(&account.provider_id)
-            .map_err(|e| CheckinServiceError::Provider(e.to_string()))?;
+        let provider = self.provider(&account.provider_id)?;
 
         let cookies_json = crypto
             .decrypt(&account.cookies_json_encrypted)
@@ -1448,6 +1469,8 @@ impl CheckinService {
                     let _permit = sem.acquire().await.expect("semaphore closed");
                     let svc = CheckinService {
                         db,
+                        #[cfg(feature = "test-support")]
+                        fixture_provider: self.fixture_provider.clone(),
                         checkin_dir,
                         client,
                         proxy_url,
@@ -1541,16 +1564,13 @@ impl CheckinService {
         days: u32,
     ) -> Result<CheckinAccountDashboardResponse> {
         let account_manager = AccountManager::with_db(&self.checkin_dir, self.db.clone());
-        let provider_manager = ProviderManager::with_db(self.db.clone());
         let balance_manager = BalanceManager::with_db(self.db.clone());
 
         let account = account_manager
             .get(account_id)
             .map_err(|e| CheckinServiceError::Account(e.to_string()))?;
 
-        let provider = provider_manager
-            .get(&account.provider_id)
-            .map_err(|e| CheckinServiceError::Provider(e.to_string()))?;
+        let provider = self.provider(&account.provider_id)?;
 
         let latest_balance = balance_manager
             .get_latest(account_id)
@@ -1621,7 +1641,6 @@ impl CheckinService {
 
     /// 测试账号连接
     pub async fn test_connection(&self, account_id: &str) -> Result<bool> {
-        let provider_manager = ProviderManager::with_db(self.db.clone());
         let account_manager = AccountManager::with_db(&self.checkin_dir, self.db.clone());
         let crypto = CryptoManager::new(&self.checkin_dir)
             .map_err(|e| CheckinServiceError::Crypto(e.to_string()))?;
@@ -1630,9 +1649,7 @@ impl CheckinService {
             .get(account_id)
             .map_err(|e| CheckinServiceError::Account(e.to_string()))?;
 
-        let provider = provider_manager
-            .get(&account.provider_id)
-            .map_err(|e| CheckinServiceError::Provider(e.to_string()))?;
+        let provider = self.provider(&account.provider_id)?;
 
         let cookies_json = crypto
             .decrypt(&account.cookies_json_encrypted)
@@ -1674,7 +1691,6 @@ impl CheckinService {
         &self,
         account_id: &str,
     ) -> Result<WafCookieValidationResult> {
-        let provider_manager = ProviderManager::with_db(self.db.clone());
         let account_manager = AccountManager::with_db(&self.checkin_dir, self.db.clone());
         let crypto = CryptoManager::new(&self.checkin_dir)
             .map_err(|e| CheckinServiceError::Crypto(e.to_string()))?;
@@ -1683,9 +1699,7 @@ impl CheckinService {
             .get(account_id)
             .map_err(|e| CheckinServiceError::Account(e.to_string()))?;
 
-        let provider = provider_manager
-            .get(&account.provider_id)
-            .map_err(|e| CheckinServiceError::Provider(e.to_string()))?;
+        let provider = self.provider(&account.provider_id)?;
 
         let cached_waf_cookies = self.get_cached_waf_cookies(&provider.id)?;
         if cached_waf_cookies

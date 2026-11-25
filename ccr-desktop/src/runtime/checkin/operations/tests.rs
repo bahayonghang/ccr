@@ -240,11 +240,8 @@ fn real_loopback_checkin_and_balance_use_captured_database_and_crypto() {
             stream.write_all(response.as_bytes()).await.unwrap();
         }
     });
-    let mut services = Services::new(runtime.handle(), source(root.path()));
-    services.checkin_operations = Arc::new(CheckinOperations {
-        loopback_fixture: true,
-        ..Default::default()
-    });
+    let services =
+        Services::new(runtime.handle(), source(root.path())).with_checkin_loopback_fixture();
     let id = run(
         &services,
         Operation::AddProvider(provider(&format!("http://{addr}"))),
@@ -516,5 +513,78 @@ fn extended_operations_preserve_secrets_and_report_each_batch_item_without_fixtu
     };
     assert_eq!(completed.len(), 1);
     assert_eq!(failed, &["missing"]);
+    runtime.shutdown();
+}
+
+#[test]
+fn fixture_refuses_legacy_catalog_identity_before_opening_a_socket() {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
+    let base = format!("http://{}", listener.local_addr().unwrap());
+    let mut legacy = provider(&base);
+    legacy.name = "AnyRouter".into();
+    let mut builtin = provider(&base);
+    builtin.builtin_id = Some("builtin-anyrouter".into());
+    let mut invalid_path = provider(&base);
+    invalid_path.balance_path = Some("balance".into());
+    for (candidate, admitted) in [
+        (legacy, true),
+        (builtin, true),
+        (invalid_path, true),
+        (provider("http://localhost:1"), true),
+        (provider("https://fixture.invalid"), true),
+        (provider(&base), false),
+    ] {
+        let root = tempfile::tempdir().unwrap();
+        let runtime = RuntimeOwner::new().unwrap();
+        let mut services = Services::new(runtime.handle(), source(root.path()));
+        if admitted {
+            services = services.with_checkin_loopback_fixture();
+        }
+        let added = run(&services, Operation::AddProvider(candidate), 1);
+        let provider_id = added.snapshot.as_ref().unwrap().providers[0].id.clone();
+        let added = run(&services, Operation::AddAccount(account(provider_id)), 2);
+        let id = added.created_account.clone().unwrap();
+        assert_eq!(
+            run(&services, Operation::Balance(id), 3).result,
+            Some(Err(OperationError::FixtureNetwork))
+        );
+        runtime.shutdown();
+    }
+    assert!(
+        matches!(listener.accept(), Err(error) if error.kind() == std::io::ErrorKind::WouldBlock)
+    );
+}
+
+#[test]
+fn fixture_does_not_follow_a_redirect_to_another_listener() {
+    let root = tempfile::tempdir().unwrap();
+    let runtime = RuntimeOwner::new().unwrap();
+    let services =
+        Services::new(runtime.handle(), source(root.path())).with_checkin_loopback_fixture();
+    let http = tokio::runtime::Runtime::new().unwrap();
+    let upstream = http
+        .block_on(tokio::net::TcpListener::bind("127.0.0.1:0"))
+        .unwrap();
+    let redirected = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    redirected.set_nonblocking(true).unwrap();
+    let base = format!("http://{}", upstream.local_addr().unwrap());
+    let target = redirected.local_addr().unwrap();
+    let response = http.spawn(async move {
+        let (mut socket, _) = upstream.accept().await.unwrap();
+        let mut header = [0;2048];
+        socket.read(&mut header).await.unwrap();
+        socket.write_all(format!("HTTP/1.1 302 Found\r\nLocation: http://{target}/other\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").as_bytes()).await.unwrap();
+    });
+    let added = run(&services, Operation::AddProvider(provider(&base)), 1);
+    let provider_id = added.snapshot.as_ref().unwrap().providers[0].id.clone();
+    let added = run(&services, Operation::AddAccount(account(provider_id)), 2);
+    let id = added.created_account.clone().unwrap();
+    assert_eq!(
+        run(&services, Operation::Balance(id), 3).result,
+        Some(Err(OperationError::Network))
+    );
+    http.block_on(response).unwrap();
+    assert!(matches!(redirected.accept(), Err(e) if e.kind() == std::io::ErrorKind::WouldBlock));
     runtime.shutdown();
 }

@@ -133,6 +133,10 @@ pub fn run() {
                     cx.activate(true);
                     return;
                 }
+                #[cfg(feature = "native-checkin-fixture")]
+                runtime::LaunchMode::CheckinFixture(source) => {
+                    runtime::Services::new(executor, source).with_checkin_loopback_fixture()
+                }
                 #[cfg(feature = "native-sync-fixture")]
                 runtime::LaunchMode::SyncFixture(source) => {
                     runtime::Services::new(executor, source).with_sync_loopback_fixture()

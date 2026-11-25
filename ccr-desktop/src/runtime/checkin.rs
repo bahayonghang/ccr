@@ -4,6 +4,8 @@
 use ccr_app::environments::EnvironmentPolicy;
 use ccr_app::runtime::EnvironmentId;
 
+#[cfg(feature = "native-checkin-fixture")]
+pub(super) mod fixture;
 mod operations;
 pub use operations::*;
 

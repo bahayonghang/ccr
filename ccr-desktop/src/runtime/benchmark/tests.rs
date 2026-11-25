@@ -84,6 +84,29 @@ fn s0() -> (tempfile::TempDir, PathBuf) {
 }
 
 #[test]
+fn benchmark_denies_checkin_even_when_a_test_owner_requests_loopback() {
+    use crate::runtime::checkin::{Operation, OperationError};
+    let (_fixture, root) = s0();
+    let layout = Arc::new(Layout::load(&root).unwrap());
+    let runtime = RuntimeOwner::new().unwrap();
+    let services = Services::new(runtime.handle(), ConfigSource::Benchmark(layout))
+        .with_checkin_loopback_fixture();
+    services
+        .start_checkin(key(1), Operation::Balance("fixture".into()))
+        .unwrap();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    while services.checkin_operation_state().busy {
+        assert!(std::time::Instant::now() < deadline);
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    assert_eq!(
+        services.checkin_operation_state().result,
+        Some(Err(OperationError::FixtureNetwork))
+    );
+    runtime.shutdown();
+}
+
+#[test]
 fn benchmark_arguments_are_explicit_exclusive_and_do_not_load_files() {
     let root = std::env::current_dir()
         .unwrap()

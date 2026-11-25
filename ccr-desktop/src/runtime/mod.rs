@@ -57,6 +57,8 @@ pub enum LaunchMode {
     App(ConfigSource),
     Benchmark(PathBuf),
     Probe,
+    #[cfg(feature = "native-checkin-fixture")]
+    CheckinFixture(ConfigSource),
     #[cfg(feature = "native-sync-fixture")]
     SyncFixture(ConfigSource),
     AppWithInsights {
@@ -70,6 +72,10 @@ impl LaunchMode {
     /// Explicit catalog paths. Parsing changes no environment and creates no fixture data.
     pub fn parse(args: impl IntoIterator<Item = OsString>) -> Result<Self, &'static str> {
         let mut args = args.into_iter();
+        #[cfg(feature = "native-checkin-fixture")]
+        let mut checkin_fixture = false;
+        #[cfg(feature = "native-checkin-fixture")]
+        let mut repeated_catalog = false;
         let mut profiles = None;
         let mut registry = None;
         let mut delay = None;
@@ -126,12 +132,27 @@ impl LaunchMode {
                     }
                     sync_fixture = true;
                 }
+                #[cfg(feature = "native-checkin-fixture")]
+                Some("--fixture-checkin-loopback") => {
+                    if checkin_fixture {
+                        return Err("Check-in fixture switch supplied twice");
+                    }
+                    checkin_fixture = true;
+                }
                 Some("--fixture-profiles") => {
+                    #[cfg(feature = "native-checkin-fixture")]
+                    {
+                        repeated_catalog |= profiles.is_some();
+                    }
                     profiles = Some(PathBuf::from(
                         args.next().ok_or("Missing fixture profiles path")?,
                     ))
                 }
                 Some("--fixture-registry") => {
+                    #[cfg(feature = "native-checkin-fixture")]
+                    {
+                        repeated_catalog |= registry.is_some();
+                    }
                     registry = Some(PathBuf::from(
                         args.next().ok_or("Missing fixture registry path")?,
                     ))
@@ -151,6 +172,30 @@ impl LaunchMode {
                     );
                 }
             }
+        }
+        #[cfg(feature = "native-checkin-fixture")]
+        if checkin_fixture {
+            if repeated_catalog {
+                return Err("Check-in fixture requires one pair of catalog paths");
+            }
+            #[cfg(feature = "native-sync-fixture")]
+            if sync_fixture {
+                return Err("Choose a single native fixture");
+            }
+            if probe
+                || benchmark_root.is_some()
+                || insights_usage.is_some()
+                || insights_archive.is_some()
+                || insights_home.is_some()
+                || import_fixture.is_some()
+            {
+                return Err("Check-in fixture requires its paired catalog paths");
+            }
+            let (Some(profiles), Some(registry)) = (profiles, registry) else {
+                return Err("Check-in fixture requires both fixture paths");
+            };
+            return checkin::fixture::admit(&profiles, &registry, delay.unwrap_or_default())
+                .map(Self::CheckinFixture);
         }
         #[cfg(feature = "native-sync-fixture")]
         if sync_fixture {
@@ -514,6 +559,21 @@ mod tests {
             Ok(LaunchMode::App(ConfigSource::Fixture { .. }))
         ));
     }
+    #[cfg(not(feature = "native-checkin-fixture"))]
+    #[test]
+    fn default_build_rejects_the_checkin_fixture_switch() {
+        assert!(
+            parse(&[
+                "--fixture-checkin-loopback",
+                "--fixture-profiles",
+                "profiles.toml",
+                "--fixture-registry",
+                "config.toml"
+            ])
+            .is_err()
+        );
+    }
+
     #[test]
     fn usage_import_fixture_launch_accepts_the_documented_outputs_root()
     -> Result<(), Box<dyn std::error::Error>> {

@@ -100,7 +100,7 @@ pub struct CheckinOperations {
     state: Mutex<OperationState>,
     updates: watch::Sender<Arc<OperationState>>,
     storage: Mutex<Option<Storage>>,
-    #[cfg(test)]
+    #[cfg(any(test, feature = "native-checkin-fixture"))]
     loopback_fixture: bool,
 }
 impl Default for CheckinOperations {
@@ -109,7 +109,7 @@ impl Default for CheckinOperations {
             state: Mutex::new(OperationState::default()),
             updates: watch::channel(Arc::new(OperationState::default())).0,
             storage: Mutex::new(None),
-            #[cfg(test)]
+            #[cfg(any(test, feature = "native-checkin-fixture"))]
             loopback_fixture: false,
         }
     }
@@ -270,6 +270,14 @@ impl Drop for Pending {
     }
 }
 impl Services {
+    #[cfg(any(test, feature = "native-checkin-fixture"))]
+    pub(crate) fn with_checkin_loopback_fixture(mut self) -> Self {
+        self.checkin_operations = Arc::new(CheckinOperations {
+            loopback_fixture: true,
+            ..Default::default()
+        });
+        self
+    }
     pub fn checkin_operation_state(&self) -> Arc<OperationState> {
         self.checkin_operations.updates.borrow().clone()
     }
@@ -426,36 +434,24 @@ fn service_for_account(
         .get(&account.provider_id)
         .map_err(|_| OperationError::Invalid)?;
     storage.require_existing_crypto()?;
-    Ok(if source.is_fixture() {
-        let allowed = {
-            #[cfg(test)]
-            {
-                owner.loopback_fixture
-            }
-            #[cfg(not(test))]
-            {
-                let _ = owner;
-                false
-            }
-        };
-        let url = reqwest::Url::parse(&provider.base_url).map_err(|_| OperationError::Invalid)?;
-        let loopback = url
-            .host_str()
-            .and_then(|host| host.parse::<std::net::IpAddr>().ok())
-            .is_some_and(|ip| ip.is_loopback());
-        if !allowed || !loopback || provider.builtin_id.is_some() {
-            return Err(OperationError::FixtureNetwork);
+    if source.is_fixture() {
+        #[cfg(any(test, feature = "native-checkin-fixture"))]
+        if owner.loopback_fixture {
+            let service = CheckinService::with_loopback_fixture(
+                storage.crypto.clone(),
+                storage.db.clone(),
+                provider,
+            )
+            .map_err(|_| OperationError::FixtureNetwork)?;
+            return Ok(service);
         }
-        let client = reqwest::Client::builder()
-            .no_proxy()
-            .redirect(reqwest::redirect::Policy::none())
-            .timeout(Duration::from_secs(5))
-            .build()
-            .map_err(|_| OperationError::Network)?;
-        CheckinService::with_db_and_client(storage.crypto.clone(), storage.db.clone(), client)
-    } else {
-        CheckinService::with_db(storage.crypto.clone(), storage.db.clone())
-    })
+        let _ = (owner, provider);
+        return Err(OperationError::FixtureNetwork);
+    }
+    Ok(CheckinService::with_db(
+        storage.crypto.clone(),
+        storage.db.clone(),
+    ))
 }
 
 async fn execute(

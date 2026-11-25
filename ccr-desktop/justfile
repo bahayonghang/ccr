@@ -19,7 +19,8 @@ desktop-doctor:
 desktop-dev *args:
     import subprocess, sys
     args = sys.argv[1:]
-    features = ["--features", "native-sync-fixture"] if "--fixture-sync-loopback" in args else []
+    selected = [feature for flag, feature in [("--fixture-sync-loopback", "native-sync-fixture"), ("--fixture-checkin-loopback", "native-checkin-fixture")] if flag in args]
+    features = ["--features", ",".join(selected)] if selected else []
     sys.exit(subprocess.call([sys.executable, "scripts/desktop.py", "cargo", "run", "--locked", *features, "--bin", "ccr-gpui", "--", *args]))
 
 desktop-build:
