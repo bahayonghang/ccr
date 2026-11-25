@@ -268,3 +268,32 @@ fn wide_detail_shares_calendar_observations_with_the_trend_and_rejects_replaced_
     .unwrap();
     owner.shutdown();
 }
+
+#[gpui_kit::test]
+fn records_read_error_retries_to_an_empty_database_without_initializing_it(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    seed(root.path());
+    let db = rusqlite::Connection::open(root.path().join("checkin.db")).unwrap();
+    db.execute_batch("ALTER TABLE checkin_records RENAME TO unavailable_records")
+        .unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let h = open(cx, &owner, root.path());
+    cx.update_window(h, |_, w, cx| {
+        w.render_frame(cx);
+        w.click("nav-checkin", cx);
+    })
+    .unwrap();
+    wait_ui(cx, h, |w| w.try_find("checkin-account-1").is_some());
+    click_control(cx, h, "checkin-tab-records");
+    wait_ui(cx, h, |w| w.try_find("checkin-history-error").is_some());
+    db.execute_batch("ALTER TABLE unavailable_records RENAME TO checkin_records")
+        .unwrap();
+    click_control(cx, h, "checkin-history-retry");
+    wait_ui(cx, h, |w| w.try_find("checkin-records-empty").is_some());
+    assert!(!root.path().join("checkin-crypto").exists());
+    cx.update_window(h, |_, w, _| w.remove_window()).unwrap();
+    owner.shutdown();
+}

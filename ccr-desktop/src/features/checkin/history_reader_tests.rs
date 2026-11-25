@@ -89,3 +89,74 @@ fn account_history_preserves_evidence_across_units_and_gaps() {
     assert!(!root.path().join("checkin-crypto").exists());
     owner.shutdown();
 }
+
+#[test]
+fn filtered_records_retain_saved_fields_and_enabled_today_counts() {
+    use ccr_db::models::checkin::CheckinRecord;
+    let root = tempfile::tempdir().unwrap();
+    seed(root.path());
+    let db = rusqlite::Connection::open(root.path().join("checkin.db")).unwrap();
+    db.execute(
+        "UPDATE checkin_accounts SET enabled=0 WHERE id='unmeasured'",
+        [],
+    )
+    .unwrap();
+    let failure = CheckinRecord::failed(
+        "measured".into(),
+        "access refused token=controlled-private-token-value".into(),
+        Some("cookie_expired".into()),
+    );
+    checkin_repo::insert_record(&db, &failure).unwrap();
+    let success = CheckinRecord::success(
+        "measured".into(),
+        Some("credited".into()),
+        Some("bonus-voucher".into()),
+    )
+    .with_balance(None, Some(0.));
+    checkin_repo::insert_record(&db, &success).unwrap();
+    checkin_repo::insert_record(
+        &db,
+        &CheckinRecord::failed("unmeasured".into(), "refused".into(), None),
+    )
+    .unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let s = services(&owner, root.path());
+    let mut q = RecordQuery {
+        account: Some("measured".into()),
+        provider: Some("provider-1".into()),
+        status: Some("success".into()),
+        keyword: "fixture provider".into(),
+        page: 7,
+    };
+    let page = s.checkin_records(&q).unwrap().unwrap();
+    assert_eq!(
+        (
+            page.total,
+            page.page,
+            page.enabled,
+            page.checked,
+            page.failed
+        ),
+        (1, 1, 1, 1, 0)
+    );
+    let row = &page.rows[0];
+    assert_eq!(row.account.as_deref(), Some("Desk account"));
+    assert_eq!(row.provider.as_deref(), Some("Fixture provider"));
+    assert_eq!(row.reward.as_deref(), Some("bonus-voucher"));
+    assert_eq!(row.before, None);
+    assert_eq!(row.after.as_deref(), Some("0"));
+    for keyword in ["bonus-voucher", "cookie_expired"] {
+        q.keyword = keyword.into();
+        q.status = None;
+        assert_eq!(s.checkin_records(&q).unwrap().unwrap().total, 0);
+    }
+    q.keyword = "refused".into();
+    q.status = Some("failed".into());
+    let failed = s.checkin_records(&q).unwrap().unwrap();
+    assert!(failed.rows[0].needs_credentials());
+    let message = failed.rows[0].reason.as_deref().unwrap();
+    assert!(message.contains("access refused"));
+    assert!(!message.contains("controlled-private-token-value"));
+    assert!(!root.path().join("checkin-crypto").exists());
+    owner.shutdown();
+}
