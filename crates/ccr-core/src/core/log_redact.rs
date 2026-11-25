@@ -43,7 +43,7 @@ pub fn redact_log_text(input: &str) -> String {
         return redact_log_value(&value).to_string();
     }
 
-    redact_free_text(input)
+    redact_free_text(input, &[])
 }
 
 pub fn redact_log_value(value: &Value) -> Value {
@@ -130,7 +130,13 @@ fn estimate_value_bytes(value: &Value) -> usize {
         .unwrap_or(0)
 }
 
-fn redact_free_text(input: &str) -> String {
+/// Additional field names are normalized like the built-in keys. Fully suppress
+/// their values in provider text and JSON before applying normal log redaction.
+pub fn redact_log_text_with_keys(input: &str, additional: &[&str]) -> String {
+    redact_log_text(&redact_free_text(input, additional))
+}
+
+fn redact_free_text(input: &str, additional: &[&str]) -> String {
     let mut output = String::with_capacity(input.len());
     let chars: Vec<char> = input.chars().collect();
     let mut index = 0;
@@ -140,7 +146,7 @@ fn redact_free_text(input: &str) -> String {
             .or_else(|| match_bearer(&chars, index))
             .or_else(|| match_sk_token(&chars, index))
             .or_else(|| match_jwt(&chars, index))
-            .or_else(|| match_sensitive_assignment(&chars, index))
+            .or_else(|| match_sensitive_assignment(&chars, index, additional))
         {
             output.push_str(&replacement);
             index += consumed;
@@ -157,7 +163,11 @@ fn redact_free_text(input: &str) -> String {
 /// Command output commonly uses `api_key=value` rather than valid JSON.
 /// Keep the label/separators but mask the complete delimited value, including
 /// escaped quoted text and truncated final lines.
-fn match_sensitive_assignment(chars: &[char], start: usize) -> Option<(usize, String)> {
+fn match_sensitive_assignment(
+    chars: &[char],
+    start: usize,
+    additional: &[&str],
+) -> Option<(usize, String)> {
     let key_char = |ch: char| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-');
     if start > 0 && key_char(chars[start - 1]) {
         return None;
@@ -175,7 +185,9 @@ fn match_sensitive_assignment(chars: &[char], start: usize) -> Option<(usize, St
         return None;
     }
     let key: String = chars[key_start..cursor].iter().collect();
-    if !is_sensitive_log_key(&key) {
+    let extra_key =
+        !additional.is_empty() && additional.contains(&normalize_log_key(&key).as_str());
+    if !extra_key && !is_sensitive_log_key(&key) {
         return None;
     }
     if let Some(quote) = key_quote {
@@ -247,7 +259,14 @@ fn match_sensitive_assignment(chars: &[char], start: usize) -> Option<(usize, St
     let value: String = chars[value_start..cursor].iter().collect();
     Some((
         cursor - start,
-        format!("{prefix}{}", mask_sensitive(&value)),
+        format!(
+            "{prefix}{}",
+            if extra_key {
+                "****".to_owned()
+            } else {
+                mask_sensitive(&value)
+            }
+        ),
     ))
 }
 

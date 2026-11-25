@@ -57,9 +57,15 @@ impl HistoryRecord {
             provider: provider.as_deref().map(redact_log_text),
             status: row.status,
             at: row.checked_in_at.to_rfc3339(),
-            reason: row.message.as_deref().map(redact_log_text),
+            reason: row
+                .message
+                .as_deref()
+                .map(ccr_checkin::services::checkin_service::redact_provider_feedback),
             error_code: row.error_code.as_deref().map(redact_log_text),
-            reward: row.reward.as_deref().map(redact_log_text),
+            reward: row
+                .reward
+                .as_deref()
+                .map(ccr_checkin::services::checkin_service::redact_provider_feedback),
             before: row.balance_before.and_then(finite_number),
             after: row.balance_after.and_then(finite_number),
         }

@@ -166,7 +166,9 @@ impl Services {
                 let reward: Option<String> = row.get(1)?;
                 let saved = checked.entry(date).or_insert(None);
                 if let Some(reward) = reward {
-                    *saved = Some(redact_log_text(&reward));
+                    *saved = Some(
+                        ccr_checkin::services::checkin_service::redact_provider_feedback(&reward),
+                    );
                 }
             }
             let streak_end = if checked.contains_key(&today) {

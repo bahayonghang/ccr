@@ -451,6 +451,36 @@ fn merge_cookies(
     merged
 }
 
+/// Project current or historical provider feedback without consulting stored credentials.
+pub fn redact_provider_feedback(message: &str) -> String {
+    ccr_core::core::log_redact::redact_log_text_with_keys(
+        message,
+        &[
+            "session",
+            "sessionid",
+            "cfclearance",
+            "acwtc",
+            "acwscv2",
+            "cdnsectc",
+        ],
+    )
+}
+
+fn safe_response_text(message: &str, cookies: &HashMap<String, String>) -> String {
+    // A provider may echo a request cookie without its field name. Handle longer
+    // values first so one cookie cannot leave the suffix of another visible.
+    let mut secrets: Vec<_> = cookies
+        .values()
+        .filter(|s| !s.is_empty() && message.contains(s.as_str()))
+        .collect();
+    secrets.sort_unstable_by_key(|s| std::cmp::Reverse(s.len()));
+    let mut safe = message.to_owned();
+    for secret in secrets {
+        safe = safe.replace(secret.as_str(), "****");
+    }
+    redact_provider_feedback(&safe)
+}
+
 fn cookie_header_string(cookies: &HashMap<String, String>) -> String {
     cookies
         .iter()
@@ -1166,15 +1196,17 @@ impl CheckinService {
             return match interpret_checkin_json(status, &data) {
                 CheckinOutcome::Success { message, reward } => Ok(CheckinSuccessOutcome {
                     status: CheckinStatus::Success,
-                    message,
-                    reward,
+                    message: safe_response_text(&message, &cookies),
+                    reward: reward.map(|s| safe_response_text(&s, &cookies)),
                 }),
                 CheckinOutcome::AlreadyCheckedIn { message } => Ok(CheckinSuccessOutcome {
                     status: CheckinStatus::AlreadyCheckedIn,
-                    message,
+                    message: safe_response_text(&message, &cookies),
                     reward: None,
                 }),
-                CheckinOutcome::Failed { message } => Err(CheckinServiceError::Api(message)),
+                CheckinOutcome::Failed { message } => Err(CheckinServiceError::Api(
+                    safe_response_text(&message, &cookies),
+                )),
             };
         }
 
@@ -1382,7 +1414,7 @@ impl CheckinService {
                 .unwrap_or("API 响应缺少 'data' 字段");
             return Err(CheckinServiceError::Api(format!(
                 "{}: API 响应缺少余额数据",
-                error_msg
+                safe_response_text(error_msg, &cookies)
             )));
         }
 

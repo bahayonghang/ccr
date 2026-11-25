@@ -147,7 +147,7 @@ pub struct JobReport {
 }
 
 fn safe_message(raw: &str) -> Option<String> {
-    let scrubbed = redact_log_text(raw);
+    let scrubbed = ccr_checkin::services::checkin_service::redact_provider_feedback(raw);
     let message: String = scrubbed
         .trim()
         .chars()

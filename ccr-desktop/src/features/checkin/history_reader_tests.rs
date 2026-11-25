@@ -103,7 +103,7 @@ fn filtered_records_retain_saved_fields_and_enabled_today_counts() {
     .unwrap();
     let failure = CheckinRecord::failed(
         "measured".into(),
-        "access refused token=controlled-private-token-value".into(),
+        "access refused session=legacy-session-value token=controlled-private-token-value".into(),
         Some("cookie_expired".into()),
     );
     checkin_repo::insert_record(&db, &failure).unwrap();
@@ -157,6 +157,7 @@ fn filtered_records_retain_saved_fields_and_enabled_today_counts() {
     let message = failed.rows[0].reason.as_deref().unwrap();
     assert!(message.contains("access refused"));
     assert!(!message.contains("controlled-private-token-value"));
+    assert!(!message.contains("legacy-session-value"));
     assert!(!root.path().join("checkin-crypto").exists());
     owner.shutdown();
 }

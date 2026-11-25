@@ -39,7 +39,7 @@ fn mixed_jobs_confirm_identity_retain_results_throttle_and_preserve_failed_sampl
             let (status, body) = if user == "bad" || (user == "good" && fail_good.load(Ordering::SeqCst)) {
                 ("401 Unauthorized", r#"{"success":false,"message":"Unauthorized"}"#)
             } else if method == "post" {
-                ("200 OK",r#"{"success":true,"message":"Fixture saved","data":{"reward":"1 USD"}}"#)
+                ("200 OK",r#"{"success":true,"message":"Fixture saved session=private-echo and cookie fixture-secret","data":{"reward":"1 USD"}}"#)
             } else if user == "today" {
                 ("200 OK",r#"{"success":true,"data":{"check_in_today":true,"quota":500000,"used_quota":100000}}"#)
             } else {
@@ -111,7 +111,19 @@ fn mixed_jobs_confirm_identity_retain_results_throttle_and_preserve_failed_sampl
         items["good"].status,
         JobStatus::Checked(CheckinStatus::Success)
     );
-    assert_eq!(items["good"].message.as_deref(), Some("Fixture saved"));
+    let message = items["good"].message.as_deref().unwrap();
+    assert!(message.contains("Fixture saved"));
+    assert!(!message.contains("private-echo") && !message.contains("fixture-secret"));
+    let stored = services
+        .checkin_records(&RecordQuery {
+            account: Some(ids["good"].clone()),
+            ..Default::default()
+        })
+        .unwrap()
+        .unwrap();
+    let record = &stored.rows[0];
+    assert_eq!(record.reward.as_deref(), Some("1 USD"));
+    assert_eq!(record.reason.as_deref(), Some(message));
     assert_eq!(
         items["today"].status,
         JobStatus::Checked(CheckinStatus::AlreadyCheckedIn)
