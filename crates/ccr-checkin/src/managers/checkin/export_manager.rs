@@ -4,20 +4,26 @@
 use crate::core::crypto::CryptoManager;
 use crate::managers::checkin::{AccountManager, ProviderManager};
 use crate::models::checkin::{
-    CheckinAccount, EXPORT_VERSION, ExportAccount, ExportData, ExportOptions,
+    CheckinAccount, CheckinProvider, EXPORT_VERSION, ExportAccount, ExportData, ExportOptions,
     ImportConflictStrategy, ImportOptions, ImportPreviewItem, ImportPreviewResponse, ImportResult,
 };
 use ccr_db::database::{self, DbAccess};
 use std::path::{Path, PathBuf};
 #[path = "export_transfer.rs"]
 mod transfer;
-pub use transfer::ImportSession;
+pub use transfer::{ImportReceipt, ImportSession};
 
 #[derive(Debug, thiserror::Error)]
 #[allow(dead_code)]
 pub enum ExportError {
     #[error("Import source or local data changed; preview again")]
     Conflict,
+    #[error("The original local credential key is missing or unreadable")]
+    ExistingKeyUnavailable,
+    #[error("Export requires a new destination file")]
+    DestinationExists,
+    #[error("Import stopped after saving the verified backup")]
+    PartialImport(Box<ImportReceipt>),
     #[error("Failed to export: {0}")]
     ExportFailed(String),
     #[error("Failed to import: {0}")]
@@ -127,9 +133,6 @@ impl ExportManager {
         let provider_manager = ProviderManager::with_db(self.db.clone());
         let account_manager = AccountManager::with_db(&self.checkin_dir, self.db.clone());
 
-        // 检查版本兼容性
-        let version_compatible = data.version == EXPORT_VERSION;
-
         // 获取现有数据
         let existing_providers = provider_manager
             .load_all()
@@ -138,6 +141,19 @@ impl ExportManager {
             .load_all()
             .map_err(|e| ExportError::AccountError(e.to_string()))?;
 
+        Ok(Self::preview_against(
+            data,
+            &existing_providers,
+            &existing_accounts,
+        ))
+    }
+
+    fn preview_against(
+        data: &ExportData,
+        existing_providers: &[CheckinProvider],
+        existing_accounts: &[CheckinAccount],
+    ) -> ImportPreviewResponse {
+        let version_compatible = data.version == EXPORT_VERSION;
         let mut items = Vec::new();
         let mut new_providers = 0;
         let mut conflicting_providers = 0;
@@ -214,7 +230,7 @@ impl ExportManager {
             ));
         }
 
-        Ok(ImportPreviewResponse {
+        ImportPreviewResponse {
             version_compatible,
             export_version: data.version.clone(),
             items,
@@ -224,28 +240,40 @@ impl ExportManager {
             conflicting_accounts,
             keys_encrypted,
             warnings,
-        })
+        }
     }
 
     /// 执行导入
     pub fn import(&self, data: ExportData, options: &ImportOptions) -> Result<ImportResult> {
+        let mut result = ImportResult::success("导入完成");
+        self.import_counted(data, options, &mut result)?;
+        Ok(result)
+    }
+
+    fn import_counted(
+        &self,
+        data: ExportData,
+        options: &ImportOptions,
+        result: &mut ImportResult,
+    ) -> Result<()> {
         let provider_manager = ProviderManager::with_db(self.db.clone());
         let account_manager = AccountManager::with_db(&self.checkin_dir, self.db.clone());
 
         let existing_accounts = account_manager
             .load_all()
             .map_err(|error| ExportError::AccountError(error.to_string()))?;
-        let mut result = ImportResult::success("导入完成");
 
         // 导入提供商
         if !options.accounts_only {
             let overwrite = options.conflict_strategy == ImportConflictStrategy::Overwrite;
-            let (imported, skipped) = provider_manager
-                .import_batch(data.providers, overwrite)
+            provider_manager
+                .import_batch_counted(
+                    data.providers,
+                    overwrite,
+                    &mut result.providers_imported,
+                    &mut result.providers_skipped,
+                )
                 .map_err(|e| ExportError::ProviderError(e.to_string()))?;
-
-            result.providers_imported = imported;
-            result.providers_skipped = skipped;
         }
 
         // 导入账号
@@ -300,12 +328,15 @@ impl ExportManager {
             }
 
             let overwrite = options.conflict_strategy == ImportConflictStrategy::Overwrite;
-            let (imported, skipped) = account_manager
-                .import_batch(accounts_to_import, overwrite)
+            account_manager
+                .import_batch_counted(
+                    accounts_to_import,
+                    overwrite,
+                    &mut result.accounts_imported,
+                    &mut result.accounts_skipped,
+                )
                 .map_err(|e| ExportError::AccountError(e.to_string()))?;
 
-            result.accounts_imported = imported;
-            result.accounts_skipped = skipped;
             result.accounts_need_reauth = need_reauth;
 
             if need_reauth > 0 {
@@ -316,6 +347,6 @@ impl ExportManager {
             }
         }
 
-        Ok(result)
+        Ok(())
     }
 }
