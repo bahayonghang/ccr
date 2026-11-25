@@ -140,6 +140,31 @@ just gpui-dev --fixture-profiles <absolute-fixture>/profiles.toml --fixture-regi
 `partial` 报告新增 2 条和 1 个来源错误，供核对部分更新及报表条件保留。普通 fixture
 仍禁用导入。
 
+### 签到工作台的本地提供商夹具
+
+在仓库根运行 `python ccr-desktop/scripts/checkin_fixture.py`，保持该终端开启。它在本次检出的
+`outputs/desktop/checkin-*` 新建一份合成配置，绑定 `127.0.0.1` 的空闲端口，并打印第二个终端
+的 `just gpui-dev` 命令和导入文件绝对路径。从侧栏进入「签到管理」→「导入导出」，粘贴
+`accounts.json` 的绝对路径，预览再确认。首次导入在该目录生成签到库和设备密钥。每次重启
+脚本都会生成独立的库目录和端口，可从头复测。Ctrl+C 停止测试服务。
+
+- 清空筛选，先从 Ready 行刷新余额，再立即从页头刷新余额。Ready 的近期刷新应跳过，
+  Today 有实测值，Expired 失败；Disabled 没有进入该批。再次手动刷新 Ready 会多一条 GET。
+- 搜索 Ready 后点「一键签到」，确认仍列出四个启用账户和各自的提供商。确认后切到其他页面再返回，
+  核对 Ready 成功、Today 今日已签到、Expired 凭据错误、Paused provider 因提供商停用而跳过。
+  终端分别记录 2、1、2、0 次请求。需要观察忙碌状态时，用 `--delay-ms 1000` 启动脚本。
+- 清除搜索，选择 Disabled 与 Expired，确认「签到所选」只含两者。Disabled 跳过且没有请求。
+  从 Expired 的结果项编辑凭据，取消或保存后回到该项。提供商始终对这个合成 ID 返回 401。
+- 进入、重读、筛选与取消确认不会在服务端增加请求。余额按保存的币种、时间和账户重读；
+  每轮请求编号会打印在服务终端，失败后已有快照及上次成功时间保留。
+
+开发入口需要 Cargo feature `native-checkin-fixture`、开关 `--fixture-checkin-loopback`、
+同目录的 `profiles.toml` 与 `config.toml`，以及内容为 `ccr-gpui-checkin-fixture-v1`
+（UTF-8，无换行）的 `.ccr-gpui-checkin-fixture`。目录须在当前编译检出的实际
+`outputs/desktop/` 下。脚本与启动参数均使用绝对路径。只有显式准入的自定义数值
+loopback 提供商可以发送请求，客户端关闭代理和重定向。普通 fixture 与 Benchmark 禁止提供商请求。
+默认构建不识别此专用开关。
+
 ### 同步工作台的本地 WebDAV 夹具
 
 从普通合成 catalog 创建独立副本，使同一目录内有 `config.toml`、`profiles.db` 和
