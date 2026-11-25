@@ -95,28 +95,36 @@ pub fn tokenize(text: &str) -> Result<Vec<String>, TokenizeError> {
     Ok(words)
 }
 
+/// Formats argument words as text that splits back into the same words.
+pub fn format_args(args: &[String]) -> String {
+    args.iter()
+        .map(|word| {
+            if word.is_empty() || word.chars().any(char::is_whitespace) {
+                format!("\"{word}\"")
+            } else {
+                word.clone()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// Formats `ccr <command> <args>` from already split argument words.
+pub fn format_command(command: &str, args: &[String]) -> String {
+    let args = format_args(args);
+    if args.is_empty() {
+        format!("ccr {command}")
+    } else {
+        format!("ccr {command} {args}")
+    }
+}
+
 /// The full command line shown in the preview well: `ccr <command> <args>`.
 pub fn preview(command: &str, text: &str) -> String {
-    let mut line = format!("ccr {command}");
     match tokenize(text) {
-        Ok(words) => {
-            for word in words {
-                line.push(' ');
-                if word.is_empty() || word.chars().any(char::is_whitespace) {
-                    line.push('"');
-                    line.push_str(&word);
-                    line.push('"');
-                } else {
-                    line.push_str(&word);
-                }
-            }
-        }
-        Err(_) => {
-            line.push(' ');
-            line.push_str(text.trim());
-        }
+        Ok(words) => format_command(command, &words),
+        Err(_) => format!("ccr {command} {}", text.trim()),
     }
-    line
 }
 
 /// Why Run is disabled for the loaded command and argument draft.

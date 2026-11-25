@@ -32,6 +32,7 @@ impl gpui_kit::EventEmitter<InstallRequested> for JobsView {}
 
 pub struct JobsView {
     requests: CommandRequests,
+    environment_name: Option<String>,
     catalog: Catalog,
     collection: Collection,
     records: Records,
@@ -66,6 +67,7 @@ impl JobsView {
     }
     pub fn clear_environment(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.suspend(cx);
+        self.environment_name = None;
         self.narrow_detail = false;
         self.job_id = None;
         self.snapshot = None;
@@ -106,6 +108,7 @@ impl JobsView {
         ];
         Self {
             catalog: Catalog::new(requests.catalog()),
+            environment_name: None,
             collection: Collection::default(),
             records: Records::new(&services, cx),
             requests,
@@ -236,6 +239,9 @@ impl JobsView {
         });
         cx.notify();
     }
+    pub fn set_environment_name(&mut self, name: String) {
+        self.environment_name = Some(name);
+    }
     pub fn open(&mut self, cx: &mut Context<Self>) {
         self.activate_records(cx);
         self.refresh(cx);
@@ -343,6 +349,9 @@ impl JobsView {
         {
             return;
         }
+        self.apply_snapshot(snapshot);
+    }
+    fn apply_snapshot(&mut self, snapshot: Snapshot) {
         let follow = self.snapshot.is_none() || self.log_pinned();
         let next_count = ledger::line_count(&snapshot);
         self.observe_error = None;
@@ -404,6 +413,15 @@ impl JobsView {
         self.cursor = rows.get(next).map(|name| (*name).to_string());
         self.list_scroll.scroll_to_item(next, ScrollStrategy::Top);
         cx.notify();
+    }
+    /// Loads the highlighted catalog cursor only if it is currently visible.
+    fn load_cursor(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(name) = self.cursor.clone() else {
+            return;
+        };
+        if self.visible(cx).iter().any(|entry| *entry == name) {
+            self.load(&name, window, cx);
+        }
     }
     /// Loads a catalog row into the editor. The loaded command stays fixed while
     /// a job runs; reloading the current command keeps its argument text.
@@ -498,10 +516,7 @@ impl JobsView {
     fn cancel(&mut self, cx: &mut Context<Self>) {
         if let Some(id) = &self.job_id {
             match self.requests.cancel(id) {
-                Ok(snapshot) => {
-                    self.busy = !snapshot.status.is_terminal();
-                    self.snapshot = Some(snapshot);
-                }
+                Ok(snapshot) => self.apply_snapshot(snapshot),
                 Err(error) => self.message = Some(error.message()),
             }
         }

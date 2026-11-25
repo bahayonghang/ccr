@@ -46,16 +46,7 @@ pub enum Collection {
 
 /// Argument words as editor text that splits back into the same words.
 pub fn args_text(args: &[String]) -> String {
-    args.iter()
-        .map(|word| {
-            if word.is_empty() || word.chars().any(char::is_whitespace) {
-                format!("\"{word}\"")
-            } else {
-                word.clone()
-            }
-        })
-        .collect::<Vec<_>>()
-        .join(" ")
+    model::format_args(args)
 }
 
 /// The favorite saved for exactly this command and these argument words.
@@ -71,7 +62,7 @@ pub fn find_favorite<'a>(
 
 /// `ccr <command> <args>` for a favorite, redacted for display.
 pub fn favorite_line(row: &FavoriteRow) -> String {
-    redact_log_text(&model::preview(&row.command, &args_text(&row.args)))
+    redact_log_text(&model::format_command(&row.command, &row.args))
 }
 
 /// A favorite's display name, or its command when it has none.
@@ -946,7 +937,7 @@ fn record_row(
         .on_a11y_action(gpui_kit::AccessibleAction::Click, move |_, window, cx| {
             let _ = weak.update(cx, |this, cx| this.load_record(&a11y_key, window, cx));
         })
-        .h(theme::data_row_height(theme::MCP_ROW_HEIGHT, cx))
+        .h(theme::data_row_height(theme::COMMAND_ROW_HEIGHT, cx))
         .w_full()
         .flex()
         .items_center()

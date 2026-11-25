@@ -590,7 +590,13 @@ impl Shell {
             Destination::Usage => self.insights.update(cx, |view, cx| {
                 view.open_global(InsightsPage::Usage, window, cx)
             }),
-            Destination::Commands => self.jobs.update(cx, |view, cx| view.open(cx)),
+            Destination::Commands => {
+                let environment = self.environment_name(cx);
+                self.jobs.update(cx, |view, cx| {
+                    view.set_environment_name(environment);
+                    view.open(cx);
+                });
+            }
             Destination::McpManager => self.mcp.update(cx, |view, cx| view.open_global(cx)),
             Destination::Checkin => self.checkin.update(cx, |view, cx| view.refresh(cx)),
             Destination::Sync => {

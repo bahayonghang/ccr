@@ -2,7 +2,7 @@
 use super::{
     InstallRequested, JobsView,
     collections::Collection,
-    ledger,
+    ledger::{self, Truncation},
     model::{self, Availability, Blocked, Filter},
 };
 use crate::{
@@ -67,20 +67,7 @@ fn eyebrow(label: &'static str, cx: &App) -> Div {
         .child(label)
 }
 
-fn status_label(cx: &App, status: Status) -> &'static str {
-    match status {
-        Status::Queued => text(cx, "Queued.", "排队。"),
-        Status::Running => text(cx, "Running.", "正在运行。"),
-        Status::Success => text(cx, "Succeeded.", "已成功。"),
-        Status::Failed => text(cx, "Failed.", "已失败。"),
-        Status::Cancelled => text(cx, "Cancelled.", "已取消。"),
-        Status::TimedOut => text(cx, "Timed out.", "已超时。"),
-        Status::CleanupFailed => text(cx, "Cleanup failed.", "清理失败。"),
-        Status::Unavailable => text(cx, "Unavailable.", "不可用。"),
-    }
-}
-
-/// Header tag for the latest job: info while it runs, its outcome afterwards.
+/// Header and ledger tag for the latest job: info while it runs, outcome afterwards.
 fn status_tag(cx: &App, status: Status) -> (&'static str, Tone) {
     match status {
         Status::Queued => (text(cx, "Queued", "排队中"), Tone::Info),
@@ -95,7 +82,8 @@ fn status_tag(cx: &App, status: Status) -> (&'static str, Tone) {
 }
 
 fn job_state(cx: &App, snapshot: &Snapshot) -> String {
-    let status = status_label(cx, snapshot.status);
+    let status = status_tag(cx, snapshot.status).0;
+    let period = text(cx, ".", "。");
     let cancel = if snapshot.cancel_requested {
         text(cx, "Cancel was requested.", "已请求取消。")
     } else {
@@ -117,7 +105,7 @@ fn job_state(cx: &App, snapshot: &Snapshot) -> String {
     } else {
         text(cx, "Output was not truncated.", "输出没有被截断。")
     };
-    format!("{status} {cancel}{exit} {dropped} {truncated}")
+    format!("{status}{period} {cancel}{exit} {dropped} {truncated}")
 }
 
 fn availability_label(cx: &App, availability: Availability) -> &'static str {
@@ -188,10 +176,13 @@ fn hints_line(cx: &App, entry: &CommandInfo) -> String {
 
 impl JobsView {
     fn environment_label(&self, cx: &App) -> String {
-        let environment = match self.requests.environment() {
-            ccr_app::runtime::EnvironmentId::Local(_) => text(cx, "Local", "本地"),
-            ccr_app::runtime::EnvironmentId::Ssh(_) => "SSH",
-            _ => text(cx, "Unavailable", "不可用"),
+        let environment = match self.environment_name.as_deref() {
+            Some(name) if !name.is_empty() => name.to_string(),
+            _ => match self.requests.environment() {
+                ccr_app::runtime::EnvironmentId::Local(_) => text(cx, "Local", "本地").to_string(),
+                ccr_app::runtime::EnvironmentId::Ssh(id) => format!("SSH · {id}"),
+                _ => text(cx, "Unavailable", "不可用").to_string(),
+            },
         };
         format!(
             "{} · {environment}",
@@ -449,11 +440,7 @@ impl JobsView {
                 match event.keystroke.key.as_str() {
                     "down" => this.move_cursor(true, cx),
                     "up" => this.move_cursor(false, cx),
-                    "enter" => {
-                        if let Some(name) = this.cursor.clone() {
-                            this.load(&name, window, cx);
-                        }
-                    }
+                    "enter" => this.load_cursor(window, cx),
                     _ => return,
                 }
                 cx.stop_propagation();
@@ -517,6 +504,7 @@ impl JobsView {
             ))
             .child(self.favorite_toggle(cx))
             .child(run);
+        let title = entry.map(|entry| entry.title).unwrap_or_default();
         let description = entry.map(|entry| entry.description).unwrap_or_default();
         let mut panel = reading_panel("command-editor", cx)
             .flex_shrink_0()
@@ -541,6 +529,16 @@ impl JobsView {
                     )
                     .child(actions),
             )
+            .when(!title.is_empty(), |panel| {
+                panel.child(
+                    div()
+                        .id("command-editor-title")
+                        .test_support()
+                        .aria_label(title)
+                        .font_weight(FontWeight::MEDIUM)
+                        .child(title),
+                )
+            })
             .when(!description.is_empty(), |panel| {
                 panel.child(
                     div()
@@ -757,10 +755,12 @@ impl JobsView {
             let (tag_label, tag_tone) = status_tag(cx, snapshot.status);
             let duration_value = ledger::duration(snapshot.duration_ms, zh);
             let exit_value = ledger::exit_code(snapshot.exit_code);
-            let dropped = ledger::dropped(snapshot);
-            let lines_value = match dropped {
-                Some(n) if zh => format!("{count} · 已丢弃 {n} 行"),
-                Some(n) => format!("{count} · {n} dropped"),
+            let truncation = ledger::truncation(snapshot);
+            let lines_value = match truncation {
+                Some(Truncation::Dropped(n)) if zh => format!("{count} · 已丢弃 {n} 行"),
+                Some(Truncation::Dropped(n)) => format!("{count} · {n} dropped"),
+                Some(Truncation::ClippedOnly) if zh => format!("{count} · 已截断"),
+                Some(Truncation::ClippedOnly) => format!("{count} · truncated"),
                 None => count.to_string(),
             };
             let status_title = text(cx, "Status", "状态");
@@ -956,11 +956,16 @@ impl JobsView {
             ));
         }
 
-        if let Some(dropped) = self.snapshot.as_ref().and_then(ledger::dropped) {
-            let notice = if zh {
-                format!("输出已截断，已丢弃 {dropped} 行。")
-            } else {
-                format!("Output was truncated; {dropped} lines dropped.")
+        if let Some(truncation) = self.snapshot.as_ref().and_then(ledger::truncation) {
+            let notice = match truncation {
+                Truncation::Dropped(dropped) if zh => {
+                    format!("输出已截断，已丢弃 {dropped} 行。")
+                }
+                Truncation::Dropped(dropped) => {
+                    format!("Output was truncated; {dropped} lines dropped.")
+                }
+                Truncation::ClippedOnly if zh => "单行输出超限，已截断。".to_string(),
+                Truncation::ClippedOnly => "Long output lines were truncated.".to_string(),
             };
             panel = panel.child(
                 div()
@@ -1155,7 +1160,7 @@ fn catalog_row(
         .on_a11y_action(gpui_kit::AccessibleAction::Click, move |_, window, cx| {
             let _ = weak.update(cx, |this, cx| this.load(name, window, cx));
         })
-        .h(theme::data_row_height(theme::MCP_ROW_HEIGHT, cx))
+        .h(theme::data_row_height(theme::COMMAND_ROW_HEIGHT, cx))
         .w_full()
         .flex()
         .flex_col()

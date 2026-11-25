@@ -2,7 +2,9 @@
 //!
 //! 无 GPUI 依赖。账本视图只消费这里的结果。
 
+use super::model::format_command;
 use ccr_app::jobs::commands::{Channel, Snapshot};
+use ccr_core::core::log_redact::redact_log_text;
 use std::borrow::Cow;
 
 /// Longest log line shown in full; a longer line is cut and ends with「…」.
@@ -99,31 +101,16 @@ pub fn short_job_id(id: &str) -> String {
         .collect()
 }
 
-fn command_line(command: &str, args: &[String]) -> String {
-    let mut line = format!("ccr {command}");
-    for arg in args {
-        line.push(' ');
-        if arg.is_empty() || arg.chars().any(char::is_whitespace) {
-            line.push('"');
-            line.push_str(arg);
-            line.push('"');
-        } else {
-            line.push_str(arg);
-        }
-    }
-    line
-}
-
-/// `ccr <command> <args> · job <id> · grouped by channel`.
+/// `ccr <command> <args> · job <id> · grouped by channel` (arguments redacted).
 pub fn subtitle(snapshot: &Snapshot, zh: bool) -> String {
     let (job, grouped) = if zh {
         ("任务", "按通道分组")
     } else {
         ("job", "grouped by channel")
     };
+    let command = redact_log_text(&format_command(&snapshot.command, &snapshot.args));
     format!(
-        "{} · {job} {} · {grouped}",
-        command_line(&snapshot.command, &snapshot.args),
+        "{command} · {job} {} · {grouped}",
         short_job_id(&snapshot.job_id)
     )
 }
@@ -140,9 +127,21 @@ pub fn exit_code(code: Option<i32>) -> String {
     code.map_or_else(|| UNKNOWN.to_string(), |code| code.to_string())
 }
 
-/// Lines the owner dropped, when output was truncated or lines were dropped.
-pub fn dropped(snapshot: &Snapshot) -> Option<usize> {
-    (snapshot.truncated || snapshot.dropped_lines > 0).then_some(snapshot.dropped_lines)
+/// Whether output lost whole lines, or only clipped overlong lines without dropping rows.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Truncation {
+    ClippedOnly,
+    Dropped(usize),
+}
+
+pub fn truncation(snapshot: &Snapshot) -> Option<Truncation> {
+    if snapshot.dropped_lines > 0 {
+        Some(Truncation::Dropped(snapshot.dropped_lines))
+    } else if snapshot.truncated {
+        Some(Truncation::ClippedOnly)
+    } else {
+        None
+    }
 }
 
 /// Row height and virtual-list stride for one log line.
@@ -268,15 +267,23 @@ mod tests {
     }
 
     #[test]
-    fn dropped_lines_are_reported_when_output_was_truncated_or_dropped() {
+    fn subtitle_redacts_secrets_in_arguments() {
+        let mut snapshot = snapshot(&[], &[], &[]);
+        snapshot.args = vec!["--token".into(), "sk-1234567890abcdef123456".into()];
+        let shown = subtitle(&snapshot, false);
+        assert!(!shown.contains("sk-1234567890abcdef123456"));
+    }
+
+    #[test]
+    fn truncation_distinguishes_clipped_lines_from_dropped_rows() {
         let mut snapshot = snapshot(&[], &["alpha"], &[]);
-        assert_eq!(dropped(&snapshot), None);
+        assert_eq!(truncation(&snapshot), None);
         snapshot.truncated = true;
-        assert_eq!(dropped(&snapshot), Some(0));
+        assert_eq!(truncation(&snapshot), Some(Truncation::ClippedOnly));
         snapshot.dropped_lines = 3;
-        assert_eq!(dropped(&snapshot), Some(3));
+        assert_eq!(truncation(&snapshot), Some(Truncation::Dropped(3)));
         snapshot.truncated = false;
-        assert_eq!(dropped(&snapshot), Some(3));
+        assert_eq!(truncation(&snapshot), Some(Truncation::Dropped(3)));
         snapshot.stdout_lines = VecDeque::new();
         assert_eq!(line_count(&snapshot), 0);
     }

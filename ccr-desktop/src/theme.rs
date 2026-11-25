@@ -60,9 +60,10 @@ pub const FILTER_CHIP_HEIGHT: f32 = 28.;
 pub const DOT_SIZE: f32 = 8.;
 pub const SEARCH_WIDTH: f32 = 300.;
 pub const EMPTY_ICON_SIZE: f32 = 24.;
-/// 两行列表行定高：Agent sessions 60px；MCP Manager 56px。
+/// 两行列表行定高：Agent sessions 60px；MCP Manager / 命令工作台 56px。
 pub const TWO_LINE_ROW_HEIGHT: f32 = 60.;
 pub const MCP_ROW_HEIGHT: f32 = 56.;
+pub const COMMAND_ROW_HEIGHT: f32 = 56.;
 /// 概览右栏占内容宽的比例；取 8 的倍数后限制在 MIN..=MAX。
 pub const OVERVIEW_RAIL_SHARE: f32 = 0.24;
 pub const OVERVIEW_RAIL_MIN: f32 = 280.;

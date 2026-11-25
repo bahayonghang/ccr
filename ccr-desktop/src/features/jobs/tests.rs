@@ -18,22 +18,7 @@ fn fixture_services(owner: &RuntimeOwner, root: &std::path::Path) -> Services {
 
 /// The command page alone in a 1280×800 window.
 fn open(cx: &mut TestAppContext, services: Services) -> (AnyWindowHandle, Entity<JobsView>) {
-    cx.update(|cx| {
-        gpui_kit::init(cx);
-        crate::theme::init(cx);
-        gpui_kit::open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(gpui_kit::Bounds::new(
-                    gpui_kit::point(px(0.), px(0.)),
-                    size(px(1280.), px(800.)),
-                ))),
-                ..Default::default()
-            },
-            cx,
-            |window, cx| cx.new(|cx| JobsView::new(services, window, cx)),
-        )
-        .unwrap_or_else(|_| panic!("window"))
-    })
+    open_at(cx, services, 1280., 800.)
 }
 
 fn set_input(
@@ -1473,5 +1458,74 @@ async fn f6_region_cycle_covers_command_list_and_work_column(cx: &mut TestAppCon
         window.remove_window();
     })
     .unwrap_or_else(|_| panic!("f6 cycle"));
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+fn review_regressions_hidden_cursor_enter_clipped_only_and_editor_title(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let fixture = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
+    let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+    let (handle, view) = open(cx, fixture_services(&owner, fixture.path()));
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        // 1. Editor shows the command title alongside name and description (US7).
+        assert_eq!(label(window, "command-editor-title"), "Status overview");
+
+        // 2. Filtering out the previous cursor prevents Enter from loading the hidden command.
+        window.click("command-row:validate", cx);
+        window.render_frame(cx);
+        assert_eq!(view.read(cx).selected, "validate");
+        let search = view.read(cx).search.clone();
+        set_input(&search, "history", window, cx);
+        window.render_frame(cx);
+        view.update(cx, |this, _| this.selected = "status".into());
+        window.render_frame(cx);
+        let list_focus = view.read(cx).list_focus.clone();
+        window.focus(&list_focus, cx);
+        window.press("enter", cx);
+        assert_eq!(
+            view.read(cx).selected,
+            "status",
+            "Enter must ignore a cursor hidden by current search/filter"
+        );
+
+        // 3. Single-line clipping without dropped rows never says "0 dropped".
+        let snap = Snapshot {
+            job_id: "ccr-command-cafebabe-0001".into(),
+            command: "status".into(),
+            args: vec!["--token".into(), "sk-1234567890abcdef123456".into()],
+            status: ccr_app::jobs::commands::Status::Success,
+            cancel_requested: false,
+            started_at: "2026-11-25T00:00:00Z".into(),
+            finished_at: Some("2026-11-25T00:00:01Z".into()),
+            duration_ms: Some(500),
+            exit_code: Some(0),
+            system_lines: Default::default(),
+            stdout_lines: vec!["x".repeat(9000)].into(),
+            stderr_lines: Default::default(),
+            truncated: true,
+            dropped_lines: 0,
+            error: None,
+        };
+        view.update(cx, |this, cx| {
+            this.job_id = Some(snap.job_id.clone());
+            this.accept_snapshot(this.generation, snap);
+            cx.notify();
+        });
+        window.render_frame(cx);
+        assert!(
+            !label(window, "command-ledger-subtitle").contains("sk-1234567890abcdef123456"),
+            "ledger subtitle must redact secret tokens"
+        );
+        let lines_readout = label(window, "command-ledger-readout-lines");
+        assert!(lines_readout.contains("truncated"));
+        assert!(!lines_readout.contains("0 dropped"));
+        let trunc_banner = label(window, "command-ledger-truncated");
+        assert!(trunc_banner.contains("truncated"));
+        assert!(!trunc_banner.contains("0 lines dropped"));
+        window.remove_window();
+    })
+    .unwrap_or_else(|_| panic!("review regressions"));
     owner.shutdown();
 }
