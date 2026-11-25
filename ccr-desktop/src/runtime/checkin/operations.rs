@@ -4,6 +4,8 @@ use ccr_app::environments::EnvironmentPolicy;
 mod credentials;
 mod crypto_guard;
 mod jobs;
+#[path = "transfer.rs"]
+mod transfer;
 pub use credentials::AccountCredentials;
 pub use jobs::{AccountJob, JobAction, JobItem, JobReport, JobScope, JobStatus, JobTarget};
 #[path = "extended.rs"]
@@ -57,6 +59,7 @@ pub enum OperationError {
     ImportCredentials,
     ImportConflict,
     ImportInvalid,
+    ExportDestinationExists,
     QueryInvalid,
     TargetsChanged,
 }
@@ -247,6 +250,51 @@ impl CheckinOperations {
         *cache = Some(storage.clone());
         Ok(storage)
     }
+    fn run_operation(
+        &self,
+        source: &ConfigSource,
+        operation: Operation,
+    ) -> (Result<Outcome, OperationError>, Option<ManagementSnapshot>) {
+        if let Operation::Extended(ExtendedCommand::Import { session, overwrite }) = operation {
+            let outcome = self
+                .commit_transfer(source, &session, overwrite)
+                .and_then(|report| {
+                    self.state
+                        .lock()
+                        .map_err(|_| OperationError::Storage)?
+                        .extended = Some(Arc::new(report));
+                    Ok(Outcome::Extended)
+                });
+            return (outcome, None);
+        }
+        let account_job = matches!(operation, Operation::Job(_));
+        let exporting = matches!(
+            operation,
+            Operation::Extended(ExtendedCommand::Export(_) | ExtendedCommand::ExportStats(_))
+        );
+        let storage = if exporting {
+            transfer::existing_export_storage(source)
+        } else {
+            validate_first_save(source, &operation).and_then(|()| self.storage(source))
+        };
+        let result = storage.as_ref().map_err(|e| *e).and_then(|storage| {
+            tokio::runtime::Handle::try_current()
+                .map_err(|_| OperationError::Interrupted)?
+                .block_on(execute(storage, source, self, operation))
+        });
+        let snapshot = if exporting || account_job {
+            None
+        } else {
+            let records = result
+                .as_ref()
+                .ok()
+                .map(|(_, records)| records.clone())
+                .unwrap_or_default();
+            storage.ok().and_then(|s| s.snapshot(records).ok())
+        };
+        (result.map(|(outcome, _)| outcome), snapshot)
+    }
+
     fn finish(
         &self,
         result: Result<Outcome, OperationError>,
@@ -290,17 +338,6 @@ impl Services {
     pub fn observe_checkin(&self) -> watch::Receiver<Arc<OperationState>> {
         self.checkin_operations.updates.subscribe()
     }
-    pub fn discard_checkin_preview(&self) {
-        let owner = &self.checkin_operations;
-        let mut state = owner
-            .state
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        if !state.busy && matches!(state.extended.as_deref(), Some(ExtendedReport::Preview(_))) {
-            state.extended = None;
-            owner.updates.send_replace(Arc::new(state.clone()));
-        }
-    }
     pub fn start_checkin(
         &self,
         key: RequestKey,
@@ -318,6 +355,16 @@ impl Services {
             if state.busy {
                 return Err(OperationError::Busy);
             }
+            if matches!(
+                operation,
+                Operation::Extended(
+                    ExtendedCommand::Import { .. }
+                        | ExtendedCommand::Export(_)
+                        | ExtendedCommand::ExportStats(_)
+                )
+            ) {
+                state.snapshot = None;
+            }
             state.busy = true;
             state.result = None;
             state.created_account = None;
@@ -334,28 +381,7 @@ impl Services {
         self.executor
             .job(key, move |_, _| {
                 let mut pending = pending;
-                let account_job = matches!(operation, Operation::Job(_));
-                let storage =
-                    validate_first_save(&source, &operation).and_then(|()| owner.storage(&source));
-                let result = storage.as_ref().map_err(|e| *e).and_then(|storage| {
-                    tokio::runtime::Handle::try_current()
-                        .map_err(|_| OperationError::Interrupted)
-                        .and_then(|handle| {
-                            handle.block_on(execute(storage, &source, &owner, operation))
-                        })
-                });
-                let records = result
-                    .as_ref()
-                    .ok()
-                    .map(|(_, records)| records.clone())
-                    .unwrap_or_default();
-                let snapshot = if account_job {
-                    // The workbench refreshes its read-only balance/row projection on completion.
-                    None
-                } else {
-                    storage.ok().and_then(|s| s.snapshot(records).ok())
-                };
-                let outcome = result.map(|(outcome, _)| outcome);
+                let (outcome, snapshot) = owner.run_operation(&source, operation);
                 monitoring.terminal(
                     &source,
                     "checkin",

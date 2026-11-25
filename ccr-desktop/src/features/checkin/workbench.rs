@@ -28,7 +28,6 @@ impl CheckinView {
         self.cdk = None;
         self.extended = None;
         self.selected = None;
-        self.services.discard_checkin_preview();
         self.operation = self.services.checkin_operation_state();
         if tab == CheckinTab::Transfer {
             self.open_extended(window, cx);

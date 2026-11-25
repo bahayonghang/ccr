@@ -149,9 +149,20 @@ impl ProviderManager {
         providers_to_import: Vec<CheckinProvider>,
         overwrite: bool,
     ) -> Result<(usize, usize)> {
-        let existing = self.db.with_connection(checkin_repo::get_all_providers)?;
         let mut imported = 0;
         let mut skipped = 0;
+        self.import_batch_counted(providers_to_import, overwrite, &mut imported, &mut skipped)?;
+        Ok((imported, skipped))
+    }
+
+    pub(super) fn import_batch_counted(
+        &self,
+        providers_to_import: Vec<CheckinProvider>,
+        overwrite: bool,
+        imported: &mut usize,
+        skipped: &mut usize,
+    ) -> Result<()> {
+        let existing = self.db.with_connection(checkin_repo::get_all_providers)?;
 
         for new_provider in providers_to_import {
             let exists = existing
@@ -160,21 +171,23 @@ impl ProviderManager {
 
             if exists {
                 if overwrite {
-                    self.db.with_connection(|conn| {
+                    if !self.db.with_connection(|conn| {
                         checkin_repo::update_provider(conn, &new_provider)
-                    })?;
-                    imported += 1;
+                    })? {
+                        return Err(ProviderError::NotFound(new_provider.id));
+                    }
+                    *imported += 1;
                 } else {
-                    skipped += 1;
+                    *skipped += 1;
                 }
             } else {
                 self.db
                     .with_connection(|conn| checkin_repo::insert_provider(conn, &new_provider))?;
-                imported += 1;
+                *imported += 1;
             }
         }
 
-        Ok((imported, skipped))
+        Ok(())
     }
 
     /// 加载所有提供商（兼容旧 API）

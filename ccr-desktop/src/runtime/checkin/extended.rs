@@ -2,7 +2,7 @@
 use super::*;
 #[path = "inspection.rs"]
 mod inspection;
-use ccr_checkin::managers::checkin::export_manager::ImportSession;
+use ccr_checkin::managers::checkin::export_manager::{ImportReceipt, ImportSession};
 use ccr_checkin::{BalanceManager, ExportManager, WafCookieManager};
 use ccr_core::Secret;
 pub use inspection::{InspectionCommand, InspectionReport, RecordQuery};
@@ -22,7 +22,6 @@ pub enum ExtendedCommand {
     WafDelete(String),
     Export(PathBuf),
     ExportStats(PathBuf),
-    PreviewImport(PathBuf),
     Import {
         session: Arc<ImportSession>,
         overwrite: bool,
@@ -69,11 +68,9 @@ pub enum ExtendedReport {
         unusable: usize,
     },
     Exported {
-        path: PathBuf,
         stats: bool,
     },
-    Preview(Arc<ImportSession>),
-    Imported(ImportResult),
+    Imported(ImportReceipt),
     CdkSaved {
         account: String,
     },
@@ -222,41 +219,22 @@ pub(super) async fn execute_extended(
         }
         ExtendedCommand::Export(path) => {
             validate_transfer_path(source, &path)?;
-            // The domain exporter initializes crypto before its own file-write scope.
             storage.scoped(|| {
-                storage.guard_crypto_initialization()?;
-                ccr_checkin::core::crypto::CryptoManager::new(&storage.crypto)
-                    .map(|_| ())
-                    .map_err(|_| OperationError::Storage)
+                ExportManager::with_db(&storage.crypto, storage.db.clone())
+                    .export_file(&path)
+                    .map_err(import_error)
             })?;
-            ExportManager::with_db(&storage.crypto, storage.db.clone())
-                .export_file(&path)
-                .map_err(|_| OperationError::Storage)?;
-            Ok(ExtendedReport::Exported { path, stats: false })
+            Ok(ExtendedReport::Exported { stats: false })
         }
         ExtendedCommand::ExportStats(path) => {
             validate_transfer_path(source, &path)?;
             ExportManager::with_db(&storage.crypto, storage.db.clone())
                 .export_stats_file(&path)
-                .map_err(|_| OperationError::Storage)?;
-            Ok(ExtendedReport::Exported { path, stats: true })
-        }
-        ExtendedCommand::PreviewImport(path) => {
-            validate_transfer_path(source, &path)?;
-            let session = ExportManager::with_db(&storage.crypto, storage.db.clone())
-                .preview_file(&path)
                 .map_err(import_error)?;
-            Ok(ExtendedReport::Preview(Arc::new(session)))
+            Ok(ExtendedReport::Exported { stats: true })
         }
         ExtendedCommand::Import { session, overwrite } => {
-            validate_transfer_path(source, session.path())?;
-            storage.scoped(|| {
-                storage.guard_crypto_initialization()?;
-                ExportManager::with_db(&storage.crypto, storage.db.clone())
-                    .import_preview(&session, overwrite)
-                    .map(ExtendedReport::Imported)
-                    .map_err(import_error)
-            })
+            owner.commit_transfer(source, &session, overwrite)
         }
         ExtendedCommand::CdkCredentials { account, patch } => {
             storage.scoped(|| {
@@ -304,11 +282,13 @@ pub(super) async fn execute_extended(
     }
 }
 
-fn import_error(
+pub(super) fn import_error(
     error: ccr_checkin::managers::checkin::export_manager::ExportError,
 ) -> OperationError {
     use ccr_checkin::managers::checkin::export_manager::ExportError;
     match error {
+        ExportError::DestinationExists => OperationError::ExportDestinationExists,
+        ExportError::ExistingKeyUnavailable => OperationError::CryptoKeyUnavailable,
         ExportError::CryptoError(_) => OperationError::ImportCredentials,
         ExportError::Conflict => OperationError::ImportConflict,
         ExportError::VersionIncompatible(_) | ExportError::ImportFailed(_) => {
@@ -318,7 +298,10 @@ fn import_error(
     }
 }
 
-fn validate_transfer_path(source: &ConfigSource, path: &Path) -> Result<(), OperationError> {
+pub(super) fn validate_transfer_path(
+    source: &ConfigSource,
+    path: &Path,
+) -> Result<(), OperationError> {
     if let Some(layout) = source.benchmark() {
         return layout
             .check_path(path)

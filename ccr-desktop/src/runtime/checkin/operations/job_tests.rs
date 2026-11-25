@@ -269,14 +269,20 @@ fn documented_fixture_imports_via_preview_and_runs_the_marked_custom_provider() 
     };
     let runtime = RuntimeOwner::new().unwrap();
     let services = Services::new(runtime.handle(), source).with_checkin_loopback_fixture();
-    let preview = run(
-        &services,
-        Operation::Extended(ExtendedCommand::PreviewImport(file.clone())),
-        1,
-    );
-    let Some(ExtendedReport::Preview(session)) = preview.extended.as_deref() else {
-        panic!("preview {:?}", preview.result);
-    };
+    let mut preview = services
+        .checkin_import_preview(key(1), file.clone())
+        .unwrap();
+    let session = tokio::runtime::Runtime::new().unwrap().block_on(async {
+        loop {
+            if let Some(ccr_app::runtime::TaskEvent::Terminal(result)) = preview.next().await {
+                if let Completion::Success(session) = result.as_ref() {
+                    break session.clone();
+                }
+                panic!("fixture import preview failed");
+            }
+        }
+    });
+    assert!(!root.join("checkin.db").exists());
     let imported = run(
         &services,
         Operation::Extended(ExtendedCommand::Import {

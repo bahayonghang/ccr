@@ -128,7 +128,6 @@ impl CheckinView {
         self.checked_ids.clear();
         self.selected = None;
         self.navigation.clear();
-        self.services.discard_checkin_preview();
         self.operation = self.services.checkin_operation_state();
         self.confirmation = None;
         self.cdk = None;

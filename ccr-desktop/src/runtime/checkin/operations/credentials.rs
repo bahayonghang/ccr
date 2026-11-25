@@ -163,22 +163,49 @@ mod tests {
                 std::thread::sleep(Duration::from_millis(5));
             }
         };
+        // An existing database can be exported without running startup migrations.
+        let conn = rusqlite::Connection::open(source_root.path().join("checkin.db")).unwrap();
+        conn.execute_batch(database::schema::CREATE_TABLES_SQL)
+            .unwrap();
+        drop(conn);
+        let db_path = source_root.path().join("checkin.db");
+        let initial = std::fs::read(&db_path).unwrap();
+        run(
+            &source,
+            Operation::Extended(ExtendedCommand::ExportStats(
+                source_root.path().join("today.json"),
+            )),
+            0,
+        );
+        assert!(!source_root.path().join("checkin-crypto").exists());
         let export = source_root.path().join("empty-export.json");
         run(
             &source,
             Operation::Extended(ExtendedCommand::Export(export.clone())),
             1,
         );
+        assert!(!source_root.path().join("checkin-migration-home").exists());
+        assert_eq!(std::fs::read(db_path).unwrap(), initial);
         let copied = target_root.path().join("empty-import.json");
         std::fs::copy(export, &copied).unwrap();
-        let preview = run(
-            &target,
-            Operation::Extended(ExtendedCommand::PreviewImport(copied)),
-            2,
-        );
-        let ExtendedReport::Preview(session) = preview.extended.as_deref().unwrap() else {
-            panic!("preview")
+        let key = RequestKey {
+            environment: EnvironmentId::Local("fixture".into()),
+            platform: Platform::Claude,
+            generation: 2,
+            request_id: 2,
         };
+        let mut read = target.checkin_import_preview(key, copied).unwrap();
+        let session = tokio::runtime::Runtime::new().unwrap().block_on(async {
+            loop {
+                if let TaskEvent::Terminal(result) = read.next().await.unwrap() {
+                    if let Completion::Success(preview) = result.as_ref() {
+                        break preview.clone();
+                    }
+                    panic!("preview failed");
+                }
+            }
+        });
+        assert!(!target_root.path().join("checkin.db").exists());
         assert!(
             !target_root
                 .path()
