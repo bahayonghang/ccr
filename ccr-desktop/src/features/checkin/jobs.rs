@@ -282,7 +282,7 @@ impl CheckinView {
                 .items_center()
                 .gap(px(theme::CONTROL_GAP))
                 .child(line);
-            if item.error_code.as_deref() == Some("cookie_expired")
+            if crate::runtime::checkin::credential_error_code(item.error_code.as_deref())
                 && self.rows().iter().any(|r| &r.id == id)
             {
                 let source = format!("result-edit-{id}");

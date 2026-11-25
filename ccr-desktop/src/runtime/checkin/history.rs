@@ -40,13 +40,13 @@ pub struct HistoryRecord {
     pub after: Option<String>,
 }
 
+pub fn credential_error_code(code: Option<&str>) -> bool {
+    matches!(code, Some("cookie_expired" | "crypto_error"))
+}
+
 impl HistoryRecord {
     pub fn needs_credentials(&self) -> bool {
-        self.status == CheckinStatus::Failed
-            && matches!(
-                self.error_code.as_deref(),
-                Some("cookie_expired" | "crypto_error")
-            )
+        self.status == CheckinStatus::Failed && credential_error_code(self.error_code.as_deref())
     }
 
     fn from_record(row: CheckinRecord, account: Option<String>, provider: Option<String>) -> Self {

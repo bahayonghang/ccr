@@ -171,6 +171,29 @@ async fn filtered_header_selection_and_row_use_confirmed_ids_and_return_to_crede
         w.render_frame(cx);
         assert_eq!(w.find("result-edit-measured").focused(), Some(true));
         assert!(!labels(w).contains("private-test-value"));
+        conn.execute("UPDATE checkin_accounts SET cookies_json_encrypted='invalid-test-ciphertext' WHERE id='measured'", []).unwrap();
+        w.click("checkin-refresh-measured",cx);
+        w.render_frame(cx);
+        w.click("checkin-entry-confirm",cx);
+    }).unwrap();
+    wait(cx, handle, |w| {
+        w.try_find("checkin-result-measured")
+            .and_then(|n| n.label().map(|v| v.contains("crypto_error")))
+            == Some(true)
+    });
+    cx.update_window(handle, |_, w, cx| {
+        w.click("result-edit-measured", cx);
+    })
+    .unwrap();
+    wait(cx, handle, |w| {
+        w.try_find("checkin-credential-read-error").is_some()
+    });
+    cx.update_window(handle, |_, w, cx| {
+        w.click("checkin-cancel-edit", cx);
+        w.render_frame(cx);
+        w.simulate_next_frame(cx);
+        w.render_frame(cx);
+        assert_eq!(w.find("result-edit-measured").focused(), Some(true));
         w.remove_window();
     })
     .unwrap();
