@@ -1,6 +1,5 @@
 use super::*;
 use crate::runtime::checkin::{Operation, OperationError, Outcome};
-use ccr_checkin::managers::checkin::builtin_providers::get_builtin_providers;
 use ccr_core::Secret;
 use ccr_db::models::checkin::{
     CheckinStatus, CreateAccountRequest, CreateProviderRequest, UpdateAccountRequest,
@@ -98,6 +97,11 @@ pub(super) fn error(cx: &App, value: OperationError) -> &'static str {
             cx,
             "Operation interrupted; read saved data before retrying.",
             "操作中断，重试前请读取已保存的数据。",
+        ),
+        OperationError::DuplicateProvider => text(
+            cx,
+            "This provider is already configured.",
+            "此提供商已配置。",
         ),
         OperationError::ProviderInUse => text(
             cx,
@@ -390,61 +394,6 @@ impl CheckinView {
         children
     }
 
-    pub(super) fn render_provider_rows(
-        &self,
-        snapshot: &CheckinData,
-        cx: &mut Context<Self>,
-    ) -> Vec<gpui_kit::AnyElement> {
-        let mut children = Vec::new();
-        let locked = self.operation.busy;
-        for (index, p) in snapshot.providers.iter().enumerate() {
-            let id = p.id.clone();
-            let delete = id.clone();
-            children.push(
-                (div()
-                    .flex()
-                    .gap(px(theme::CONTROL_GAP))
-                    .child(ccr_core::core::log_redact::redact_log_text(&p.name))
-                    .child(
-                        self.origin_control(
-                            &format!("provider-{}", p.id),
-                            semantics::button(
-                                Button::new(("checkin-edit-provider", index))
-                                    .label(text(cx, "Edit provider", "编辑提供商"))
-                                    .ghost()
-                                    .on_click(cx.listener(move |this, _, window, cx| {
-                                        this.remember_editor_source(&format!("provider-{id}"));
-                                        this.edit(
-                                            EditorKind::Provider(Some(id.clone())),
-                                            window,
-                                            cx,
-                                        )
-                                    })),
-                                locked,
-                                false,
-                                cx,
-                            ),
-                        ),
-                    )
-                    .child(semantics::button(
-                        Button::new(("checkin-delete-provider", index))
-                            .label(text(cx, "Delete provider", "删除提供商"))
-                            .ghost()
-                            .on_click(cx.listener(move |this, _, _, cx| {
-                                this.confirmation = Some(Confirmation::Provider(delete.clone()));
-                                cx.notify();
-                            })),
-                        locked,
-                        false,
-                        cx,
-                    )))
-                .into_any_element(),
-            );
-        }
-
-        children
-    }
-
     pub(super) fn render_account_rows(
         &self,
         snapshot: &CheckinData,
@@ -558,22 +507,7 @@ impl CheckinView {
                     cx,
                 ));
                 if self.catalog {
-                    let mut catalog = div().flex().flex_wrap().gap(px(theme::CONTROL_GAP));
-                    for (index, item) in get_builtin_providers().into_iter().enumerate() {
-                        let id = item.id;
-                        let label = format!("{} {}", text(cx, "Add", "添加"), item.name);
-                        catalog = catalog.child(semantics::button(
-                            Button::new(("checkin-builtin", index))
-                                .label(label)
-                                .on_click(cx.listener(move |this, _, _, cx| {
-                                    this.start(Operation::AddBuiltin(id.clone()), cx)
-                                })),
-                            locked,
-                            false,
-                            cx,
-                        ));
-                    }
-                    form = form.child(catalog);
+                    form = form.child(self.builtin_catalog(cx));
                 }
             }
             if editor.credentials.loading {

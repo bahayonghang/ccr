@@ -20,6 +20,7 @@ impl CheckinView {
         cx: &mut Context<Self>,
     ) {
         self.tab = tab;
+        self.provider_detail = None;
         self.navigation.clear();
         self.editor = None;
         self.catalog = false;
@@ -320,6 +321,13 @@ impl CheckinView {
                     } else {
                         body = body.child(self.first_use(cx));
                     }
+                    body = body
+                        .child(badge::section_heading(
+                            text(cx, "Built-in providers", "内置提供商"),
+                            None,
+                            cx,
+                        ))
+                        .child(self.builtin_catalog(cx));
                 }
                 CheckinTab::Records => {
                     body = body.child(self.records_panel(cx));

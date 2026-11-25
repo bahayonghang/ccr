@@ -53,6 +53,27 @@ fn run(services: &Services, operation: Operation, n: u64) -> Arc<OperationState>
     }
 }
 #[test]
+fn invalid_first_save_and_vanished_provider_leave_empty_fixture_untouched() {
+    let root = tempfile::tempdir().unwrap();
+    let runtime = RuntimeOwner::new().unwrap();
+    let services = Services::new(runtime.handle(), source(root.path()));
+    for (n, op) in [
+        Operation::AddProvider(provider("bad url")),
+        Operation::AddAccount(account("vanished".into())),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        assert_eq!(
+            run(&services, op, n as u64).result,
+            Some(Err(OperationError::Invalid))
+        );
+        assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
+    }
+    runtime.shutdown();
+}
+
+#[test]
 fn encrypted_crud_isolated_and_detached_results_survive() {
     let root = tempfile::tempdir().unwrap();
     let other = tempfile::tempdir().unwrap();
@@ -164,6 +185,42 @@ fn encrypted_crud_isolated_and_detached_results_survive() {
         Err(OperationError::Interrupted)
     );
 }
+#[test]
+fn explicit_builtin_add_recognizes_saved_identity_and_legacy_aliases() {
+    for (name, url, saved_id) in [
+        (
+            "Renamed",
+            "https://alias.invalid",
+            Some("builtin-anyrouter"),
+        ),
+        ("AnyRouter", "https://alias.invalid", None),
+        ("Renamed", "https://anyrouter.top/", None),
+        ("AnyRouter", "https://alias.invalid", Some("builtin-hotaru")),
+    ] {
+        let root = tempfile::tempdir().unwrap();
+        let runtime = RuntimeOwner::new().unwrap();
+        let services = Services::new(runtime.handle(), source(root.path()));
+        let mut row = provider(url);
+        row.name = name.into();
+        row.builtin_id = saved_id.map(str::to_owned);
+        let first = run(&services, Operation::AddProvider(row), 1);
+        assert_eq!(first.result, Some(Ok(Outcome::Saved)));
+        let repeated = run(
+            &services,
+            Operation::AddBuiltin("builtin-anyrouter".into()),
+            2,
+        );
+        assert_eq!(
+            repeated.result,
+            Some(Err(OperationError::DuplicateProvider))
+        );
+        let rows = &repeated.snapshot.as_ref().unwrap().providers;
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].builtin_id.as_deref(), saved_id);
+        runtime.shutdown();
+    }
+}
+
 #[test]
 fn real_loopback_checkin_and_balance_use_captured_database_and_crypto() {
     let root = tempfile::tempdir().unwrap();

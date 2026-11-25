@@ -7,7 +7,9 @@ pub use credentials::AccountCredentials;
 #[path = "extended.rs"]
 mod extended;
 use ccr_app::runtime::Completion;
-use ccr_checkin::managers::checkin::builtin_providers::get_builtin_provider_by_id;
+use ccr_checkin::managers::checkin::builtin_providers::{
+    get_builtin_provider_by_id, resolve_builtin_for_provider,
+};
 use ccr_checkin::{AccountManager, CheckinService, ProviderManager, RecordManager};
 use ccr_db::{
     database::{self, DbAccess},
@@ -44,6 +46,7 @@ pub enum OperationError {
     FixturePath,
     Interrupted,
     ProviderInUse,
+    DuplicateProvider,
     Network,
     Challenge,
     Credentials,
@@ -315,7 +318,8 @@ impl Services {
         self.executor
             .job(key, move |_, _| {
                 let mut pending = pending;
-                let storage = owner.storage(&source);
+                let storage =
+                    validate_first_save(&source, &operation).and_then(|()| owner.storage(&source));
                 let result = storage.as_ref().map_err(|e| *e).and_then(|storage| {
                     tokio::runtime::Handle::try_current()
                         .map_err(|_| OperationError::Interrupted)
@@ -351,6 +355,31 @@ impl Services {
             .map_err(|_| OperationError::Interrupted)
     }
 }
+/// Check creation against the existing local database before opening a writer.
+fn validate_first_save(source: &ConfigSource, operation: &Operation) -> Result<(), OperationError> {
+    match operation {
+        Operation::AddBuiltin(id) => get_builtin_provider_by_id(id)
+            .map(|_| ())
+            .ok_or(OperationError::Invalid),
+        Operation::AddProvider(request) => valid_provider(&request.name, &request.base_url),
+        Operation::AddAccount(request) => {
+            if request.name.trim().is_empty() {
+                return Err(OperationError::Invalid);
+            }
+            valid_cookies(&request.cookies_json)?;
+            let path = database_path(source)
+                .map_err(|_| OperationError::Storage)?
+                .ok_or(OperationError::Invalid)?;
+            let conn = open_reader(&path).map_err(|_| OperationError::Storage)?;
+            checkin_repo::get_provider_by_id(&conn, &request.provider_id)
+                .map_err(|_| OperationError::Storage)?
+                .map(|_| ())
+                .ok_or(OperationError::Invalid)
+        }
+        _ => Ok(()),
+    }
+}
+
 fn valid_provider(name: &str, url: &str) -> Result<(), OperationError> {
     let url = reqwest::Url::parse(url).map_err(|_| OperationError::Invalid)?;
     if name.trim().is_empty()
@@ -451,13 +480,24 @@ async fn execute(
             let provider = get_builtin_provider_by_id(&id)
                 .ok_or(OperationError::Invalid)?
                 .to_checkin_provider();
-            providers
+            if providers
+                .load_all()
+                .map_err(|_| OperationError::Storage)?
+                .iter()
+                .filter_map(resolve_builtin_for_provider)
+                .any(|configured| configured.id == id)
+            {
+                return Err(OperationError::DuplicateProvider);
+            }
+            let (added, _) = providers
                 .import_batch(vec![provider], false)
                 .map_err(|_| OperationError::Storage)?;
+            if added == 0 {
+                return Err(OperationError::DuplicateProvider);
+            }
             Outcome::Saved
         }
         Operation::AddProvider(request) => {
-            valid_provider(&request.name, &request.base_url)?;
             providers
                 .create(request)
                 .map_err(|_| OperationError::Invalid)?;
@@ -490,13 +530,9 @@ async fn execute(
             Outcome::Deleted
         }
         Operation::AddAccount(request) => {
-            if request.name.trim().is_empty() {
-                return Err(OperationError::Invalid);
-            }
             providers
                 .get(&request.provider_id)
                 .map_err(|_| OperationError::Invalid)?;
-            valid_cookies(&request.cookies_json)?;
             storage.scoped(|| {
                 storage.guard_crypto_initialization()?;
                 accounts

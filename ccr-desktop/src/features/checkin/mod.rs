@@ -4,6 +4,7 @@ mod credentials;
 mod extended;
 mod navigation;
 mod operations;
+mod providers;
 mod workbench;
 use crate::runtime::checkin::OperationState;
 use operations::{Confirmation, Editor};
@@ -58,6 +59,7 @@ pub struct CheckinView {
     editor: Option<Editor>,
     confirmation: Option<Confirmation>,
     catalog: bool,
+    provider_detail: Option<String>,
     extended: Option<extended::ExtendedUi>,
 }
 
@@ -86,6 +88,7 @@ impl CheckinView {
             editor: None,
             confirmation: None,
             catalog: false,
+            provider_detail: None,
             extended: None,
             services,
             snapshot: None,
@@ -111,6 +114,7 @@ impl CheckinView {
         self.editor = None;
         self.extended = None;
         self.catalog = false;
+        self.provider_detail = None;
         self.tab = CheckinTab::Accounts;
         self.selected = None;
         self.navigation.clear();
