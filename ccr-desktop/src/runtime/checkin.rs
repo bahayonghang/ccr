@@ -72,6 +72,7 @@ pub struct CheckinProviderRow {
     pub id: String,
     pub name: String,
     pub builtin_id: Option<String>,
+    pub updated_at: Option<String>,
     pub enabled: bool,
 }
 
@@ -147,6 +148,7 @@ fn project_data(
     let providers: Vec<_> = providers
         .into_iter()
         .map(|provider| CheckinProviderRow {
+            updated_at: provider.updated_at.map(|t| t.to_rfc3339()),
             builtin_id: provider.builtin_id.clone().or_else(|| {
                 ccr_checkin::managers::checkin::builtin_providers::resolve_builtin_for_provider(
                     &provider,

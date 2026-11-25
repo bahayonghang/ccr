@@ -70,6 +70,18 @@ impl CheckinView {
                     self.cdk = None;
                     self.focus_control("cdk");
                 }
+                if let Operation::Job(job) = &pending.operation
+                    && !self
+                        .data()
+                        .and_then(|data| job.current_targets_match(data).ok())
+                        .unwrap_or(false)
+                {
+                    self.message = Some(
+                        "The targets changed. Review them again. / 操作对象已变化，请重新核对",
+                    );
+                    cx.notify();
+                    return;
+                }
                 self.start(pending.operation, cx);
             }
         }

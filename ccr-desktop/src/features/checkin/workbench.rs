@@ -254,7 +254,8 @@ impl CheckinView {
                 self.busy,
                 self.busy,
                 cx,
-            ));
+            ))
+            .children(self.header_job_actions(cx));
         let mut body = div()
             .flex()
             .flex_col()
@@ -278,6 +279,12 @@ impl CheckinView {
             body = body.child(balances::summary(data, cx));
         }
         body = body.child(self.tabs(cx));
+        if self.confirmation.is_none()
+            && self.editor.is_none()
+            && (self.tab == CheckinTab::Accounts || self.tab == self.job_tab)
+        {
+            body = body.children(self.job_report(cx));
+        }
         if self.confirmation.is_some() {
             body = body.child(self.entry_confirmation(cx));
         } else if self.editor.is_some() {
@@ -412,7 +419,7 @@ impl CheckinView {
                         cx,
                     )),
             );
-        panel = panel.child(toolbar);
+        panel = panel.child(toolbar).children(self.selection_actions(cx));
         let all = badge::filter_chip(
             Button::new("checkin-provider-filter-all")
                 .label(text(cx, "All providers", "全部提供商"))
@@ -463,6 +470,7 @@ impl CheckinView {
         {
             shown += 1;
             let id = account.id.clone();
+            let row_actions = self.row_job_actions(account, cx);
             let state = if account.enabled {
                 text(cx, "Enabled", "已启用")
             } else {
@@ -511,6 +519,7 @@ impl CheckinView {
             list = list.child(
                 div()
                     .flex()
+                    .flex_wrap()
                     .items_center()
                     .justify_between()
                     .gap(px(theme::CONTROL_GAP))
@@ -558,7 +567,8 @@ impl CheckinView {
                             .font_features(theme::tabular_figures())
                             .text_right()
                             .child(balance),
-                    ),
+                    )
+                    .child(row_actions),
             );
         }
         if shown == 0 {

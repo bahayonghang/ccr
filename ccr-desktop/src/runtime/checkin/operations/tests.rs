@@ -4,6 +4,8 @@ use ccr_app::runtime::{Platform, RuntimeOwner};
 use ccr_checkin::BalanceManager;
 use ccr_core::Secret;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+#[path = "job_tests.rs"]
+mod job_tests;
 fn source(root: &Path) -> ConfigSource {
     ConfigSource::Fixture {
         profiles: root.join("profiles.toml"),

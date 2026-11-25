@@ -302,20 +302,11 @@ impl CheckinView {
                 .flex()
                 .flex_wrap()
                 .gap(px(theme::CONTROL_GAP))
-                .child(semantics::button(
-                    Button::new("checkin-batch-run")
-                        .label(text(cx, "Check in selected", "签到所选账户"))
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            if let Some(editor) = &this.extended {
-                                this.propose_extended(
-                                    ExtendedCommand::Checkin(
-                                        editor.accounts.iter().cloned().collect(),
-                                    ),
-                                    cx,
-                                );
-                            }
-                        })),
-                    blocked || chosen.is_empty(),
+                .child(self.job_button(
+                    "checkin-batch-run",
+                    text(cx, "Check in selected", "签到所选账户"),
+                    crate::runtime::checkin::JobAction::Checkin,
+                    crate::runtime::checkin::JobScope::Selected(chosen.clone()),
                     false,
                     cx,
                 ))

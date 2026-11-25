@@ -40,6 +40,11 @@ pub(super) fn status(cx: &App, value: CheckinStatus) -> &'static str {
 }
 pub(super) fn error(cx: &App, value: OperationError) -> &'static str {
     match value {
+        OperationError::TargetsChanged => text(
+            cx,
+            "The accounts or providers changed. Review the targets again.",
+            "账户或提供商已变化，请重新核对操作对象。",
+        ),
         OperationError::FixturePath => text(
             cx,
             "Choose an absolute file path inside the fixture directory. Its parent directory must already exist.",
@@ -182,11 +187,15 @@ impl CheckinView {
             generation: self.generation,
             request_id: self.generation,
         };
+        let is_job = matches!(operation, Operation::Job(_));
         if let Err(value) = self.services.start_checkin(key, operation) {
             let mut state = (*self.operation).clone();
             state.result = Some(Err(value));
             self.operation = Arc::new(state);
         } else {
+            if is_job {
+                self.job_tab = self.tab;
+            }
             self.operation = self.services.checkin_operation_state();
         }
         cx.notify();
@@ -369,6 +378,7 @@ impl CheckinView {
                     "Account operation completed; see the result below.",
                     "账户操作完成，请查看下方结果。",
                 ),
+                Ok(Outcome::JobFinished) => text(cx, "Account results", "逐账户结果"),
                 Ok(Outcome::Loaded) => text(cx, "Management data loaded.", "管理数据已读取。"),
                 Ok(Outcome::Saved) => text(cx, "Check-in settings saved.", "签到设置已保存。"),
                 Ok(Outcome::Deleted) => text(cx, "Deleted.", "已删除。"),
@@ -399,29 +409,25 @@ impl CheckinView {
         let mut children = Vec::new();
         let locked = self.operation.busy;
         if let Some(id) = self.selected.clone() {
-            let balance = id.clone();
             let records = id.clone();
             children.push(
                 (div()
                     .flex()
+                    .flex_wrap()
                     .gap(px(theme::CONTROL_GAP))
-                    .child(semantics::button(
-                        Button::new("checkin-execute")
-                            .label(text(cx, "Check in now", "立即签到"))
-                            .on_click(cx.listener(move |this, _, _, cx| {
-                                this.start(Operation::Checkin(id.clone()), cx)
-                            })),
-                        locked,
+                    .child(self.job_button(
+                        "checkin-execute",
+                        text(cx, "Check in now", "立即签到"),
+                        crate::runtime::checkin::JobAction::Checkin,
+                        crate::runtime::checkin::JobScope::Single(id.clone()),
                         false,
                         cx,
                     ))
-                    .child(semantics::button(
-                        Button::new("checkin-balance")
-                            .label(text(cx, "Refresh balance", "刷新余额"))
-                            .on_click(cx.listener(move |this, _, _, cx| {
-                                this.start(Operation::Balance(balance.clone()), cx)
-                            })),
-                        locked,
+                    .child(self.job_button(
+                        "checkin-balance",
+                        text(cx, "Refresh balance", "刷新余额"),
+                        crate::runtime::checkin::JobAction::Balance,
+                        crate::runtime::checkin::JobScope::Single(id),
                         false,
                         cx,
                     ))
@@ -598,11 +604,19 @@ impl CheckinView {
                 }
             }
             if editor.credentials.loading {
-                form = form.child(text(
+                let status = text(
                     cx,
                     "Loading this account's saved credentials…",
                     "正在读取此账户的已保存凭据…",
-                ));
+                );
+                form = form.child(
+                    div()
+                        .id("checkin-credential-loading")
+                        .test_support()
+                        .role(gpui_kit::Role::Status)
+                        .aria_label(status)
+                        .child(status),
+                );
             }
             if let Some(error) = editor.credentials.failed {
                 form = form.child(super::credentials::read_error_notice(error, cx));

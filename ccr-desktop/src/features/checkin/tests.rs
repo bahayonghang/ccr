@@ -38,6 +38,15 @@ fn open_size(
     width: f32,
     height: f32,
 ) -> gpui_kit::AnyWindowHandle {
+    open_services(cx, services(owner, root), width, height)
+}
+
+fn open_services(
+    cx: &mut TestAppContext,
+    services: Services,
+    width: f32,
+    height: f32,
+) -> gpui_kit::AnyWindowHandle {
     cx.update(|cx| {
         gpui_kit::init(cx);
         gpui_kit::open_window(
@@ -52,12 +61,7 @@ fn open_size(
             cx,
             |window, cx| {
                 cx.new(|cx| {
-                    Shell::new_with_preferences(
-                        services(owner, root),
-                        Ok(Default::default()),
-                        window,
-                        cx,
-                    )
+                    Shell::new_with_preferences(services, Ok(Default::default()), window, cx)
                 })
             },
         )
@@ -65,6 +69,9 @@ fn open_size(
         .0
     })
 }
+
+#[path = "job_controls.rs"]
+mod job_controls;
 
 fn labels(window: &gpui_kit::Window) -> String {
     gpui_kit::base::test_support::snapshots(window)
@@ -206,6 +213,10 @@ async fn checkin_page_shows_stored_rows_and_hides_secrets(cx: &mut TestAppContex
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         let text = labels(window);
+        assert!(
+            window.try_find("checkin-all").is_some(),
+            "configured accounts have a header check-in action"
+        );
         assert!(text.contains("Unmeasured account"));
         assert!(text.contains("Desk account"));
         assert!(text.contains("No stored balance."));

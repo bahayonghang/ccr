@@ -3,6 +3,7 @@ mod account_actions;
 mod balances;
 mod credentials;
 mod extended;
+mod jobs;
 mod navigation;
 mod operations;
 mod providers;
@@ -42,7 +43,9 @@ pub struct CheckinView {
     services: Services,
     snapshot: Option<CheckinSnapshot>,
     selected: Option<String>,
+    checked_ids: std::collections::BTreeSet<String>,
     tab: CheckinTab,
+    job_tab: CheckinTab,
     search: Entity<InputState>,
     placeholder_chinese: bool,
     query: String,
@@ -97,7 +100,9 @@ impl CheckinView {
             services,
             snapshot: None,
             selected: None,
+            checked_ids: Default::default(),
             tab: CheckinTab::Accounts,
+            job_tab: CheckinTab::Accounts,
             generation: 0,
             gate: ResponseGate::default(),
             task: None,
@@ -120,6 +125,7 @@ impl CheckinView {
         self.catalog = false;
         self.provider_detail = None;
         self.tab = CheckinTab::Accounts;
+        self.checked_ids.clear();
         self.selected = None;
         self.navigation.clear();
         self.services.discard_checkin_preview();
@@ -190,6 +196,7 @@ impl CheckinView {
     }
 
     fn accept(&mut self, snapshot: CheckinSnapshot) {
+        self.checked_ids.retain(|id| matches!(&snapshot, CheckinSnapshot::Accounts(data) if data.accounts.iter().any(|row| &row.id == id)));
         self.snapshot = Some(snapshot);
         if self.provider_filter.as_ref().is_some_and(|id| {
             !self

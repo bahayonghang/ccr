@@ -3,7 +3,9 @@ use super::*;
 use ccr_app::environments::EnvironmentPolicy;
 mod credentials;
 mod crypto_guard;
+mod jobs;
 pub use credentials::AccountCredentials;
+pub use jobs::{AccountJob, JobAction, JobItem, JobReport, JobScope, JobStatus, JobTarget};
 #[path = "extended.rs"]
 mod extended;
 use ccr_app::runtime::Completion;
@@ -23,6 +25,7 @@ use tokio::sync::watch;
 
 pub enum Operation {
     Manage,
+    Job(AccountJob),
     Extended(ExtendedCommand),
     AddBuiltin(String),
     AddProvider(CreateProviderRequest),
@@ -55,11 +58,13 @@ pub enum OperationError {
     ImportConflict,
     ImportInvalid,
     QueryInvalid,
+    TargetsChanged,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Outcome {
     Loaded,
+    JobFinished,
     Extended,
     Saved,
     Deleted,
@@ -90,6 +95,7 @@ pub struct ManagementSnapshot {
 #[derive(Clone, Default)]
 pub struct OperationState {
     pub busy: bool,
+    pub last_job: Option<Arc<JobReport>>,
     pub environment: Option<EnvironmentId>,
     pub result: Option<Result<Outcome, OperationError>>,
     pub created_account: Option<String>,
@@ -328,6 +334,7 @@ impl Services {
         self.executor
             .job(key, move |_, _| {
                 let mut pending = pending;
+                let account_job = matches!(operation, Operation::Job(_));
                 let storage =
                     validate_first_save(&source, &operation).and_then(|()| owner.storage(&source));
                 let result = storage.as_ref().map_err(|e| *e).and_then(|storage| {
@@ -342,7 +349,12 @@ impl Services {
                     .ok()
                     .map(|(_, records)| records.clone())
                     .unwrap_or_default();
-                let snapshot = storage.ok().and_then(|s| s.snapshot(records).ok());
+                let snapshot = if account_job {
+                    // The workbench refreshes its read-only balance/row projection on completion.
+                    None
+                } else {
+                    storage.ok().and_then(|s| s.snapshot(records).ok())
+                };
                 let outcome = result.map(|(outcome, _)| outcome);
                 monitoring.terminal(
                     &source,
@@ -368,6 +380,7 @@ impl Services {
 /// Check creation against the existing local database before opening a writer.
 fn validate_first_save(source: &ConfigSource, operation: &Operation) -> Result<(), OperationError> {
     match operation {
+        Operation::Job(job) => job.revalidate(source).map(|_| ()),
         Operation::AddBuiltin(id) => get_builtin_provider_by_id(id)
             .map(|_| ())
             .ok_or(OperationError::Invalid),
@@ -465,6 +478,15 @@ async fn execute(
     let mut records = Vec::new();
     let outcome = match operation {
         Operation::Manage => Outcome::Loaded,
+        Operation::Job(job) => {
+            let report = jobs::run_job(storage, source, owner, job).await?;
+            owner
+                .state
+                .lock()
+                .map_err(|_| OperationError::Storage)?
+                .last_job = Some(Arc::new(report));
+            Outcome::JobFinished
+        }
         Operation::Extended(command) => {
             let result = extended::execute_extended(storage, source, owner, command).await?;
             owner
