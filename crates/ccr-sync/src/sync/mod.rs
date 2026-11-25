@@ -16,5 +16,6 @@ pub use config::{SyncConfig, SyncConfigManager};
 pub use content_selector::{SyncContentSelection, SyncContentSelector, SyncContentType};
 pub use folder::{FolderStats, SyncFolder, SyncFoldersConfig, WebDavConfig, expand_path};
 pub use folder_manager::SyncFolderManager;
+pub use remote_path::normalize_href_identity;
 pub use service::{SyncService, get_ccr_sync_path};
 pub use transport::{insecure_loopback_http_enabled, validate_webdav_url};

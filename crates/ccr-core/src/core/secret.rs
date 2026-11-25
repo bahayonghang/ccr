@@ -50,6 +50,11 @@ impl Secret {
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
+
+    /// Detects whether display text includes this nonempty credential.
+    pub fn occurs_in(&self, text: &str) -> bool {
+        !self.is_empty() && text.contains(self.0.as_str())
+    }
 }
 
 impl From<String> for Secret {
@@ -255,5 +260,13 @@ auth_token = "sk-ant-1234567890abcdef"
         assert!(Secret::default().is_empty());
         assert!(Secret::new("").is_empty());
         assert!(!Secret::new("x").is_empty());
+    }
+
+    #[test]
+    fn test_occurs_in_matches_only_nonempty_literal_credentials() {
+        let secret = Secret::new("sample/credential");
+        assert!(secret.occurs_in("/prefix/sample/credential-suffix"));
+        assert!(!secret.occurs_in("/prefix/sample/another-file"));
+        assert!(!Secret::default().occurs_in("/anything"));
     }
 }

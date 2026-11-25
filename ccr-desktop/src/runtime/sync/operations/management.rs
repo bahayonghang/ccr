@@ -64,10 +64,11 @@ pub(super) fn clear(
         run()
     }
 }
-pub(super) async fn batch(
+pub(super) async fn transfer_folders(
     source: &ConfigSource,
     revision: &str,
     upload: bool,
+    selected: Option<usize>,
     loopback: bool,
 ) -> Result<SyncOutcome, SyncError> {
     let snapshot = document(source)?
@@ -79,12 +80,9 @@ pub(super) async fn batch(
     let config: SyncFoldersConfig =
         toml::from_str(&snapshot.content).map_err(|_| SyncError::Unreadable)?;
     let mut results = Vec::new();
-    for (folder, item) in config
-        .folders
-        .iter()
-        .enumerate()
-        .filter(|(_, folder)| folder.enabled)
-    {
+    for (folder, item) in config.folders.iter().enumerate().filter(|(index, folder)| {
+        folder.enabled && selected.is_none_or(|selected| *index == selected)
+    }) {
         let operation = if upload {
             Operation::Push {
                 revision: revision.into(),

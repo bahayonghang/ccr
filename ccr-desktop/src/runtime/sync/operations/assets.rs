@@ -14,8 +14,8 @@ pub struct AssetRequest {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AssetRow {
     pub id: String,
-    pub local_path: String,
-    pub local_exists: bool,
+    pub local_path: Option<String>,
+    pub local_exists: Option<bool>,
     pub remote_exists: Option<bool>,
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -42,7 +42,7 @@ fn service(
     let config: SyncFoldersConfig =
         toml::from_str(&snapshot.content).map_err(|_| SyncError::Unreadable)?;
     let roots = roots(source)?;
-    #[cfg(test)]
+    #[cfg(any(test, feature = "native-sync-fixture"))]
     if loopback {
         return Ok(AssetService::for_test_loopback(config.webdav, roots));
     }
@@ -71,16 +71,48 @@ pub(super) async fn inventory(
     if probe && (source.is_benchmark() || (source.is_fixture() && !loopback)) {
         return Err(SyncError::FixtureNetwork);
     }
-    let service = service(source, revision, loopback)?;
-    let mut rows = Vec::new();
+    let service = if probe {
+        service(source, revision, loopback)?
+    } else {
+        AssetService::new(Default::default(), roots(source)?)
+    };
+    let mut rows = Vec::with_capacity(SYNC_ASSETS.len());
     for asset in SYNC_ASSETS {
-        let info = service.info(asset.id, probe).await.map_err(error)?;
+        let info = service.info(asset.id, false).await.ok();
+        let remote_exists = if probe {
+            service.probe_remote(asset.id).await.ok()
+        } else {
+            None
+        };
         rows.push(AssetRow {
             id: asset.id.into(),
-            local_path: redact_log_text(&info.local_path.to_string_lossy()),
-            local_exists: info.local_exists,
-            remote_exists: info.remote_exists,
+            local_path: info
+                .as_ref()
+                .map(|info| redact_log_text(&info.local_path.to_string_lossy())),
+            local_exists: info.as_ref().map(|info| info.local_exists),
+            remote_exists,
         });
+    }
+    if probe {
+        let current = document(source)?
+            .read()
+            .map_err(|_| SyncError::Unreadable)?;
+        if current.token != revision {
+            return Err(SyncError::Conflict);
+        }
+    }
+    inventory_outcome(rows, probe)
+}
+
+pub(in crate::runtime::sync) fn inventory_outcome(
+    rows: Vec<AssetRow>,
+    probe: bool,
+) -> Result<SyncOutcome, SyncError> {
+    if probe && rows.iter().all(|row| row.remote_exists.is_none()) {
+        return Err(SyncError::Operation);
+    }
+    if !probe && rows.iter().all(|row| row.local_exists.is_none()) {
+        return Err(SyncError::AssetRead);
     }
     Ok(SyncOutcome::AssetInventory(rows))
 }

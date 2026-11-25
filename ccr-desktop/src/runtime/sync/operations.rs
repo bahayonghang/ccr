@@ -3,6 +3,7 @@ mod assets;
 mod management;
 use super::*;
 pub(super) use assets::error as asset_error;
+pub(super) use assets::inventory_outcome;
 pub use assets::{AssetDirection, AssetRequest, AssetResult, AssetRow};
 use ccr_app::platform_settings::{Document, Format, SaveOutcome};
 use ccr_app::runtime::Completion;
@@ -56,9 +57,10 @@ pub enum Operation {
         revision: String,
         session: Arc<ccr_sync::sync::clear::ClearSession>,
     },
-    Batch {
+    TransferFolders {
         revision: String,
         upload: bool,
+        selected: Option<usize>,
     },
     Assets(AssetRequest),
     AssetInventory {
@@ -103,13 +105,14 @@ impl Operation {
         match self {
             Self::PrepareClear { .. } => OperationKind::PrepareClear,
             Self::Clear { .. } => OperationKind::Clear,
-            Self::Batch { upload, .. } => {
-                if *upload {
-                    OperationKind::BatchPush
-                } else {
-                    OperationKind::BatchPull
-                }
-            }
+            Self::TransferFolders {
+                upload, selected, ..
+            } => match (upload, selected) {
+                (true, Some(_)) => OperationKind::Push,
+                (false, Some(_)) => OperationKind::Pull,
+                (true, None) => OperationKind::BatchPush,
+                (false, None) => OperationKind::BatchPull,
+            },
             Self::Assets(_) => OperationKind::Assets,
             Self::AssetInventory { .. } => OperationKind::AssetInventory,
             Self::Save(_) => OperationKind::Save,
@@ -141,12 +144,73 @@ pub struct OperationState {
     pub kind: Option<OperationKind>,
     pub environment: Option<EnvironmentId>,
     pub result: Option<Result<SyncOutcome, SyncError>>,
+    connection_test: Option<ConnectionTest>,
+    asset_inventory: Option<InventoryCheck>,
+}
+
+#[derive(Clone, Debug)]
+struct InventoryCheck {
+    probe: bool,
+    revision: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ConnectionTestStatus {
+    Running,
+    Succeeded,
+    Failed(SyncError),
+}
+
+#[derive(Clone, Debug)]
+struct ConnectionTest {
+    environment: EnvironmentId,
+    revision: String,
+    status: ConnectionTestStatus,
+}
+
+impl OperationState {
+    /// Identify the latest inventory using its captured environment and saved revision.
+    pub fn asset_inventory(
+        &self,
+        environment: &EnvironmentId,
+        revision: Option<&str>,
+    ) -> Option<bool> {
+        let check = self.asset_inventory.as_ref()?;
+        (self.environment.as_ref() == Some(environment)
+            && (!check.probe || revision == Some(check.revision.as_str())))
+        .then_some(check.probe)
+    }
+
+    pub fn visible_in(self: Arc<Self>, environment: &EnvironmentId) -> Arc<Self> {
+        if self
+            .environment
+            .as_ref()
+            .is_none_or(|active| active == environment)
+        {
+            return self;
+        }
+        Arc::new(Self {
+            busy: self.busy,
+            connection_test: self.connection_test.clone(),
+            ..Self::default()
+        })
+    }
+
+    pub fn connection_test(
+        &self,
+        environment: &EnvironmentId,
+        revision: &str,
+    ) -> Option<ConnectionTestStatus> {
+        self.connection_test.as_ref().and_then(|test| {
+            (&test.environment == environment && test.revision == revision).then_some(test.status)
+        })
+    }
 }
 
 pub struct SyncOperations {
     state: Mutex<OperationState>,
     updates: watch::Sender<Arc<OperationState>>,
-    #[cfg(test)]
+    #[cfg(any(test, feature = "native-sync-fixture"))]
     loopback_fixture: bool,
 }
 
@@ -155,7 +219,7 @@ impl Default for SyncOperations {
         Self {
             state: Mutex::new(OperationState::default()),
             updates: watch::channel(Arc::new(OperationState::default())).0,
-            #[cfg(test)]
+            #[cfg(any(test, feature = "native-sync-fixture"))]
             loopback_fixture: false,
         }
     }
@@ -168,6 +232,14 @@ impl SyncOperations {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         state.busy = false;
+        if state.kind == Some(OperationKind::Test)
+            && let Some(test) = &mut state.connection_test
+        {
+            test.status = match &result {
+                Ok(_) => ConnectionTestStatus::Succeeded,
+                Err(error) => ConnectionTestStatus::Failed(*error),
+            };
+        }
         state.result = Some(result);
         self.updates.send_replace(Arc::new(state.clone()));
     }
@@ -187,6 +259,15 @@ impl Drop for Pending {
 }
 
 impl Services {
+    #[cfg(any(test, feature = "native-sync-fixture"))]
+    pub(crate) fn with_sync_loopback_fixture(mut self) -> Self {
+        self.sync_operations = Arc::new(SyncOperations {
+            loopback_fixture: true,
+            ..SyncOperations::default()
+        });
+        self
+    }
+
     pub fn sync_operation_state(&self) -> Arc<OperationState> {
         self.sync_operations.updates.borrow().clone()
     }
@@ -198,15 +279,12 @@ impl Services {
     /// Side effects outlive a detached view. Active transfers finish using the
     /// domain's bounded request/operation budgets; no false cancellation is exposed.
     pub fn start_sync(&self, key: RequestKey, operation: Operation) -> Result<(), SyncError> {
+        let kind = operation.kind();
         let local = EnvironmentPolicy::LocalOnly.admit(&key.environment).is_ok();
-        let remote = if local {
-            None
-        } else {
-            Some(
-                self.remote_configuration_io(&key.environment)
-                    .map_err(|_| SyncError::Remote)?,
-            )
-        };
+        let remote = (!local).then(|| {
+            self.remote_configuration_io(&key.environment)
+                .map_err(|_| SyncError::Remote)
+        });
         let owner = self.sync_operations.clone();
         {
             let mut state = owner
@@ -218,12 +296,34 @@ impl Services {
             }
             *state = OperationState {
                 busy: true,
-                kind: Some(operation.kind()),
+                kind: Some(kind),
                 environment: Some(key.environment.clone()),
                 result: None,
+                asset_inventory: match &operation {
+                    Operation::AssetInventory { revision, probe } => Some(InventoryCheck {
+                        probe: *probe,
+                        revision: revision.clone(),
+                    }),
+                    _ => None,
+                },
+                connection_test: match &operation {
+                    Operation::Test { revision } => Some(ConnectionTest {
+                        environment: key.environment.clone(),
+                        revision: revision.clone(),
+                        status: ConnectionTestStatus::Running,
+                    }),
+                    _ => state.connection_test.clone(),
+                },
             };
             owner.updates.send_replace(Arc::new(state.clone()));
         }
+        let remote = match remote.transpose() {
+            Ok(remote) => remote,
+            Err(error) => {
+                owner.finish(Err(error));
+                return Err(error);
+            }
+        };
         let pending = Pending {
             owner: owner.clone(),
             finished: false,
@@ -235,7 +335,11 @@ impl Services {
             {
                 owner.loopback_fixture
             }
-            #[cfg(not(test))]
+            #[cfg(all(not(test), feature = "native-sync-fixture"))]
+            {
+                local && owner.loopback_fixture
+            }
+            #[cfg(not(any(test, feature = "native-sync-fixture")))]
             {
                 false
             }
@@ -255,15 +359,24 @@ impl Services {
                             }
                         })
                     });
+                let failed = match &result {
+                    Err(_) => true,
+                    Ok(SyncOutcome::Batch(rows))
+                        if matches!(kind, OperationKind::Push | OperationKind::Pull) =>
+                    {
+                        rows.iter().any(|row| row.result.is_err())
+                    }
+                    Ok(_) => false,
+                };
                 monitoring.terminal(
                     &source,
                     "sync",
-                    if result.is_ok() {
-                        "sync.operation.completed"
-                    } else {
+                    if failed {
                         "sync.operation.failed"
+                    } else {
+                        "sync.operation.completed"
                     },
-                    result.is_err(),
+                    failed,
                 );
                 owner.finish(result.clone());
                 pending.finished = true;
@@ -509,8 +622,13 @@ pub(super) async fn execute(
         Operation::Clear { revision, session } => {
             return management::clear(source, &revision, &session);
         }
-        Operation::Batch { revision, upload } => {
-            return management::batch(source, &revision, upload, loopback).await;
+        Operation::TransferFolders {
+            revision,
+            upload,
+            selected,
+        } => {
+            return management::transfer_folders(source, &revision, upload, selected, loopback)
+                .await;
         }
         Operation::Assets(request) => return assets::transfer(source, request, loopback).await,
         Operation::AssetInventory { revision, probe } => {
@@ -530,7 +648,7 @@ pub(super) async fn execute(
         }
         Operation::PrepareClear { .. }
         | Operation::Clear { .. }
-        | Operation::Batch { .. }
+        | Operation::TransferFolders { .. }
         | Operation::Save(_)
         | Operation::Folder { .. }
         | Operation::Assets(_)
@@ -576,13 +694,13 @@ pub(super) async fn execute(
         auto_sync: false,
     };
     // The fixture flag cannot enable external HTTP: the domain validates loopback.
-    #[cfg(test)]
+    #[cfg(any(test, feature = "native-sync-fixture"))]
     let service = if loopback {
         SyncService::new_for_test_loopback(&config).await
     } else {
         SyncService::new(&config).await
     };
-    #[cfg(not(test))]
+    #[cfg(not(any(test, feature = "native-sync-fixture")))]
     let service = SyncService::new(&config).await;
     let service = service.map_err(|_| SyncError::Invalid)?;
     if matches!(operation, Operation::Test { .. }) {

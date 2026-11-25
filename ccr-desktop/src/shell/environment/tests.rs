@@ -1563,6 +1563,99 @@ async fn switch_confirmation_waits_for_job_cleanup_before_new_connection(cx: &mu
 }
 
 #[gpui_kit::test]
+async fn sync_switch_discards_drafts_and_confirms_results_in_the_original_environment(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let fixture = Fixture::new(true).await;
+    fixture.preferences(false);
+    let config = "[webdav]\nenabled=true\nurl='https://dav.fixture.invalid/'\nusername='synthetic'\npassword='synthetic'\n";
+    std::fs::write(fixture.root.path().join("sync_folders.toml"), config).unwrap();
+    fixture.transport.set_file(
+        "build.fixture.invalid",
+        "/home/fixture/.ccr/sync_folders.toml",
+        config,
+    );
+    let (handle, shell) = fixture.open(cx);
+    ready(cx, handle, &shell).await;
+    cx.update_window(handle, |_, window, cx| window.click("nav-sync", cx))
+        .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window.try_find("sync-local").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| window.click("sync-test", cx))
+        .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+        window
+            .find("sync-webdav-connection")
+            .label()
+            .is_some_and(|label| label.contains("Connection test failed"))
+    })
+    .await;
+    for (action, pane) in [
+        ("sync-edit", "sync-editor"),
+        ("sync-disconnect", "sync-management-confirmation"),
+    ] {
+        cx.update_window(handle, |_, window, cx| window.click(action, cx))
+            .unwrap();
+        cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+            window.try_find(pane).is_some()
+        })
+        .await;
+        selected(cx, handle, &fixture.host).await;
+        cx.wait_for(handle, Duration::from_secs(10), |window, _| {
+            window.try_find("environment-switch-discard").is_some()
+        })
+        .await;
+        cx.update_window(handle, |_, window, cx| {
+            window.click("environment-switch-discard", cx)
+        })
+        .unwrap();
+        cx.wait_for(handle, Duration::from_secs(10), |window, cx| {
+            shell.read(cx).active_environment.is_ssh() && window.try_find("sync-local").is_some()
+        })
+        .await;
+        cx.update_window(handle, |_, window, cx| {
+            assert_eq!(
+                window.find("sync-environment").label(),
+                Some("Execution environment · SSH · Build fixture")
+            );
+            assert_eq!(
+                window.find("sync-webdav-connection").label(),
+                Some("Remote access was not tested.")
+            );
+            assert!(window.try_find(pane).is_none());
+            assert!(window.try_find("sync-operation-status").is_none());
+            window.click("environment-switcher", cx);
+            window.click("environment-local", cx);
+        })
+        .unwrap();
+        cx.wait_for(handle, Duration::from_secs(10), |window, cx| {
+            !shell.read(cx).active_environment.is_ssh() && window.try_find("sync-local").is_some()
+        })
+        .await;
+        cx.update_window(handle, |_, window, _| {
+            assert_eq!(
+                window.find("sync-environment").label(),
+                Some("Execution environment · Local")
+            );
+            assert!(
+                window
+                    .find("sync-webdav-connection")
+                    .label()
+                    .is_some_and(|label| label.contains("Connection test failed"))
+            );
+            assert!(window.try_find(pane).is_none());
+        })
+        .unwrap();
+    }
+    fixture
+        .runtime
+        .shutdown_after(fixture.services.disconnect_ssh());
+}
+
+#[gpui_kit::test]
 async fn disconnect_failure_keeps_previous_ssh_and_requires_an_explicit_retry(
     cx: &mut TestAppContext,
 ) {

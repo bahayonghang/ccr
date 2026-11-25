@@ -206,6 +206,42 @@ async fn folder_service(
         .await
         .map_err(|_| SyncError::Invalid)
 }
+async fn asset_inventory(
+    io: &EnvironmentIo,
+    service: Option<&AssetService>,
+    cancel: CancellationToken,
+) -> Result<SyncOutcome, SyncError> {
+    let mut rows = Vec::with_capacity(SYNC_ASSETS.len());
+    for asset in SYNC_ASSETS {
+        let path = relative(io, asset.local_path)?;
+        let local_exists = if asset.kind == ccr_sync::sync::assets::SyncAssetKind::Directory {
+            io.is_directory(&path, cancel.clone()).await.ok()
+        } else {
+            io.metadata(&path, cancel.clone())
+                .await
+                .ok()
+                .map(|entry| entry.is_some())
+        };
+        let remote_exists = if let Some(service) = service {
+            io.check_authority().map_err(error)?;
+            service.probe_remote(asset.id).await.ok()
+        } else {
+            None
+        };
+        let EnvironmentPath::Ssh(full) = io.roots().relative(&path).map_err(error)? else {
+            return Err(SyncError::Remote);
+        };
+        rows.push(AssetRow {
+            id: asset.id.into(),
+            local_path: Some(redact_log_text(full.as_str())),
+            local_exists,
+            remote_exists,
+        });
+    }
+    io.check_authority().map_err(error)?;
+    super::operations::inventory_outcome(rows, service.is_some())
+}
+
 pub(super) async fn execute(
     source: &ConfigSource,
     io: EnvironmentIo,
@@ -213,6 +249,9 @@ pub(super) async fn execute(
     loopback: bool,
     cancel: CancellationToken,
 ) -> Result<SyncOutcome, SyncError> {
+    if matches!(operation, Operation::AssetInventory { probe: false, .. }) {
+        return asset_inventory(&io, None, cancel).await;
+    }
     let config = io.read(CONFIG, cancel.clone()).await.map_err(error)?;
     let revision = config.version();
     let expected = match &operation {
@@ -221,7 +260,7 @@ pub(super) async fn execute(
         | Operation::Test { revision }
         | Operation::Push { revision, .. }
         | Operation::Pull { revision, .. }
-        | Operation::Batch { revision, .. }
+        | Operation::TransferFolders { revision, .. }
         | Operation::AssetInventory { revision, .. } => revision,
         Operation::Assets(request) => &request.revision,
         Operation::PrepareClear { .. } | Operation::Clear { .. } => {
@@ -258,8 +297,8 @@ pub(super) async fn execute(
     let config: SyncFoldersConfig =
         toml::from_str(&config.content).map_err(|_| SyncError::Unreadable)?;
     let network = !source.is_benchmark() && (!source.is_fixture() || loopback);
-    if let Operation::AssetInventory { probe, .. } = operation {
-        if probe && !network {
+    if matches!(operation, Operation::AssetInventory { probe: true, .. }) {
+        if !network {
             return Err(SyncError::FixtureNetwork);
         }
         let stage = ConfigMirror::capture(
@@ -272,34 +311,11 @@ pub(super) async fn execute(
         .map_err(error)?;
         verify_revision(&stage, revision)?;
         let service = asset_service(&config, stage.root(), loopback);
-        let mut rows = Vec::new();
-        for asset in SYNC_ASSETS {
-            let path = relative(&io, asset.local_path)?;
-            let local_exists = if asset.kind == ccr_sync::sync::assets::SyncAssetKind::Directory {
-                io.is_directory(&path, cancel.clone())
-                    .await
-                    .map_err(error)?
-            } else {
-                io.metadata(&path, cancel.clone())
-                    .await
-                    .map_err(error)?
-                    .is_some()
-            };
-            let info = service
-                .info(asset.id, probe)
-                .await
-                .map_err(super::operations::asset_error)?;
-            let EnvironmentPath::Ssh(full) = io.roots().relative(&path).map_err(error)? else {
-                return Err(SyncError::Remote);
-            };
-            rows.push(super::operations::AssetRow {
-                id: asset.id.into(),
-                local_path: redact_log_text(full.as_str()),
-                local_exists,
-                remote_exists: info.remote_exists,
-            });
+        let outcome = asset_inventory(&io, Some(&service), cancel.clone()).await;
+        if io.read(CONFIG, cancel).await.map_err(error)?.version() != revision {
+            return Err(SyncError::Conflict);
         }
-        return Ok(SyncOutcome::AssetInventory(rows));
+        return outcome;
     }
     if !network {
         return Err(SyncError::FixtureNetwork);
@@ -368,7 +384,9 @@ pub(super) async fn execute(
     let (selected, upload, batch) = match operation {
         Operation::Push { folder, .. } => (Some(folder), true, false),
         Operation::Pull { folder, .. } => (Some(folder), false, false),
-        Operation::Batch { upload, .. } => (None, upload, true),
+        Operation::TransferFolders {
+            selected, upload, ..
+        } => (selected, upload, true),
         _ => return Err(SyncError::Invalid),
     };
     let mut results = Vec::new();
@@ -420,6 +438,9 @@ pub(super) async fn execute(
             name: redact_log_text(&folder.name),
             result,
         });
+    }
+    if results.is_empty() {
+        return Err(SyncError::Invalid);
     }
     if batch {
         return Ok(SyncOutcome::Batch(results));

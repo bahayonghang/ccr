@@ -57,6 +57,8 @@ pub enum LaunchMode {
     App(ConfigSource),
     Benchmark(PathBuf),
     Probe,
+    #[cfg(feature = "native-sync-fixture")]
+    SyncFixture(ConfigSource),
     AppWithInsights {
         source: ConfigSource,
         paths: insights::InsightsPaths,
@@ -77,6 +79,8 @@ impl LaunchMode {
         let mut insights_archive = None;
         let mut insights_home = None;
         let mut import_fixture = None;
+        #[cfg(feature = "native-sync-fixture")]
+        let mut sync_fixture = false;
         while let Some(arg) = args.next() {
             match arg.to_str() {
                 Some("--benchmark-fixture-root") => {
@@ -115,6 +119,13 @@ impl LaunchMode {
                             .ok_or("Expected --fixture-usage-import cancel or partial")?,
                     );
                 }
+                #[cfg(feature = "native-sync-fixture")]
+                Some("--fixture-sync-loopback") => {
+                    if sync_fixture {
+                        return Err("Sync fixture may be supplied only once");
+                    }
+                    sync_fixture = true;
+                }
                 Some("--fixture-profiles") => {
                     profiles = Some(PathBuf::from(
                         args.next().ok_or("Missing fixture profiles path")?,
@@ -140,6 +151,31 @@ impl LaunchMode {
                     );
                 }
             }
+        }
+        #[cfg(feature = "native-sync-fixture")]
+        if sync_fixture {
+            if probe
+                || benchmark_root.is_some()
+                || insights_usage.is_some()
+                || insights_archive.is_some()
+                || insights_home.is_some()
+                || import_fixture.is_some()
+            {
+                return Err("Sync fixture requires only the paired profile and registry paths");
+            }
+            let (Some(profiles), Some(registry)) = (profiles, registry) else {
+                return Err("Sync fixture requires paired profile and registry paths");
+            };
+            sync::validate_native_fixture(
+                &profiles,
+                &registry,
+                &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(".."),
+            )?;
+            return Ok(Self::SyncFixture(ConfigSource::Fixture {
+                profiles,
+                registry,
+                delay: delay.unwrap_or_default(),
+            }));
         }
         if let Some(root) = benchmark_root {
             if probe

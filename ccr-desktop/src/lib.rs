@@ -133,6 +133,10 @@ pub fn run() {
                     cx.activate(true);
                     return;
                 }
+                #[cfg(feature = "native-sync-fixture")]
+                runtime::LaunchMode::SyncFixture(source) => {
+                    runtime::Services::new(executor, source).with_sync_loopback_fixture()
+                }
                 runtime::LaunchMode::App(source) => {
                     let mut services = runtime::Services::new(executor, source);
                     if !services.is_fixture()

@@ -54,7 +54,7 @@
 
 ### 4. Validation & Error Matrix
 
-Native/Tauri fixed-asset orchestration lives in `sync::assets`. Its captured roots resolve the existing five asset identities without consulting a different ambient HOME during execution. Asset reads do not probe remote state implicitly. Ordinary named folders retain their existing transfer contract; sensitive fixed assets call `push_sensitive` / `pull_sensitive_with_backup` and must not fall through to plaintext folder transfer.
+Native/Tauri fixed-asset orchestration lives in `sync::assets`. Its captured roots resolve the existing five asset identities without consulting a different ambient HOME during execution. Asset reads do not probe remote state implicitly. GPUI checks the WebDAV copy by fixed asset ID even when the local path or metadata cannot be read. A local read failure does not turn known remote presence or absence into an unknown value. Ordinary named folders retain their existing transfer contract; sensitive fixed assets call `push_sensitive` / `pull_sensitive_with_backup` and must not fall through to plaintext folder transfer.
 
 Native operations bind the original WebDAV settings revision and asset identity. Passphrases are per-operation secrets, never stored in configuration, retained result snapshots or logs; leaving the view clears input state. Overwrite permission and plaintext-v1 import are separate explicit choices. Accepting v1 permits local import only: it does not rewrite or encrypt the remote object. Preserve push-with-force semantics for write-only remotes instead of adding an unnecessary remote-read precondition. Batch results report each asset's actual outcome and backup, never an invented aggregate success.
 

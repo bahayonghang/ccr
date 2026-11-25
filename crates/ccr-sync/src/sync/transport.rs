@@ -53,6 +53,20 @@ pub(crate) fn build_http_client(allow_insecure_loopback: bool) -> Result<HttpCli
         })
 }
 
+// Native acceptance can run against a controlled DAV server, but a
+// fixture response must never send that traffic through a proxy or redirect.
+#[cfg(feature = "test-support")]
+pub(crate) fn build_fixture_http_client() -> Result<HttpClient> {
+    HttpClient::builder()
+        .timeout(Duration::from_secs(120))
+        .no_proxy()
+        .redirect(Policy::none())
+        .build()
+        .map_err(|error| {
+            transport_error("client", &format!("创建 WebDAV HTTP 客户端失败: {error}"))
+        })
+}
+
 fn is_loopback(url: &Url) -> bool {
     match url.host() {
         Some(Host::Domain(domain)) => domain.eq_ignore_ascii_case("localhost"),

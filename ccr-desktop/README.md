@@ -140,10 +140,29 @@ just gpui-dev --fixture-profiles <absolute-fixture>/profiles.toml --fixture-regi
 `partial` 报告新增 2 条和 1 个来源错误，供核对部分更新及报表条件保留。普通 fixture
 仍禁用导入。
 
+### 同步工作台的本地 WebDAV 夹具
+
+从普通合成 catalog 创建独立副本，使同一目录内有 `config.toml`、`profiles.db` 和
+`.ccr-gpui-sync-fixture`。该目录须位于当前 checkout 的 `outputs/desktop/` 下，
+标记内容为 `ccr-gpui-sync-fixture-v1`（UTF-8，无换行）。将测试服务绑定到数值
+loopback 地址，并将该地址写入 fixture 的规范文件 `sync_folders.toml`。
+
+```text
+just gpui-dev --fixture-sync-loopback --fixture-profiles <fixture>/profiles.toml --fixture-registry <fixture>/config.toml
+```
+
+该选项只在启用了 `native-sync-fixture` 的开发构建中可用，`just gpui-dev` 会按参数选择构建。
+它使用现有测试用 WebDAV 客户端，拒绝外部地址，禁用代理和重定向，保持普通演示及 SSH
+的网络准入规则。空配置首次保存仍遵循正式 HTTPS 校验。需要检查 loopback 时，从应用外
+写入合成设置后用「重读」载入，再显式测试连接。记录服务器请求数以检查进入、重读和保存
+不触发连接。
+
 
 指令文件入口已接入四个平台的固定用户文件，使用原始修订令牌保存、冲突保留草稿、离页清空临时明文。MCP 管理支持 Claude 用户/项目、Codex 和 Antigravity 的新增、编辑和删除，保存固定来源与原始版本，省略的凭据不被覆盖。OpenCode MCP 使用平台源文件编辑器；旧 Claude settings MCP 只读。
 
-同步页支持 WebDAV 设置、文件夹管理及连接测试、推送和拉取，复用现有同步服务和备份事务。普通文件夹按既有明文合同传输，界面提示内容范围；固定敏感资产已接通现有 v2 加密与备份，v1 明文仅在显式确认后导入本地。签到页提供服务商/账户管理、签到、余额和记录，凭据通过现有加密 owner 保存。任务离页后继续由应用持有，返回恢复结果；已接显式 CDK 充值、手工 WAF 管理/校验、记录筛选与账户月度数据；内嵌浏览器 WAF 登录仍受 WebView 依赖限制。
+同步工作台先显示当前执行环境及 WebDAV 状态。本地重读和资产盘点与显式远端探测独立。五项配置资产可按单项或全部选择方向，核对目标与后果后再确认。敏感新写入使用 v2，只有显式允许且实际下载时才可导入明文 v1。普通文件夹按所选或全部已启用项独立传输。最近操作按执行环境恢复，显示逐项结果和可读取的备份。[同步 Windows 原生验收](../.trellis/research/archive/2026-11/gpui-sync-234/native.md)
+
+签到页提供服务商/账户管理、签到、余额和记录，凭据通过现有加密 owner 保存。任务离页后继续由应用持有，返回恢复结果；已接显式 CDK 充值、手工 WAF 管理/校验、记录筛选与账户月度数据；内嵌浏览器 WAF 登录仍受 WebView 依赖限制。
 
 SSH 同步读取该主机的 `~/.ccr/sync_folders.toml`，四个固定文件资产（Claude settings / CLAUDE.md、Codex config / AGENTS.md）通过私有暂存复用 `ccr-sync` 的 HTTPS、冲突和加密协议，再以 SFTP 版本比较、备份、原子替换写回该主机。普通文件夹限定在捕获的远程 HOME 内：portable 路径、最多 128 节点/12 层、每文件 2MiB/总计 16MiB。多文件发布保留已写文件的远端备份，失败会报告部分完成；不承诺跨文件事务。远端 `ccr-platforms` 以及包含 SQLite 数据库或 sidecar 的文件夹明确拒绝，缺少远端数据库事务 owner 时不覆盖活跃 `profiles.db`。SSH 下解绑 WebDAV/清理旧凭据尚不可用；新建纯空目标目录不支持。空来源目录可上传。以上限制不改变本地同步能力。
 
