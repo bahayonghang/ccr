@@ -614,6 +614,7 @@ async fn provider_details_show_only_cache_status_and_locate_associated_accounts(
         window.render_frame(cx);
         window.click("checkin-tab-providers", cx);
         window.render_frame(cx);
+        assert!(window.find("checkin-new-provider").bounds().size.width < px(250.));
         window.click("checkin-provider-info-0", cx);
         window.render_frame(cx);
         assert!(

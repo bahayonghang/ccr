@@ -318,7 +318,7 @@ impl CheckinView {
                 CheckinTab::Providers => {
                     if let Some(data) = self.data().filter(|d| !d.providers.is_empty()) {
                         body = body
-                            .child(div().child(self.add_button(true, cx)))
+                            .child(div().flex().items_start().child(self.add_button(true, cx)))
                             .children(self.render_provider_rows(data, cx));
                     } else {
                         body = body.child(self.first_use(cx));
