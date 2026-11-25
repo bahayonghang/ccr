@@ -214,10 +214,11 @@ impl CheckinView {
     }
 
     fn reconcile_selection(&mut self) {
-        if self
-            .selected
-            .as_ref()
-            .is_some_and(|id| !self.rows().iter().any(|a| &a.id == id))
+        if self.snapshot.is_some()
+            && self
+                .selected
+                .as_ref()
+                .is_some_and(|id| !self.rows().iter().any(|a| &a.id == id))
         {
             self.close_detail();
         }

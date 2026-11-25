@@ -92,6 +92,7 @@ pub struct OperationState {
     pub busy: bool,
     pub environment: Option<EnvironmentId>,
     pub result: Option<Result<Outcome, OperationError>>,
+    pub created_account: Option<String>,
     pub snapshot: Option<ManagementSnapshot>,
     pub extended: Option<Arc<ExtendedReport>>,
 }
@@ -305,6 +306,7 @@ impl Services {
             }
             state.busy = true;
             state.result = None;
+            state.created_account = None;
             state.extended = None;
             state.environment = Some(key.environment.clone());
             owner.updates.send_replace(Arc::new(state.clone()));
@@ -533,12 +535,17 @@ async fn execute(
             providers
                 .get(&request.provider_id)
                 .map_err(|_| OperationError::Invalid)?;
-            storage.scoped(|| {
+            let account = storage.scoped(|| {
                 storage.guard_crypto_initialization()?;
                 accounts
                     .create(request)
                     .map_err(|_| OperationError::Storage)
             })?;
+            owner
+                .state
+                .lock()
+                .map_err(|_| OperationError::Storage)?
+                .created_account = Some(account.id);
             Outcome::Saved
         }
         Operation::UpdateAccount(id, request) => {

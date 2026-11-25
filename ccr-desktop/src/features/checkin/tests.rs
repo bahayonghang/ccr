@@ -627,3 +627,6 @@ async fn provider_details_show_only_cache_status_and_locate_associated_accounts(
     );
     owner.shutdown();
 }
+
+#[path = "management_tests.rs"]
+mod management;

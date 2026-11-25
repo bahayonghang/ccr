@@ -62,7 +62,7 @@ impl CheckinView {
     }
 
     pub(super) fn restore_control(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.navigation.pending && !self.busy {
+        if self.navigation.pending && !self.busy && !self.operation.busy {
             self.navigation.pending = false;
             let anchor = if self.navigation.mounted.get() {
                 self.navigation.anchor.clone()
@@ -126,6 +126,15 @@ impl CheckinView {
 
     pub(super) fn remember_editor_source(&mut self, source: &str) {
         self.navigation.editor = Some(self.origin(source));
+    }
+
+    pub(super) fn show_created_account(&mut self, id: &str) {
+        let origin = self.navigation.editor.take();
+        self.close_editor();
+        self.navigation.detail = origin;
+        self.selected = Some(id.to_owned());
+        self.scroll.set_offset(Default::default());
+        self.focus_control("back");
     }
 
     pub(super) fn close_editor(&mut self) {

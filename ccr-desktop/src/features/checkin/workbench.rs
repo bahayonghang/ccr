@@ -402,9 +402,10 @@ impl CheckinView {
                     .child(semantics::ghost_button(
                         Button::new("checkin-tools-open")
                             .label(text(cx, "Account tools", "账户工具"))
-                            .on_click(
-                                cx.listener(|this, _, window, cx| this.open_extended(window, cx)),
-                            ),
+                            .on_click(cx.listener(|this, _, window, cx| {
+                                this.close_detail();
+                                this.open_extended(window, cx);
+                            })),
                         self.operation.busy,
                         false,
                         cx,
@@ -628,12 +629,13 @@ impl CheckinView {
                 .aria_label(SharedString::from(lines.join(" ")))
                 .flex()
                 .flex_col()
-                .gap(px(theme::CONTROL_GAP))
-                .children(lines);
-            detail = detail.children(self.render_selected_actions(cx));
+                .gap(px(theme::CONTROL_GAP));
             if let Some(data) = self.data() {
                 detail = detail.children(self.render_account_rows(data, cx));
             }
+            detail = detail
+                .children(lines)
+                .children(self.render_selected_actions(cx));
             if let Some(snapshot) = &self.operation.snapshot {
                 detail = detail.children(self.render_saved_records(snapshot, cx));
             }

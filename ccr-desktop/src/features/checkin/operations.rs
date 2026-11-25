@@ -143,11 +143,24 @@ impl CheckinView {
                 if weak
                     .update(cx, |this, cx| {
                         let refresh = !state.busy && state.result.is_some();
-                        if matches!(state.result, Some(Ok(Outcome::Saved | Outcome::Deleted))) {
+                        if let Some(id) = &state.created_account
+                            && matches!(
+                                this.editor.as_ref().map(|e| &e.kind),
+                                Some(EditorKind::Account(None))
+                            )
+                            && matches!(state.result, Some(Ok(Outcome::Saved)))
+                        {
+                            this.show_created_account(id);
+                        } else if matches!(
+                            state.result,
+                            Some(Ok(Outcome::Saved | Outcome::Deleted))
+                        ) {
                             this.close_editor();
                         }
                         this.operation = state;
                         if refresh {
+                            // Replace any read started before the write completed.
+                            this.busy = false;
                             this.refresh(cx);
                         }
                         cx.notify();
@@ -254,16 +267,15 @@ impl CheckinView {
         } else {
             None
         };
-        let values: Vec<String> = editor
-            .fields
-            .iter()
-            .map(|f| f.read(cx).value().to_string())
-            .collect();
-        let optional = |index: usize| (!values[index].is_empty()).then(|| values[index].clone());
+        let value = |index: usize| editor.fields[index].read(cx).value().to_string();
+        let optional = |index: usize| {
+            let field = value(index);
+            (!field.is_empty()).then_some(field)
+        };
         let operation = match &editor.kind {
             EditorKind::Provider(None) => Operation::AddProvider(CreateProviderRequest {
-                name: values[0].clone(),
-                base_url: values[1].clone(),
+                name: value(0),
+                base_url: value(1),
                 checkin_path: optional(2),
                 balance_path: optional(3),
                 user_info_path: optional(4),
@@ -290,9 +302,9 @@ impl CheckinView {
                 };
                 Operation::AddAccount(CreateAccountRequest {
                     provider_id: provider.clone(),
-                    name: values[0].clone(),
+                    name: value(0),
                     cookies_json: cookies.unwrap_or_else(|| Secret::new("")),
-                    api_user: values[2].clone(),
+                    api_user: value(2),
                     extra_config: "{}".into(),
                 })
             }
@@ -409,11 +421,45 @@ impl CheckinView {
         {
             let id = a.id.clone();
             let delete = id.clone();
+            let toggle = id.clone();
+            let enabled = a.enabled;
             children.push(
                 (div()
                     .flex()
+                    .flex_wrap()
                     .gap(px(theme::CONTROL_GAP))
-                    .child(a.name.clone())
+                    .child(
+                        self.origin_control(
+                            "toggle",
+                            semantics::ghost_button(
+                                Button::new("checkin-toggle-account")
+                                    .label(if enabled {
+                                        text(cx, "Disable account", "停用账户")
+                                    } else {
+                                        text(cx, "Enable account", "启用账户")
+                                    })
+                                    .on_click(cx.listener(move |this, _, _, cx| {
+                                        this.focus_control("toggle");
+                                        this.start(
+                                            Operation::UpdateAccount(
+                                                toggle.clone(),
+                                                UpdateAccountRequest {
+                                                    name: None,
+                                                    cookies_json: None,
+                                                    api_user: None,
+                                                    enabled: Some(!enabled),
+                                                    extra_config: None,
+                                                },
+                                            ),
+                                            cx,
+                                        );
+                                    })),
+                                locked,
+                                false,
+                                cx,
+                            ),
+                        ),
+                    )
                     .child(
                         self.origin_control(
                             "edit",
@@ -492,7 +538,12 @@ impl CheckinView {
                     ("Session cookie", "Session Cookie"),
                 ]
             };
-            let mut form=div().id("checkin-editor").test_support().flex().flex_col().gap(px(theme::CONTROL_GAP))
+            let mut form=div().id("checkin-editor").test_support()
+                .on_key_down(cx.listener(|this,event: &gpui_kit::KeyDownEvent,_,cx| {
+                    if event.keystroke.key == "escape" && !this.operation.busy {
+                        this.close_editor(); cx.stop_propagation(); cx.notify();
+                    }
+                })).flex().flex_col().gap(px(theme::CONTROL_GAP))
                 .child(text(cx,"For edits, blank fields retain saved values. Session changes keep other cookies. Credentials are encrypted before storage. Browser login is not available here.","编辑时留空保留原值。修改 Session 会保留其他 Cookie，凭据写入前会加密。此处尚不支持浏览器登录。"));
             if matches!(editor.kind, EditorKind::Provider(None)) {
                 form = form.child(semantics::ghost_button(

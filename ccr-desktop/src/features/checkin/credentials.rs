@@ -26,6 +26,12 @@ impl operations::Editor {
         if self.credentials.advanced {
             return Ok(Some(value.to_string().into()));
         }
+        // A session-only replacement needs the other saved cookies.
+        if matches!(self.kind, operations::EditorKind::Account(Some(_)))
+            && let Some(error) = self.credentials.failed
+        {
+            return Err(error);
+        }
         let original = self.fields[1].read(cx).value();
         let mut cookies: serde_json::Value = serde_json::from_str(if original.is_empty() {
             "{}"
@@ -33,6 +39,11 @@ impl operations::Editor {
             original.as_str()
         })
         .map_err(|_| crate::runtime::checkin::OperationError::Invalid)?;
+        if matches!(self.kind, operations::EditorKind::Account(Some(_)))
+            && cookies.get("session").and_then(serde_json::Value::as_str) == Some(value.as_str())
+        {
+            return Ok(None);
+        }
         cookies
             .as_object_mut()
             .ok_or(crate::runtime::checkin::OperationError::Invalid)?
