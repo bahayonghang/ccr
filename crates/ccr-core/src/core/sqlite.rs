@@ -39,6 +39,19 @@ pub fn create_sqlite_pool(path: &Path, config: Option<PoolConfig>) -> Result<DbP
         .build(manager)
 }
 
+/// A short-lived reader for captured domain managers. It must never create the database
+/// or change its journal mode when an export is the first action in this process.
+pub fn open_read_only_sqlite_pool(path: &Path) -> Result<DbPool, r2d2::Error> {
+    let timeout = Duration::from_secs(5);
+    let manager = SqliteConnectionManager::file(path)
+        .with_flags(rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+        .with_init(move |conn| conn.busy_timeout(timeout));
+    Pool::builder()
+        .max_size(1)
+        .connection_timeout(timeout)
+        .build(manager)
+}
+
 pub fn create_memory_sqlite_pool() -> Result<DbPool, r2d2::Error> {
     let manager = SqliteConnectionManager::memory();
 

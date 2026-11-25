@@ -95,6 +95,14 @@ impl ExportManager {
         let crypto = CryptoManager::new(&self.checkin_dir)
             .map_err(|e| ExportError::CryptoError(e.to_string()))?;
 
+        Self::encode_accounts(accounts, options, &crypto)
+    }
+
+    fn encode_accounts(
+        accounts: &[CheckinAccount],
+        options: &ExportOptions,
+        crypto: &CryptoManager,
+    ) -> Result<Vec<ExportAccount>> {
         let mut export_accounts = Vec::with_capacity(accounts.len());
 
         for account in accounts {

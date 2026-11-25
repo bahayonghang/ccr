@@ -211,16 +211,11 @@ pub(super) async fn execute_extended(
         }
         ExtendedCommand::Export(path) => {
             validate_transfer_path(source, &path)?;
-            // The domain exporter initializes crypto before its own file-write scope.
             storage.scoped(|| {
-                storage.guard_crypto_initialization()?;
-                ccr_checkin::core::crypto::CryptoManager::new(&storage.crypto)
-                    .map(|_| ())
-                    .map_err(|_| OperationError::Storage)
+                ExportManager::with_db(&storage.crypto, storage.db.clone())
+                    .export_file(&path)
+                    .map_err(import_error)
             })?;
-            ExportManager::with_db(&storage.crypto, storage.db.clone())
-                .export_file(&path)
-                .map_err(import_error)?;
             Ok(ExtendedReport::Exported { stats: false })
         }
         ExtendedCommand::ExportStats(path) => {

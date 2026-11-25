@@ -163,13 +163,29 @@ mod tests {
                 std::thread::sleep(Duration::from_millis(5));
             }
         };
-        source.checkin_operations.storage(&source.source).unwrap();
+        // An existing database can be exported without running startup migrations.
+        let conn = rusqlite::Connection::open(source_root.path().join("checkin.db")).unwrap();
+        conn.execute_batch(database::schema::CREATE_TABLES_SQL)
+            .unwrap();
+        drop(conn);
+        let db_path = source_root.path().join("checkin.db");
+        let initial = std::fs::read(&db_path).unwrap();
+        run(
+            &source,
+            Operation::Extended(ExtendedCommand::ExportStats(
+                source_root.path().join("today.json"),
+            )),
+            0,
+        );
+        assert!(!source_root.path().join("checkin-crypto").exists());
         let export = source_root.path().join("empty-export.json");
         run(
             &source,
             Operation::Extended(ExtendedCommand::Export(export.clone())),
             1,
         );
+        assert!(!source_root.path().join("checkin-migration-home").exists());
+        assert_eq!(std::fs::read(db_path).unwrap(), initial);
         let copied = target_root.path().join("empty-import.json");
         std::fs::copy(export, &copied).unwrap();
         let key = RequestKey {

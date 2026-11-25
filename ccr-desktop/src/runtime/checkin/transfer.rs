@@ -48,6 +48,20 @@ impl TransferPaths {
     }
 }
 
+pub(super) fn existing_export_storage(source: &ConfigSource) -> Result<Storage, OperationError> {
+    let paths = TransferPaths::capture(source)?;
+    if !paths.database.is_file() {
+        return Err(OperationError::Storage);
+    }
+    let pool = ccr_core::core::sqlite::open_read_only_sqlite_pool(&paths.database)
+        .map_err(|_| OperationError::Storage)?;
+    Ok(Storage {
+        db: DbAccess::Pool(pool),
+        crypto: paths.crypto,
+        locks: paths.locks,
+    })
+}
+
 impl Services {
     pub fn checkin_import_preview(
         &self,

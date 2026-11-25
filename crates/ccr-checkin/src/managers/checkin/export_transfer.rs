@@ -291,7 +291,21 @@ impl ExportManager {
         row_version(&providers, &accounts)
     }
     pub fn export_file(&self, path: &Path) -> Result<()> {
-        let data = self.export(&ExportOptions::default())?;
+        let (providers, accounts) = self
+            .db
+            .with_connection(read_rows)
+            .map_err(|e| ExportError::ExportFailed(e.to_string()))?;
+        let crypto = if accounts.is_empty() {
+            CryptoManager::new(&self.checkin_dir)
+                .map_err(|e| ExportError::CryptoError(e.to_string()))?
+        } else {
+            CryptoManager::load_existing(&self.checkin_dir)
+                .map_err(|_| ExportError::ExistingKeyUnavailable)?
+        };
+        let data = ExportData::new(
+            providers,
+            Self::encode_accounts(&accounts, &ExportOptions::default(), &crypto)?,
+        );
         let bytes = serde_json::to_vec_pretty(&data)
             .map_err(|e| ExportError::ExportFailed(e.to_string()))?;
         self.write_new_export(path, &bytes)

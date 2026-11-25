@@ -261,10 +261,11 @@ impl CheckinOperations {
             operation,
             Operation::Extended(ExtendedCommand::Export(_) | ExtendedCommand::ExportStats(_))
         );
-        if exporting && !matches!(database_path(source), Ok(Some(_))) {
-            return (Err(OperationError::Storage), None);
-        }
-        let storage = self.storage(source);
+        let storage = if exporting {
+            transfer::existing_export_storage(source)
+        } else {
+            self.storage(source)
+        };
         let result = storage.as_ref().map_err(|e| *e).and_then(|storage| {
             tokio::runtime::Handle::try_current()
                 .map_err(|_| OperationError::Interrupted)?
