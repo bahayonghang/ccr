@@ -411,11 +411,7 @@ fn interpret_checkin_json(status: reqwest::StatusCode, data: &serde_json::Value)
 
     if !status.is_success() {
         return CheckinOutcome::Failed {
-            message: format!(
-                "HTTP {}: {}",
-                status.as_u16(),
-                message.as_deref().unwrap_or("签到失败")
-            ),
+            message: message.unwrap_or_else(|| "签到失败".to_string()),
         };
     }
 
@@ -451,34 +447,125 @@ fn merge_cookies(
     merged
 }
 
+const CHECKIN_COOKIE_KEYS: &[&str] = &[
+    "session",
+    "sessionid",
+    "cfclearance",
+    "acwtc",
+    "acwscv2",
+    "cdnsectc",
+];
+
 /// Project current or historical provider feedback without consulting stored credentials.
 pub fn redact_provider_feedback(message: &str) -> String {
-    ccr_core::core::log_redact::redact_log_text_with_keys(
-        message,
-        &[
-            "session",
-            "sessionid",
-            "cfclearance",
-            "acwtc",
-            "acwscv2",
-            "cdnsectc",
-        ],
-    )
+    ccr_core::core::log_redact::redact_log_text_with_keys(message, CHECKIN_COOKIE_KEYS)
 }
 
 fn safe_response_text(message: &str, cookies: &HashMap<String, String>) -> String {
-    // A provider may echo a request cookie without its field name. Handle longer
-    // values first so one cookie cannot leave the suffix of another visible.
-    let mut secrets: Vec<_> = cookies
-        .values()
-        .filter(|s| !s.is_empty() && message.contains(s.as_str()))
+    use ccr_core::core::log_redact::{normalize_log_key, redact_log_text_with_keys};
+
+    let normalized: Vec<_> = cookies.keys().map(|key| normalize_log_key(key)).collect();
+    let keys: Vec<_> = CHECKIN_COOKIE_KEYS
+        .iter()
+        .copied()
+        .chain(normalized.iter().map(String::as_str))
         .collect();
-    secrets.sort_unstable_by_key(|s| std::cmp::Reverse(s.len()));
-    let mut safe = message.to_owned();
-    for secret in secrets {
-        safe = safe.replace(secret.as_str(), "****");
+    // Always redact named assignments, including ordinary preferences such as consent=1.
+    let mut safe = redact_log_text_with_keys(message, &keys);
+    let mut values: Vec<_> = cookies
+        .iter()
+        .filter_map(|(name, value)| {
+            // Only recognized, short preference values are ambiguous outside an
+            // assignment. Unknown cookie names may still carry authentication.
+            let preference = value.len() < 8
+                && matches!(
+                    normalize_log_key(name).as_str(),
+                    "consent"
+                        | "cookieconsent"
+                        | "locale"
+                        | "language"
+                        | "lang"
+                        | "theme"
+                        | "timezone"
+                );
+            (!value.is_empty() && !preference && safe.contains(value.as_str()))
+                .then_some(value.as_str())
+        })
+        .collect();
+    values.sort_unstable_by_key(|s| std::cmp::Reverse(s.len()));
+    values.dedup();
+    for value in values {
+        if value.len() >= 8 {
+            safe = safe.replace(value, "****");
+        } else {
+            // A short session credential is recognizable as a token, not as
+            // part of an ordinary word or a larger number.
+            let original = safe;
+            safe = String::with_capacity(original.len());
+            let mut consumed = 0;
+            for (start, _) in original.match_indices(value) {
+                let end = start + value.len();
+                if original[..start].ends_with(char::is_alphanumeric)
+                    || original[end..].starts_with(char::is_alphanumeric)
+                {
+                    continue;
+                }
+                safe.push_str(&original[consumed..start]);
+                safe.push_str("****");
+                consumed = end;
+            }
+            safe.push_str(&original[consumed..]);
+        }
     }
-    redact_provider_feedback(&safe)
+    safe
+}
+
+fn safe_reward(reward: String, cookies: &HashMap<String, String>) -> String {
+    // A number with a recognized unit is a measurement. A raw credential or
+    // a recognizable long secret embedded in the reward still needs masking.
+    let unsigned = reward
+        .trim()
+        .trim_start_matches(['+', '-'])
+        .trim_start_matches(['$', '€', '¥']);
+    let (amount, unit) = unsigned.split_at(
+        unsigned
+            .find(|c: char| !c.is_ascii_digit() && c != '.')
+            .unwrap_or(unsigned.len()),
+    );
+    let unit = unit.trim();
+    let numeric = amount.parse::<f64>().is_ok_and(f64::is_finite)
+        && (matches!(unit, "" | "积分" | "美元" | "天" | "points")
+            || (unit.len() == 3 && unit.bytes().all(|c| c.is_ascii_uppercase())));
+    if numeric
+        && !cookies.values().any(|value| {
+            !value.is_empty()
+                && (reward.trim() == value || (value.len() >= 8 && reward.contains(value)))
+        })
+    {
+        reward
+    } else {
+        safe_response_text(&reward, cookies)
+    }
+}
+
+fn provider_response_error(
+    status: reqwest::StatusCode,
+    message: &str,
+    cookies: &HashMap<String, String>,
+) -> CheckinServiceError {
+    let safe = safe_response_text(message, cookies);
+    let with_status = |text: &str| {
+        if status.is_success() {
+            text.to_owned()
+        } else {
+            format!("HTTP {}: {text}", status.as_u16())
+        }
+    };
+    let code = CheckinServiceError::Api(with_status(message)).error_code();
+    CheckinServiceError::ProviderResponse {
+        message: with_status(&safe),
+        code,
+    }
 }
 
 fn cookie_header_string(cookies: &HashMap<String, String>) -> String {
@@ -1197,16 +1284,16 @@ impl CheckinService {
                 CheckinOutcome::Success { message, reward } => Ok(CheckinSuccessOutcome {
                     status: CheckinStatus::Success,
                     message: safe_response_text(&message, &cookies),
-                    reward: reward.map(|s| safe_response_text(&s, &cookies)),
+                    reward: reward.map(|s| safe_reward(s, &cookies)),
                 }),
                 CheckinOutcome::AlreadyCheckedIn { message } => Ok(CheckinSuccessOutcome {
                     status: CheckinStatus::AlreadyCheckedIn,
                     message: safe_response_text(&message, &cookies),
                     reward: None,
                 }),
-                CheckinOutcome::Failed { message } => Err(CheckinServiceError::Api(
-                    safe_response_text(&message, &cookies),
-                )),
+                CheckinOutcome::Failed { message } => {
+                    Err(provider_response_error(status, &message, &cookies))
+                }
             };
         }
 
@@ -1412,10 +1499,11 @@ impl CheckinService {
                 .as_str()
                 .or_else(|| data["msg"].as_str())
                 .unwrap_or("API 响应缺少 'data' 字段");
-            return Err(CheckinServiceError::Api(format!(
-                "{}: API 响应缺少余额数据",
-                safe_response_text(error_msg, &cookies)
-            )));
+            return Err(provider_response_error(
+                status,
+                &format!("{error_msg}: API 响应缺少余额数据"),
+                &cookies,
+            ));
         }
 
         let quota_bytes = data["data"]["quota"]
@@ -2592,10 +2680,10 @@ mod tests {
             other => panic!("expected Failed, got {other:?}"),
         }
 
-        // HTTP 错误 + JSON 错误体：HTTP 状态码进入消息
+        // HTTP 错误 + JSON 错误体：原文和状态分开，脱敏后再组合显示。
         let data = serde_json::json!({"message": "未登录"});
         match interpret_checkin_json(reqwest::StatusCode::UNAUTHORIZED, &data) {
-            CheckinOutcome::Failed { message } => assert_eq!(message, "HTTP 401: 未登录"),
+            CheckinOutcome::Failed { message } => assert_eq!(message, "未登录"),
             other => panic!("expected Failed, got {other:?}"),
         }
 

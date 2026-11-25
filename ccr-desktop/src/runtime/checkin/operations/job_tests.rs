@@ -37,9 +37,9 @@ fn mixed_jobs_confirm_identity_retain_results_throttle_and_preserve_failed_sampl
             calls.lock().unwrap().push((method.to_string(),user.to_string()));
             tokio::time::sleep(Duration::from_millis(50)).await;
             let (status, body) = if user == "bad" || (user == "good" && fail_good.load(Ordering::SeqCst)) {
-                ("401 Unauthorized", r#"{"success":false,"message":"Unauthorized"}"#)
+                ("401 Unauthorized", r#"{"success":false,"message":"denied"}"#)
             } else if method == "post" {
-                ("200 OK",r#"{"success":true,"message":"Fixture saved session=private-echo and cookie fixture-secret","data":{"reward":"1 USD"}}"#)
+                ("200 OK",r#"{"success":true,"message":"Fixture saved 1 record; consent=1; session=private-echo; opaque fixture-secret; ticket xy7; other r7z; scope USD","data":{"reward":"1 USD"}}"#)
             } else if user == "today" {
                 ("200 OK",r#"{"success":true,"data":{"check_in_today":true,"quota":500000,"used_quota":100000}}"#)
             } else {
@@ -58,6 +58,11 @@ fn mixed_jobs_confirm_identity_retain_results_throttle_and_preserve_failed_sampl
     let mut ids = BTreeMap::new();
     for (index, user) in ["good", "today", "bad", "off"].into_iter().enumerate() {
         let mut a = account(provider_id.clone());
+        a.cookies_json = Secret::new(if user == "bad" {
+            r#"{"consent":"1","session":"401"}"#
+        } else {
+            r#"{"consent":"1","session":"fixture-secret","token":"xy7","custom":"r7z","sid":"USD"}"#
+        });
         a.name = user.into();
         a.api_user = user.into();
         let added = run(&services, Operation::AddAccount(a), index as u64 + 2);
@@ -112,7 +117,12 @@ fn mixed_jobs_confirm_identity_retain_results_throttle_and_preserve_failed_sampl
         JobStatus::Checked(CheckinStatus::Success)
     );
     let message = items["good"].message.as_deref().unwrap();
-    assert!(message.contains("Fixture saved"));
+    let bad_message = items["bad"].message.as_deref().unwrap();
+    assert!(bad_message.contains("HTTP 401: denied"));
+    assert_eq!(items["bad"].error_code.as_deref(), Some("cookie_expired"));
+    assert!(message.contains("Fixture saved 1 record"));
+    assert!(!message.contains("consent=1") && !message.contains("xy7"));
+    assert!(!message.contains("r7z") && !message.contains("USD"));
     assert!(!message.contains("private-echo") && !message.contains("fixture-secret"));
     let stored = services
         .checkin_records(&RecordQuery {
@@ -136,7 +146,6 @@ fn mixed_jobs_confirm_identity_retain_results_throttle_and_preserve_failed_sampl
         items["bad"].status,
         JobStatus::Checked(CheckinStatus::Failed)
     );
-    assert_eq!(items["bad"].error_code.as_deref(), Some("cookie_expired"));
     assert_eq!(items["bad"].target.id, ids["bad"]);
     assert_eq!(requests.lock().unwrap().len(), 5);
     let all = run(

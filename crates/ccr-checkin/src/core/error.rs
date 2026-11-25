@@ -20,6 +20,10 @@ pub enum CheckinServiceError {
     #[error("API error: {0}")]
     Api(String),
 
+    /// Classify provider text before removing echoed credentials from its display.
+    #[error("API error: {message}")]
+    ProviderResponse { message: String, code: &'static str },
+
     #[error("Record error: {0}")]
     Record(String),
 
@@ -37,6 +41,7 @@ impl CheckinServiceError {
             Self::Account(_) => "account_error",
             Self::Crypto(_) => "crypto_error",
             Self::Network(_) => "network_error",
+            Self::ProviderResponse { code, .. } => code,
             Self::Api(msg) => {
                 if msg.contains("WAF") || msg.contains("waf") {
                     "waf_blocked"
