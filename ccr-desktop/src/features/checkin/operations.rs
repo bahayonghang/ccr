@@ -7,7 +7,10 @@ use ccr_db::models::checkin::{
     CheckinStatus, CreateAccountRequest, CreateProviderRequest, UpdateAccountRequest,
     UpdateProviderRequest,
 };
-use gpui_kit::component::input::{Input, InputState};
+use gpui_kit::component::{
+    ActiveTheme,
+    input::{Input, InputState},
+};
 use gpui_kit::{AppContext, Entity};
 use std::sync::Arc;
 
@@ -578,10 +581,14 @@ impl CheckinView {
                         this.close_editor(); cx.stop_propagation(); cx.notify();
                     }
                 })).flex().flex_col().gap(px(theme::CONTROL_GAP))
+                .bg(gpui_kit::rgb(theme::palette(cx.theme().mode).surface))
+                .rounded(px(theme::INPUT_RADIUS))
+                .p(px(theme::CONTROL_GAP))
                 .child(text(cx,"For edits, blank fields retain saved values. Session changes keep other cookies. Credentials are encrypted before storage. Browser login is not available here.","编辑时留空保留原值。修改 Session 会保留其他 Cookie，凭据写入前会加密。此处尚不支持浏览器登录。"));
             if matches!(editor.kind, EditorKind::Provider(None)) {
                 form = form.child(semantics::ghost_button(
                     Button::new("checkin-catalog")
+                        .self_start()
                         .label(text(cx, "Choose a built-in provider", "选择内置提供商"))
                         .on_click(cx.listener(|this, _, _, cx| {
                             this.catalog = !this.catalog;
@@ -651,6 +658,7 @@ impl CheckinView {
             if !provider && !editor.credentials.advanced {
                 form = form.child(semantics::button(
                     Button::new("checkin-advanced-cookies")
+                        .self_start()
                         .label(text(
                             cx,
                             "Edit all cookies (advanced)",
@@ -672,6 +680,7 @@ impl CheckinView {
                     let id = p.id.clone();
                     form = form.child(semantics::button(
                         Button::new(("checkin-provider-choice", index))
+                            .self_start()
                             .label(ccr_core::core::log_redact::redact_log_text(&p.name))
                             .selected(editor.provider.as_deref() == Some(&p.id))
                             .ghost()
@@ -693,6 +702,7 @@ impl CheckinView {
             ) {
                 form = form.child(semantics::button(
                     Button::new("checkin-editor-enabled")
+                        .self_start()
                         .label(if editor.enabled {
                             text(cx, "Enabled", "已启用")
                         } else {

@@ -176,6 +176,10 @@ async fn checkin_page_without_a_database_stays_absent(cx: &mut TestAppContext) {
         assert!(window.try_find("nav-checkin").is_some());
         let text = labels(window);
         assert!(text.contains("No local check-in database was found."));
+        assert_eq!(
+            window.find("checkin-scope").role(),
+            Some(gpui_kit::Role::Label)
+        );
         assert!(text.contains("does not create a database"));
         assert!(!text.contains("Home insights"));
         assert!(!text.contains("Apply / refresh"));
@@ -464,6 +468,7 @@ async fn minimum_window_keeps_account_filters_and_unfiltered_balance_totals(
                     .unwrap()
                     .contains("Desk account")
             );
+            assert!(window.find("checkin-back").bounds().size.width < px(250.));
             window.click("checkin-back", cx);
             window.render_frame(cx);
             assert!(window.try_find("checkin-detail").is_none());
@@ -561,6 +566,7 @@ async fn unreadable_database_retries_into_empty_store_then_configured_provider(
         window.render_frame(cx);
         assert!(window.try_find("checkin-editor").is_some());
         assert!(labels(window).contains("Configured provider"));
+        assert!(window.find("checkin-advanced-cookies").bounds().size.width < px(250.));
         window.click("checkin-cancel-edit", cx);
         window.render_frame(cx);
         assert!(window.try_find("checkin-new-account").is_some());

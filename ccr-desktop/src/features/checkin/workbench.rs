@@ -235,6 +235,7 @@ impl CheckinView {
                         div()
                             .id("checkin-scope")
                             .test_support()
+                            .role(gpui_kit::Role::Label)
                             .aria_label(scope)
                             .text_color(cx.theme().muted_foreground)
                             .child(scope),
@@ -582,26 +583,25 @@ impl CheckinView {
             .iter()
             .find(|a| Some(&a.id) == self.selected.as_ref())
         {
-            panel = panel.child(
-                self.origin_control(
-                    "back",
-                    semantics::ghost_button(
-                        Button::new("checkin-back")
-                            .label(if self.tab == CheckinTab::Accounts {
-                                text(cx, "Back to accounts", "返回账户")
-                            } else {
-                                text(cx, "Back", "返回")
-                            })
-                            .on_click(cx.listener(|this, _, _, cx| {
-                                this.close_detail();
-                                cx.notify();
-                            })),
-                        false,
-                        false,
-                        cx,
-                    ),
+            let back = self.origin_control(
+                "back",
+                semantics::ghost_button(
+                    Button::new("checkin-back")
+                        .label(if self.tab == CheckinTab::Accounts {
+                            text(cx, "Back to accounts", "返回账户")
+                        } else {
+                            text(cx, "Back", "返回")
+                        })
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            this.close_detail();
+                            cx.notify();
+                        })),
+                    false,
+                    false,
+                    cx,
                 ),
             );
+            panel = panel.child(div().flex().items_start().child(back));
             let lines = detail_lines(cx, account);
             let mut detail = div()
                 .id("checkin-detail")
