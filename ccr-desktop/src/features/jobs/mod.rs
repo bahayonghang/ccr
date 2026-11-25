@@ -1,4 +1,5 @@
 //! Native command catalog, app-owned execution and bounded log reader.
+pub mod model;
 use crate::{
     locales::{is_chinese, service_error, text},
     runtime::{Services, jobs::CommandRequests},
