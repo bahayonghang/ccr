@@ -2,7 +2,8 @@
 use super::*;
 #[path = "inspection.rs"]
 mod inspection;
-use crate::runtime::checkin::{ExtendedCommand, ExtendedReport, Operation};
+use crate::runtime::checkin::{ExtendedCommand, ExtendedReport, Operation, OperationError};
+use ccr_checkin::managers::checkin::export_manager::ImportSession;
 use gpui_kit::component::{
     FocusTrapElement,
     input::{Input, InputState},
@@ -15,6 +16,8 @@ pub(super) struct ExtendedUi {
     accounts: BTreeSet<String>,
     provider: Option<String>,
     path: Entity<InputState>,
+    _path_changed: Subscription,
+    preview: PreviewRead,
     cookies: Entity<InputState>,
     code: Entity<InputState>,
     cdk_config: Entity<InputState>,
@@ -24,12 +27,36 @@ pub(super) struct ExtendedUi {
     clear_after: bool,
     inspection: InspectionUi,
 }
+#[derive(Default)]
+struct PreviewRead {
+    request: Option<u64>,
+    source: Option<std::path::PathBuf>,
+    task: Option<Task<()>>,
+    session: Option<Arc<ImportSession>>,
+    error: Option<OperationError>,
+}
+
 impl CheckinView {
     pub(super) fn open_extended(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let path = cx.new(|cx| InputState::new(window, cx));
+        let path_changed =
+            cx.subscribe(&path, |this, input, event, cx| {
+                if matches!(event, InputEvent::Change)
+                    && let Some(editor) = &mut this.extended
+                    && editor.preview.source.as_deref().is_some_and(|reviewed| {
+                        reviewed.as_os_str() != input.read(cx).value().as_str()
+                    })
+                {
+                    editor.preview = PreviewRead::default();
+                    cx.notify();
+                }
+            });
         self.extended = Some(ExtendedUi {
             accounts: BTreeSet::new(),
             provider: None,
-            path: cx.new(|cx| InputState::new(window, cx)),
+            path,
+            _path_changed: path_changed,
+            preview: Default::default(),
             cookies: cx.new(|cx| InputState::new(window, cx).masked(true)),
             cdk_config: cx.new(|cx| InputState::new(window, cx).masked(true)),
             code: cx.new(|cx| InputState::new(window, cx).masked(true)),
@@ -88,6 +115,9 @@ impl CheckinView {
                     && let Some(editor) = &mut this.extended
                     && editor.pending.is_some()
                 {
+                    if matches!(editor.pending, Some(ExtendedCommand::Import { .. })) {
+                        editor.preview = Default::default();
+                    }
                     editor.pending = None;
                     editor.enter_confirmation = false;
                     cx.stop_propagation();
@@ -127,7 +157,6 @@ impl CheckinView {
             root = root.children(self.render_waf_controls(snapshot, cx));
         }
         root = root.child(self.render_inspection(cx));
-        root = root.children(self.render_transfer_controls(cx));
         root = root.children(self.render_extended_results(cx));
         root.into_any_element()
     }
@@ -177,10 +206,17 @@ impl CheckinView {
                 "Export configuration to the new file? Cookies remain encrypted for this device. This is not a full database backup.",
                 "导出配置到新文件？Cookies 保持当前设备加密；此文件不是完整数据库备份。",
             ),
+            Some(ExtendedCommand::Import {
+                overwrite: true, ..
+            }) => text(
+                cx,
+                "Overwrite matching local providers and accounts? A verified database backup is saved first.",
+                "覆盖冲突的本机提供商和账户？提交前将保存经验证的数据库备份。",
+            ),
             Some(ExtendedCommand::Import { .. }) => text(
                 cx,
-                "Import the previewed configuration? A local database snapshot is saved first and requires this device's existing crypto data.",
-                "导入已预览配置？操作前保存本地数据库快照，恢复仍依赖当前设备已有的加密数据。",
+                "Import and skip conflicts? A verified database backup is saved first.",
+                "导入并跳过冲突？提交前将保存经验证的数据库备份。",
             ),
             _ => text(
                 cx,
@@ -188,15 +224,6 @@ impl CheckinView {
                 "更新此提供商缓存的 WAF Cookies？",
             ),
         };
-        match editor.pending.as_ref() {
-            Some(ExtendedCommand::Import { session, .. }) => {
-                children.push((session.path().display().to_string()).into_any_element());
-            }
-            Some(ExtendedCommand::Export(path) | ExtendedCommand::ExportStats(path)) => {
-                children.push((path.display().to_string()).into_any_element());
-            }
-            _ => {}
-        }
         children.push(
             (div()
                 .flex()
@@ -208,6 +235,9 @@ impl CheckinView {
                         .label(text(cx, "Cancel", "取消"))
                         .on_click(cx.listener(|this, _, _, cx| {
                             if let Some(editor) = &mut this.extended {
+                                if matches!(editor.pending, Some(ExtendedCommand::Import { .. })) {
+                                    editor.preview = Default::default();
+                                }
                                 editor.pending = None;
                             }
                             cx.notify();
@@ -218,7 +248,13 @@ impl CheckinView {
                 ))
                 .child(semantics::button(
                     Button::new("checkin-tools-confirm")
-                        .label(text(cx, "Confirm", "确认"))
+                        .label(
+                            if matches!(editor.pending, Some(ExtendedCommand::Import { .. })) {
+                                text(cx, "Commit import", "提交导入")
+                            } else {
+                                text(cx, "Confirm", "确认")
+                            },
+                        )
                         .primary()
                         .on_click(cx.listener(|this, _, _, cx| {
                             if let Some(command) = this
@@ -227,6 +263,9 @@ impl CheckinView {
                                 .and_then(|editor| editor.pending.take())
                             {
                                 if let Some(editor) = &mut this.extended {
+                                    if matches!(command, ExtendedCommand::Import { .. }) {
+                                        editor.preview = Default::default();
+                                    }
                                     editor.clear_after = matches!(
                                         &command,
                                         ExtendedCommand::WafSave { .. }
@@ -581,6 +620,62 @@ impl CheckinView {
         children
     }
 
+    fn preview_import(&mut self, cx: &mut Context<Self>) {
+        let Some(editor) = &mut self.extended else {
+            return;
+        };
+        self.generation += 1;
+        let request = self.generation;
+        let key = RequestKey {
+            environment: EnvironmentId::Local("application".into()),
+            platform: Platform::Claude,
+            generation: request,
+            request_id: request,
+        };
+        let path = std::path::PathBuf::from(editor.path.read(cx).value().as_str());
+        editor.preview = PreviewRead {
+            request: Some(request),
+            source: Some(path.clone()),
+            ..Default::default()
+        };
+        match self.services.checkin_import_preview(key, path) {
+            Ok(mut subscription) => {
+                editor.preview.task = Some(cx.spawn(async move |weak, cx| {
+                    while let Some(event) = subscription.next().await {
+                        if let TaskEvent::Terminal(result) = event {
+                            let _ = weak.update(cx, |this, cx| {
+                                let Some(editor) = &mut this.extended else {
+                                    return;
+                                };
+                                if editor.preview.request != Some(request) {
+                                    return;
+                                }
+                                editor.preview.request = None;
+                                match result.as_ref() {
+                                    Completion::Success(session) => {
+                                        editor.preview.session = Some(session.clone())
+                                    }
+                                    Completion::Failed(error)
+                                    | Completion::CleanupFailed(error) => {
+                                        editor.preview.error = Some(*error)
+                                    }
+                                    _ => editor.preview.error = Some(OperationError::Interrupted),
+                                }
+                                cx.notify();
+                            });
+                            break;
+                        }
+                    }
+                }));
+            }
+            Err(_) => {
+                editor.preview.request = None;
+                editor.preview.error = Some(OperationError::Interrupted);
+            }
+        }
+        cx.notify();
+    }
+
     fn render_transfer_controls(&self, cx: &mut Context<Self>) -> Vec<gpui_kit::AnyElement> {
         let mut children = Vec::new();
         let Some(editor) = &self.extended else {
@@ -590,22 +685,24 @@ impl CheckinView {
         let path = editor.path.clone();
 
         children.push(
-            (text(cx, "Configuration import and export", "配置导入与导出")).into_any_element(),
+            (text(
+                cx,
+                "Enter an absolute path to an import file or a new export file.",
+                "输入导入源文件或新导出文件的绝对路径。",
+            ))
+            .into_any_element(),
         );
         children.push(
             (Input::new(&path)
                 .id("checkin-transfer-path")
-                .aria_label(text(
-                    cx,
-                    "Absolute configuration file path",
-                    "配置文件绝对路径",
-                ))
+                .aria_label(text(cx, "Absolute file path", "文件绝对路径"))
                 .disabled(blocked))
             .into_any_element(),
         );
         children.push(
             (div()
                 .flex()
+                .flex_wrap()
                 .gap(px(theme::CONTROL_GAP))
                 .child(semantics::button(
                     Button::new("checkin-export")
@@ -616,22 +713,14 @@ impl CheckinView {
                                 this.propose_extended(ExtendedCommand::Export(path), cx);
                             }
                         })),
-                    blocked,
+                    blocked || self.data().is_none(),
                     false,
                     cx,
                 ))
                 .child(semantics::button(
                     Button::new("checkin-import-preview")
                         .label(text(cx, "Preview import", "预览导入"))
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            if let Some(editor) = &this.extended {
-                                let path = editor.path.read(cx).value().to_string().into();
-                                this.start(
-                                    Operation::Extended(ExtendedCommand::PreviewImport(path)),
-                                    cx,
-                                );
-                            }
-                        })),
+                        .on_click(cx.listener(|this, _, _, cx| this.preview_import(cx))),
                     blocked,
                     false,
                     cx,
@@ -648,22 +737,126 @@ impl CheckinView {
                             this.propose_extended(ExtendedCommand::ExportStats(path), cx);
                         }
                     })),
-                blocked,
+                blocked || self.data().is_none(),
                 false,
                 cx,
             ))
             .into_any_element(),
         );
 
+        if editor.preview.request.is_some() {
+            children.push(text(cx, "Reading configuration…", "正在读取配置…").into_any_element());
+        }
+        if let Some(error) = editor.preview.error {
+            children.push(transfer_status(
+                "checkin-import-error",
+                super::operations::error(cx, error).into(),
+            ));
+        }
+        if let Some(session) = &editor.preview.session {
+            let p = &session.preview;
+            let target = if session.target_missing() {
+                text(
+                    cx,
+                    "Database will be created on this device.",
+                    "将在本机创建数据库。",
+                )
+            } else {
+                text(
+                    cx,
+                    "Target is the existing local database.",
+                    "目标为已有本机数据库。",
+                )
+            };
+            let summary = format!(
+                "{} {} {} · {} {} · {} {} · {} {}",
+                target,
+                text(cx, "New providers", "新增提供商"),
+                p.new_providers,
+                text(cx, "Provider conflicts", "提供商冲突"),
+                p.conflicting_providers,
+                text(cx, "New accounts", "新增账户"),
+                p.new_accounts,
+                text(cx, "Account conflicts", "账户冲突"),
+                p.conflicting_accounts
+            );
+            children.push(transfer_status("checkin-import-summary", summary));
+            if p.new_accounts + p.conflicting_accounts > 0 {
+                children.push(
+                    if p.keys_encrypted {
+                        text(
+                            cx,
+                            "Encrypted cookies require this device’s original key.",
+                            "加密 Cookies 需要本机原密钥。",
+                        )
+                    } else {
+                        text(
+                            cx,
+                            "The source contains plaintext cookies.",
+                            "源文件含明文 Cookies。",
+                        )
+                    }
+                    .into_any_element(),
+                );
+            }
+            for overwrite in [false, true] {
+                if overwrite && p.conflicting_accounts + p.conflicting_providers == 0 {
+                    continue;
+                }
+                let session = session.clone();
+                let button = Button::new(if overwrite {
+                    "checkin-import-overwrite"
+                } else {
+                    "checkin-import-skip"
+                })
+                .label(if overwrite {
+                    text(cx, "Overwrite conflicts…", "覆盖冲突…")
+                } else {
+                    text(cx, "Import · skip conflicts", "导入 · 跳过冲突")
+                })
+                .on_click(cx.listener(move |this, _, _, cx| {
+                    this.propose_extended(
+                        ExtendedCommand::Import {
+                            session: session.clone(),
+                            overwrite,
+                        },
+                        cx,
+                    )
+                }));
+                children.push(semantics::button(button, blocked, false, cx).into_any_element());
+            }
+        }
+        if editor.preview.request.is_some() || editor.preview.session.is_some() {
+            children.push(
+                semantics::ghost_button(
+                    Button::new("checkin-import-cancel")
+                        .label(text(cx, "Cancel preview", "取消预览"))
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            if let Some(editor) = &mut this.extended {
+                                editor.preview = Default::default();
+                            }
+                            cx.notify();
+                        })),
+                    false,
+                    false,
+                    cx,
+                )
+                .into_any_element(),
+            );
+        }
         children
     }
 
     fn render_extended_results(&self, cx: &mut Context<Self>) -> Vec<gpui_kit::AnyElement> {
         let mut children = Vec::new();
-        let Some(editor) = &self.extended else {
+        if self.tab == CheckinTab::Transfer
+            && !matches!(
+                self.operation.extended.as_deref(),
+                Some(ExtendedReport::Imported(_) | ExtendedReport::Exported { .. })
+            )
+        {
             return children;
-        };
-        let blocked = self.operation.busy || editor.pending.is_some();
+        }
         if let Some(snapshot) = &self.operation.snapshot {
             for record in &snapshot.records {
                 children.push(
@@ -796,84 +989,43 @@ impl CheckinView {
                         );
                     }
                 }
-                ExtendedReport::Exported { path, stats } => {
-                    children.push(
-                        (format!(
-                            "{} {}",
-                            if *stats {
-                                text(cx, "Statistics exported:", "统计已导出：")
-                            } else {
-                                text(cx, "Configuration exported:", "配置已导出：")
-                            },
-                            path.display()
-                        ))
-                        .into_any_element(),
-                    );
-                }
-                ExtendedReport::Preview(session) => {
-                    children.push((session.path().display().to_string()).into_any_element());
-                    children.push(
-                        (format!(
-                            "{}: {} {}; {}: {} {}",
-                            text(cx, "Providers", "提供商"),
-                            session.preview.new_providers,
-                            session.preview.conflicting_providers,
-                            text(cx, "Accounts", "账户"),
-                            session.preview.new_accounts,
-                            session.preview.conflicting_accounts
-                        ))
-                        .into_any_element(),
-                    );
-                    for overwrite in [false, true] {
-                        let session = session.clone();
-                        children.push(
-                            (semantics::button(
-                                Button::new(if overwrite {
-                                    "checkin-import-overwrite"
-                                } else {
-                                    "checkin-import-skip"
-                                })
-                                .label(if overwrite {
-                                    text(cx, "Import and overwrite conflicts", "导入并覆盖冲突")
-                                } else {
-                                    text(cx, "Import and skip conflicts", "导入并跳过冲突")
-                                })
-                                .on_click(cx.listener(
-                                    move |this, _, _, cx| {
-                                        this.propose_extended(
-                                            ExtendedCommand::Import {
-                                                session: session.clone(),
-                                                overwrite,
-                                            },
-                                            cx,
-                                        )
-                                    },
-                                )),
-                                blocked,
-                                false,
-                                cx,
-                            ))
-                            .into_any_element(),
-                        );
+                ExtendedReport::Exported { stats } => {
+                    if self.tab == CheckinTab::Transfer {
+                        let message = if *stats {
+                            text(cx, "Today's statistics exported.", "已导出今日统计。")
+                        } else {
+                            text(cx, "Encrypted configuration exported.", "已导出加密配置。")
+                        };
+                        children.push(transfer_status("checkin-export-receipt", message.into()));
                     }
                 }
-                ExtendedReport::Imported(value) => {
-                    children.push(
-                        (format!(
-                            "{}: {}; {}: {}; {}: {}",
-                            text(cx, "Imported providers", "已导入提供商"),
-                            value.providers_imported,
-                            text(cx, "Imported accounts", "已导入账户"),
-                            value.accounts_imported,
+                ExtendedReport::Imported(receipt) => {
+                    if self.tab == CheckinTab::Transfer {
+                        let count = &receipt.counts;
+                        let summary = format!(
+                            "{} {} · {} {} · {} {} · {} {}. {} backups/{}. {}",
+                            text(cx, "Providers imported", "已导入提供商"),
+                            count.providers_imported,
+                            text(cx, "Providers skipped", "跳过提供商"),
+                            count.providers_skipped,
+                            text(cx, "Accounts imported", "已导入账户"),
+                            count.accounts_imported,
+                            text(cx, "Accounts skipped", "跳过账户"),
+                            count.accounts_skipped,
                             text(
                                 cx,
-                                "Accounts requiring new cookies",
-                                "需重新输入 Cookies 的账户"
+                                "Verified backup in local check-in storage",
+                                "本机签到存储中的已验证备份"
                             ),
-                            value.accounts_need_reauth
-                        ))
-                        .into_any_element(),
-                    );
+                            receipt.backup_file,
+                            text(
+                                cx,
+                                "Recovery requires the original device key.",
+                                "恢复凭据需要本机原密钥。"
+                            )
+                        );
+                        children.push(transfer_status("checkin-import-receipt", summary));
+                    }
                 }
                 ExtendedReport::CdkSaved => {
                     children.push(
@@ -899,4 +1051,14 @@ impl CheckinView {
 
         children
     }
+}
+
+fn transfer_status(id: &'static str, message: String) -> gpui_kit::AnyElement {
+    div()
+        .id(id)
+        .test_support()
+        .role(gpui_kit::Role::Status)
+        .aria_label(SharedString::from(message.clone()))
+        .child(message)
+        .into_any_element()
 }

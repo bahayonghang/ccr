@@ -23,6 +23,35 @@ fn services(owner: &RuntimeOwner, root: &std::path::Path) -> Services {
     )
 }
 
+#[track_caller]
+fn wait(
+    cx: &mut TestAppContext,
+    handle: gpui_kit::AnyWindowHandle,
+    mut ready: impl FnMut(&mut Window) -> bool,
+) {
+    let deadline = std::time::Instant::now() + Duration::from_secs(10);
+    loop {
+        cx.run_until_parked();
+        if cx
+            .update_window(handle, |_, window, cx| {
+                window.render_frame(cx);
+                ready(window)
+            })
+            .unwrap()
+        {
+            cx.run_until_parked();
+            return;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "check-in controls did not reach expected state: {}",
+            cx.update_window(handle, |_, w, _| labels(w)).unwrap()
+        );
+        cx.executor().advance_clock(Duration::from_millis(10));
+        std::thread::yield_now();
+    }
+}
+
 fn open(
     cx: &mut TestAppContext,
     owner: &RuntimeOwner,
@@ -251,33 +280,6 @@ fn account_tools_native_selection_cancel_and_batch_delete(cx: &mut TestAppContex
     }
     let owner = RuntimeOwner::new().unwrap();
     let handle = open(cx, &owner, root.path());
-    #[track_caller]
-    fn wait(
-        cx: &mut TestAppContext,
-        handle: gpui_kit::AnyWindowHandle,
-        mut ready: impl FnMut(&mut Window) -> bool,
-    ) {
-        let deadline = std::time::Instant::now() + Duration::from_secs(10);
-        loop {
-            cx.run_until_parked();
-            if cx
-                .update_window(handle, |_, window, cx| {
-                    window.render_frame(cx);
-                    ready(window)
-                })
-                .unwrap()
-            {
-                cx.run_until_parked();
-                return;
-            }
-            assert!(
-                std::time::Instant::now() < deadline,
-                "account tools did not reach expected state"
-            );
-            cx.executor().advance_clock(Duration::from_millis(10));
-            std::thread::yield_now();
-        }
-    }
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         window.click("nav-checkin", cx);
@@ -550,5 +552,142 @@ async fn unreadable_database_retries_into_empty_store_then_configured_provider(
     .unwrap();
     assert!(!root.path().join("checkin-crypto").exists());
     assert!(!root.path().join("checkin-migration-home").exists());
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+fn transfer_preview_cancel_and_commit_use_the_reviewed_source(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    let provider = CheckinProvider::new("Sample".into(), "https://example.invalid".into());
+    let account = ccr_db::models::checkin::ExportAccount {
+        id: "controlled".into(),
+        provider_id: provider.id.clone(),
+        name: "Imported account".into(),
+        cookies_json: ccr_core::Secret::from(r#"{"session":"transfer-secret-sentinel"}"#),
+        cookies_json_encrypted: false,
+        api_user: "7".into(),
+        enabled: true,
+        created_at: chrono::Utc::now(),
+    };
+    let source = root.path().join("config.json");
+    let data = ccr_db::models::checkin::ExportData::new(vec![provider], vec![account]);
+    std::fs::write(&source, serde_json::to_vec(&data).unwrap()).unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let handle = open(cx, &owner, root.path());
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("nav-checkin", cx);
+    })
+    .unwrap();
+    wait(cx, handle, |w| w.try_find("checkin-absent").is_some());
+    cx.update_window(handle, |_, w, cx| {
+        w.click("checkin-tab-transfer", cx);
+        w.render_frame(cx);
+        w.click("checkin-transfer-path", cx);
+        w.input(source.to_str().unwrap(), cx);
+        w.render_frame(cx);
+        w.click("checkin-import-preview", cx);
+    })
+    .unwrap();
+    // Completion is delivered on the GPUI executor after this turn. Leaving before
+    // delivery must not install the old session in a newly opened transfer panel.
+    cx.update_window(handle, |_, w, cx| {
+        w.click("checkin-tab-accounts", cx);
+        w.render_frame(cx);
+        w.click("checkin-tab-transfer", cx);
+        w.render_frame(cx);
+        w.click("checkin-transfer-path", cx);
+        w.input(root.path().join("missing.json").to_str().unwrap(), cx);
+        w.render_frame(cx);
+        w.click("checkin-import-preview", cx);
+    })
+    .unwrap();
+    wait(cx, handle, |w| w.try_find("checkin-import-error").is_some());
+    cx.update_window(handle, |_, w, cx| {
+        assert!(w.try_find("checkin-import-skip").is_none());
+        w.click("checkin-tab-accounts", cx);
+        w.render_frame(cx);
+        w.click("checkin-tab-transfer", cx);
+        w.render_frame(cx);
+        w.click("checkin-transfer-path", cx);
+        w.input(source.to_str().unwrap(), cx);
+        w.render_frame(cx);
+        w.click("checkin-import-preview", cx);
+    })
+    .unwrap();
+    wait(cx, handle, |w| w.try_find("checkin-import-skip").is_some());
+    assert!(!root.path().join("checkin.db").exists());
+    cx.update_window(handle, |_, w, cx| {
+        assert!(labels(w).contains("Database will be created"));
+        assert!(!labels(w).contains("transfer-secret-sentinel"));
+        w.click("checkin-import-cancel", cx);
+        w.render_frame(cx);
+        assert!(w.try_find("checkin-import-skip").is_none());
+        w.click("checkin-import-preview", cx);
+    })
+    .unwrap();
+    for name in [
+        "checkin.db",
+        "checkin-crypto",
+        "checkin-migration-home",
+        "checkin-locks",
+    ] {
+        assert!(
+            !root.path().join(name).exists(),
+            "{name} created during preview"
+        );
+    }
+    wait(cx, handle, |w| w.try_find("checkin-import-skip").is_some());
+    cx.update_window(handle, |_, w, cx| {
+        w.click("checkin-import-skip", cx);
+        w.render_frame(cx);
+        w.click("checkin-tools-confirm", cx);
+    })
+    .unwrap();
+    wait(cx, handle, |w| {
+        w.try_find("checkin-import-receipt").is_some()
+    });
+    cx.update_window(handle, |_, w, cx| {
+        let summary = labels(w);
+        assert!(summary.contains("Accounts imported 1"));
+        assert!(summary.contains("pre-import-"));
+        assert!(!summary.contains("transfer-secret-sentinel"));
+        w.click("checkin-tab-accounts", cx);
+    })
+    .unwrap();
+    wait(cx, handle, |w| labels(w).contains("Imported account"));
+    let encrypted = root.path().join("device.json");
+    cx.update_window(handle, |_, w, cx| {
+        w.click("checkin-tab-transfer", cx);
+        w.render_frame(cx);
+        w.click("checkin-transfer-path", cx);
+        w.input(encrypted.to_str().unwrap(), cx);
+        w.render_frame(cx);
+        w.click("checkin-export", cx);
+        w.render_frame(cx);
+        w.click("checkin-tools-confirm", cx);
+    })
+    .unwrap();
+    wait(cx, handle, |w| {
+        w.try_find("checkin-export-receipt").is_some()
+    });
+    let exported = std::fs::read_to_string(&encrypted).unwrap();
+    assert!(!exported.contains("transfer-secret-sentinel"));
+    let parsed: ccr_db::models::checkin::ExportData = serde_json::from_str(&exported).unwrap();
+    assert_eq!(parsed.accounts.len(), 1);
+    assert!(parsed.accounts[0].cookies_json_encrypted);
+    cx.update_window(handle, |_, w, cx| {
+        w.click("checkin-export-stats", cx);
+        w.render_frame(cx);
+        w.click("checkin-tools-confirm", cx);
+    })
+    .unwrap();
+    wait(cx, handle, |w| {
+        labels(w).contains("That file already exists")
+    });
+    assert_eq!(std::fs::read_to_string(&encrypted).unwrap(), exported);
+    cx.update_window(handle, |_, w, _| w.remove_window())
+        .unwrap();
     owner.shutdown();
 }

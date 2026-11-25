@@ -127,7 +127,14 @@ fn missing_or_malformed_existing_keys_block_native_mutation_transfer_and_request
     let manager = ccr_checkin::ExportManager::with_db(&storage.crypto, storage.db.clone());
     let source_file = root.path().join("reviewed.json");
     manager.export_file(&source_file).unwrap();
-    let preview = Arc::new(manager.preview_file(&source_file).unwrap());
+    let preview = Arc::new(
+        ccr_checkin::ExportManager::preview_file_at(
+            &source_file,
+            &storage.crypto.parent().unwrap().join("checkin.db"),
+            &storage.crypto,
+        )
+        .unwrap(),
+    );
     let owner = CheckinOperations {
         loopback_fixture: true,
         ..Default::default()
@@ -283,7 +290,14 @@ fn missing_or_malformed_existing_keys_block_native_mutation_transfer_and_request
         Some(OperationError::ImportConflict)
     );
     assert!(!storage.crypto.join("backups").exists());
-    let refreshed = Arc::new(manager.preview_file(&source_file).unwrap());
+    let refreshed = Arc::new(
+        ccr_checkin::ExportManager::preview_file_at(
+            &source_file,
+            &storage.crypto.parent().unwrap().join("checkin.db"),
+            &storage.crypto,
+        )
+        .unwrap(),
+    );
     assert!(
         wait.block_on(execute(
             &storage,

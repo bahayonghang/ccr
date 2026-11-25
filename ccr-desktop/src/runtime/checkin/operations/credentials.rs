@@ -163,6 +163,7 @@ mod tests {
                 std::thread::sleep(Duration::from_millis(5));
             }
         };
+        source.checkin_operations.storage(&source.source).unwrap();
         let export = source_root.path().join("empty-export.json");
         run(
             &source,
@@ -171,14 +172,24 @@ mod tests {
         );
         let copied = target_root.path().join("empty-import.json");
         std::fs::copy(export, &copied).unwrap();
-        let preview = run(
-            &target,
-            Operation::Extended(ExtendedCommand::PreviewImport(copied)),
-            2,
-        );
-        let ExtendedReport::Preview(session) = preview.extended.as_deref().unwrap() else {
-            panic!("preview")
+        let key = RequestKey {
+            environment: EnvironmentId::Local("fixture".into()),
+            platform: Platform::Claude,
+            generation: 2,
+            request_id: 2,
         };
+        let mut read = target.checkin_import_preview(key, copied).unwrap();
+        let session = tokio::runtime::Runtime::new().unwrap().block_on(async {
+            loop {
+                if let TaskEvent::Terminal(result) = read.next().await.unwrap() {
+                    if let Completion::Success(preview) = result.as_ref() {
+                        break preview.clone();
+                    }
+                    panic!("preview failed");
+                }
+            }
+        });
+        assert!(!target_root.path().join("checkin.db").exists());
         assert!(
             !target_root
                 .path()

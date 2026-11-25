@@ -44,6 +44,11 @@ pub(super) fn status(cx: &App, value: CheckinStatus) -> &'static str {
 }
 pub(super) fn error(cx: &App, value: OperationError) -> &'static str {
     match value {
+        OperationError::ExportDestinationExists => text(
+            cx,
+            "That file already exists. Choose a new export path.",
+            "目标文件已存在，请选择新的导出路径。",
+        ),
         OperationError::FixturePath => text(
             cx,
             "Choose an absolute file path inside the fixture directory. Its parent directory must already exist.",

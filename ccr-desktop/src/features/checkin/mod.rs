@@ -111,7 +111,6 @@ impl CheckinView {
         self.extended = None;
         self.catalog = false;
         self.tab = CheckinTab::Accounts;
-        self.services.discard_checkin_preview();
         self.operation = self.services.checkin_operation_state();
         self.confirmation = None;
         self.gate.clear();
