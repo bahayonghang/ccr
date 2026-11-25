@@ -54,11 +54,7 @@ impl CheckinView {
                 cx,
             ));
         }
-        let keyword = text(
-            cx,
-            "Search account, provider or message",
-            "搜索账户、提供商或消息",
-        );
+        let keyword = record_search_hint(cx);
         let mut tools = div().flex().flex_wrap().items_center().gap(px(6.)).child(
             div().w(px(230.)).child(
                 Input::new(&self.history.keyword)

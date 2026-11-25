@@ -336,6 +336,7 @@ impl Render for CheckinView {
         let chinese = is_chinese(cx);
         if chinese != self.placeholder_chinese {
             self.placeholder_chinese = chinese;
+            self.history.update_language(window, cx);
             let placeholder = search_placeholder(cx);
             self.search.update(cx, |state, cx| {
                 state.set_placeholder(placeholder, window, cx)

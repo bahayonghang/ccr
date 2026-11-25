@@ -31,13 +31,17 @@ pub(super) struct HistoryUi {
     task: Option<Task<()>>,
 }
 
+fn record_search_hint(cx: &App) -> &'static str {
+    text(
+        cx,
+        "Search account, provider or message",
+        "搜索账户、提供商或消息",
+    )
+}
+
 impl HistoryUi {
     pub(super) fn new(window: &mut Window, cx: &mut Context<CheckinView>) -> Self {
-        let hint = text(
-            cx,
-            "Search account, provider or message",
-            "搜索账户、提供商或消息",
-        );
+        let hint = record_search_hint(cx);
         let keyword = cx.new(|cx| InputState::new(window, cx).placeholder(hint));
         let changed = cx.subscribe(&keyword, |this, input, event, cx| {
             if matches!(event, InputEvent::Change) {
@@ -70,6 +74,12 @@ impl HistoryUi {
             detail: None,
             task: None,
         }
+    }
+
+    pub(super) fn update_language(&mut self, window: &mut Window, cx: &mut Context<CheckinView>) {
+        let hint = record_search_hint(cx);
+        self.keyword
+            .update(cx, |input, cx| input.set_placeholder(hint, window, cx));
     }
 
     pub(super) fn invalidate(&mut self) {
