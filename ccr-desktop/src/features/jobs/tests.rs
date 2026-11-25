@@ -1,21 +1,68 @@
 use super::*;
 use ccr_app::runtime::RuntimeOwner;
 use gpui_kit::test::{TestAppContextExt, TestWindowExt};
-use gpui_kit::{TestAppContext, WindowOptions};
+use gpui_kit::{AnyWindowHandle, Role, TestAppContext, WindowBounds, WindowOptions, px, size};
+
+fn fixture_services(owner: &RuntimeOwner, root: &std::path::Path) -> Services {
+    Services::new(
+        owner.handle(),
+        crate::runtime::ConfigSource::Fixture {
+            profiles: root.join("profiles.toml"),
+            registry: root.join("config.toml"),
+            delay: std::time::Duration::ZERO,
+        },
+    )
+}
+
+/// The command page alone in a 1280×800 window.
+fn open(cx: &mut TestAppContext, services: Services) -> (AnyWindowHandle, Entity<JobsView>) {
+    cx.update(|cx| {
+        gpui_kit::init(cx);
+        crate::theme::init(cx);
+        gpui_kit::open_window(
+            WindowOptions {
+                window_bounds: Some(WindowBounds::Windowed(gpui_kit::Bounds::new(
+                    gpui_kit::point(px(0.), px(0.)),
+                    size(px(1280.), px(800.)),
+                ))),
+                ..Default::default()
+            },
+            cx,
+            |window, cx| cx.new(|cx| JobsView::new(services, window, cx)),
+        )
+        .unwrap_or_else(|_| panic!("window"))
+    })
+}
+
+fn set_input(
+    input: &Entity<gpui_kit::component::input::InputState>,
+    value: &str,
+    window: &mut Window,
+    cx: &mut App,
+) {
+    input.update(cx, |state, cx| {
+        state.set_value(value.to_string(), window, cx)
+    });
+}
+
+fn labels(window: &gpui_kit::Window) -> String {
+    gpui_kit::base::test_support::snapshots(window)
+        .into_iter()
+        .filter_map(|node| node.label().map(str::to_string))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn label(window: &gpui_kit::Window, id: &'static str) -> String {
+    window.find(id).label().unwrap_or_default().to_string()
+}
 
 #[gpui_kit::test]
 async fn revisit_reattaches_owner_and_rejects_old_generation_or_job(cx: &mut TestAppContext) {
     cx.executor().allow_parking();
     let root = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
     let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
-    let services = Services::new(
-        owner.handle(),
-        crate::runtime::ConfigSource::Fixture {
-            profiles: root.path().join("profiles.toml"),
-            registry: root.path().join("config.toml"),
-            delay: std::time::Duration::ZERO,
-        },
-    );
+    let services = fixture_services(&owner, root.path());
     let jobs = services.command_jobs.clone();
     let admission = jobs
         .admit(
@@ -106,27 +153,169 @@ async fn revisit_reattaches_owner_and_rejects_old_generation_or_job(cx: &mut Tes
 }
 
 #[gpui_kit::test]
-fn rendered_catalog_blocks_typed_only_commands_and_invalid_draft_never_starts(
+fn catalog_opens_on_runnable_with_counts_before_search_and_a_clearable_empty_state(
     cx: &mut TestAppContext,
 ) {
     cx.executor().allow_parking();
     let fixture = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
     let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
-    let services = Services::new(
-        owner.handle(),
-        crate::runtime::ConfigSource::Fixture {
-            profiles: fixture.path().join("profiles.toml"),
-            registry: fixture.path().join("config.toml"),
-            delay: std::time::Duration::ZERO,
-        },
-    );
-    let (handle, view) = cx.update(|cx| {
-        gpui_kit::init(cx);
-        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
-            cx.new(|cx| JobsView::new(services, window, cx))
-        })
-        .unwrap_or_else(|_| panic!("window"))
-    });
+    let (handle, view) = open(cx, fixture_services(&owner, fixture.path()));
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert_eq!(window.find("command-heading").role(), Some(Role::Heading));
+        assert_eq!(label(window, "command-heading"), "Commands");
+        assert_eq!(
+            label(window, "command-environment"),
+            "Execution environment · Local"
+        );
+        assert_eq!(label(window, "command-catalog-summary"), "6 runnable");
+        assert!(
+            window.try_find("command-job-status").is_none(),
+            "an idle page shows no job tag"
+        );
+        assert!(label(window, "jobs-fixture-warning").contains("Synthetic owned-process"));
+        // Default filter is Runnable; every chip carries its catalog count.
+        assert_eq!(window.find("command-filter-runnable").checked(), Some(true));
+        assert_eq!(window.find("command-filter-all").checked(), Some(false));
+        let text = labels(window);
+        for chip in [
+            "Runnable 6",
+            "All 24",
+            "Preview only 14",
+            "Needs its page 4",
+        ] {
+            assert!(text.contains(chip), "missing chip {chip}");
+        }
+        assert_eq!(window.find("command-listbox").role(), Some(Role::ListBox));
+        assert_eq!(
+            window.find("command-row:status").role(),
+            Some(Role::ListBoxOption)
+        );
+        assert_eq!(
+            label(window, "command-row:status"),
+            "status · Status overview · Runnable"
+        );
+        assert!(window.try_find("command-row:delete").is_none());
+        // The old capsule wall, foreground run and refresh status are gone.
+        for removed in ["command-foreground", "command-status", "job-command-status"] {
+            assert!(
+                window.try_find(removed).is_none(),
+                "{removed} still renders"
+            );
+        }
+        assert!(!text.contains(" / "));
+
+        let search = view.read(cx).search.clone();
+        set_input(&search, "zzz-no-match", window, cx);
+        window.render_frame(cx);
+        assert!(window.try_find("command-row:status").is_none());
+        assert_eq!(label(window, "command-empty"), "No matching commands");
+        assert!(
+            labels(window).contains("Runnable 6"),
+            "counts are computed before search"
+        );
+        window.click("command-clear-filters", cx);
+        window.render_frame(cx);
+        assert_eq!(search.read(cx).value().as_str(), "");
+        assert_eq!(window.find("command-filter-all").checked(), Some(true));
+        assert!(window.try_find("command-empty").is_none());
+        assert!(
+            window.try_find("command-row:list").is_some(),
+            "All lists preview-only commands too"
+        );
+
+        set_input(&search, "CONFIGURATION operations", window, cx);
+        window.render_frame(cx);
+        assert!(window.try_find("command-row:history").is_some());
+        assert!(window.try_find("command-row:status").is_none());
+
+        view.update(cx, |this, cx| {
+            this.catalog = Catalog::new(Vec::new());
+            this.selected = "missing".into();
+            this.start(cx);
+        });
+        window.render_frame(cx);
+        let empty = labels(window);
+        assert!(empty.contains("The local command catalog is empty."));
+        assert!(empty.contains("cannot be started from this catalog"));
+        assert_eq!(label(window, "command-catalog-summary"), "0 runnable");
+        assert!(label(window, "command-run-blocked").contains("not in the local catalog"));
+        assert!(view.read(cx).job_id.is_none());
+        assert!(!empty.contains(" / "));
+        window.remove_window();
+    })
+    .unwrap_or_else(|_| panic!("catalog"));
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+fn arrow_keys_move_the_highlight_and_enter_loads_a_live_preview_with_hints(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let fixture = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
+    let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+    let (handle, view) = open(cx, fixture_services(&owner, fixture.path()));
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert_eq!(window.find("command-row:status").selected(), Some(true));
+        assert_eq!(label(window, "command-preview"), "ccr status");
+        let focus = view.read(cx).list_focus.clone();
+        window.focus(&focus, cx);
+        window.press("down", cx);
+        window.render_frame(cx);
+        assert_eq!(window.find("command-row:validate").selected(), Some(true));
+        assert_eq!(window.find("command-row:status").selected(), Some(false));
+        assert_eq!(view.read(cx).selected, "status", "moving does not load");
+        window.press("down", cx);
+        window.press("enter", cx);
+        window.render_frame(cx);
+        assert_eq!(view.read(cx).selected, "history");
+        assert_eq!(label(window, "command-editor-name"), "history");
+        assert_eq!(
+            label(window, "command-editor-description"),
+            "Inspect recent CCR configuration operations."
+        );
+        assert_eq!(label(window, "command-preview"), "ccr history");
+        assert_eq!(
+            label(window, "command-args-hints"),
+            "Available arguments: --limit, -l <number> · --type, -t <text>"
+        );
+        assert!(window.try_find("command-run-blocked").is_none());
+        assert!(!view.read(cx).has_environment_draft(cx));
+
+        let args = view.read(cx).args.clone();
+        set_input(&args, r#"-l   20 -t "two words""#, window, cx);
+        window.render_frame(cx);
+        assert_eq!(
+            label(window, "command-preview"),
+            r#"ccr history -l 20 -t "two words""#
+        );
+        assert!(window.try_find("command-args-error").is_none());
+        assert_ne!(
+            window.find("command-start").focused(),
+            None,
+            "Run is enabled"
+        );
+        assert!(view.read(cx).has_environment_draft(cx));
+
+        window.focus(&focus, cx);
+        window.press("up", cx);
+        window.render_frame(cx);
+        assert_eq!(window.find("command-row:validate").selected(), Some(true));
+        assert_eq!(view.read(cx).selected, "history");
+        window.remove_window();
+    })
+    .unwrap_or_else(|_| panic!("keyboard"));
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+fn unavailable_commands_load_with_a_reason_and_invalid_drafts_never_start(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let fixture = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
+    let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+    let (handle, view) = open(cx, fixture_services(&owner, fixture.path()));
     cx.update_window(handle, |_, window, cx| {
         window.render_frame(cx);
         view.update(cx, |this, cx| {
@@ -134,31 +323,67 @@ fn rendered_catalog_blocks_typed_only_commands_and_invalid_draft_never_starts(
             cx.notify();
         });
         window.render_frame(cx);
-        window.click("job-command-validate", cx);
-        assert_eq!(view.read(cx).selected, "status");
-        assert_eq!(window.find("job-command-status").checked(), Some(true));
-        assert_eq!(window.find("job-command-validate").checked(), Some(false));
+        window.click("command-row:validate", cx);
+        assert_eq!(
+            view.read(cx).selected,
+            "status",
+            "a running job keeps the loaded command"
+        );
         view.update(cx, |this, cx| {
             this.busy = false;
             cx.notify();
         });
         window.render_frame(cx);
-        window.click("job-command-delete", cx);
-        assert_eq!(
-            view.read(cx).selected,
-            "status",
-            "typed destructive paths remain disabled in generic passthrough"
-        );
-        view.read(cx).args.clone().update(cx, |state, cx| {
-            state.set_value("not-json-secret-sentinel", window, cx)
-        });
+
+        window.click("command-filter-dedicated", cx);
         window.render_frame(cx);
+        window.click("command-row:delete", cx);
+        window.render_frame(cx);
+        assert_eq!(view.read(cx).selected, "delete");
+        assert_eq!(
+            label(window, "command-row:delete"),
+            "delete · Delete configuration · Needs its page"
+        );
+        assert!(label(window, "command-run-blocked").contains("Needs a dedicated page"));
+        assert_eq!(
+            window.find("command-start").focused(),
+            None,
+            "Run is disabled"
+        );
+        assert_ne!(
+            window.find("command-help").focused(),
+            None,
+            "Help stays available"
+        );
         window.click("command-start", cx);
+        view.update(cx, |this, cx| this.start(cx));
+        assert!(view.read(cx).job_id.is_none());
+
+        window.click("command-filter-preview", cx);
+        window.render_frame(cx);
+        window.click("command-row:list", cx);
+        window.render_frame(cx);
+        assert!(label(window, "command-run-blocked").contains("Run this command in a terminal"));
+        assert_eq!(window.find("command-start").focused(), None);
+
+        window.click("command-filter-runnable", cx);
+        window.render_frame(cx);
+        window.click("command-row:status", cx);
+        window.render_frame(cx);
+        let args = view.read(cx).args.clone();
+        set_input(&args, r#"-t "secret-sentinel"#, window, cx);
+        window.render_frame(cx);
+        assert!(label(window, "command-args-error").contains("double quote is not closed"));
+        assert_eq!(
+            label(window, "command-preview"),
+            r#"ccr status -t "secret-sentinel"#
+        );
+        assert_eq!(window.find("command-start").focused(), None);
+        window.click("command-start", cx);
+        view.update(cx, |this, cx| this.start(cx));
         assert!(view.read(cx).job_id.is_none());
         assert!(view.read(cx).snapshot.is_none());
         assert!(!view.read(cx).busy);
-        window.click("command-foreground", cx);
-        assert!(view.read(cx).job_id.is_none());
         assert!(
             fixture
                 .path()
@@ -185,7 +410,7 @@ fn rendered_catalog_blocks_typed_only_commands_and_invalid_draft_never_starts(
         );
         assert_eq!(
             view.read(cx).args.read(cx).value().as_str(),
-            "not-json-secret-sentinel"
+            r#"-t "secret-sentinel"#
         );
     })
     .unwrap_or_else(|_| panic!("controls"));
@@ -207,86 +432,86 @@ fn rendered_catalog_blocks_typed_only_commands_and_invalid_draft_never_starts(
     assert!(!history[0].success);
 }
 
-fn labels(window: &gpui_kit::Window) -> String {
-    gpui_kit::base::test_support::snapshots(window)
-        .into_iter()
-        .filter_map(|node| node.label().map(str::to_string))
-        .collect::<Vec<_>>()
-        .join("\n")
-}
-
 #[gpui_kit::test]
-fn command_catalog_lists_real_entries_and_rejects_unavailable_commands(cx: &mut TestAppContext) {
+async fn run_starts_a_background_job_and_cancel_takes_the_same_slot(cx: &mut TestAppContext) {
     cx.executor().allow_parking();
     let fixture = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
     let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
-    let services = Services::new(
-        owner.handle(),
-        crate::runtime::ConfigSource::Fixture {
-            profiles: fixture.path().join("profiles.toml"),
-            registry: fixture.path().join("config.toml"),
-            delay: std::time::Duration::ZERO,
-        },
-    );
-    let count = ccr_app::jobs::policy::command_catalog().len();
-    let (handle, view) = cx.update(|cx| {
-        gpui_kit::init(cx);
-        gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
-            cx.new(|cx| JobsView::new(services, window, cx))
+    let services = fixture_services(&owner, fixture.path());
+    let jobs = services.command_jobs.clone();
+    let (handle, view) = open(cx, services);
+    let run_width = cx
+        .update_window(handle, |_, window, cx| {
+            window.render_frame(cx);
+            window.find("command-start").bounds().size.width
         })
-        .unwrap_or_else(|_| panic!("window"))
-    });
+        .unwrap_or_else(|_| panic!("run width"));
+    // Hold a job open so the page stays busy while it observes it.
+    let admission = jobs
+        .admit(
+            RequestKey {
+                environment: EnvironmentId::Local("fixture".into()),
+                platform: Platform::Claude,
+                generation: 1,
+                request_id: 1,
+            },
+            ccr_app::jobs::policy::CommandExecutionRequest::background(
+                "status".into(),
+                Some(vec!["--json".into()]),
+                None,
+            ),
+        )
+        .unwrap_or_else(|_| panic!("admit"));
+    let id = admission.snapshot.job_id.clone();
     cx.update_window(handle, |_, window, cx| {
-        window.render_frame(cx);
-        let text = labels(window);
-        assert!(text.contains(&format!("The local command catalog has {count} commands.")));
-        assert_eq!(
-            window.find("job-command-status").label(),
-            Some("status · Status overview · Can run")
-        );
-        assert!(
-            window
-                .find("job-command-delete")
-                .label()
-                .unwrap_or_default()
-                .contains("Not available here")
-        );
-        assert!(text.contains("Status overview"));
-        assert!(!text.contains("Home insights"));
-        assert!(!text.contains("Apply / refresh"));
-        assert!(!text.contains(" / "));
-        assert_eq!(window.find("job-command-status").checked(), Some(true));
-        assert_eq!(window.find("job-command-validate").checked(), Some(false));
-        window.click("job-command-validate", cx);
-        window.render_frame(cx);
-        assert_eq!(view.read(cx).selected, "validate");
-        assert_eq!(window.find("job-command-validate").checked(), Some(true));
-        assert_eq!(window.find("job-command-status").checked(), Some(false));
-        window.click("job-command-status", cx);
-        window.render_frame(cx);
-        window.click("job-command-delete", cx);
-        window.render_frame(cx);
-        assert_eq!(view.read(cx).selected, "status");
-        assert!(
-            window
-                .find("command-catalog-detail")
-                .label()
-                .unwrap_or_default()
-                .contains("Status overview")
-        );
         view.update(cx, |this, cx| {
-            this.catalog.clear();
-            this.selected = "missing".into();
-            this.start(cx);
+            this.job_id = Some(id.clone());
+            this.refresh(cx);
+            assert!(this.busy);
         });
         window.render_frame(cx);
-        let empty = labels(window);
-        assert!(empty.contains("The local command catalog is empty."));
-        assert!(empty.contains("cannot be started from this catalog"));
-        assert!(view.read(cx).job_id.is_none());
-        assert!(!empty.contains(" / "));
+        assert!(window.try_find("command-start").is_none());
+        assert_eq!(
+            window.find("command-cancel").bounds().size.width,
+            run_width,
+            "Cancel replaces Run without moving the row"
+        );
+        assert!(matches!(
+            label(window, "command-job-status").as_str(),
+            "Queued" | "Running"
+        ));
+        window.click("command-cancel", cx);
+    })
+    .unwrap_or_else(|_| panic!("busy"));
+    cx.wait_for(handle, std::time::Duration::from_secs(5), |_, cx| {
+        view.read(cx)
+            .snapshot
+            .as_ref()
+            .is_some_and(|snapshot| snapshot.cancel_requested)
+    })
+    .await;
+    jobs.abandon(admission.ticket.unwrap_or_else(|| panic!("ticket")));
+    cx.wait_for(handle, std::time::Duration::from_secs(5), |_, cx| {
+        !view.read(cx).busy
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(window.try_find("command-cancel").is_none());
+        let args = view.read(cx).args.clone();
+        set_input(&args, "--json", window, cx);
+        window.render_frame(cx);
+        window.click("command-start", cx);
+        let snapshot = view
+            .read(cx)
+            .snapshot
+            .clone()
+            .unwrap_or_else(|| panic!("run snapshot"));
+        assert_eq!(snapshot.command, "status");
+        assert_eq!(snapshot.args, ["--json"]);
+        assert_ne!(view.read(cx).job_id.as_deref(), Some(id.as_str()));
         window.remove_window();
     })
-    .unwrap_or_else(|_| panic!("catalog"));
+    .unwrap_or_else(|_| panic!("run"));
     owner.shutdown();
 }

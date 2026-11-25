@@ -58,12 +58,10 @@ async fn ssh_activity_sidebar_platform_tabs_and_missing_cli_install_link_reach_r
     cx.update_window(handle, |_, window, cx| window.click("nav-commands", cx))
         .unwrap();
     wait_resource_ui(cx, handle, |window, _| {
-        window.try_find("command-foreground").is_some()
+        window.try_find("command-start").is_some()
     });
-    cx.update_window(handle, |_, window, cx| {
-        window.click("command-foreground", cx)
-    })
-    .unwrap();
+    cx.update_window(handle, |_, window, cx| window.click("command-start", cx))
+        .unwrap();
     wait_resource_ui(cx, handle, |window, _| {
         window.try_find("jobs-install-remote-cli").is_some()
     });
