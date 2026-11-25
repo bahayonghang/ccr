@@ -1,10 +1,12 @@
 //! Native command workbench: catalog list, command editor and app-owned jobs.
 //!
 //! 分类、搜索、分词与可运行判定都来自 [`model`]；视图只消费结果。
+mod collections;
 mod ledger;
 pub mod model;
 mod render;
 
+use self::collections::{Collection, Records};
 use self::model::{Blocked, Catalog, Filter};
 use crate::{
     locales::text,
@@ -31,6 +33,8 @@ impl gpui_kit::EventEmitter<InstallRequested> for JobsView {}
 pub struct JobsView {
     requests: CommandRequests,
     catalog: Catalog,
+    collection: Collection,
+    records: Records,
     filter: Filter,
     search: Entity<InputState>,
     /// The command loaded into the editor.
@@ -98,6 +102,8 @@ impl JobsView {
         ];
         Self {
             catalog: Catalog::new(requests.catalog()),
+            collection: Collection::default(),
+            records: Records::new(&services, cx),
             requests,
             filter: Filter::default(),
             search,
@@ -121,8 +127,13 @@ impl JobsView {
     pub fn focus_main(&self, window: &mut Window, cx: &mut Context<Self>) {
         window.focus(&self.list_focus, cx);
     }
+    pub fn open(&mut self, cx: &mut Context<Self>) {
+        self.activate_records(cx);
+        self.refresh(cx);
+    }
     pub fn suspend(&mut self, cx: &mut Context<Self>) {
         // App-owned runner keeps its terminal and bounded logs; view only detaches.
+        self.suspend_records();
         self.task = None;
         self.generation += 1;
         self.busy = false;
@@ -355,8 +366,8 @@ impl JobsView {
                 self.job_id = Some(started.snapshot.job_id.clone());
                 self.snapshot = None;
                 self.reset_log_scroll();
-                // Detaching the executor subscription keeps the app-owned runner.
-                drop(started.subscription);
+                // Wait for the runner's terminal write so Recent refreshes automatically.
+                self.watch_finalized(started.subscription, cx);
                 self.refresh(cx);
             }
             Err(message) => self.message = Some(message),

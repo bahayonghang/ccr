@@ -1,7 +1,9 @@
 use super::*;
 use ccr_app::runtime::RuntimeOwner;
 use gpui_kit::test::{TestAppContextExt, TestWindowExt};
-use gpui_kit::{AnyWindowHandle, Role, TestAppContext, WindowBounds, WindowOptions, px, size};
+use gpui_kit::{
+    AnyWindowHandle, Role, SharedString, TestAppContext, WindowBounds, WindowOptions, px, size,
+};
 
 fn fixture_services(owner: &RuntimeOwner, root: &std::path::Path) -> Services {
     Services::new(
@@ -53,7 +55,7 @@ fn labels(window: &gpui_kit::Window) -> String {
         .join("\n")
 }
 
-fn label(window: &gpui_kit::Window, id: &'static str) -> String {
+fn label(window: &gpui_kit::Window, id: impl Into<gpui_kit::ElementId>) -> String {
     window.find(id).label().unwrap_or_default().to_string()
 }
 
@@ -863,5 +865,323 @@ async fn ledger_observation_failure_offers_retry_and_reattaches(cx: &mut TestApp
     .await;
     cx.update_window(handle, |_, window, _| window.remove_window())
         .unwrap_or_else(|_| panic!("close"));
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+async fn favorite_toggle_persists_across_reopen_confirms_removal_and_tracks_draft(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let fixture = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
+    let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+    let (handle, view) = open(cx, fixture_services(&owner, fixture.path()));
+    cx.update_window(handle, |_, _, cx| {
+        view.update(cx, |this, cx| this.open(cx));
+    })
+    .unwrap_or_else(|_| panic!("open records"));
+    cx.wait_for(handle, std::time::Duration::from_secs(10), |_, cx| {
+        let state = view.read(cx);
+        state.records.loaded && !state.records.loading
+    })
+    .await;
+
+    // Save a favorite from the editor without creating execution history.
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert_eq!(label(window, "command-collection-favorites"), "Favorites 0");
+        assert_eq!(label(window, "command-collection-recent"), "Recent 0");
+        assert!(window.try_find("favorite-add").is_none());
+        assert!(window.try_find("tool-favorites").is_none());
+        assert!(window.try_find("tool-recent").is_none());
+        assert!(window.try_find("tool-catalog").is_none());
+
+        window.click("command-row:history", cx);
+        let args = view.read(cx).args.clone();
+        set_input(&args, "-l 20", window, cx);
+        window.render_frame(cx);
+        assert_eq!(label(window, "command-favorite-toggle"), "Favorite");
+        window.click("command-favorite-toggle", cx);
+    })
+    .unwrap_or_else(|_| panic!("save favorite"));
+
+    cx.wait_for(handle, std::time::Duration::from_secs(10), |_, cx| {
+        let state = view.read(cx);
+        !state.records.saving
+            && !state.records.loading
+            && state.records.snapshot.favorites.len() == 1
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert_eq!(label(window, "command-favorite-toggle"), "Unfavorite");
+        assert_eq!(label(window, "command-collection-favorites"), "Favorites 1");
+        assert!(
+            view.read(cx).records.snapshot.history.is_empty(),
+            "saving a favorite must never invent execution history"
+        );
+        window.remove_window();
+    })
+    .unwrap_or_else(|_| panic!("close before reopen"));
+    assert!(fixture.path().join("ui-state.db").exists());
+
+    // Reopen a brand new Services + JobsView against the same database.
+    let (handle, view) = open(cx, fixture_services(&owner, fixture.path()));
+    cx.update_window(handle, |_, _, cx| {
+        view.update(cx, |this, cx| this.open(cx));
+    })
+    .unwrap_or_else(|_| panic!("reopen records"));
+    cx.wait_for(handle, std::time::Duration::from_secs(10), |_, cx| {
+        let state = view.read(cx);
+        state.records.loaded && !state.records.loading
+    })
+    .await;
+
+    let fav_id = cx.read(|cx| view.read(cx).records.snapshot.favorites[0].id.clone());
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert_eq!(label(window, "command-collection-favorites"), "Favorites 1");
+        window.click("command-collection-favorites", cx);
+        window.render_frame(cx);
+        assert!(
+            label(window, "command-favorites-note").contains("Do not save credentials"),
+            "favorites segment warns against storing credentials"
+        );
+        let row_id = SharedString::from(format!("favorite:{fav_id}"));
+        assert!(label(window, row_id.clone()).contains("ccr history -l 20"));
+
+        // Loading a favorite populates editor + args, keeps the segment, and is not a dirty draft.
+        window.click(row_id, cx);
+        window.render_frame(cx);
+        assert_eq!(view.read(cx).selected, "history");
+        assert_eq!(view.read(cx).args.read(cx).value().as_str(), "-l 20");
+        assert_eq!(
+            window.find("command-collection-favorites").checked(),
+            Some(true),
+            "loading a favorite keeps the Favorites segment active"
+        );
+        assert!(
+            !view.read(cx).has_environment_draft(cx),
+            "loaded favorite args are not treated as an environment draft"
+        );
+        assert_eq!(label(window, "command-favorite-toggle"), "Unfavorite");
+
+        // Modifying args makes it a draft and flips the toggle back to Favorite.
+        let args = view.read(cx).args.clone();
+        set_input(&args, "-l 10", window, cx);
+        window.render_frame(cx);
+        assert!(view.read(cx).has_environment_draft(cx));
+        assert_eq!(label(window, "command-favorite-toggle"), "Favorite");
+
+        // Inline removal confirmation: initial focus on Cancel, Esc restores trigger, Confirm removes.
+        let remove_id = SharedString::from(format!("remove-favorite:{fav_id}"));
+        window.click(remove_id.clone(), cx);
+        window.render_frame(cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert!(window.find("command-confirm-apply").visible());
+        assert_eq!(
+            window.find("command-confirm-cancel").focused(),
+            Some(true),
+            "confirmation starts keyboard focus on Cancel"
+        );
+        window.press("escape", cx);
+        window.render_frame(cx);
+        assert!(view.read(cx).records.confirmation.is_none());
+        assert_eq!(view.read(cx).records.snapshot.favorites.len(), 1);
+
+        window.click(remove_id.clone(), cx);
+        window.render_frame(cx);
+        window.click("command-confirm-cancel", cx);
+        window.render_frame(cx);
+        assert!(view.read(cx).records.confirmation.is_none());
+        assert_eq!(view.read(cx).records.snapshot.favorites.len(), 1);
+
+        window.click(remove_id, cx);
+        window.render_frame(cx);
+        window.click("command-confirm-apply", cx);
+    })
+    .unwrap_or_else(|_| panic!("reopen and remove"));
+
+    cx.wait_for(handle, std::time::Duration::from_secs(10), |_, cx| {
+        let state = view.read(cx);
+        state.records.snapshot.favorites.is_empty()
+            && !state.records.loading
+            && !state.records.saving
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(view.read(cx).records.region_focus.is_focused(window));
+        assert!(window.try_find("command-favorites-empty").is_some());
+        window.remove_window();
+    })
+    .unwrap_or_else(|_| panic!("empty favorites"));
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+async fn recent_refreshes_on_terminal_loads_unavailable_records_and_confirms_clear(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let fixture = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
+    // Seed favorites (including an obsolete command) and history through the DB owner.
+    let (legacy_fav_id, preview_hist_id, runnable_hist_id) = {
+        use ccr_db::{
+            database, managers::ui_state::UiStateManager, models::ui_state::AddFavoriteRequest,
+        };
+        let home = fixture.path().join("seed-home");
+        std::fs::create_dir(&home).unwrap_or_else(|e| panic!("seed home: {e}"));
+        let pool = database::create_pool(&fixture.path().join("ui-state.db"), None)
+            .unwrap_or_else(|e| panic!("seed pool: {e}"));
+        {
+            let conn = pool.get().unwrap_or_else(|e| panic!("seed conn: {e}"));
+            database::migrations::run_all_migrations(&conn, &home)
+                .unwrap_or_else(|e| panic!("seed migrations: {e}"));
+        }
+        let manager = UiStateManager::with_db(database::DbAccess::Pool(pool));
+        let fav = manager
+            .add_favorite(AddFavoriteRequest {
+                command: "legacy-gone".into(),
+                args: vec!["--old".into()],
+                display_name: Some("Removed command".into()),
+                module: "commands".into(),
+            })
+            .unwrap_or_else(|e| panic!("seed favorite: {e}"));
+        let preview_hist = manager
+            .add_history("list".into(), vec![], false, 42)
+            .unwrap_or_else(|e| panic!("seed preview history: {e}"));
+        let runnable_hist = manager
+            .add_history("status".into(), vec![], true, 12)
+            .unwrap_or_else(|e| panic!("seed runnable history: {e}"));
+        (fav.id, preview_hist.id, runnable_hist.id)
+    };
+
+    let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+    let (handle, view) = open(cx, fixture_services(&owner, fixture.path()));
+    cx.update_window(handle, |_, _, cx| {
+        view.update(cx, |this, cx| this.open(cx));
+    })
+    .unwrap_or_else(|_| panic!("open seeded"));
+    cx.wait_for(handle, std::time::Duration::from_secs(10), |_, cx| {
+        let state = view.read(cx);
+        state.records.loaded && !state.records.loading
+    })
+    .await;
+
+    // 1. Stale/unknown favorite loads with reason and keeps Favorites segment.
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert_eq!(label(window, "command-collection-favorites"), "Favorites 1");
+        assert_eq!(label(window, "command-collection-recent"), "Recent 2");
+        window.click("command-collection-favorites", cx);
+        window.render_frame(cx);
+        window.click(SharedString::from(format!("favorite:{legacy_fav_id}")), cx);
+        window.render_frame(cx);
+        assert_eq!(view.read(cx).selected, "legacy-gone");
+        assert_eq!(view.read(cx).args.read(cx).value().as_str(), "--old");
+        assert_eq!(
+            window.find("command-collection-favorites").checked(),
+            Some(true)
+        );
+        assert!(window.try_find("command-run-blocked").is_some());
+        assert_eq!(window.find("command-start").focused(), None);
+
+        // 2. Preview-only Recent row loads with empty args (D1), shows Failed tag, keeps Recent segment.
+        window.click("command-collection-recent", cx);
+        window.render_frame(cx);
+        assert!(
+            window
+                .try_find(SharedString::from(format!(
+                    "history-failed:{preview_hist_id}"
+                )))
+                .is_some()
+        );
+        window.click(SharedString::from(format!("history:{preview_hist_id}")), cx);
+        window.render_frame(cx);
+        assert_eq!(view.read(cx).selected, "list");
+        assert_eq!(view.read(cx).args.read(cx).value().as_str(), "");
+        assert_eq!(
+            window.find("command-collection-recent").checked(),
+            Some(true)
+        );
+        assert!(label(window, "command-run-blocked").contains("Run this command in a terminal"));
+
+        // 3. Load runnable Recent row and run Help; terminal refreshes Recent count automatically.
+        window.click(
+            SharedString::from(format!("history:{runnable_hist_id}")),
+            cx,
+        );
+        window.render_frame(cx);
+        assert_eq!(view.read(cx).selected, "status");
+        window.click("command-help", cx);
+    })
+    .unwrap_or_else(|_| panic!("load stale and trigger help"));
+
+    cx.wait_for(handle, std::time::Duration::from_secs(5), |_, cx| {
+        let state = view.read(cx);
+        !state.busy && !state.records.loading && state.records.snapshot.history.len() == 3
+    })
+    .await;
+
+    // 4. Clear recent: keyboard focus on Clear recent -> Enter -> initial focus Cancel -> Esc restores trigger -> Confirm clears & keeps focus in list.
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert_eq!(label(window, "command-collection-recent"), "Recent 3");
+        window.focus_next(cx);
+        window.render_frame(cx);
+        for _ in 0..20 {
+            if window.find("command-history-clear").focused() == Some(true) {
+                break;
+            }
+            window.press("tab", cx);
+        }
+        assert_eq!(window.find("command-history-clear").focused(), Some(true));
+        window.press("enter", cx);
+        window.render_frame(cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert!(window.find("command-confirm-apply").visible());
+        assert_eq!(
+            window.find("command-confirm-cancel").focused(),
+            Some(true),
+            "Clear recent confirmation puts initial focus on Cancel"
+        );
+        window.press("escape", cx);
+        window.render_frame(cx);
+        assert!(view.read(cx).records.confirmation.is_none());
+        assert_eq!(
+            window.find("command-history-clear").focused(),
+            Some(true),
+            "Esc returns focus to Clear recent"
+        );
+        assert_eq!(view.read(cx).records.snapshot.history.len(), 3);
+
+        window.press("enter", cx);
+        window.render_frame(cx);
+        window.click("command-confirm-cancel", cx);
+        window.render_frame(cx);
+        assert_eq!(view.read(cx).records.snapshot.history.len(), 3);
+
+        window.press("enter", cx);
+        window.render_frame(cx);
+        window.click("command-confirm-apply", cx);
+    })
+    .unwrap_or_else(|_| panic!("clear recent confirmation"));
+
+    cx.wait_for(handle, std::time::Duration::from_secs(10), |_, cx| {
+        let state = view.read(cx);
+        !state.records.loading && !state.records.saving && state.records.snapshot.history.is_empty()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(!view.read(cx).records.error);
+        assert!(view.read(cx).records.region_focus.is_focused(window));
+        assert!(window.try_find("command-recent-empty").is_some());
+        window.remove_window();
+    })
+    .unwrap_or_else(|_| panic!("empty recent"));
     owner.shutdown();
 }

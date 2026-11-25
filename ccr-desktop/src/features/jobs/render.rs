@@ -1,6 +1,8 @@
 //! Command workbench layout: page header, catalog list, editor and job log.
 use super::{
-    InstallRequested, JobsView, ledger,
+    InstallRequested, JobsView,
+    collections::Collection,
+    ledger,
     model::{self, Availability, Blocked, Filter},
 };
 use crate::{
@@ -327,17 +329,23 @@ impl JobsView {
         for (id, filter, label, count) in chips {
             filters = filters.child(self.filter_chip(id, filter, format!("{label} {count}"), cx));
         }
-        let body = if rows.is_empty() {
-            self.empty_list(counts.all == 0, cx)
-        } else {
-            self.listbox(rows.len(), cx)
-        };
-        reading_panel("command-list", cx)
+        let mut panel = reading_panel("command-list", cx)
+            .track_focus(&self.records.region_focus)
+            .tab_stop(false)
             .flex_1()
-            .child(search)
-            .child(filters)
-            .child(body)
-            .into_any_element()
+            .child(self.collection_bar(cx))
+            .child(search);
+        if self.collection == Collection::Catalog {
+            let body = if rows.is_empty() {
+                self.empty_list(counts.all == 0, cx)
+            } else {
+                self.listbox(rows.len(), cx)
+            };
+            panel = panel.child(filters).child(body);
+        } else {
+            panel = panel.children(self.records_panel(cx));
+        }
+        panel.into_any_element()
     }
 
     fn empty_list(&self, catalog_empty: bool, cx: &mut Context<Self>) -> AnyElement {
@@ -481,6 +489,7 @@ impl JobsView {
                 false,
                 cx,
             ))
+            .child(self.favorite_toggle(cx))
             .child(run);
         let description = entry.map(|entry| entry.description).unwrap_or_default();
         let mut panel = reading_panel("command-editor", cx)
