@@ -22,6 +22,7 @@ pub(super) struct Editor {
     pub(super) kind: EditorKind,
     pub(super) fields: Vec<Entity<InputState>>,
     provider: Option<String>,
+    pub(super) initial_name: Option<String>,
     enabled: bool,
     pub(super) credentials: super::credentials::CredentialRead,
 }
@@ -241,6 +242,7 @@ impl CheckinView {
             provider,
             enabled,
             credentials: super::credentials::CredentialRead::default(),
+            initial_name: account_name.clone(),
             fields: (0..count)
                 .map(|index| {
                     cx.new(|cx| InputState::new(window, cx).masked(count == 4 && index != 0))
@@ -325,7 +327,7 @@ impl CheckinView {
             EditorKind::Account(Some(id)) => Operation::UpdateAccount(
                 id.clone(),
                 UpdateAccountRequest {
-                    name: optional(0),
+                    name: optional(0).filter(|name| Some(name) != editor.initial_name.as_ref()),
                     cookies_json: cookies,
                     api_user: optional(2),
                     enabled: Some(editor.enabled),

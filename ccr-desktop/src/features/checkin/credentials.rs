@@ -162,6 +162,7 @@ impl CheckinView {
         let Some(value) = editor.credentials.loaded.take() else {
             return;
         };
+        editor.initial_name = Some(value.name.clone());
         for (field, value) in editor.fields.iter().zip([
             value.name.as_str(),
             value.cookies.expose(),

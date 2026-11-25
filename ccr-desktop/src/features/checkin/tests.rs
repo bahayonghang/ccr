@@ -785,3 +785,51 @@ mod history_reader;
 
 #[path = "history_tests.rs"]
 mod history_tests;
+
+#[gpui_kit::test]
+async fn metadata_only_save_preserves_a_redacted_name_without_key(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    seed(root.path());
+    let db = rusqlite::Connection::open(root.path().join("checkin.db")).unwrap();
+    let original = "Desk token=synthetic-original-name";
+    db.execute(
+        "UPDATE checkin_accounts SET name=?1 WHERE id='measured'",
+        [original],
+    )
+    .unwrap();
+    let owner = RuntimeOwner::new().unwrap();
+    let handle = open(cx, &owner, root.path());
+    cx.update_window(handle, |_, w, cx| {
+        w.render_frame(cx);
+        w.click("nav-checkin", cx);
+    })
+    .unwrap();
+    wait(cx, handle, |w| w.try_find("checkin-account-1").is_some());
+    cx.update_window(handle, |_, w, cx| {
+        w.click("checkin-account-1", cx);
+        w.render_frame(cx);
+        w.click(("checkin-edit-account", 1usize), cx);
+    })
+    .unwrap();
+    wait(cx, handle, |w| {
+        w.try_find("checkin-credential-read-error").is_some()
+    });
+    cx.update_window(handle, |_, w, cx| {
+        assert!(!labels(w).contains("synthetic-original-name"));
+        w.click("checkin-editor-enabled", cx);
+        w.render_frame(cx);
+        w.click("checkin-save", cx);
+    })
+    .unwrap();
+    wait(cx, handle, |w| w.try_find("checkin-editor").is_none());
+    let row = checkin_repo::get_account_by_id(&db, "measured")
+        .unwrap()
+        .unwrap();
+    assert!(!row.enabled);
+    assert_eq!(row.name, original);
+    assert!(!root.path().join("checkin-crypto/crypto.key").exists());
+    cx.update_window(handle, |_, w, _| w.remove_window())
+        .unwrap();
+    owner.shutdown();
+}
