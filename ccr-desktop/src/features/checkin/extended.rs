@@ -699,24 +699,11 @@ impl CheckinView {
                 .disabled(blocked))
             .into_any_element(),
         );
-        children.push(
-            (div()
+        let mut actions =
+            div()
                 .flex()
                 .flex_wrap()
                 .gap(px(theme::CONTROL_GAP))
-                .child(semantics::button(
-                    Button::new("checkin-export")
-                        .label(text(cx, "Export encrypted configuration", "导出加密配置"))
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            if let Some(editor) = &this.extended {
-                                let path = editor.path.read(cx).value().to_string().into();
-                                this.propose_extended(ExtendedCommand::Export(path), cx);
-                            }
-                        })),
-                    blocked || self.data().is_none(),
-                    false,
-                    cx,
-                ))
                 .child(semantics::button(
                     Button::new("checkin-import-preview")
                         .label(text(cx, "Preview import", "预览导入"))
@@ -724,25 +711,39 @@ impl CheckinView {
                     blocked,
                     false,
                     cx,
-                )))
-            .into_any_element(),
-        );
-        children.push(
-            (semantics::button(
-                Button::new("checkin-export-stats")
-                    .label(text(cx, "Export today's statistics", "导出今日统计"))
-                    .on_click(cx.listener(|this, _, _, cx| {
+                ));
+        for (id, label, stats) in [
+            (
+                "checkin-export",
+                text(cx, "Export encrypted configuration", "导出加密配置"),
+                false,
+            ),
+            (
+                "checkin-export-stats",
+                text(cx, "Export today's statistics", "导出今日统计"),
+                true,
+            ),
+        ] {
+            actions = actions.child(semantics::button(
+                Button::new(id)
+                    .label(label)
+                    .on_click(cx.listener(move |this, _, _, cx| {
                         if let Some(editor) = &this.extended {
                             let path = editor.path.read(cx).value().to_string().into();
-                            this.propose_extended(ExtendedCommand::ExportStats(path), cx);
+                            let command = if stats {
+                                ExtendedCommand::ExportStats(path)
+                            } else {
+                                ExtendedCommand::Export(path)
+                            };
+                            this.propose_extended(command, cx);
                         }
                     })),
                 blocked || self.data().is_none(),
                 false,
                 cx,
-            ))
-            .into_any_element(),
-        );
+            ));
+        }
+        children.push(actions.into_any_element());
 
         if editor.preview.request.is_some() {
             children.push(text(cx, "Reading configuration…", "正在读取配置…").into_any_element());
@@ -769,7 +770,7 @@ impl CheckinView {
                 )
             };
             let summary = format!(
-                "{} {} {} · {} {} · {} {} · {} {}",
+                "{}\n{} {} · {} {} · {} {} · {} {}",
                 target,
                 text(cx, "New providers", "新增提供商"),
                 p.new_providers,
@@ -1003,7 +1004,7 @@ impl CheckinView {
                     if self.tab == CheckinTab::Transfer {
                         let count = &receipt.counts;
                         let summary = format!(
-                            "{} {} · {} {} · {} {} · {} {}. {} backups/{}. {}",
+                            "{} {} · {} {} · {} {} · {} {}\n{}  backups/{}\n{}",
                             text(cx, "Providers imported", "已导入提供商"),
                             count.providers_imported,
                             text(cx, "Providers skipped", "跳过提供商"),
@@ -1059,6 +1060,9 @@ fn transfer_status(id: &'static str, message: String) -> gpui_kit::AnyElement {
         .test_support()
         .role(gpui_kit::Role::Status)
         .aria_label(SharedString::from(message.clone()))
-        .child(message)
+        .flex()
+        .flex_col()
+        .gap(px(theme::CONTROL_GAP))
+        .children(message.lines().map(|line| div().child(line.to_owned())))
         .into_any_element()
 }
