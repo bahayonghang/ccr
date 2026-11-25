@@ -178,7 +178,7 @@ async fn checkin_page_without_a_database_stays_absent(cx: &mut TestAppContext) {
         assert!(text.contains("No local check-in database was found."));
         assert_eq!(
             window.find("checkin-scope").role(),
-            Some(gpui_kit::Role::Label)
+            Some(gpui_kit::Role::Group)
         );
         assert!(text.contains("does not create a database"));
         assert!(!text.contains("Home insights"));

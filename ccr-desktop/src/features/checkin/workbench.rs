@@ -217,6 +217,10 @@ impl CheckinView {
             .gap(px(theme::CONTROL_GAP))
             .child(
                 div()
+                    .id("checkin-scope")
+                    .test_support()
+                    .role(gpui_kit::Role::Group)
+                    .aria_label(scope)
                     .flex()
                     .flex_wrap()
                     .items_center()
@@ -231,15 +235,7 @@ impl CheckinView {
                             .font_weight(gpui_kit::FontWeight::SEMIBOLD)
                             .child(text(cx, "Check-ins", "签到管理")),
                     )
-                    .child(
-                        div()
-                            .id("checkin-scope")
-                            .test_support()
-                            .role(gpui_kit::Role::Label)
-                            .aria_label(scope)
-                            .text_color(cx.theme().muted_foreground)
-                            .child(scope),
-                    ),
+                    .child(div().text_color(cx.theme().muted_foreground).child(scope)),
             )
             .child(semantics::ghost_button(
                 Button::new("checkin-read")
