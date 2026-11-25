@@ -561,18 +561,11 @@ async fn execute(
             Outcome::Saved
         }
         Operation::DeleteProvider(id) => {
-            let in_use = accounts
-                .list()
-                .map_err(|_| OperationError::Storage)?
-                .accounts
-                .iter()
-                .any(|a| a.provider_id == id);
-            if in_use {
-                return Err(OperationError::ProviderInUse);
-            }
-            providers
-                .delete(&id, false)
-                .map_err(|_| OperationError::Storage)?;
+            use ccr_checkin::provider_manager::ProviderError;
+            providers.delete(&id, false).map_err(|error| match error {
+                ProviderError::HasAccounts(_) => OperationError::ProviderInUse,
+                _ => OperationError::Storage,
+            })?;
             Outcome::Deleted
         }
         Operation::AddAccount(request) => {
@@ -582,8 +575,13 @@ async fn execute(
             let account = storage.scoped(|| {
                 storage.guard_crypto_initialization()?;
                 accounts
-                    .create(request)
-                    .map_err(|_| OperationError::Storage)
+                    .create_for_existing_provider(request)
+                    .map_err(|error| match error {
+                        ccr_checkin::account_manager::AccountError::ProviderNotFound(_) => {
+                            OperationError::Invalid
+                        }
+                        _ => OperationError::Storage,
+                    })
             })?;
             owner
                 .state

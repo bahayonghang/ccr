@@ -131,10 +131,21 @@ impl ProviderManager {
             return Err(ProviderError::HasAccounts(id.to_string()));
         }
 
-        let deleted = self
-            .db
-            .with_connection(|conn| checkin_repo::delete_provider(conn, id))?;
-
+        let deleted = self.db.with_connection(|conn| {
+            let tx = rusqlite::Transaction::new_unchecked(
+                conn,
+                rusqlite::TransactionBehavior::Immediate,
+            )?;
+            if checkin_repo::provider_has_accounts(&tx, id)? {
+                return Ok(None);
+            }
+            let deleted = checkin_repo::delete_provider(&tx, id)?;
+            tx.commit()?;
+            Ok(Some(deleted))
+        })?;
+        let Some(deleted) = deleted else {
+            return Err(ProviderError::HasAccounts(id.to_owned()));
+        };
         if !deleted {
             return Err(ProviderError::NotFound(id.to_string()));
         }

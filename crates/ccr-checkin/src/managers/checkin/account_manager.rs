@@ -161,6 +161,22 @@ impl AccountManager {
 
     /// 创建账号
     pub fn create(&self, request: CreateAccountRequest) -> Result<CheckinAccount> {
+        self.create_account(request, false)
+    }
+
+    /// Create a manually enrolled account only while its local provider still exists.
+    pub fn create_for_existing_provider(
+        &self,
+        request: CreateAccountRequest,
+    ) -> Result<CheckinAccount> {
+        self.create_account(request, true)
+    }
+
+    fn create_account(
+        &self,
+        request: CreateAccountRequest,
+        require_provider: bool,
+    ) -> Result<CheckinAccount> {
         let crypto = self.get_crypto()?;
 
         // 加密 Cookies JSON（加密是明文的合法消费点）
@@ -178,8 +194,26 @@ impl AccountManager {
         // 设置扩展配置 (CDK 凭证等)
         account.extra_config = request.extra_config;
 
-        self.db
-            .with_connection(|conn| checkin_repo::insert_account(conn, &account))?;
+        if require_provider {
+            let inserted = self.db.with_connection(|conn| {
+                let tx = rusqlite::Transaction::new_unchecked(
+                    conn,
+                    rusqlite::TransactionBehavior::Immediate,
+                )?;
+                if checkin_repo::get_provider_by_id(&tx, &account.provider_id)?.is_none() {
+                    return Ok(false);
+                }
+                checkin_repo::insert_account(&tx, &account)?;
+                tx.commit()?;
+                Ok(true)
+            })?;
+            if !inserted {
+                return Err(AccountError::ProviderNotFound(account.provider_id));
+            }
+        } else {
+            self.db
+                .with_connection(|conn| checkin_repo::insert_account(conn, &account))?;
+        }
 
         tracing::info!("Created account: {} ({})", account.name, account.id);
         Ok(account)

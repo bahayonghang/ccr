@@ -549,3 +549,81 @@ fn fixture_does_not_follow_a_redirect_to_another_listener() {
     assert!(matches!(redirected.accept(), Err(e) if e.kind() == std::io::ErrorKind::WouldBlock));
     runtime.shutdown();
 }
+
+#[test]
+fn concurrent_provider_removal_and_account_creation_never_orphan_accounts() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    static WRITER_WAITING: AtomicBool = AtomicBool::new(false);
+    fn wait_for_writer(attempt: i32) -> bool {
+        WRITER_WAITING.store(true, Ordering::Release);
+        std::thread::sleep(Duration::from_millis(1));
+        attempt < 5000
+    }
+    for delete_first in [false, true] {
+        let root = tempfile::tempdir().unwrap();
+        let db_path = root.path().join("checkin.db");
+        let pool = database::create_pool(
+            &db_path,
+            Some(database::PoolConfig {
+                max_size: 1,
+                min_idle: Some(1),
+                ..Default::default()
+            }),
+        )
+        .unwrap();
+        let mut external = rusqlite::Connection::open(&db_path).unwrap();
+        database::migrations::run_all_migrations(&external, root.path()).unwrap();
+        let provider = provider("https://fixture.invalid").into_provider();
+        checkin_repo::insert_provider(&external, &provider).unwrap();
+        let owner = RuntimeOwner::new().unwrap();
+        let services = Services::new(owner.handle(), source(root.path()));
+        pool.get()
+            .unwrap()
+            .busy_handler(Some(wait_for_writer))
+            .unwrap();
+        *services.checkin_operations.storage.lock().unwrap() = Some(Storage {
+            db: DbAccess::Pool(pool),
+            crypto: root.path().join("crypto"),
+            locks: Some(root.path().join("locks")),
+        });
+        let tx = external
+            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+            .unwrap();
+        let operation = if delete_first {
+            checkin_repo::delete_provider(&tx, &provider.id).unwrap();
+            Operation::AddAccount(account(provider.id.clone()))
+        } else {
+            let row = CheckinAccount::new(
+                provider.id.clone(),
+                "other client".into(),
+                "synthetic".into(),
+                String::new(),
+            );
+            checkin_repo::insert_account(&tx, &row).unwrap();
+            Operation::DeleteProvider(provider.id.clone())
+        };
+        WRITER_WAITING.store(false, Ordering::Release);
+        services.start_checkin(key(1), operation).unwrap();
+        let deadline = std::time::Instant::now() + Duration::from_secs(10);
+        while !WRITER_WAITING.load(Ordering::Acquire) {
+            assert!(std::time::Instant::now() < deadline);
+            std::thread::yield_now();
+        }
+        tx.commit().unwrap();
+        while services.checkin_operation_state().busy {
+            assert!(std::time::Instant::now() < deadline);
+            std::thread::yield_now();
+        }
+        assert_eq!(
+            services.checkin_operation_state().result,
+            Some(Err(if delete_first {
+                OperationError::Invalid
+            } else {
+                OperationError::ProviderInUse
+            }))
+        );
+        let count:i64=external.query_row("SELECT count(*) FROM checkin_accounts a LEFT JOIN checkin_providers p ON p.id=a.provider_id WHERE p.id IS NULL",[],|r| r.get(0)).unwrap();
+        assert_eq!(count, 0);
+        owner.shutdown();
+    }
+}

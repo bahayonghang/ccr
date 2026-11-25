@@ -136,6 +136,14 @@ pub fn set_provider_builtin_id_if_missing(
     Ok(affected > 0)
 }
 
+pub fn provider_has_accounts(conn: &Connection, id: &str) -> rusqlite::Result<bool> {
+    conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM checkin_accounts WHERE provider_id=?1)",
+        [id],
+        |row| row.get(0),
+    )
+}
+
 /// Delete provider by ID
 #[allow(dead_code)]
 pub fn delete_provider(conn: &Connection, id: &str) -> Result<bool, rusqlite::Error> {
