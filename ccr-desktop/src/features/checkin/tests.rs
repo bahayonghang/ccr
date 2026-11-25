@@ -462,6 +462,20 @@ async fn minimum_window_keeps_account_filters_and_unfiltered_balance_totals(
             window.click("checkin-back", cx);
             window.render_frame(cx);
             assert!(window.try_find("checkin-detail").is_none());
+            window.simulate_next_frame(cx);
+            window.render_frame(cx);
+            assert_eq!(window.find("checkin-account-1").focused(), Some(true));
+            window.press("enter", cx);
+            window.render_frame(cx);
+            assert!(
+                window
+                    .find("checkin-detail")
+                    .label()
+                    .unwrap()
+                    .contains("Desk account")
+            );
+            window.click("checkin-back", cx);
+            window.render_frame(cx);
             window.click("checkin-search", cx);
             window.input("DeSk", cx);
             window.render_frame(cx);

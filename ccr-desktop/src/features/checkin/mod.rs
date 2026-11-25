@@ -2,6 +2,7 @@
 mod balances;
 mod credentials;
 mod extended;
+mod navigation;
 mod operations;
 mod workbench;
 use crate::runtime::checkin::OperationState;
@@ -44,7 +45,7 @@ pub struct CheckinView {
     query: String,
     provider_filter: Option<String>,
     scroll: ScrollHandle,
-    list_offset: Point<Pixels>,
+    navigation: navigation::Navigation,
     _search_changed: Subscription,
     generation: u64,
     gate: ResponseGate,
@@ -78,7 +79,7 @@ impl CheckinView {
             query: String::new(),
             provider_filter: None,
             scroll: ScrollHandle::new(),
-            list_offset: Default::default(),
+            navigation: navigation::Navigation::new(cx),
             _search_changed: search_changed,
             operation: services.checkin_operation_state(),
             observation: None,
@@ -111,6 +112,8 @@ impl CheckinView {
         self.extended = None;
         self.catalog = false;
         self.tab = CheckinTab::Accounts;
+        self.selected = None;
+        self.navigation.clear();
         self.services.discard_checkin_preview();
         self.operation = self.services.checkin_operation_state();
         self.confirmation = None;
@@ -186,6 +189,12 @@ impl CheckinView {
         }) {
             self.provider_filter = None;
         }
+        if let Some(operations::EditorKind::Account(Some(id))) =
+            self.editor.as_ref().map(|editor| &editor.kind)
+            && !self.rows().iter().any(|row| row.id == *id)
+        {
+            self.close_editor();
+        }
         self.reconcile_selection();
     }
 
@@ -201,13 +210,12 @@ impl CheckinView {
     }
 
     fn reconcile_selection(&mut self) {
-        if self.selected.as_ref().is_some_and(|id| {
-            !self
-                .rows()
-                .iter()
-                .any(|a| &a.id == id && self.matches_account(a))
-        }) {
-            self.selected = None;
+        if self
+            .selected
+            .as_ref()
+            .is_some_and(|id| !self.rows().iter().any(|a| &a.id == id))
+        {
+            self.close_detail();
         }
     }
 

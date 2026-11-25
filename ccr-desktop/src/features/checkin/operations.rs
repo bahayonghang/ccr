@@ -140,7 +140,7 @@ impl CheckinView {
                     .update(cx, |this, cx| {
                         let refresh = !state.busy && state.result.is_some();
                         if matches!(state.result, Some(Ok(Outcome::Saved | Outcome::Deleted))) {
-                            this.editor = None;
+                            this.close_editor();
                         }
                         this.operation = state;
                         if refresh {
@@ -219,6 +219,14 @@ impl CheckinView {
                 })
                 .collect(),
         });
+        if let Some(field) = self
+            .editor
+            .as_ref()
+            .and_then(|editor| editor.fields.first())
+        {
+            use gpui_kit::Focusable;
+            window.focus(&field.read(cx).focus_handle(cx), cx);
+        }
         self.load_account_credentials(cx);
         self.confirmation = None;
         cx.notify();
@@ -397,17 +405,27 @@ impl CheckinView {
                     .flex()
                     .gap(px(theme::CONTROL_GAP))
                     .child(ccr_core::core::log_redact::redact_log_text(&p.name))
-                    .child(semantics::button(
-                        Button::new(("checkin-edit-provider", index))
-                            .label(text(cx, "Edit provider", "编辑提供商"))
-                            .ghost()
-                            .on_click(cx.listener(move |this, _, window, cx| {
-                                this.edit(EditorKind::Provider(Some(id.clone())), window, cx)
-                            })),
-                        locked,
-                        false,
-                        cx,
-                    ))
+                    .child(
+                        self.origin_control(
+                            &format!("provider-{}", p.id),
+                            semantics::button(
+                                Button::new(("checkin-edit-provider", index))
+                                    .label(text(cx, "Edit provider", "编辑提供商"))
+                                    .ghost()
+                                    .on_click(cx.listener(move |this, _, window, cx| {
+                                        this.remember_editor_source(&format!("provider-{id}"));
+                                        this.edit(
+                                            EditorKind::Provider(Some(id.clone())),
+                                            window,
+                                            cx,
+                                        )
+                                    })),
+                                locked,
+                                false,
+                                cx,
+                            ),
+                        ),
+                    )
                     .child(semantics::button(
                         Button::new(("checkin-delete-provider", index))
                             .label(text(cx, "Delete provider", "删除提供商"))
@@ -447,17 +465,22 @@ impl CheckinView {
                     .flex()
                     .gap(px(theme::CONTROL_GAP))
                     .child(a.name.clone())
-                    .child(semantics::button(
-                        Button::new(("checkin-edit-account", index))
-                            .label(text(cx, "Edit account", "编辑账户"))
-                            .ghost()
-                            .on_click(cx.listener(move |this, _, window, cx| {
-                                this.edit(EditorKind::Account(Some(id.clone())), window, cx)
-                            })),
-                        locked,
-                        false,
-                        cx,
-                    ))
+                    .child(
+                        self.origin_control(
+                            "edit",
+                            semantics::button(
+                                Button::new(("checkin-edit-account", index))
+                                    .label(text(cx, "Edit account", "编辑账户"))
+                                    .ghost()
+                                    .on_click(cx.listener(move |this, _, window, cx| {
+                                        this.open_account_credentials(&id, "edit", window, cx)
+                                    })),
+                                locked,
+                                false,
+                                cx,
+                            ),
+                        ),
+                    )
                     .child(semantics::button(
                         Button::new(("checkin-delete-account", index))
                             .label(text(cx, "Delete account", "删除账户"))
@@ -677,8 +700,7 @@ impl CheckinView {
                                 .label(text(cx, "Cancel editing", "取消编辑"))
                                 .ghost()
                                 .on_click(cx.listener(|this, _, _, cx| {
-                                    this.editor = None;
-                                    this.catalog = false;
+                                    this.close_editor();
                                     cx.notify();
                                 })),
                             self.operation.busy,
