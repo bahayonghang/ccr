@@ -6,6 +6,17 @@ use ccr_core::Secret;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 #[path = "job_tests.rs"]
 mod job_tests;
+async fn read_headers(socket: &mut tokio::net::TcpStream) -> String {
+    let mut bytes = Vec::new();
+    let mut buffer = [0; 2048];
+    while !bytes.windows(4).any(|part| part == b"\r\n\r\n") {
+        let count = socket.read(&mut buffer).await.unwrap();
+        assert!(count > 0 && bytes.len() < 16 * 1024);
+        bytes.extend_from_slice(&buffer[..count]);
+    }
+    String::from_utf8(bytes).unwrap()
+}
+
 fn source(root: &Path) -> ConfigSource {
     ConfigSource::Fixture {
         profiles: root.join("profiles.toml"),
@@ -574,8 +585,7 @@ fn fixture_does_not_follow_a_redirect_to_another_listener() {
     let target = redirected.local_addr().unwrap();
     let response = http.spawn(async move {
         let (mut socket, _) = upstream.accept().await.unwrap();
-        let mut header = [0;2048];
-        socket.read(&mut header).await.unwrap();
+        assert!(read_headers(&mut socket).await.starts_with("GET /api/user/self"));
         socket.write_all(format!("HTTP/1.1 302 Found\r\nLocation: http://{target}/other\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").as_bytes()).await.unwrap();
     });
     let added = run(&services, Operation::AddProvider(provider(&base)), 1);

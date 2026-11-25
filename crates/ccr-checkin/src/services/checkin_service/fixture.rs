@@ -51,7 +51,7 @@ impl CheckinService {
             .build()
             .map_err(|_| CheckinServiceError::Network("Cannot create fixture client".into()))?;
         let mut service = Self::with_db_and_client(directory, db, client);
-        service.fixture_provider = Some(provider);
+        service.pinned_provider = Some(std::sync::Arc::new(provider));
         Ok(service)
     }
 }

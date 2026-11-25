@@ -91,7 +91,7 @@ impl AccountJob {
         Ok(Self::prepare(data, self.action, self.scope.clone())?.targets == self.targets)
     }
 
-    pub(super) fn revalidate(&self, source: &ConfigSource) -> Result<CheckinData, OperationError> {
+    pub(super) fn revalidate(&self, source: &ConfigSource) -> Result<(), OperationError> {
         let CheckinSnapshot::Accounts(data) =
             read_source(source).map_err(|_| OperationError::Storage)?
         else {
@@ -100,7 +100,7 @@ impl AccountJob {
         if !self.current_targets_match(&data).unwrap_or(false) {
             return Err(OperationError::TargetsChanged);
         }
-        Ok(data)
+        Ok(())
     }
 }
 
@@ -144,25 +144,11 @@ pub(super) async fn run_job(
     source: &ConfigSource,
     owner: &CheckinOperations,
     job: AccountJob,
-) -> Result<JobReport, OperationError> {
-    let data = job.revalidate(source)?;
-    let samples: BTreeMap<_, _> = data
-        .accounts
-        .iter()
-        .filter_map(|row| {
-            let at =
-                chrono::DateTime::parse_from_rfc3339(row.last_balance_check_at.as_deref()?).ok()?;
-            Some((&row.id, at))
-        })
-        .collect();
+) -> JobReport {
     let throttle = job.action == JobAction::Balance && !matches!(job.scope, JobScope::Single(_));
     let mut items = Vec::with_capacity(job.targets.len());
     // Sequential dispatch also serializes accounts sharing a provider origin.
     for target in job.targets {
-        let recent = throttle
-            && samples.get(&target.id).is_some_and(|at| {
-                chrono::Utc::now().signed_duration_since(*at) < chrono::Duration::seconds(30)
-            });
         let mut item = JobItem {
             target,
             status: JobStatus::Failed,
@@ -171,35 +157,61 @@ pub(super) async fn run_job(
             message: None,
             admission_error: None,
         };
-        if recent {
-            item.status = JobStatus::Recent;
-        } else {
-            match service_for_account(storage, source, owner, &item.target.id) {
-                Err(error) => item.admission_error = Some(error),
-                Ok(service) => {
-                    let result = match job.action {
-                        JobAction::Checkin => service.checkin(&item.target.id).await.map(|r| {
-                            item.status = JobStatus::Checked(r.status);
-                            item.error_code = r.error_code;
-                            item.skip_reason = r.skip_reason;
-                            item.message = r.message.as_deref().and_then(safe_message);
-                        }),
-                        JobAction::Balance => service
-                            .query_balance(&item.target.id)
-                            .await
-                            .map(|_| item.status = JobStatus::Updated),
-                    };
-                    if let Err(error) = result {
-                        item.error_code = Some(error.error_code().to_owned());
-                        item.message = safe_message(&error.to_string());
-                    }
+        match service_for_item(storage, source, owner, &item.target, throttle) {
+            Err(error) => item.admission_error = Some(error),
+            Ok(None) => item.status = JobStatus::Recent,
+            Ok(Some(service)) => {
+                let result = match job.action {
+                    JobAction::Checkin => service.checkin(&item.target.id).await.map(|r| {
+                        item.status = JobStatus::Checked(r.status);
+                        item.error_code = r.error_code;
+                        item.skip_reason = r.skip_reason;
+                        item.message = r.message.as_deref().and_then(safe_message);
+                    }),
+                    JobAction::Balance => service
+                        .query_balance(&item.target.id)
+                        .await
+                        .map(|_| item.status = JobStatus::Updated),
+                };
+                if let Err(error) = result {
+                    item.error_code = Some(error.error_code().to_owned());
+                    item.message = safe_message(&error.to_string());
                 }
             }
         }
         items.push(item);
     }
-    Ok(JobReport {
+    JobReport {
         action: job.action,
         items,
-    })
+    }
+}
+
+// Recheck the next item after the preceding provider request has finished. Another
+// client can disable an account, move it, or persist a newer sample during that wait.
+fn service_for_item(
+    storage: &Storage,
+    source: &ConfigSource,
+    owner: &CheckinOperations,
+    target: &JobTarget,
+    throttle: bool,
+) -> Result<Option<CheckinService>, OperationError> {
+    let (account, provider) = network_target(storage, source, &target.id)?;
+    if account.enabled != target.enabled
+        || account.provider_id != target.provider_id
+        || redact_log_text(&account.name) != target.name
+        || redact_log_text(&provider.name) != target.provider
+        || Some(provider.enabled) != target.provider_enabled
+        || provider.updated_at.map(|at| at.to_rfc3339()) != target.provider_revision
+    {
+        return Err(OperationError::TargetsChanged);
+    }
+    if throttle
+        && account.last_balance_check_at.is_some_and(|at| {
+            chrono::Utc::now().signed_duration_since(at) < chrono::Duration::seconds(30)
+        })
+    {
+        return Ok(None);
+    }
+    service_for_provider(storage, source, owner, provider).map(Some)
 }

@@ -31,14 +31,7 @@ fn mixed_jobs_confirm_identity_retain_results_throttle_and_preserve_failed_sampl
     let server = network.spawn(async move {
         loop {
             let (mut stream,_) = listener.accept().await.unwrap();
-            let mut bytes = Vec::new();
-            let mut buf = [0; 2048];
-            while !bytes.windows(4).any(|w| w == b"\r\n\r\n") {
-                let n = stream.read(&mut buf).await.unwrap();
-                assert!(n > 0);
-                bytes.extend_from_slice(&buf[..n]);
-            }
-            let request = String::from_utf8(bytes).unwrap().to_ascii_lowercase();
+            let request = read_headers(&mut stream).await.to_ascii_lowercase();
             let user = request.lines().find_map(|line|line.strip_prefix("new-api-user: ")).unwrap();
             let method = request.split_whitespace().next().unwrap();
             calls.lock().unwrap().push((method.to_string(),user.to_string()));
@@ -332,4 +325,83 @@ fn documented_fixture_imports_via_preview_and_runs_the_marked_custom_provider() 
     drop(services);
     runtime.shutdown();
     std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn queued_balance_items_recheck_changes_from_another_client_before_sending() {
+    let root = tempfile::tempdir().unwrap();
+    let runtime = RuntimeOwner::new().unwrap();
+    let services =
+        Services::new(runtime.handle(), source(root.path())).with_checkin_loopback_fixture();
+    let network = tokio::runtime::Runtime::new().unwrap();
+    let listener = network
+        .block_on(tokio::net::TcpListener::bind("127.0.0.1:0"))
+        .unwrap();
+    let base = format!("http://{}", listener.local_addr().unwrap());
+    let (first, reached) = std::sync::mpsc::channel();
+    let (release, wait) = tokio::sync::oneshot::channel();
+    let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let count = calls.clone();
+    let server = network.spawn(async move {
+        let mut first_response = Some(wait);
+        loop {
+            let (mut socket,_) = listener.accept().await.unwrap();
+            assert!(read_headers(&mut socket).await.starts_with("GET /api/user/self"));
+            count.fetch_add(1, Ordering::SeqCst);
+            if let Some(wait) = first_response.take() { first.send(()).unwrap(); wait.await.unwrap(); }
+            let body = r#"{"success":true,"data":{"quota":500000,"used_quota":100000}}"#;
+            let reply = format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",body.len());
+            socket.write_all(reply.as_bytes()).await.unwrap();
+        }
+    });
+    let added = run(&services, Operation::AddProvider(provider(&base)), 1);
+    let provider_id = &added.snapshot.as_ref().unwrap().providers[0].id;
+    for name in ["one", "two", "three"] {
+        let mut request = account(provider_id.clone());
+        request.name = name.into();
+        assert_eq!(
+            run(&services, Operation::AddAccount(request), 2).result,
+            Some(Ok(Outcome::Saved))
+        );
+    }
+    let job = plan(&services, JobAction::Balance, JobScope::AllEnabled);
+    let disabled = job.targets[1].id.clone();
+    let refreshed = job.targets[2].id.clone();
+    services.start_checkin(key(3), Operation::Job(job)).unwrap();
+    reached.recv_timeout(Duration::from_secs(5)).unwrap();
+    let connection = rusqlite::Connection::open(root.path().join("checkin.db")).unwrap();
+    connection
+        .execute(
+            "UPDATE checkin_accounts SET enabled=0 WHERE id=?1",
+            [&disabled],
+        )
+        .unwrap();
+    let sample = BalanceSnapshot::new(refreshed.clone(), 10., 2., 8., "USD".into());
+    let tx = connection.unchecked_transaction().unwrap();
+    checkin_repo::insert_balance(&tx, &sample).unwrap();
+    tx.execute(
+        "UPDATE checkin_accounts SET last_balance_check_at=?1 WHERE id=?2",
+        [sample.recorded_at.to_rfc3339(), refreshed.clone()],
+    )
+    .unwrap();
+    tx.commit().unwrap();
+    release.send(()).unwrap();
+    let mut observer = services.observe_checkin();
+    network.block_on(async {
+        while observer.borrow_and_update().busy {
+            tokio::time::timeout(Duration::from_secs(5), observer.changed())
+                .await
+                .unwrap()
+                .unwrap();
+        }
+    });
+    let results = observer.borrow().last_job.clone().unwrap();
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert_eq!(
+        results.items[1].admission_error,
+        Some(OperationError::TargetsChanged)
+    );
+    assert_eq!(results.items[2].status, JobStatus::Recent);
+    server.abort();
+    runtime.shutdown();
 }

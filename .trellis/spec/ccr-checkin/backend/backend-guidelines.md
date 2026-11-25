@@ -42,7 +42,7 @@ does not redefine account creation or other legacy import/export recovery flows.
 
 Network services use `reqwest` clients and proxy detection. Preserve explicit WAF/Cloudflare/cookie-expired error classification in `CheckinServiceError::error_code()`.
 
-A successful balance query commits its sample, the account's `last_balance_check_at` (the same instant), and retention cleanup in one transaction. If persistence fails, the previous snapshot and refresh time remain available together. Native batch jobs use that stored time for their 30-second window. A single explicit refresh can query immediately.
+A successful balance query commits its sample, the account's `last_balance_check_at` (the same instant), and retention cleanup in one transaction. If persistence fails, the previous snapshot and refresh time remain available together. Native batch jobs use that stored time for their 30-second window. A single explicit refresh can query immediately. Before dispatching each queued account, recheck its saved eligibility, provider identity and last successful sample. Pin the admitted provider for that request.
 
 The optional `test-support` loopback service pins one custom provider after checking the base and all composed endpoint origins. It rejects explicit and legacy built-in identities, uses a proxy-free client with redirects disabled, and has no automatic challenge handling. Native startup owns feature, switch and marked catalog admission.
 

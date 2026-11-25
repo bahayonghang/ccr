@@ -406,7 +406,7 @@ impl Services {
 /// Check creation against the existing local database before opening a writer.
 fn validate_first_save(source: &ConfigSource, operation: &Operation) -> Result<(), OperationError> {
     match operation {
-        Operation::Job(job) => job.revalidate(source).map(|_| ()),
+        Operation::Job(job) => job.revalidate(source),
         Operation::AddBuiltin(id) => get_builtin_provider_by_id(id)
             .map(|_| ())
             .ok_or(OperationError::Invalid),
@@ -461,6 +461,15 @@ fn service_for_account(
     owner: &CheckinOperations,
     id: &str,
 ) -> Result<CheckinService, OperationError> {
+    let (_, provider) = network_target(storage, source, id)?;
+    service_for_provider(storage, source, owner, provider)
+}
+
+fn network_target(
+    storage: &Storage,
+    source: &ConfigSource,
+    id: &str,
+) -> Result<(CheckinAccount, CheckinProvider), OperationError> {
     if source.is_benchmark() {
         return Err(OperationError::FixtureNetwork);
     }
@@ -472,6 +481,15 @@ fn service_for_account(
         .providers()
         .get(&account.provider_id)
         .map_err(|_| OperationError::Invalid)?;
+    Ok((account, provider))
+}
+
+fn service_for_provider(
+    storage: &Storage,
+    source: &ConfigSource,
+    owner: &CheckinOperations,
+    provider: CheckinProvider,
+) -> Result<CheckinService, OperationError> {
     storage.require_existing_crypto()?;
     if source.is_fixture() {
         #[cfg(any(test, feature = "native-checkin-fixture"))]
@@ -484,12 +502,13 @@ fn service_for_account(
             .map_err(|_| OperationError::FixtureNetwork)?;
             return Ok(service);
         }
-        let _ = (owner, provider);
+        let _ = owner;
         return Err(OperationError::FixtureNetwork);
     }
-    Ok(CheckinService::with_db(
+    Ok(CheckinService::with_db_for_provider(
         storage.crypto.clone(),
         storage.db.clone(),
+        provider,
     ))
 }
 
@@ -505,7 +524,7 @@ async fn execute(
     let outcome = match operation {
         Operation::Manage => Outcome::Loaded,
         Operation::Job(job) => {
-            let report = jobs::run_job(storage, source, owner, job).await?;
+            let report = jobs::run_job(storage, source, owner, job).await;
             owner
                 .state
                 .lock()

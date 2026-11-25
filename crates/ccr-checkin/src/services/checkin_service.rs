@@ -68,8 +68,7 @@ pub struct CheckinService {
     db: ccr_db::database::DbAccess,
     /// 签到数据目录
     checkin_dir: PathBuf,
-    #[cfg(feature = "test-support")]
-    fixture_provider: Option<CheckinProvider>,
+    pinned_provider: Option<std::sync::Arc<CheckinProvider>>,
     /// HTTP 客户端
     client: Client,
     /// 统一的代理配置（保证 HTTP 请求与浏览器出口一致）
@@ -645,8 +644,7 @@ impl CheckinService {
 
         Self {
             db: ccr_db::database::DbAccess::Global,
-            #[cfg(feature = "test-support")]
-            fixture_provider: None,
+            pinned_provider: None,
             checkin_dir,
             client,
             proxy_url,
@@ -658,8 +656,7 @@ impl CheckinService {
         let proxy_url = get_proxy_settings().map(|(_, url)| url);
         Self {
             db: ccr_db::database::DbAccess::Global,
-            #[cfg(feature = "test-support")]
-            fixture_provider: None,
+            pinned_provider: None,
             checkin_dir,
             client,
             proxy_url,
@@ -673,6 +670,17 @@ impl CheckinService {
         service
     }
 
+    /// A confirmed account job pins the provider approved for this request.
+    pub fn with_db_for_provider(
+        checkin_dir: PathBuf,
+        db: ccr_db::database::DbAccess,
+        provider: CheckinProvider,
+    ) -> Self {
+        let mut service = Self::with_db(checkin_dir, db);
+        service.pinned_provider = Some(std::sync::Arc::new(provider));
+        service
+    }
+
     /// Embedded callers supply both storage and their HTTP client. This constructor
     /// does not discover system proxy settings or initialize the global database.
     pub fn with_db_and_client(
@@ -681,8 +689,7 @@ impl CheckinService {
         client: Client,
     ) -> Self {
         Self {
-            #[cfg(feature = "test-support")]
-            fixture_provider: None,
+            pinned_provider: None,
             checkin_dir,
             db,
             client,
@@ -691,13 +698,12 @@ impl CheckinService {
     }
 
     fn provider(&self, id: &str) -> Result<CheckinProvider> {
-        #[cfg(feature = "test-support")]
-        if let Some(provider) = &self.fixture_provider {
+        if let Some(provider) = &self.pinned_provider {
             return if provider.id == id {
-                Ok(provider.clone())
+                Ok(provider.as_ref().clone())
             } else {
                 Err(CheckinServiceError::Provider(
-                    "Fixture provider changed".into(),
+                    "Confirmed provider changed".into(),
                 ))
             };
         }
@@ -1469,8 +1475,7 @@ impl CheckinService {
                     let _permit = sem.acquire().await.expect("semaphore closed");
                     let svc = CheckinService {
                         db,
-                        #[cfg(feature = "test-support")]
-                        fixture_provider: self.fixture_provider.clone(),
+                        pinned_provider: self.pinned_provider.clone(),
                         checkin_dir,
                         client,
                         proxy_url,
