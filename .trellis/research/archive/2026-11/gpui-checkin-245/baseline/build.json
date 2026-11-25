@@ -1,0 +1,28 @@
+{
+  "baseline": "4f0a02387a221f9f1822eede2787ebe050aa75da",
+  "build_checkout": "e108b8eb3e67acc6431cdd9fd5fc88013d761b45",
+  "tracked_difference": [
+    "10\t0\tccr-desktop/DESIGN.md"
+  ],
+  "source_worktree_changes": [],
+  "build_command": "cargo build --manifest-path ccr-desktop/Cargo.toml --release --locked --bin ccr-gpui --message-format=json",
+  "profile": "release",
+  "package": "ccr-gpui 7.5.1",
+  "features": [],
+  "rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+  "cargo": "cargo 1.98.0 (797e8a9bc 2026-08-05)",
+  "cargo_build_finished": true,
+  "binary_artifact_fresh": false,
+  "binary_size": 62173696,
+  "sha256": "79a7f26abea87286114a639b6966eb5f44bd0d046f364269e83839b4e6ec94fe",
+  "source_binary_hash": "79a7f26abea87286114a639b6966eb5f44bd0d046f364269e83839b4e6ec94fe",
+  "desktop_lock_sha256": "3f08a5a3a214e8090a479590809139004d5e66553d8b61e5d4976f451b7f992f",
+  "built_local": "2026-11-25T05:29:33.3117728-05:00",
+  "os": "Windows 11 Pro 26300",
+  "capture_tools": "Python 3.14.7, Pillow 13.0.0, pywin32 312; Microsoft Windows UI Automation and PrintWindow",
+  "note": "Default feature release. Initial link publish was retried after the calibration process briefly held the old release executable. All eight accepted captures run the isolated copy of the successful second build.",
+  "cargo_frontend": "mbx Cargo shim (installed on PATH), confirmed by cargo-build output",
+  "cargo_target_directory": "ccr-desktop/target",
+  "bin_path_relative_to_checkout": "ccr-desktop/target/release/ccr-gpui.exe",
+  "CARGO_TARGET_DIR_env_set": false
+}

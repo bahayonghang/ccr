@@ -1,0 +1,68 @@
+{
+  "fixture_id": "checkin-pair-v1",
+  "state": "unconfigured",
+  "account_count": 0,
+  "commit": "4f0a02387a221f9f1822eede2787ebe050aa75da",
+  "exe_sha256": "79a7f26abea87286114a639b6966eb5f44bd0d046f364269e83839b4e6ec94fe",
+  "image": "before-unconfigured-narrow-dark.png",
+  "image_sha256": "2e41c5e9f7436fd58bc7407b81d171330ee6b9b1e6b88ff39191f5db3f39e7f7",
+  "theme": "dark",
+  "language": "zh",
+  "ui_font_px": 14,
+  "mono_font_px": 12,
+  "environment": "local",
+  "title": "CCR Desktop (GPUI)",
+  "logical_client": [
+    960,
+    640
+  ],
+  "physical_client": [
+    1200,
+    800
+  ],
+  "dpi": 120,
+  "captured_frame_px": [
+    1202,
+    839
+  ],
+  "capture": "PrintWindow(2), DWM extended frame",
+  "page": "签到管理",
+  "scroll": "fresh navigation from sidebar, initial top, no wheel or PageDown",
+  "db_before_sha256": null,
+  "db_after_sha256": null,
+  "file_state_after": {
+    "checkin.db": false,
+    "checkin.db-wal": false,
+    "checkin.db-shm": false,
+    "checkin-crypto": false,
+    "checkin-migration-home": false,
+    "checkin-locks": false
+  },
+  "uia_labels": [
+    "导航",
+    "CCR",
+    "运行概览",
+    "Agent 会话",
+    "MCP 管理",
+    "Claude Code",
+    "Codex",
+    "Grok",
+    "Antigravity",
+    "OpenCode",
+    "命令",
+    "签到管理",
+    "同步",
+    "用量",
+    "设置",
+    "工作区",
+    "读取已保存的账户",
+    "账户工具",
+    "管理提供商与账户",
+    "本地 · 就绪 · 演示数据",
+    "本地 · 就绪 · 演示数据",
+    "01 概览",
+    "02 用量",
+    "03 会话",
+    "04 命令"
+  ]
+}
