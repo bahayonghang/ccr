@@ -48,7 +48,7 @@ impl ImportSession {
     fn validated_source(
         &self,
         root: &Path,
-        existing_accounts: bool,
+        existing_accounts: &[CheckinAccount],
     ) -> Result<(ExportData, Option<CryptoManager>)> {
         safe_file(&self.path)?;
         let bytes = read_source(&self.path).map_err(|_| ExportError::Conflict)?;
@@ -238,13 +238,16 @@ impl ExportManager {
     fn validated_native_data(
         root: &Path,
         source: &ExportData,
-        existing_accounts: bool,
+        existing_accounts: &[CheckinAccount],
     ) -> Result<(ExportData, Option<CryptoManager>)> {
-        let crypto = if existing_accounts {
-            Some(
-                CryptoManager::load_existing(root)
-                    .map_err(|_| ExportError::ExistingKeyUnavailable)?,
-            )
+        let crypto = if !existing_accounts.is_empty() {
+            let key = CryptoManager::load_existing(root)
+                .map_err(|_| ExportError::ExistingKeyUnavailable)?;
+            for account in existing_accounts {
+                key.decrypt(&account.cookies_json_encrypted)
+                    .map_err(|_| ExportError::ExistingKeyUnavailable)?;
+            }
+            Some(key)
         } else if source
             .accounts
             .iter()
@@ -283,13 +286,6 @@ impl ExportManager {
         Ok((data, crypto))
     }
 
-    fn fingerprint(&self) -> Result<String> {
-        let (providers, accounts) = self
-            .db
-            .with_connection(read_rows)
-            .map_err(|e| ExportError::ImportFailed(e.to_string()))?;
-        row_version(&providers, &accounts)
-    }
     pub fn export_file(&self, path: &Path) -> Result<()> {
         let (providers, accounts) = self
             .db
@@ -340,7 +336,7 @@ impl ExportManager {
         })?;
         Ok(())
     }
-    fn read_import(path: &Path, root: &Path) -> Result<(ExportData, String)> {
+    fn read_import(path: &Path) -> Result<(ExportData, String)> {
         safe_file(path)?;
         let bytes = read_source(path)?;
         let raw: serde_json::Value = serde_json::from_slice(&bytes)
@@ -350,7 +346,6 @@ impl ExportManager {
         let known =
             serde_json::to_value(&data).map_err(|e| ExportError::ImportFailed(e.to_string()))?;
         reject_unknown(&raw, &known)?;
-        Self::validated_native_data(root, &data, false)?;
         Ok((data, guarded_write::content_version_token(&bytes)))
     }
 
@@ -358,7 +353,7 @@ impl ExportManager {
     pub fn preview_file_at(path: &Path, database: &Path, root: &Path) -> Result<ImportSession> {
         safe_file(database)?;
         safe_file(root)?;
-        let (mut data, version) = Self::read_import(path, root)?;
+        let (mut data, version) = Self::read_import(path)?;
         let (providers, accounts, database_version) = match std::fs::metadata(database) {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => (vec![], vec![], None),
             Ok(meta) if meta.is_file() => {
@@ -378,6 +373,7 @@ impl ExportManager {
                 ));
             }
         };
+        Self::validated_native_data(root, &data, &accounts)?;
         bind_providers(&mut data, &providers)?;
         let preview = Self::preview_against(&data, &providers, &accounts);
         ImportSession::new(
@@ -391,11 +387,12 @@ impl ExportManager {
     }
 
     pub fn preview_file(&self, path: &Path) -> Result<ImportSession> {
-        let (mut data, version) = Self::read_import(path, &self.checkin_dir)?;
+        let (mut data, version) = Self::read_import(path)?;
         let (providers, accounts) = self
             .db
             .with_connection(read_rows)
             .map_err(|e| ExportError::ImportFailed(e.to_string()))?;
+        Self::validated_native_data(&self.checkin_dir, &data, &accounts)?;
         bind_providers(&mut data, &providers)?;
         let preview = Self::preview_against(&data, &providers, &accounts);
         ImportSession::new(
@@ -426,10 +423,10 @@ impl ExportManager {
         if missing != session.target_missing() {
             return Err(ExportError::Conflict);
         }
-        let (expected, existing_accounts) = if missing {
-            session.validated_source(root, false)?;
+        let expected = if missing {
+            session.validated_source(root, &[])?;
             publish_initial_schema(database)?;
-            (row_version(&[], &[])?, false)
+            row_version(&[], &[])?
         } else {
             let conn = rusqlite::Connection::open_with_flags(
                 database,
@@ -438,29 +435,25 @@ impl ExportManager {
             .map_err(|e| ExportError::ImportFailed(e.to_string()))?;
             let (providers, accounts) =
                 read_rows(&conn).map_err(|e| ExportError::ImportFailed(e.to_string()))?;
+            session.validated_source(root, &accounts)?;
             let revision = row_version(&providers, &accounts)?;
-            if !accounts.is_empty() {
-                CryptoManager::load_existing(root)
-                    .map_err(|_| ExportError::ExistingKeyUnavailable)?;
-            }
             if Some(&revision) != session.database_version.as_ref() {
                 return Err(ExportError::Conflict);
             }
-            session.validated_source(root, !accounts.is_empty())?;
-            (revision, !accounts.is_empty())
+            revision
         };
         let manager = Self::with_db(root, open()?);
-        let opened = manager
+        let (opened, (providers, accounts)) = manager
             .db
-            .with_connection(|conn| Ok(conn.path().map(PathBuf::from)))
+            .with_connection(|conn| Ok((conn.path().map(PathBuf::from), read_rows(conn)?)))
             .map_err(|e| ExportError::ImportFailed(e.to_string()))?;
         if opened.and_then(|p| p.canonicalize().ok())
             != Some(database.canonicalize().map_err(|_| ExportError::Conflict)?)
-            || manager.fingerprint()? != expected
+            || row_version(&providers, &accounts)? != expected
         {
             return Err(ExportError::Conflict);
         }
-        let (validated, key) = session.validated_source(root, existing_accounts)?;
+        let (validated, key) = session.validated_source(root, &accounts)?;
         manager.apply_validated(validated, key.as_ref(), overwrite)
     }
 
@@ -469,17 +462,17 @@ impl ExportManager {
         session: &Arc<ImportSession>,
         overwrite: bool,
     ) -> Result<ImportResult> {
-        if session.database_path.is_some()
-            || session.root != self.checkin_dir
-            || Some(self.fingerprint()?) != session.database_version
-        {
+        if session.database_path.is_some() || session.root != self.checkin_dir {
             return Err(ExportError::Conflict);
         }
-        let has_accounts = !AccountManager::with_db(&self.checkin_dir, self.db.clone())
-            .load_all()
-            .map_err(|e| ExportError::AccountError(e.to_string()))?
-            .is_empty();
-        let (validated, key) = session.validated_source(&self.checkin_dir, has_accounts)?;
+        let (providers, accounts) = self
+            .db
+            .with_connection(read_rows)
+            .map_err(|e| ExportError::ImportFailed(e.to_string()))?;
+        if Some(row_version(&providers, &accounts)?) != session.database_version {
+            return Err(ExportError::Conflict);
+        }
+        let (validated, key) = session.validated_source(&self.checkin_dir, &accounts)?;
         Ok(self
             .apply_validated(validated, key.as_ref(), overwrite)?
             .counts)

@@ -292,6 +292,50 @@ fn transfer_uses_scoped_database_preserves_extensions_and_refuses_stale_preview(
     let database_file = root.path().join("source.db");
     let captured = ExportManager::preview_file_at(&export, &database_file, &crypto).unwrap();
     let original_key = std::fs::read(crypto.join("crypto.key")).unwrap();
+    // Plaintext input still requires proof that the target's existing credentials
+    // can be recovered with the selected device key, both before and after preview.
+    let plain = root.path().join("plain.json");
+    let mut config: ExportData = serde_json::from_slice(&original).unwrap();
+    config.accounts[0].cookies_json = Secret::new(r#"{"session":"synthetic-new"}"#);
+    config.accounts[0].cookies_json_encrypted = false;
+    config.accounts[0].id = "new-account".into();
+    std::fs::write(&plain, serde_json::to_vec(&config).unwrap()).unwrap();
+    let plain_session = ExportManager::preview_file_at(&plain, &database_file, &crypto).unwrap();
+    let other = root.path().join("other-device");
+    CryptoManager::new(&other).unwrap();
+    let other_key = std::fs::read(other.join("crypto.key")).unwrap();
+    std::fs::write(crypto.join("crypto.key"), &other_key).unwrap();
+    let preview_result = ExportManager::preview_file_at(&plain, &database_file, &crypto);
+    let commit_result = apply(&plain_session, &database_file, &crypto, false, || {
+        Ok(DbAccess::Pool(pool.clone()))
+    });
+    assert!(matches!(
+        commit_result,
+        Err(ExportError::ExistingKeyUnavailable)
+    ));
+    assert!(matches!(
+        preview_result,
+        Err(ExportError::ExistingKeyUnavailable)
+    ));
+    assert_eq!(accounts.load_all().unwrap().len(), 1);
+    assert_eq!(
+        accounts.get(&account.id).unwrap().cookies_json_encrypted,
+        account.cookies_json_encrypted
+    );
+    assert_eq!(std::fs::read(crypto.join("crypto.key")).unwrap(), other_key);
+    assert!(!crypto.join("backups").exists());
+    std::fs::write(crypto.join("crypto.key"), &original_key).unwrap();
+    let swapped_during_open = apply(&plain_session, &database_file, &crypto, false, || {
+        std::fs::write(crypto.join("crypto.key"), &other_key).unwrap();
+        Ok(DbAccess::Pool(pool.clone()))
+    });
+    assert!(matches!(
+        swapped_during_open,
+        Err(ExportError::ExistingKeyUnavailable)
+    ));
+    assert!(!crypto.join("backups").exists());
+    assert_eq!(accounts.load_all().unwrap().len(), 1);
+    std::fs::write(crypto.join("crypto.key"), &original_key).unwrap();
     let lost_during_open = apply(&captured, &database_file, &crypto, true, || {
         std::fs::remove_file(crypto.join("crypto.key")).unwrap();
         Ok(DbAccess::Pool(pool.clone()))
