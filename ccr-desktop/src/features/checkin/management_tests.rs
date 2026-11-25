@@ -123,3 +123,48 @@ async fn detail_connection_names_the_target_before_dispatch_and_fixture_refuses(
         .unwrap();
     owner.shutdown();
 }
+
+#[gpui_kit::test]
+async fn editing_an_account_removed_by_another_client_restores_the_account_list(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let root = tempfile::tempdir().unwrap();
+    seed(root.path());
+    let owner = RuntimeOwner::new().unwrap();
+    let handle = open_size(cx, &owner, root.path(), 960., 640.);
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("nav-checkin", cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |w, _| {
+        w.try_find("checkin-account-1").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("checkin-account-1", cx);
+        window.render_frame(cx);
+        let db = rusqlite::Connection::open(root.path().join("checkin.db")).unwrap();
+        checkin_repo::delete_account(&db, "measured").unwrap();
+        window.click(("checkin-edit-account", 1usize), cx);
+    })
+    .unwrap();
+    cx.wait_for(handle, Duration::from_secs(10), |w, _| {
+        w.try_find("checkin-credential-read-error").is_some()
+            || w.try_find("checkin-account-0").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(window.try_find("checkin-editor").is_none());
+        assert!(window.try_find("checkin-detail").is_none());
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert_eq!(window.find("checkin-read").focused(), Some(true));
+        window.remove_window();
+    })
+    .unwrap();
+    owner.shutdown();
+}
