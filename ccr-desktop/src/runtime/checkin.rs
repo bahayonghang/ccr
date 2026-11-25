@@ -255,19 +255,19 @@ fn database_path(source: &ConfigSource) -> Result<Option<PathBuf>, CheckinError>
     }
 }
 
-fn read_existing(path: &Path) -> Result<CheckinSnapshot, CheckinError> {
+fn open_reader(path: &Path) -> Result<rusqlite::Connection, CheckinError> {
     let conn = rusqlite::Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)
         .map_err(|_| CheckinError::Storage)?;
     conn.busy_timeout(Duration::from_secs(5))
         .map_err(|_| CheckinError::Storage)?;
-    read_connection(&conn)
+    Ok(conn)
 }
 
 fn read_source(source: &ConfigSource) -> Result<CheckinSnapshot, CheckinError> {
     let Some(path) = database_path(source)? else {
         return Ok(CheckinSnapshot::NoDatabase);
     };
-    read_existing(&path)
+    read_connection(&open_reader(&path)?)
 }
 
 impl Services {

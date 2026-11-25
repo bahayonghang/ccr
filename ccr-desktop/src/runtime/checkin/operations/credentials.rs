@@ -39,13 +39,28 @@ impl Services {
             {
                 return Err(OperationError::Busy);
             }
-            let storage = owner.storage(&source)?;
-            let accounts = storage.accounts();
-            let account = accounts
-                .get(&account_id)
-                .map_err(|_| OperationError::Invalid)?;
-            // Reading a corrupt/missing key must not create a replacement key.
-            let crypto = ccr_checkin::core::crypto::CryptoManager::load_existing(&storage.crypto)
+            let path = database_path(&source)
+                .map_err(|_| OperationError::Storage)?
+                .ok_or(OperationError::Invalid)?;
+            let conn = open_reader(&path).map_err(|_| OperationError::Storage)?;
+            let account = checkin_repo::get_account_by_id(&conn, &account_id)
+                .map_err(|_| OperationError::Storage)?
+                .ok_or(OperationError::Invalid)?;
+            let crypto_dir = match &source {
+                ConfigSource::Local => {
+                    CheckinService::default_checkin_dir().map_err(|_| OperationError::Storage)?
+                }
+                ConfigSource::Benchmark(layout) => layout.path("crypto/checkin"),
+                ConfigSource::Fixture { .. } => {
+                    let dir = path
+                        .parent()
+                        .ok_or(OperationError::Storage)?
+                        .join("checkin-crypto");
+                    reject_links(&dir)?;
+                    dir
+                }
+            };
+            let crypto = ccr_checkin::core::crypto::CryptoManager::load_existing(&crypto_dir)
                 .map_err(|_| OperationError::CryptoKeyUnavailable)?;
             let cookies = crypto
                 .decrypt(&account.cookies_json_encrypted)
@@ -69,6 +84,44 @@ impl Services {
 mod tests {
     use super::*;
     use ccr_app::runtime::{Platform, RuntimeOwner, TaskEvent};
+
+    #[test]
+    fn editing_a_vanished_account_does_not_initialize_storage() {
+        let root = tempfile::tempdir().unwrap();
+        let runtime = RuntimeOwner::new().unwrap();
+        let services = Services::new(
+            runtime.handle(),
+            ConfigSource::Fixture {
+                profiles: root.path().join("profiles.toml"),
+                registry: root.path().join("registry.toml"),
+                delay: Duration::ZERO,
+            },
+        );
+        let mut read = services
+            .checkin_account_credentials(
+                RequestKey {
+                    environment: EnvironmentId::Local("application".into()),
+                    platform: Platform::Claude,
+                    generation: 1,
+                    request_id: 1,
+                },
+                "vanished".into(),
+            )
+            .unwrap();
+        tokio::runtime::Runtime::new().unwrap().block_on(async {
+            loop {
+                if let TaskEvent::Terminal(result) = read.next().await.unwrap() {
+                    assert!(matches!(
+                        result.as_ref(),
+                        Completion::Failed(OperationError::Invalid)
+                    ));
+                    break;
+                }
+            }
+        });
+        assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
+        runtime.shutdown();
+    }
 
     #[test]
     fn empty_fixture_transfer_keeps_crypto_creation_and_locks_captured() {
