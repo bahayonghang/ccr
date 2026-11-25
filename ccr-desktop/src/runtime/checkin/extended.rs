@@ -5,14 +5,12 @@ mod inspection;
 use ccr_checkin::managers::checkin::export_manager::ImportSession;
 use ccr_checkin::{BalanceManager, ExportManager, WafCookieManager};
 use ccr_core::Secret;
-pub use inspection::{InspectionCommand, InspectionReport, RecordQuery};
+pub use inspection::{InspectionCommand, InspectionReport};
 
 pub enum ExtendedCommand {
     Inspect(InspectionCommand),
     Checkin(Vec<String>),
     Delete(Vec<String>),
-    Balances(String),
-    Stats,
     BalanceStats,
     WafList,
     WafSave {
@@ -54,13 +52,6 @@ pub enum ExtendedReport {
     Deleted {
         completed: Vec<String>,
         failed: Vec<String>,
-    },
-    Balances(BalanceHistoryResponse),
-    Stats {
-        total: usize,
-        checked: usize,
-        pending: usize,
-        failed: usize,
     },
     Waf(Vec<WafStatus>),
     WafSaved,
@@ -109,7 +100,7 @@ pub(super) async fn execute_extended(
                     Operation::Checkin(id.clone()),
                 ))
                 .await
-                .and_then(|(value, _)| match value {
+                .and_then(|value| match value {
                     Outcome::Checked(status) => Ok(status),
                     _ => Err(OperationError::Invalid),
                 });
@@ -139,35 +130,11 @@ pub(super) async fn execute_extended(
             }
             Ok(ExtendedReport::Deleted { completed, failed })
         }
-        ExtendedCommand::Balances(id) => {
-            accounts.get(&id).map_err(|_| OperationError::Invalid)?;
-            BalanceManager::with_db(storage.db.clone())
-                .get_history(&id, Some(100))
-                .map(ExtendedReport::Balances)
-                .map_err(|_| OperationError::Storage)
-        }
         ExtendedCommand::BalanceStats => {
             let (groups, unusable) = BalanceManager::with_db(storage.db.clone())
                 .totals_by_currency()
                 .map_err(|_| OperationError::Storage)?;
             Ok(ExtendedReport::BalanceStats { groups, unusable })
-        }
-        ExtendedCommand::Stats => {
-            let ids: Vec<_> = accounts
-                .get_enabled_accounts()
-                .map_err(|_| OperationError::Storage)?
-                .into_iter()
-                .map(|a| a.id)
-                .collect();
-            let stats = RecordManager::with_db(storage.db.clone())
-                .get_today_stats(&ids)
-                .map_err(|_| OperationError::Storage)?;
-            Ok(ExtendedReport::Stats {
-                total: stats.total,
-                checked: stats.checked_in,
-                pending: stats.not_checked_in,
-                failed: stats.failed,
-            })
         }
         ExtendedCommand::WafList => {
             let waf = WafCookieManager::with_db(storage.db.clone());

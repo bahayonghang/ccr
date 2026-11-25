@@ -3,6 +3,7 @@ mod account_actions;
 mod balances;
 mod credentials;
 mod extended;
+mod history;
 mod navigation;
 mod operations;
 mod providers;
@@ -48,6 +49,7 @@ pub struct CheckinView {
     query: String,
     provider_filter: Option<String>,
     scroll: ScrollHandle,
+    history: history::HistoryUi,
     navigation: navigation::Navigation,
     _search_changed: Subscription,
     generation: u64,
@@ -84,6 +86,7 @@ impl CheckinView {
             query: String::new(),
             provider_filter: None,
             scroll: ScrollHandle::new(),
+            history: history::HistoryUi::new(window, cx),
             navigation: navigation::Navigation::new(cx),
             _search_changed: search_changed,
             operation: services.checkin_operation_state(),
@@ -121,6 +124,7 @@ impl CheckinView {
         self.provider_detail = None;
         self.tab = CheckinTab::Accounts;
         self.selected = None;
+        self.history.invalidate();
         self.navigation.clear();
         self.services.discard_checkin_preview();
         self.operation = self.services.checkin_operation_state();
@@ -147,6 +151,7 @@ impl CheckinView {
         self.gate.replace(key.clone());
         self.busy = true;
         self.message = None;
+        self.history.invalidate();
         self.snapshot = None;
         match self.services.checkin_request(key.clone()) {
             Ok(mut subscription) => {
@@ -342,6 +347,7 @@ impl Render for CheckinView {
             self.reconcile_selection();
         }
         self.fill_account_credentials(window, cx);
+        self.read_visible_history(cx);
         self.render_workbench(window, cx)
     }
 }

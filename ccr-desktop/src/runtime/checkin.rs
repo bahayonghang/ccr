@@ -5,6 +5,7 @@ use ccr_app::environments::EnvironmentPolicy;
 use ccr_app::runtime::EnvironmentId;
 
 pub mod history;
+pub use history::*;
 mod operations;
 pub use operations::*;
 
@@ -98,7 +99,6 @@ pub struct CheckinData {
     pub providers: Vec<CheckinProviderRow>,
     pub balances: SavedBalances,
     pub valid_waf_providers: std::collections::BTreeSet<String>,
-    pub records: Vec<RecordSummary>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -206,7 +206,6 @@ fn project_data(
         providers,
         balances: summary,
         valid_waf_providers: Default::default(),
-        records: Vec::new(),
     }
 }
 
@@ -233,19 +232,10 @@ fn read_connection(conn: &rusqlite::Connection) -> Result<CheckinSnapshot, Check
             }
         }
     }
-    let records = checkin_repo::get_all_records(&tx, 20).map_err(|_| CheckinError::Storage)?;
     let cached = checkin_repo::valid_waf_provider_ids(&tx).map_err(|_| CheckinError::Storage)?;
     tx.commit().map_err(|_| CheckinError::Storage)?;
     let mut data = project_data(accounts, providers, balances);
     data.valid_waf_providers = cached.into_iter().collect();
-    data.records = records
-        .into_iter()
-        .map(|r| RecordSummary {
-            account_id: r.account_id,
-            status: r.status,
-            at: r.checked_in_at.to_rfc3339(),
-        })
-        .collect();
     Ok(CheckinSnapshot::Accounts(data))
 }
 

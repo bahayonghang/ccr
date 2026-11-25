@@ -8,7 +8,6 @@ use gpui_kit::component::{
     input::{Input, InputState},
 };
 use gpui_kit::{AppContext, Entity};
-use inspection::InspectionUi;
 use std::collections::BTreeSet;
 
 pub(super) struct ExtendedUi {
@@ -20,7 +19,6 @@ pub(super) struct ExtendedUi {
     enter_confirmation: bool,
     focus: FocusHandle,
     clear_after: bool,
-    inspection: InspectionUi,
 }
 impl CheckinView {
     pub(super) fn open_extended(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -33,7 +31,6 @@ impl CheckinView {
             enter_confirmation: false,
             focus: cx.focus_handle(),
             clear_after: false,
-            inspection: InspectionUi::new(window, cx),
         });
         self.observe(cx);
         self.operation = self.services.checkin_operation_state();
@@ -339,9 +336,9 @@ impl CheckinView {
                 .child(semantics::button(
                     Button::new("checkin-today-stats")
                         .label(text(cx, "Today's statistics", "今日统计"))
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            this.start(Operation::Extended(ExtendedCommand::Stats), cx)
-                        })),
+                        .on_click(
+                            cx.listener(|this, _, window, cx| this.open_records(None, window, cx)),
+                        ),
                     blocked,
                     false,
                     cx,
@@ -385,24 +382,27 @@ impl CheckinView {
                     .flex()
                     .flex_wrap()
                     .gap(px(theme::CONTROL_GAP))
-                    .child(semantics::button(
-                        Button::new("checkin-history")
-                            .label(text(cx, "Saved balance history", "已保存余额历史"))
-                            .on_click(cx.listener(move |this, _, _, cx| {
-                                this.start(
-                                    Operation::Extended(ExtendedCommand::Balances(balance.clone())),
-                                    cx,
-                                )
-                            })),
-                        blocked,
-                        false,
-                        cx,
-                    ))
+                    .child(
+                        self.origin_control(
+                            "checkin-history",
+                            semantics::button(
+                                Button::new("checkin-history")
+                                    .label(text(cx, "Saved balance history", "已保存余额历史"))
+                                    .on_click(cx.listener(move |this, _, _, cx| {
+                                        this.open_account_detail(&balance, "checkin-history", cx);
+                                        this.history.show_samples = true;
+                                    })),
+                                blocked,
+                                false,
+                                cx,
+                            ),
+                        ),
+                    )
                     .child(semantics::button(
                         Button::new("checkin-cdk-records")
                             .label(text(cx, "Check-in records", "签到记录"))
-                            .on_click(cx.listener(move |this, _, _, cx| {
-                                this.start(Operation::Records(records.clone()), cx)
+                            .on_click(cx.listener(move |this, _, window, cx| {
+                                this.open_records(Some(records.clone()), window, cx)
                             })),
                         blocked,
                         false,
@@ -624,19 +624,6 @@ impl CheckinView {
             return children;
         };
         let blocked = self.operation.busy || editor.pending.is_some();
-        if let Some(snapshot) = &self.operation.snapshot {
-            for record in &snapshot.records {
-                children.push(
-                    (format!(
-                        "{} · {} · {}",
-                        record.account_id,
-                        record.at,
-                        super::operations::status(cx, record.status)
-                    ))
-                    .into_any_element(),
-                );
-            }
-        }
         if let Some(report) = self.operation.extended.clone() {
             match report.as_ref() {
                 ExtendedReport::Inspection(report) => {
@@ -658,38 +645,6 @@ impl CheckinView {
                     }
                 }
                 ExtendedReport::Deleted { .. } => {}
-                ExtendedReport::Stats {
-                    total,
-                    checked,
-                    pending,
-                    failed,
-                } => {
-                    children.push(
-                        (format!(
-                            "{}: {total}; {}: {checked}; {}: {pending}; {}: {failed}",
-                            text(cx, "Enabled accounts", "启用账户"),
-                            text(cx, "Checked in", "已签到"),
-                            text(cx, "Pending", "待签到"),
-                            text(cx, "Failed", "失败")
-                        ))
-                        .into_any_element(),
-                    );
-                }
-                ExtendedReport::Balances(value) => {
-                    for row in &value.history {
-                        children.push(
-                            (format!(
-                                "{} · {} {} · {} {}",
-                                row.recorded_at,
-                                row.remaining_quota,
-                                row.currency,
-                                text(cx, "Used", "已用"),
-                                row.used_quota
-                            ))
-                            .into_any_element(),
-                        );
-                    }
-                }
                 ExtendedReport::Waf(rows) => {
                     for row in rows {
                         children.push(
