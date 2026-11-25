@@ -883,8 +883,17 @@ impl CheckinView {
                 ExtendedReport::Imported(receipt) => {
                     if self.tab == CheckinTab::Transfer {
                         let count = &receipt.counts;
+                        let title = if count.success {
+                            text(cx, "Last successful import", "上次成功导入")
+                        } else {
+                            text(
+                                cx,
+                                "Last import stopped before completion",
+                                "上次导入未完成",
+                            )
+                        };
                         let summary = format!(
-                            "{} {} · {} {} · {} {} · {} {}\n{}  backups/{}\n{}",
+                            "{title}\n{} {} · {} {} · {} {} · {} {}\n{}  backups/{}\n{}",
                             text(cx, "Providers imported", "已导入提供商"),
                             count.providers_imported,
                             text(cx, "Providers skipped", "跳过提供商"),

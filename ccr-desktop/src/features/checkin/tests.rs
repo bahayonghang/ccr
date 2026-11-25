@@ -676,6 +676,28 @@ fn transfer_preview_cancel_and_commit_use_the_reviewed_source(cx: &mut TestAppCo
         assert!(summary.contains("Accounts imported 1"));
         assert!(summary.contains("pre-import-"));
         assert!(!summary.contains("transfer-secret-sentinel"));
+        let invalid = root.path().join("invalid-source.json");
+        std::fs::write(&invalid, b"{}").unwrap();
+        w.click("checkin-transfer-path", cx);
+        w.press("ctrl-a", cx);
+        w.input(invalid.to_str().unwrap(), cx);
+        w.render_frame(cx);
+        w.click("checkin-import-preview", cx);
+    })
+    .unwrap();
+    wait(cx, handle, |w| w.try_find("checkin-import-error").is_some());
+    cx.update_window(handle, |_, w, cx| {
+        assert!(
+            w.find("checkin-import-error")
+                .label()
+                .unwrap()
+                .contains("Import rejected")
+        );
+        let receipt = w.find("checkin-import-receipt");
+        let label = receipt.label().unwrap();
+        assert!(label.starts_with("Last successful import"));
+        assert!(label.contains("Accounts imported 1") && label.contains("backups/pre-import-"));
+        assert!(w.try_find("checkin-import-skip").is_none());
         w.click("checkin-tab-accounts", cx);
     })
     .unwrap();
