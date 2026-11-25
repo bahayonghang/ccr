@@ -4,6 +4,7 @@
 use ccr_app::environments::EnvironmentPolicy;
 use ccr_app::runtime::EnvironmentId;
 
+pub mod history;
 mod operations;
 pub use operations::*;
 
