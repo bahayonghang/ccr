@@ -1,0 +1,174 @@
+{
+  "commit": "53a5dc11b8f2aef11447d0649b171dedce021425",
+  "exe_sha256": "6f459906c118fded723439ccf9afea2db06d82af2d437773670bb4e87fcca81a",
+  "fixture": "checkin-hcbsaz29",
+  "fixture_marker": "ccr-gpui-checkin-fixture-v1",
+  "fixture_script_sha256": "1fb09fa126264ead0900b1fa00ab185321c2517fe5c371cc6bcdda16b9f43e23",
+  "accounts_json_sha256": "8a70a0dfe2aac14a033db16bf7db2674d78962a35c869d6e3ce138dccaabf060",
+  "loopback": [
+    "http://127.0.0.1:5749/demo",
+    "http://127.0.0.1:5749/paused"
+  ],
+  "account_ids": {
+    "Disabled": "fixture-104",
+    "Expired": "fixture-103",
+    "Paused provider": "fixture-105",
+    "Ready": "fixture-101",
+    "Today": "fixture-102"
+  },
+  "confirmations": [
+    "刷新所选余额 · 2 个账户\nReady · Check-in demo (fixture-101)\nToday · Check-in demo (fixture-102)",
+    "签到所选 · 1 个账户\nExpired · Check-in demo (fixture-103)",
+    "一键签到 · 4 个账户\nReady · Check-in demo (fixture-101)\nToday · Check-in demo (fixture-102)\nExpired · Check-in demo (fixture-103)\nPaused provider · Paused demo (fixture-105)"
+  ],
+  "checks": [
+    {
+      "step": "imported five accounts without provider traffic"
+    },
+    {
+      "step": "selected balance refresh stored both, immediate second run sent no requests and preserved timestamps",
+      "snapshots": [
+        [
+          "Ready",
+          "2026-11-25T13:07:14.523916300+00:00",
+          1.0,
+          "USD",
+          "2026-11-25T13:07:14.523916300+00:00"
+        ],
+        [
+          "Today",
+          "2026-11-25T13:07:15.128186+00:00",
+          1.0,
+          "USD",
+          "2026-11-25T13:07:15.128186+00:00"
+        ]
+      ],
+      "requests": [
+        [
+          "GET",
+          "Ready",
+          "200"
+        ],
+        [
+          "GET",
+          "Today",
+          "200"
+        ]
+      ]
+    },
+    {
+      "step": "selected check-in contacted only Expired",
+      "requests": [
+        [
+          "GET",
+          "Expired",
+          "401"
+        ],
+        [
+          "POST",
+          "Expired",
+          "401"
+        ]
+      ]
+    },
+    {
+      "step": "all-enabled check-in survived navigation; filtered list and busy controls did not duplicate requests",
+      "busy_disabled": true,
+      "requests": [
+        [
+          "GET",
+          "Ready",
+          "200"
+        ],
+        [
+          "POST",
+          "Ready",
+          "200"
+        ],
+        [
+          "GET",
+          "Today",
+          "200"
+        ],
+        [
+          "GET",
+          "Expired",
+          "401"
+        ],
+        [
+          "POST",
+          "Expired",
+          "401"
+        ]
+      ],
+      "result_labels": [
+        "成功 · Ready · Check-in demo (fixture-101) · Fixture check-in saved",
+        "今日已签到 · Today · Check-in demo (fixture-102) · 今日已签到（远程预查）",
+        "失败 · Expired · Check-in demo (fixture-103) · cookie_expired · API error: HTTP 401: Unauthorized",
+        "跳过 · Paused provider · Paused demo (fixture-105) · provider_disabled · 提供商已禁用，跳过签到"
+      ]
+    },
+    {
+      "step": "editor loaded the expected account",
+      "name": "Expired"
+    },
+    {
+      "step": "editor loaded the expected account",
+      "name": "Expired"
+    },
+    {
+      "step": "Expired editor returns to its source result; one Enter reopens it; ordinary reread does not start a new job",
+      "before_y": 523,
+      "after_y": 523
+    }
+  ],
+  "requests": [
+    [
+      "GET",
+      "Ready",
+      "200"
+    ],
+    [
+      "GET",
+      "Today",
+      "200"
+    ],
+    [
+      "GET",
+      "Expired",
+      "401"
+    ],
+    [
+      "POST",
+      "Expired",
+      "401"
+    ],
+    [
+      "GET",
+      "Ready",
+      "200"
+    ],
+    [
+      "POST",
+      "Ready",
+      "200"
+    ],
+    [
+      "GET",
+      "Today",
+      "200"
+    ],
+    [
+      "GET",
+      "Expired",
+      "401"
+    ],
+    [
+      "POST",
+      "Expired",
+      "401"
+    ]
+  ],
+  "uia_observations": 50,
+  "app_log_bytes": 0
+}
