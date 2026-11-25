@@ -199,6 +199,7 @@ impl CheckinView {
             EditorKind::Provider(_) => 7,
             EditorKind::Account(_) => 4,
         };
+        let mut account_name = None;
         let mut enabled = true;
         let mut provider = self.provider_filter.clone().or_else(|| {
             self.data()
@@ -216,6 +217,7 @@ impl CheckinView {
             }
             EditorKind::Account(Some(id)) => {
                 if let Some(a) = self.rows().iter().find(|a| &a.id == id) {
+                    account_name = Some(a.name.clone());
                     enabled = a.enabled;
                     provider = Some(a.provider_id.clone());
                 }
@@ -239,6 +241,9 @@ impl CheckinView {
             .and_then(|editor| editor.fields.first())
         {
             use gpui_kit::Focusable;
+            if let Some(name) = account_name {
+                field.update(cx, |state, cx| state.set_value(name, window, cx));
+            }
             window.focus(&field.read(cx).focus_handle(cx), cx);
         }
         self.load_account_credentials(cx);

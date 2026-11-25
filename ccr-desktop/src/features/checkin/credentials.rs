@@ -316,13 +316,14 @@ mod tests {
             })
             .unwrap()
         });
+        cx.update(|cx| view.update(cx, |this, cx| this.refresh(cx)));
+        cx.wait_for(handle, Duration::from_secs(10), |_, cx| {
+            !view.read(cx).rows().is_empty()
+        })
+        .await;
         cx.update_window(handle, |_, window, cx| {
             view.update(cx, |this, cx| {
-                this.edit(
-                    operations::EditorKind::Account(Some(id.clone())),
-                    window,
-                    cx,
-                )
+                this.open_account_credentials(&id, "edit-account", window, cx)
             });
         })
         .unwrap();
@@ -335,6 +336,12 @@ mod tests {
             assert_eq!(
                 view.read(cx).editor.as_ref().unwrap().credentials.failed,
                 Some(OperationError::CryptoKeyUnavailable)
+            );
+            assert_eq!(
+                view.read(cx).editor.as_ref().unwrap().fields[0]
+                    .read(cx)
+                    .value(),
+                "original"
             );
             let warning = window.find("checkin-credential-read-error");
             assert!(warning.label().unwrap().contains("Restore it"));
