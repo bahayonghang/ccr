@@ -120,12 +120,12 @@ pub(super) enum Confirmation {
 
 /// One favorite or recent row as the list shows it.
 #[derive(Clone)]
-enum Record {
+pub(super) enum Record {
     Favorite(FavoriteRow),
     History(HistoryRow),
 }
 impl Record {
-    fn key(&self) -> String {
+    pub(super) fn key(&self) -> String {
         match self {
             Self::Favorite(row) => format!("favorite:{}", row.id),
             Self::History(row) => format!("history:{}", row.id),
@@ -165,7 +165,7 @@ pub(super) struct Records {
     confirmation_return: Option<FocusHandle>,
     /// The list panel; focus stays here after a confirmed removal.
     pub(super) region_focus: FocusHandle,
-    cursor: Option<String>,
+    pub(super) cursor: Option<String>,
 }
 
 impl Records {
@@ -363,7 +363,7 @@ impl JobsView {
         self.observe_mutation(result, cx);
     }
 
-    fn visible_records(&self, cx: &App) -> Vec<Record> {
+    pub(super) fn visible_records(&self, cx: &App) -> Vec<Record> {
         let query = self.search.read(cx).value();
         let snapshot = &self.records.snapshot;
         match self.collection {
@@ -428,6 +428,7 @@ impl JobsView {
         self.loaded_args = args.clone();
         self.args
             .update(cx, |state, cx| state.set_value(args, window, cx));
+        self.reveal_work(window, cx);
         cx.notify();
     }
 

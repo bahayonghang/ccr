@@ -283,7 +283,7 @@ impl JobsView {
         )
     }
 
-    fn list_panel(&self, cx: &mut Context<Self>) -> AnyElement {
+    fn list_panel(&self, narrow: bool, cx: &mut Context<Self>) -> AnyElement {
         let counts = self.catalog.counts();
         let rows = self.visible(cx);
         let search = badge::search_field(
@@ -332,9 +332,34 @@ impl JobsView {
         let mut panel = reading_panel("command-list", cx)
             .track_focus(&self.records.region_focus)
             .tab_stop(false)
-            .flex_1()
-            .child(self.collection_bar(cx))
-            .child(search);
+            .flex_1();
+        if narrow && self.busy {
+            let cmd = self
+                .snapshot
+                .as_ref()
+                .map(|snapshot| snapshot.command.as_str())
+                .unwrap_or(&self.selected);
+            let banner_label = if is_chinese(cx) {
+                format!("正在运行 ccr {cmd} · 查看账本")
+            } else {
+                format!("Running ccr {cmd} · View ledger")
+            };
+            let tone = theme::tone_colors(Tone::Info, cx.theme().mode);
+            panel = panel.child(semantics::ghost_button(
+                Button::new("command-running-banner")
+                    .label(banner_label)
+                    .w_full()
+                    .text_color(tone.ink)
+                    .bg(tone.fill)
+                    .border_1()
+                    .border_color(tone.edge)
+                    .on_click(cx.listener(|this, _, window, cx| this.reveal_work(window, cx))),
+                false,
+                false,
+                cx,
+            ));
+        }
+        panel = panel.child(self.collection_bar(cx)).child(search);
         if self.collection == Collection::Catalog {
             let body = if rows.is_empty() {
                 self.empty_list(counts.all == 0, cx)
@@ -483,6 +508,7 @@ impl JobsView {
             .gap(px(theme::CONTROL_GAP))
             .child(semantics::ghost_button(
                 Button::new("command-help")
+                    .icon(gpui_kit::assets::IconName::CircleQuestionMark)
                     .label(text(cx, "Command help", "命令帮助"))
                     .on_click(cx.listener(|this, _, _, cx| this.help(cx))),
                 self.busy || entry.is_none(),
@@ -552,11 +578,22 @@ impl JobsView {
                             .font_weight(FontWeight::MEDIUM)
                             .child(text(cx, "Arguments", "参数")),
                     )
-                    .child(Input::new(&self.args).id("command-args").aria_label(text(
-                        cx,
-                        "Arguments",
-                        "参数",
-                    ))),
+                    .child(
+                        div()
+                            .capture_key_down(cx.listener(|this, event: &KeyDownEvent, _, cx| {
+                                if event.keystroke.key == "enter"
+                                    && event.keystroke.modifiers.control
+                                {
+                                    cx.stop_propagation();
+                                    this.run_if_ready(cx);
+                                }
+                            }))
+                            .child(Input::new(&self.args).id("command-args").aria_label(text(
+                                cx,
+                                "Arguments",
+                                "参数",
+                            ))),
+                    ),
             );
         if model::tokenize(&draft).is_err() {
             let line = text(
@@ -601,7 +638,7 @@ impl JobsView {
                     .gap(px(theme::SELECTION_RADIUS + 2.))
                     .text_color(ink)
                     .child(
-                        Icon::new(IconName::Info)
+                        Icon::new(gpui_kit::assets::IconName::Lock)
                             .size(px(theme::NAV_ICON_SIZE))
                             .text_color(ink),
                     )
@@ -1138,10 +1175,8 @@ fn catalog_row(
 impl Render for JobsView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let viewport = window.viewport_size().width;
+        let split = viewport >= px(theme::SPLIT_WIDTH);
         let header = self.header(cx);
-        let list = self.list_panel(cx);
-        let editor = self.editor_panel(cx);
-        let ledger = self.ledger_panel(cx);
         let warning = self.requests.is_fixture().then(|| {
             div()
                 .id("jobs-fixture-warning")
@@ -1156,6 +1191,93 @@ impl Render for JobsView {
                     "合成进程生命周期验证，不执行真实 CCR 命令",
                 ))
         });
+        let workspace = if split {
+            let list = self.list_panel(false, cx);
+            let editor = self.editor_panel(cx);
+            let ledger = self.ledger_panel(cx);
+            div()
+                .id("command-workspace")
+                .test_support()
+                .flex()
+                .flex_1()
+                .min_h_0()
+                .gap(px(theme::SECTION_GAP))
+                .child(
+                    div()
+                        .flex_shrink_0()
+                        .w(px(list_width(viewport)))
+                        .min_h_0()
+                        .flex()
+                        .flex_col()
+                        .child(list),
+                )
+                .child(
+                    div()
+                        .id("command-work-column")
+                        .test_support()
+                        .track_focus(&self.work_focus)
+                        .tab_stop(false)
+                        .flex_1()
+                        .min_w_0()
+                        .min_h_0()
+                        .flex()
+                        .flex_col()
+                        .gap(px(theme::SECTION_GAP))
+                        .child(editor)
+                        .child(ledger),
+                )
+        } else if self.narrow_detail {
+            let editor = self.editor_panel(cx);
+            let ledger = self.ledger_panel(cx);
+            let back = semantics::ghost_button(
+                Button::new("command-back-to-list")
+                    .icon(IconName::ArrowLeft)
+                    .label(text(cx, "Back to list", "返回列表"))
+                    .on_click(cx.listener(|this, _, window, cx| this.back_to_list(window, cx))),
+                false,
+                false,
+                cx,
+            );
+            div()
+                .id("command-workspace")
+                .test_support()
+                .flex()
+                .flex_1()
+                .min_h_0()
+                .child(
+                    div()
+                        .id("command-work-column")
+                        .test_support()
+                        .track_focus(&self.work_focus)
+                        .tab_stop(false)
+                        .flex_1()
+                        .min_w_0()
+                        .min_h_0()
+                        .flex()
+                        .flex_col()
+                        .gap(px(theme::CONTROL_GAP))
+                        .child(div().flex().items_center().child(back))
+                        .child(editor)
+                        .child(ledger),
+                )
+        } else {
+            let list = self.list_panel(true, cx);
+            div()
+                .id("command-workspace")
+                .test_support()
+                .flex()
+                .flex_1()
+                .min_h_0()
+                .child(
+                    div()
+                        .flex_1()
+                        .min_w_0()
+                        .min_h_0()
+                        .flex()
+                        .flex_col()
+                        .child(list),
+                )
+        };
         div()
             .id("native-command-workbench")
             .test_support()
@@ -1166,36 +1288,15 @@ impl Render for JobsView {
             .p(px(theme::content_padding(viewport)))
             .gap(px(theme::SECTION_GAP))
             .text_color(cx.theme().foreground)
+            .on_key_down(cx.listener(|this, event: &KeyDownEvent, window, cx| {
+                if event.keystroke.key == "f6"
+                    && this.focus_region(event.keystroke.modifiers.shift, window, cx)
+                {
+                    cx.stop_propagation();
+                }
+            }))
             .child(header)
             .children(warning)
-            .child(
-                div()
-                    .id("command-workspace")
-                    .test_support()
-                    .flex()
-                    .flex_1()
-                    .min_h_0()
-                    .gap(px(theme::SECTION_GAP))
-                    .child(
-                        div()
-                            .flex_shrink_0()
-                            .w(px(list_width(viewport)))
-                            .min_h_0()
-                            .flex()
-                            .flex_col()
-                            .child(list),
-                    )
-                    .child(
-                        div()
-                            .flex_1()
-                            .min_w_0()
-                            .min_h_0()
-                            .flex()
-                            .flex_col()
-                            .gap(px(theme::SECTION_GAP))
-                            .child(editor)
-                            .child(ledger),
-                    ),
-            )
+            .child(workspace)
     }
 }

@@ -45,7 +45,10 @@ pub struct JobsView {
     /// Argument text as it was when the command was loaded.
     loaded_args: String,
     list_focus: FocusHandle,
+    work_focus: FocusHandle,
     list_scroll: UniformListScrollHandle,
+    narrow_detail: bool,
+    focus_generation: u64,
     snapshot: Option<Snapshot>,
     job_id: Option<String>,
     task: Option<Task<()>>,
@@ -63,6 +66,7 @@ impl JobsView {
     }
     pub fn clear_environment(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.suspend(cx);
+        self.narrow_detail = false;
         self.job_id = None;
         self.snapshot = None;
         self.message = None;
@@ -112,7 +116,10 @@ impl JobsView {
             args,
             loaded_args: String::new(),
             list_focus: cx.focus_handle(),
+            work_focus: cx.focus_handle().tab_stop(false),
             list_scroll: UniformListScrollHandle::new(),
+            narrow_detail: false,
+            focus_generation: 0,
             snapshot: None,
             job_id: None,
             task: None,
@@ -125,7 +132,109 @@ impl JobsView {
         }
     }
     pub fn focus_main(&self, window: &mut Window, cx: &mut Context<Self>) {
-        window.focus(&self.list_focus, cx);
+        if window.viewport_size().width < gpui_kit::px(crate::theme::SPLIT_WIDTH)
+            && self.narrow_detail
+        {
+            self.focus_work(window, cx);
+        } else {
+            self.focus_list(window, cx);
+        }
+    }
+    pub fn focus_main_end(&self, window: &mut Window, cx: &mut Context<Self>) {
+        if window.viewport_size().width >= gpui_kit::px(crate::theme::SPLIT_WIDTH)
+            || self.narrow_detail
+        {
+            self.focus_work(window, cx);
+        } else {
+            self.focus_list(window, cx);
+        }
+    }
+    pub fn focus_list(&self, window: &mut Window, cx: &mut Context<Self>) {
+        let has_rows = match self.collection {
+            Collection::Catalog => !self.visible(cx).is_empty(),
+            Collection::Favorites | Collection::Recent => !self.visible_records(cx).is_empty(),
+        };
+        if has_rows {
+            window.focus(&self.list_focus, cx);
+        } else {
+            window.focus(&self.records.region_focus, cx);
+            window.focus_next(cx);
+        }
+    }
+    pub fn focus_work(&self, window: &mut Window, cx: &mut Context<Self>) {
+        window.focus(&self.work_focus, cx);
+        window.focus_next(cx);
+    }
+    /// Handles F6 / Shift+F6 inside wide split layout (list <-> work column).
+    /// Returns true when focus moved within the page; false lets the shell move
+    /// to navigation or the status bar.
+    pub fn focus_region(
+        &self,
+        backward: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> bool {
+        if window.viewport_size().width < gpui_kit::px(crate::theme::SPLIT_WIDTH) {
+            return false;
+        }
+        let in_list = self.records.region_focus.contains_focused(window, cx);
+        let in_work = self.work_focus.contains_focused(window, cx);
+        if !backward && in_list {
+            self.focus_work(window, cx);
+            true
+        } else if backward && in_work {
+            self.focus_list(window, cx);
+            true
+        } else {
+            false
+        }
+    }
+    pub(super) fn reveal_work(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if window.viewport_size().width >= gpui_kit::px(crate::theme::SPLIT_WIDTH) {
+            return;
+        }
+        self.narrow_detail = true;
+        self.focus_generation += 1;
+        let (view, guard) = (cx.weak_entity(), self.focus_generation);
+        window.on_next_frame(move |window, cx| {
+            let _ = view.update(cx, |this, cx| {
+                if this.focus_generation != guard || !this.narrow_detail {
+                    return;
+                }
+                this.focus_work(window, cx);
+            });
+        });
+        cx.notify();
+    }
+    pub(super) fn back_to_list(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.narrow_detail = false;
+        let row = match self.collection {
+            Collection::Catalog => self
+                .cursor
+                .as_deref()
+                .and_then(|name| self.visible(cx).iter().position(|entry| *entry == name)),
+            Collection::Favorites | Collection::Recent => {
+                self.records.cursor.as_deref().and_then(|key| {
+                    self.visible_records(cx)
+                        .iter()
+                        .position(|row| row.key() == key)
+                })
+            }
+        };
+        if let Some(index) = row {
+            self.list_scroll.scroll_to_item(index, ScrollStrategy::Top);
+        }
+        self.focus_generation += 1;
+        let (view, guard) = (cx.weak_entity(), self.focus_generation);
+        window.on_next_frame(move |window, cx| {
+            let _ = view.update(cx, |this, cx| {
+                if this.focus_generation != guard || this.narrow_detail {
+                    return;
+                }
+                this.focus_list(window, cx);
+            });
+        });
+        cx.notify();
     }
     pub fn open(&mut self, cx: &mut Context<Self>) {
         self.activate_records(cx);
@@ -136,6 +245,7 @@ impl JobsView {
         self.suspend_records();
         self.task = None;
         self.generation += 1;
+        self.focus_generation += 1;
         self.busy = false;
         cx.notify();
     }
@@ -308,7 +418,18 @@ impl JobsView {
             self.args
                 .update(cx, |state, cx| state.set_value("", window, cx));
         }
+        self.reveal_work(window, cx);
         cx.notify();
+    }
+    fn run_if_ready(&mut self, cx: &mut Context<Self>) {
+        let draft = self.args.read(cx).value().to_string();
+        if self
+            .catalog
+            .readiness(&self.selected, &draft, self.busy)
+            .is_ok()
+        {
+            self.start(cx);
+        }
     }
     fn next_key(&mut self) -> RequestKey {
         self.generation += 1;

@@ -1185,3 +1185,293 @@ async fn recent_refreshes_on_terminal_loads_unavailable_records_and_confirms_cle
     .unwrap_or_else(|_| panic!("empty recent"));
     owner.shutdown();
 }
+
+/// Opens the command page alone at a given logical size.
+fn open_at(
+    cx: &mut TestAppContext,
+    services: Services,
+    width: f32,
+    height: f32,
+) -> (AnyWindowHandle, Entity<JobsView>) {
+    cx.update(|cx| {
+        gpui_kit::init(cx);
+        crate::theme::init(cx);
+        gpui_kit::open_window(
+            WindowOptions {
+                window_bounds: Some(WindowBounds::Windowed(gpui_kit::Bounds::new(
+                    gpui_kit::point(px(0.), px(0.)),
+                    size(px(width), px(height)),
+                ))),
+                ..Default::default()
+            },
+            cx,
+            |window, cx| cx.new(|cx| JobsView::new(services, window, cx)),
+        )
+        .unwrap_or_else(|_| panic!("window"))
+    })
+}
+
+#[gpui_kit::test]
+async fn narrow_window_drills_in_restores_focus_shows_running_banner_and_cancels_stale_callbacks(
+    cx: &mut TestAppContext,
+) {
+    cx.executor().allow_parking();
+    let fixture = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
+    let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+
+    // 1. At exact 1200px split width: list and work column both render, no back button.
+    let (wide_handle, _) = open_at(cx, fixture_services(&owner, fixture.path()), 1200., 640.);
+    cx.update_window(wide_handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(window.try_find("command-list").is_some());
+        assert!(window.try_find("command-editor").is_some());
+        assert!(window.try_find("command-ledger").is_some());
+        assert!(window.try_find("command-back-to-list").is_none());
+        let list_w = f32::from(window.find("command-list").bounds().size.width);
+        assert!(
+            (320.0..=400.0).contains(&list_w) && (list_w as i32) % 8 == 0,
+            "wide list width {list_w} must be a multiple of 8 within 320..=400"
+        );
+        window.remove_window();
+    })
+    .unwrap_or_else(|_| panic!("wide 1200"));
+
+    // 2. Below 1200px (960x640): mutually exclusive list -> drill-in work -> back to original row.
+    let services = fixture_services(&owner, fixture.path());
+    let jobs = services.command_jobs.clone();
+    let (handle, view) = open_at(cx, services, 960., 640.);
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        assert!(window.try_find("command-list").is_some());
+        assert!(window.try_find("command-editor").is_none());
+        assert!(window.try_find("command-ledger").is_none());
+        assert!(window.try_find("command-back-to-list").is_none());
+        assert!(window.try_find("command-running-banner").is_none());
+
+        // Drill in by clicking `history`.
+        window.click("command-row:history", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("command-list").is_none());
+        assert!(window.try_find("command-editor").is_some());
+        assert!(window.try_find("command-ledger").is_some());
+        assert!(window.try_find("command-back-to-list").is_some());
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert_eq!(
+            window.find("command-back-to-list").focused(),
+            Some(true),
+            "drill-in moves next-frame focus to first control in work column"
+        );
+
+        // Return to list restores focus to the listbox with the original row selected.
+        window.click("command-back-to-list", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("command-list").is_some());
+        assert!(window.try_find("command-editor").is_none());
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert_eq!(
+            window.find("command-listbox").focused(),
+            Some(true),
+            "Back to list restores focus to the list"
+        );
+        assert_eq!(
+            window.find("command-row:history").selected(),
+            Some(true),
+            "original row stays selected after returning"
+        );
+    })
+    .unwrap_or_else(|_| panic!("narrow drill-in"));
+
+    // 3. Running job + back to list shows focusable status banner that re-opens work column.
+    let admission = jobs
+        .admit(
+            RequestKey {
+                environment: EnvironmentId::Local("fixture".into()),
+                platform: Platform::Claude,
+                generation: 1,
+                request_id: 1,
+            },
+            ccr_app::jobs::policy::CommandExecutionRequest::background(
+                "status".into(),
+                Some(vec!["--json".into()]),
+                None,
+            ),
+        )
+        .unwrap_or_else(|_| panic!("admit"));
+    let job_id = admission.snapshot.job_id.clone();
+    cx.update_window(handle, |_, window, cx| {
+        window.click("command-row:status", cx);
+        view.update(cx, |this, cx| {
+            this.job_id = Some(job_id.clone());
+            this.refresh(cx);
+        });
+        window.render_frame(cx);
+        window.click("command-back-to-list", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("command-list").is_some());
+        let banner = window.find("command-running-banner");
+        assert!(banner.visible());
+        assert!(banner.focused().is_some(), "running banner is focusable");
+        assert!(label(window, "command-running-banner").contains("ccr status"));
+
+        window.click("command-running-banner", cx);
+        window.render_frame(cx);
+        assert!(window.try_find("command-list").is_none());
+        assert!(window.try_find("command-ledger").is_some());
+
+        // 4. Stale focus callback after leaving page (suspend) must NOT steal focus.
+        let outside = cx.focus_handle();
+        window.click("command-back-to-list", cx);
+        view.update(cx, |this, cx| this.suspend(cx));
+        window.focus(&outside, cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert!(
+            outside.is_focused(window),
+            "stale focus callback after suspend must not run"
+        );
+
+        // 5. Stale focus callback after environment switch must NOT steal focus.
+        window.click("command-row:status", cx);
+        view.update(cx, |this, cx| this.clear_environment(window, cx));
+        window.focus(&outside, cx);
+        window.simulate_next_frame(cx);
+        window.render_frame(cx);
+        assert!(
+            outside.is_focused(window),
+            "stale focus callback after clear_environment must not run"
+        );
+        window.remove_window();
+    })
+    .unwrap_or_else(|_| panic!("running banner and stale callbacks"));
+    jobs.abandon(admission.ticket.unwrap_or_else(|| panic!("ticket")));
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+fn ctrl_enter_in_arguments_runs_only_when_command_is_ready(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let fixture = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
+    let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+    let (handle, view) = open(cx, fixture_services(&owner, fixture.path()));
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        // 1. Unclosed quote: Ctrl+Enter must not start.
+        let args = view.read(cx).args.clone();
+        set_input(&args, r#"-t "unclosed"#, window, cx);
+        window.render_frame(cx);
+        window.click("command-args", cx);
+        window.press("ctrl-enter", cx);
+        assert!(view.read(cx).job_id.is_none());
+
+        // 2. Non-runnable command: Ctrl+Enter must not start.
+        window.click("command-filter-dedicated", cx);
+        window.render_frame(cx);
+        window.click("command-row:delete", cx);
+        window.render_frame(cx);
+        window.click("command-args", cx);
+        window.press("ctrl-enter", cx);
+        assert!(view.read(cx).job_id.is_none());
+
+        // 3. Runnable command with valid args: Ctrl+Enter runs it.
+        window.click("command-filter-runnable", cx);
+        window.render_frame(cx);
+        window.click("command-row:status", cx);
+        set_input(&args, "--json", window, cx);
+        window.render_frame(cx);
+        window.click("command-args", cx);
+        window.press("ctrl-enter", cx);
+        let snapshot = view
+            .read(cx)
+            .snapshot
+            .clone()
+            .unwrap_or_else(|| panic!("ctrl-enter should start job"));
+        assert_eq!(snapshot.command, "status");
+        assert_eq!(snapshot.args, ["--json"]);
+        window.remove_window();
+    })
+    .unwrap_or_else(|_| panic!("ctrl-enter"));
+    owner.shutdown();
+}
+
+#[gpui_kit::test]
+async fn f6_region_cycle_covers_command_list_and_work_column(cx: &mut TestAppContext) {
+    cx.executor().allow_parking();
+    let fixture = tempfile::tempdir().unwrap_or_else(|_| panic!("fixture"));
+    let owner = RuntimeOwner::new().unwrap_or_else(|_| panic!("runtime"));
+    let services = fixture_services(&owner, fixture.path());
+    let (handle, shell) = cx.update(|cx| {
+        gpui_kit::init(cx);
+        crate::theme::init(cx);
+        gpui_kit::open_window(
+            WindowOptions {
+                window_bounds: Some(WindowBounds::Windowed(gpui_kit::Bounds::new(
+                    gpui_kit::point(px(0.), px(0.)),
+                    size(px(1280.), px(800.)),
+                ))),
+                ..Default::default()
+            },
+            cx,
+            |window, cx| cx.new(|cx| crate::shell::Shell::new(services, window, cx)),
+        )
+        .unwrap_or_else(|_| panic!("shell window"))
+    });
+    cx.wait_for(handle, std::time::Duration::from_secs(10), |window, _| {
+        window.try_find("nav-commands").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.click("nav-commands", cx);
+    })
+    .unwrap_or_else(|_| panic!("open commands"));
+    cx.wait_for(handle, std::time::Duration::from_secs(10), |window, _| {
+        window.try_find("command-listbox").is_some()
+    })
+    .await;
+    cx.update_window(handle, |_, window, cx| {
+        window.render_frame(cx);
+        // Start from sidebar nav -> F6 -> command list -> F6 -> work column -> F6 -> status.
+        window.click("nav-commands", cx);
+        window.render_frame(cx);
+        let _ = &shell;
+        window.press("f6", cx);
+        assert_eq!(
+            window.find("command-listbox").focused(),
+            Some(true),
+            "first F6 from nav focuses command list"
+        );
+        window.press("f6", cx);
+        assert!(
+            window.find("command-help").focused() == Some(true)
+                || window.find("command-favorite-toggle").focused() == Some(true)
+                || window.find("command-start").focused() == Some(true)
+                || window.find("command-args").focused() == Some(true),
+            "second F6 moves from command list into work column"
+        );
+        window.press("f6", cx);
+        assert!(
+            window.find("command-listbox").focused() != Some(true)
+                && window.find("command-help").focused() != Some(true),
+            "third F6 leaves work column to status bar"
+        );
+        // Backward Shift+F6: status -> work column -> command list -> nav.
+        window.press("shift-f6", cx);
+        assert!(
+            window.find("command-help").focused() == Some(true)
+                || window.find("command-favorite-toggle").focused() == Some(true)
+                || window.find("command-start").focused() == Some(true)
+                || window.find("command-args").focused() == Some(true),
+            "Shift+F6 from status enters work column"
+        );
+        window.press("shift-f6", cx);
+        assert_eq!(
+            window.find("command-listbox").focused(),
+            Some(true),
+            "Shift+F6 from work column returns to command list"
+        );
+        window.remove_window();
+    })
+    .unwrap_or_else(|_| panic!("f6 cycle"));
+    owner.shutdown();
+}

@@ -731,7 +731,19 @@ impl Shell {
                 window.focus(&self.navigation_focus, cx);
                 window.focus_next(cx);
             }
-            1 => self.focus_main(window, cx),
+            1 => {
+                if backward
+                    && self.destination == Destination::Commands
+                    && self.lens == Lens::Primary
+                    && (!self.active_environment.is_ssh()
+                        || self.active_environment.state == environment::ConnectionState::Connected)
+                {
+                    self.jobs
+                        .update(cx, |view, cx| view.focus_main_end(window, cx));
+                } else {
+                    self.focus_main(window, cx);
+                }
+            }
             _ => window.focus(&self.status_focus, cx),
         }
         cx.notify();
